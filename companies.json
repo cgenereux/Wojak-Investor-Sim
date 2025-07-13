@@ -1,0 +1,150 @@
+[
+  {
+    "id": "pharming_labs",
+    "static": {
+      "name": "Pharming Labs",
+      "sector": "Biotech",
+      "founders": [
+        { "name": "Jason Shmitt",  "degree": "BSc", "school": "Stanford" },
+        { "name": "Gale Boetticher","degree": "PhD", "school": "UNM" }
+      ],
+      "ipo_window": { "from": 1990, "to": 1990 }
+    },
+    "base_business": {
+      "revenue_process": {
+        "initial_revenue_usd": { "min": 1000000, "max": 43000000 },
+        "gbm_drift_annual": 0.025,
+        "gbm_volatility_annual": 0.35
+      },
+      "margin_curve": {
+        "start_profit_margin": 0.05,
+        "terminal_profit_margin": 0.26,
+        "years_to_mature": 12
+      },
+      "multiple_curve": {
+        "initial_ps_ratio": 50,
+        "terminal_pe_ratio": 20,
+        "years_to_converge": 10
+      }
+    },
+    "pipeline": [
+      {
+        "id": "cancer_cure",
+        "label": "Pan-cancer Immunotherapy",
+        "full_revenue_usd": 40000000000,
+        "stages": [
+          { "id": "phase_1", "name": "Phase 1 Trials", "duration_days": 730,  "success_prob": 0.29, "value_realization": 0.005 },
+          { "id": "phase_2", "name": "Phase 2 Trials", "duration_days": 1095, "success_prob": 0.37, "depends_on": "phase_1", "value_realization": 0.025 },
+          { "id": "phase_3", "name": "Phase 3 Trials", "duration_days": 1460, "success_prob": 0.56, "depends_on": "phase_2", "value_realization": 0.35 },
+          { "id": "market",   "name": "On Market",      "duration_days": 1,    "success_prob": 0.9, "depends_on": "phase_3", "value_realization": 1.0 }
+        ]
+      }
+    ],
+    "events": [
+      {
+        "id": "trial_fraud",
+        "description": "Falsified drug data discovered",
+        "trigger_prob_per_year": 0.005,
+        "effects": [
+          { "type": "cash_fine",                     "value_usd": 200000000 },
+          { "type": "revenue_multiplier",            "multiplier": 0.9, "duration_days": 730 },
+          { "type": "volatility_multiplier",         "multiplier": 1.5, "duration_days": 365 }
+        ]
+      }
+    ]
+  },
+
+  {
+    "id": "smartmart",
+    "static": {
+      "name": "SmartMart",
+      "sector": "Retail",
+      "founders": [
+        { "name": "Linda Harris", "degree": "MBA", "school": "Harvard" }
+      ],
+      "ipo_window": { "from": 1990, "to": 1990 }
+    },
+    "base_business": {
+      "revenue_process": {
+        "initial_revenue_usd": { "min": 200000000000, "max": 60000000000 },
+        "gbm_drift_annual": 0.13,
+        "gbm_volatility_annual": 0.15
+      },
+      "margin_curve": {
+        "start_profit_margin": 0.03,      
+        "terminal_profit_margin": 0.06,
+        "years_to_mature": 8
+      },
+      "multiple_curve": {
+        "initial_ps_ratio": 0.8,
+        "terminal_pe_ratio": 14,
+        "years_to_converge": 8
+      }
+    },
+    "pipeline": [ ],                   
+    "events":   [ ]                   
+  },
+
+  {
+    "id": "chips_and_such",
+    "static": {
+      "name": "Chips & Such",
+      "sector": "Semiconductor",
+      "founders": [
+        { "name": "Joe Ryan", "degree": "MBA", "school": "Harvard" }
+      ],
+      "ipo_window": { "from": 1993, "to": 1996 }
+    },
+    "base_business": {
+      "revenue_process": {
+        "initial_revenue_usd": { "min": 2000000000, "max": 600000000 },
+        "gbm_drift_annual": 0.31,
+        "gbm_volatility_annual": 0.36
+      },
+      "margin_curve": {
+        "start_profit_margin": 0.03,      
+        "terminal_profit_margin": 0.06,
+        "years_to_mature": 8
+      },
+      "multiple_curve": {
+        "initial_ps_ratio": 10,
+        "terminal_pe_ratio": 14,
+        "years_to_converge": 8
+      }
+    },
+    "pipeline": [ ],                   
+    "events":   [ ]                   
+  },
+
+  {
+    "id": "american_real_estate",
+    "static": {
+      "name": "American Real Estate",
+      "sector": "Real Estate",
+      "founders": [
+        { "name": "Teddy Backus", "degree": "MBA", "school": "UCLA" }
+      ],
+      "ipo_window": { "from": 1993, "to": 1996 }
+    },
+    "base_business": {
+      "revenue_process": {
+        "initial_revenue_usd": { "min": 200000000000, "max": 60000000000 },
+        "gbm_drift_annual": 0.011,
+        "gbm_volatility_annual": 0.05
+      },
+      "margin_curve": {
+        "start_profit_margin": 0.03,      
+        "terminal_profit_margin": 0.06,
+        "years_to_mature": 8
+      },
+      "multiple_curve": {
+        "initial_ps_ratio": 10,
+        "terminal_pe_ratio": 14,
+        "years_to_converge": 8
+      }
+    },
+    "pipeline": [ ],                   
+    "events":   [ ]                   
+  }
+
+]
