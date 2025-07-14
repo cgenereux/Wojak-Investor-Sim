@@ -150,8 +150,10 @@
         .investment-actions {
             display: flex;
             gap: 10px;
-            align-items: center;
-            justify-content: center;
+        }
+        .investment-actions button {
+            flex: 1;
+            min-width: 110px;
         }
         .investment-stats > div {
             margin-bottom: 6px;
@@ -354,7 +356,7 @@
             grid-area: 1 / 2;
         }
         .invest-panel .investment-input {
-            grid-area: 2 / 2;
+            grid-area: 2 / 1 / 3 / 3;  /* Changed from 2 / 2 */
         }
         /* --- END: CSS Change --- */
     </style>
@@ -420,15 +422,13 @@
                     <div class="cash-label">Your Cash: <span id="playerCashDisplay" class="stat-value"></span></div>
                 </div>
                 <div class="investment-actions">
-                    <button id="buyMaxBtn" class="buy-btn">Buy Max</button>
-                    <button id="sellMaxBtn" class="sell-btn">Sell Max</button>
-                </div>
-                
-                <input type="number" id="investmentAmountInput" placeholder="Enter amount" class="investment-input">
-                
-                <div class="investment-actions">
                     <button id="buyBtn" class="buy-btn">Buy</button>
                     <button id="sellBtn" class="sell-btn">Sell</button>
+                </div>
+                <input type="number" id="investmentAmountInput" placeholder="Enter amount" class="investment-input">
+                <div class="investment-actions">
+                    <button id="buyMaxBtn" class="buy-btn">Buy Max</button>
+                    <button id="sellMaxBtn" class="sell-btn">Sell Max</button>
                 </div>
                 <!-- END: HTML Change -->
             </div>
