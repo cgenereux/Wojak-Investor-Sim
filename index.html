@@ -3,13 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Investment Simulator</title>
+    <title>Wojak Investor Sim</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-    <link rel="shortcut icon" type="image/png" href="wojak-1.png"/>
-
+    <link rel="shortcut icon" type="image/png" href="wojaks/standard-wojak.png" id="faviconLink"/>
+    <script src="https://cdn.jsdelivr.net/npm/js-confetti@latest/dist/js-confetti.browser.js"></script>
     <script src="simEngine.js"></script>
+
     <style>
+        .financial-table table {
+            width: 100%; border-collapse: collapse; font-size: 14px;
+        }
+        .financial-table th, .financial-table td {
+            padding: 8px 12px; text-align: right; border-bottom: 1px solid #eee;
+        }
+        .financial-table th {
+            background: #f5f5f5; font-weight: 600;
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -29,7 +39,6 @@
             width: 100%;
             transition: transform 0.4s ease-in-out, opacity 0.4s ease-in-out;
         }
-        /* View Switching Styles */
         #main-view { transform: translateX(0); }
         #detail-view {
             position: absolute; top: 0; left: 0;
@@ -56,8 +65,16 @@
         }
         .net-worth { font-size: 48px; font-weight: 600; color: #00c742; margin-bottom: 5px; letter-spacing: -1.5px; }
         .date { font-size: 18px; color: #555; font-weight: 500; }
-        .cash-display { font-size: 18px; color: #007bff; font-weight: 500; margin-top: 5px; }
-        .breakdown-display { font-size: 14px; color: #666; font-weight: 400; margin-top: 3px; }
+        
+        /* --- START: CSS Change --- */
+        .sub-financial-display {
+            font-size: 14px;
+            color: #666;
+            font-weight: 400;
+            margin-top: 8px;
+        }
+        /* --- END: CSS Change --- */
+        
         .chart-container {
             background: #fdfdfd; border-radius: 12px; padding: 20px;
             height: 400px; position: relative; border: 1px solid #e8e8e8; margin-bottom: 20px;
@@ -73,7 +90,6 @@
         button.speed-active { background: #00c742; color: white; border-color: #00a827; }
         button.speed-active:hover { background: #00a827; }
 
-        /* Portfolio & Company Styles */
         .portfolio, .companies-section { margin-top: 30px; }
         .section-title { font-size: 24px; font-weight: 600; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
         .companies-grid, .portfolio-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; }
@@ -88,28 +104,68 @@
         .company-valuation, .portfolio-value { color: #000; font-weight: 500; }
         .company-sector, .portfolio-name { font-size: 12px; color: #888; margin-top: 4px; font-style: italic; }
 
-        /* Detail View Specific Styles */
         .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .detail-title { font-size: 36px; font-weight: 600; }
         .detail-sector { font-size: 18px; color: #555; }
         #back-btn { background-color: #f0f0f0; }
 
-        /* Investment Panel Styles */
         .investment-panel {
             background: #f8f8f8; border: 1px solid #e0e0e0; border-radius: 8px;
             padding: 20px; margin-top: 20px;
         }
         .investment-panel h3 { font-size: 20px; margin-bottom: 15px; }
-        .investment-stats { display: flex; justify-content: space-around; margin-bottom: 20px; font-size: 16px; }
+        .investment-stats-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 40px;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .stake-label, .cash-label {
+            text-align: center;
+        }
+        .investment-input {
+            flex: 1 1 0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 16px;
+            margin-bottom: 0;
+            height: 40px;
+            align-self: flex-start;
+        }
+        .buy-btn {
+            background-color: #28a745;
+        }
+        .buy-btn:hover {
+            background-color: #218838;
+        }
+        .sell-btn {
+            background-color: #dc3545;
+        }
+        .sell-btn:hover {
+            background-color: #b52a37;
+        }
+        .investment-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+        }
+        .investment-stats > div {
+            margin-bottom: 6px;
+        }
+        .investment-stats > div:last-child {
+            margin-bottom: 0;
+        }
         .stat-value { font-weight: 600; color: #00c742; }
-        .investment-actions { display: flex; gap: 10px; align-items: center; }
         .investment-actions input {
             flex-grow: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px;
         }
         .investment-actions .buy-btn { background-color: #28a745; color: white; }
         .investment-actions .sell-btn { background-color: #dc3545; color: white; }
 
-        /* Banking Modal Styles */
         .banking-modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.5); display: none; z-index: 1000;
@@ -161,6 +217,146 @@
             background: #f0f8ff; border: 1px solid #b3d9ff; border-radius: 6px;
             padding: 15px; font-size: 14px; color: #0056b3;
         }
+
+        /* Pipeline Styles */
+        .pipeline-section h3 { 
+            font-size: 18px; 
+            margin-bottom: 15px; 
+            color: #333;
+        }
+        .pipeline {
+            display: flex;
+            align-items: flex-start; /* Align items to top to handle multi-line labels */
+            justify-content: space-between;
+            position: relative;
+            padding: 20px 12px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .stage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+            width: 80px; /* Give stages a fixed width */
+        }
+        .stage-node {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0; /* Prevent node from shrinking */
+        }
+        .stage.completed .stage-node {
+            background: #22c55e; /* Green for success */
+            color: white;
+            box-shadow: 0 1.5px 3px rgba(34, 197, 94, 0.2);
+        }
+        .stage.failed .stage-node {
+            background: #ef4444; /* Red for failure */
+            color: white;
+            box-shadow: 0 1.5px 3px rgba(239, 68, 68, 0.2);
+        }
+        .stage.incomplete .stage-node {
+            background: #e5e7eb;
+            color: #9ca3af;
+            border: 1.5px solid #d1d5db;
+        }
+        .stage.current .stage-node {
+            background: #f97316; /* Orange for current */
+            color: white;
+            box-shadow: 0 3px 6px rgba(249, 115, 22, 0.3);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+        .stage-label {
+            margin-top: 8px;
+            text-align: center;
+            font-weight: 500;
+            font-size: 12px;
+            max-width: 120px;
+            line-height: 1.3;
+            color: #4b5563;
+        }
+        .stage.completed .stage-label,
+        .stage.current .stage-label {
+            font-weight: 600;
+        }
+        .stage.failed .stage-label {
+            color: #b91c1c;
+            font-weight: 600;
+        }
+        .connector {
+            flex-grow: 1;
+            height: 4px;
+            margin: 0 -1px; /* Overlap slightly with nodes */
+            position: relative;
+            border-radius: 2px;
+            top: 18px; /* Align with center of node */
+        }
+        .connector.completed { background: #22c55e; }
+        .connector.failed { background: #ef4444; }
+        .connector.incomplete { background: #e5e7eb; }
+
+        .no-pipeline {
+            color: #666;
+            font-style: italic;
+            text-align: center;
+            padding: 20px;
+        }
+        .investment-title {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+            text-align: left;
+        }
+        .investment-stats-row {
+            display: flex;
+            gap: 40px;
+            font-size: 16px;
+        }
+        /* --- START: CSS Change --- */
+        .investment-panel {
+            background: #f8f8f8; border: 1px solid #e0e0e0; border-radius: 8px;
+            padding: 20px; margin-top: 20px;
+            display: block; /* Ensure block layout for all by default */
+        }
+        .invest-panel {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            grid-template-rows: auto auto;
+            gap: 10px 15px;
+            align-items: center;
+        }
+        .invest-panel > .investment-actions:nth-of-type(1) {
+            grid-area: 1 / 3;
+        }
+        .invest-panel > .investment-actions:nth-of-type(2) {
+            grid-area: 2 / 3;
+        }
+        .invest-panel .investment-title {
+            grid-area: 1 / 1;
+        }
+        .invest-panel .investment-stats-row {
+            grid-area: 1 / 2;
+        }
+        .invest-panel .investment-input {
+            grid-area: 2 / 2;
+        }
+        /* --- END: CSS Change --- */
     </style>
 </head>
 <body>
@@ -169,12 +365,13 @@
         <div id="main-view" class="view">
             <div class="header">
                 <div class="header-content">
-                    <img src="wojak-1.jpg" alt="Wojak" class="wojak-image">
+                    <img src="wojaks/standard-wojak.png" alt="Wojak" class="wojak-image" id="wojakImage">
                     <div class="financial-info">
                         <div class="net-worth" id="netWorthDisplay">$3,000.00</div>
                         <div class="date" id="currentDateDisplay">1990-01-01</div>
-                        <div class="cash-display" id="cashDisplay">Cash: $3,000.00</div>
-                        <div class="breakdown-display" id="breakdownDisplay">Assets: $3,000 | Liabilities: $0</div>
+                        <!-- START: HTML Change -->
+                        <div class="sub-financial-display" id="subFinancialDisplay"></div>
+                        <!-- END: HTML Change -->
                     </div>
                 </div>
             </div>
@@ -189,7 +386,6 @@
                 <button id="bankBtn">Bank</button>
             </div>
 
-            <!-- Portfolio Section -->
             <div class="portfolio">
                 <h2 class="section-title">My Portfolio</h2>
                 <div id="portfolioList" class="portfolio-list">
@@ -216,18 +412,35 @@
                 <canvas id="companyDetailChart"></canvas>
             </div>
 
-            <!-- Investment Panel -->
-            <div class="investment-panel">
-                <h3>Invest</h3>
-                <div class="investment-stats">
-                    <div>Your Cash: <span id="playerCashDisplay" class="stat-value"></span></div>
-                    <div>Your Stake: <span id="playerStakeDisplay" class="stat-value">$0.00</span></div>
+            <div class="investment-panel invest-panel">
+                <!-- START: HTML Change -->
+                <h3 class="investment-title">Invest</h3>
+                <div class="investment-stats-row">
+                    <div class="stake-label">Your Stake: <span id="playerStakeDisplay" class="stat-value">$0.00</span></div>
+                    <div class="cash-label">Your Cash: <span id="playerCashDisplay" class="stat-value"></span></div>
                 </div>
                 <div class="investment-actions">
-                    <input type="number" id="investmentAmountInput" placeholder="Enter amount">
+                    <button id="buyMaxBtn" class="buy-btn">Buy Max</button>
+                    <button id="sellMaxBtn" class="sell-btn">Sell Max</button>
+                </div>
+                
+                <input type="number" id="investmentAmountInput" placeholder="Enter amount" class="investment-input">
+                
+                <div class="investment-actions">
                     <button id="buyBtn" class="buy-btn">Buy</button>
                     <button id="sellBtn" class="sell-btn">Sell</button>
                 </div>
+                <!-- END: HTML Change -->
+            </div>
+
+            <!-- Pipeline Panel (ADDED) -->
+            <div class="investment-panel" id="pipelineContainer">
+                <!-- The pipeline HTML will be inserted here by JavaScript -->
+            </div>
+
+            <!-- Financial History Panel -->
+            <div class="investment-panel">
+                <div id="financialHistoryContainer"></div>
             </div>
         </div>
     </div>
@@ -274,6 +487,7 @@
     </div>
 
     <script>
+        // --- START: JavaScript Change ---
         // --- DOM Elements ---
         const bodyEl = document.body;
         const netWorthDisplay = document.getElementById('netWorthDisplay');
@@ -290,9 +504,13 @@
         const buyBtn = document.getElementById('buyBtn');
         const sellBtn = document.getElementById('sellBtn');
         const bankBtn = document.getElementById('bankBtn');
-        const cashDisplay = document.getElementById('cashDisplay');
-        const breakdownDisplay = document.getElementById('breakdownDisplay');
-
+        const subFinancialDisplay = document.getElementById('subFinancialDisplay'); // New element
+        const wojakImage = document.getElementById('wojakImage');
+        const faviconLink = document.getElementById('faviconLink');
+        const buyMaxBtn = document.getElementById('buyMaxBtn');
+        const sellMaxBtn = document.getElementById('sellMaxBtn');
+        // --- END: JavaScript Change ---
+    
         // --- Banking Modal Elements ---
         const bankingModal = document.getElementById('bankingModal');
         const closeBankingBtn = document.getElementById('closeBankingBtn');
@@ -303,52 +521,53 @@
         const bankingAmountInput = document.getElementById('bankingAmountInput');
         const borrowBtn = document.getElementById('borrowBtn');
         const repayBtn = document.getElementById('repayBtn');
-
+    
         // --- Game State ---
         let currentDate = new Date('1990-01-01T00:00:00Z');
         let isPaused = false;
         let gameInterval;
-        // `lastQuarterDate` is now managed by `sim`
         let activeCompanyDetail = null;
-
+        let isMillionaire = false;
+        let isBillionaire = false;
+        let isTrillionaire = false;
+        const jsConfetti = new JSConfetti();
+        let currentSpeed = 1;
+        let wasAutoPaused = false; 
+        let isGameReady = false;
+    
         // --- Financial State ---
         let cash = 3000;
         let portfolio = [];
         let netWorth = cash;
         let netWorthHistory = [{ x: currentDate.getTime(), y: netWorth }];
-
+    
         // --- Banking State ---
         let totalBorrowed = 0;
         let lastInterestDate = new Date(currentDate);
-        const ANNUAL_INTEREST_RATE = 0.07; // 7% annually
-
+        const ANNUAL_INTEREST_RATE = 0.07; 
+    
         // --- Global Game Constants ---
-        // INITIAL_PS_RATIO is now defined within simEngine's Company config
-        const GAME_END_YEAR = 2050; // As per concept: "2025 or 2050"
-
-        // `sim` will be the main simulation engine instance
+        const GAME_END_YEAR = 2050;
+    
         let sim;
-        // `companies` will be a reference to sim.companies
         let companies = []; 
-
-        // --- Function to load and process companies from JSON file ---
+    
         async function loadCompaniesData() {
             try {
                 const response = await fetch('companies.json');
                 if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
                 const rawCompanies = await response.json();
-                // SimEngine's Simulation constructor expects the raw company configs
                 return new Simulation(rawCompanies);
             } catch (error) {
                 console.error("Could not load companies data:", error);
                 alert("Failed to load company data. Please ensure 'companies.json' is in the same directory and a local server is running.");
-                return null; // Handle error gracefully
+                return null;
             }
         }
-
+    
         // --- Chart Objects ---
         let netWorthChart, companyDetailChart;
-
+    
         // --- Formatting ---
         const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
         function formatLargeNumber(num) {
@@ -358,10 +577,10 @@
             return currencyFormatter.format(num);
         }
         function formatDate(date) { return date.toISOString().split('T')[0]; }
-
+    
+        // --- START: JavaScript Change ---
         // --- Rendering ---
         function updateDisplay() {
-            // Calculate total assets (cash + portfolio value)
             let totalAssets = cash;
             portfolio.forEach(holding => {
                 const company = companies.find(c => c.name === holding.companyName);
@@ -370,32 +589,41 @@
                 }
             });
             
-            // Green display shows net worth (assets - liabilities) to match the chart
             netWorthDisplay.textContent = currencyFormatter.format(netWorth);
-            netWorthDisplay.style.color = netWorth >= 0 ? '#00c742' : '#dc3545'; // Red if negative
+            netWorthDisplay.style.color = netWorth >= 0 ? '#00c742' : '#dc3545';
             currentDateDisplay.textContent = formatDate(currentDate);
-            cashDisplay.textContent = `Cash: ${currencyFormatter.format(cash)}`;
             
-            breakdownDisplay.textContent = `Assets: ${currencyFormatter.format(totalAssets)} | Liabilities: ${currencyFormatter.format(totalBorrowed)}`;
+            // Update the single display line
+            subFinancialDisplay.textContent = `Cash: ${currencyFormatter.format(cash)} | Assets: ${currencyFormatter.format(totalAssets)} | Liabilities: ${currencyFormatter.format(totalBorrowed)}`;
             
-            // Check for bankruptcy
-            if (netWorth < 0 && totalBorrowed > 0) { // Only bankrupt if negative net worth AND outstanding debt
+            if (netWorth < 0 && totalBorrowed > 0) {
                 endGame("bankrupt");
             }
         }
-
-        function renderCompanies() {
-            companiesGrid.innerHTML = companies.map(company => `
-                <div class="company-box" data-company-name="${company.name}">
-                    <div class="company-name">${company.name}</div>
-                    <div class="company-info">
-                        <div class="company-valuation">Cap: ${formatLargeNumber(company.displayCap)}</div>
-                        <div class="company-sector">${company.sector}</div>
+        // --- END: JavaScript Change ---
+    
+        function renderCompanies(initial = false) {
+            if (initial) {
+                companiesGrid.innerHTML = companies.map(company => `
+                    <div class="company-box" data-company-name="${company.name}">
+                        <div class="company-name">${company.name}</div>
+                        <div class="company-info">
+                            <div class="company-valuation" data-company-cap="${company.name}">Cap: ${formatLargeNumber(company.displayCap)}</div>
+                            <div class="company-sector">${company.sector}</div>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `).join('');
+            } else {
+                // Only update the market cap values
+                companies.forEach(company => {
+                    const capEl = companiesGrid.querySelector(`.company-valuation[data-company-cap="${company.name}"]`);
+                    if (capEl) {
+                        capEl.textContent = `Cap: ${formatLargeNumber(company.displayCap)}`;
+                    }
+                });
+            }
         }
-
+    
         function renderPortfolio() {
             if (portfolio.length === 0) {
                 portfolioList.innerHTML = '';
@@ -417,32 +645,43 @@
                 `;
             }).join('');
         }
-
+    
         // --- Game Logic ---
-
         function updateNetWorth() {
             let totalHoldingsValue = portfolio.reduce((sum, holding) => {
                 const company = companies.find(c => c.name === holding.companyName);
                 return sum + (company ? company.marketCap * holding.unitsOwned : 0);
             }, 0);
-            // Net worth = assets (cash + portfolio) - liabilities (debt)
             netWorth = cash + totalHoldingsValue - totalBorrowed;
             netWorthHistory.push({ x: currentDate.getTime(), y: netWorth });
             if (netWorthHistory.length > 2000) netWorthHistory.shift();
+    
+            if (netWorth >= 1000000 && !isMillionaire) {
+                isMillionaire = true; 
+                wojakImage.src = 'wojaks/suit-wojak.png';
+                jsConfetti.addConfetti({ emojis: ['💰', '💵'], confettiNumber: 150, emojiSize: 30, });
+            }
+            if (netWorth >=  1000000000  && !isBillionaire) {
+                isBillionaire = true;
+                wojakImage.src = 'wojaks/red-suit-wojak.png';
+                jsConfetti.addConfetti({ emojis: ['💎','📀'], confettiNumber: 40, emojiSize: 40, });
+            }
+            if (netWorth >= 1000000000000 && !isTrillionaire) {
+                isTrillionaire = true;
+                wojakImage.src = 'wojaks/purple-suit-wojak.png';
+                jsConfetti.addConfetti({ emojis: ['🌌','🥇','🔮'], confettiNumber: 100, emojiSize: 30, });
+                setTimeout(() => { jsConfetti.addConfetti({ emojis: ['🌌','🥇','🔮'], confettiNumber: 100, emojiSize: 30, }); }, 1000); 
+                setTimeout(() => { jsConfetti.addConfetti({ emojis: ['🌌','🥇','🔮'], confettiNumber: 100, emojiSize: 30, }); }, 2000); 
+            }
         }
-
-        // --- Banking Functions ---
+    
         function calculateInterest() {
             if (totalBorrowed <= 0) return 0;
-            
             const daysSinceLastInterest = (currentDate - lastInterestDate) / (1000 * 60 * 60 * 24);
-            const annualRate = ANNUAL_INTEREST_RATE;
-            const dailyRate = annualRate / 365.25;
-            const interest = totalBorrowed * dailyRate * daysSinceLastInterest;
-            
-            return interest;
+            const dailyRate = ANNUAL_INTEREST_RATE / 365.25;
+            return totalBorrowed * dailyRate * daysSinceLastInterest;
         }
-
+    
         function chargeInterest() {
             const interest = calculateInterest();
             if (interest > 0) {
@@ -450,195 +689,121 @@
                 lastInterestDate = new Date(currentDate);
             }
         }
-
+    
         function getMaxBorrowing() {
-            // Max borrowing is 5x total assets minus current debt
             let totalAssets = cash;
             portfolio.forEach(holding => {
                 const company = companies.find(c => c.name === holding.companyName);
-                if (company) {
-                    totalAssets += company.marketCap * holding.unitsOwned;
-                }
+                if (company) { totalAssets += company.marketCap * holding.unitsOwned; }
             });
             return Math.max(0, totalAssets * 5 - totalBorrowed);
         }
-
+    
         function borrow(amount) {
             amount = parseFloat(amount);
-            if (isNaN(amount) || amount <= 0) {
-                alert("Please enter a valid amount to borrow.");
-                return;
-            }
-            
+            if (isNaN(amount) || amount <= 0) { alert("Please enter a valid amount to borrow."); return; }
             const maxBorrowing = getMaxBorrowing();
-            if (amount > maxBorrowing) {
-                alert(`You can only borrow up to ${currencyFormatter.format(maxBorrowing)}.`);
-                return;
-            }
-            
+            if (amount > maxBorrowing) { alert(`You can only borrow up to ${currencyFormatter.format(maxBorrowing)}.`); return; }
             totalBorrowed += amount;
             cash += amount;
-            
-            updateNetWorth();
-            updateDisplay();
-            updateBankingDisplay();
-            bankingAmountInput.value = '';
+            updateNetWorth(); updateDisplay(); updateBankingDisplay(); bankingAmountInput.value = '';
         }
-
+    
         function repay(amount) {
             amount = parseFloat(amount);
-            if (isNaN(amount) || amount <= 0) {
-                alert("Please enter a valid amount to repay.");
-                return;
-            }
-            
-            if (amount > totalBorrowed) {
-                alert(`You only owe ${currencyFormatter.format(totalBorrowed)}.`);
-                return;
-            }
-            
-            if (amount > cash) {
-                alert("You don't have enough cash to repay this amount.");
-                return;
-            }
-            
+            if (isNaN(amount) || amount <= 0) { alert("Please enter a valid amount to repay."); return; }
+            if (amount > totalBorrowed) { alert(`You only owe ${currencyFormatter.format(totalBorrowed)}.`); return; }
+            if (amount > cash) { alert("You don't have enough cash to repay this amount."); return; }
             totalBorrowed -= amount;
             cash -= amount;
-            
-            updateNetWorth();
-            updateDisplay();
-            updateBankingDisplay();
-            bankingAmountInput.value = '';
+            updateNetWorth(); updateDisplay(); updateBankingDisplay(); bankingAmountInput.value = '';
         }
-
+    
         function updateBankingDisplay() {
             const maxBorrowing = getMaxBorrowing();
-            
             bankingCashDisplay.textContent = currencyFormatter.format(cash);
             bankingCashDisplay.className = `stat-value ${cash >= 0 ? 'positive' : 'negative'}`;
-            
-            // Calculate total assets for banking display
             let totalAssets = cash;
             portfolio.forEach(holding => {
                 const company = companies.find(c => c.name === holding.companyName);
-                if (company) {
-                    totalAssets += company.marketCap * holding.unitsOwned;
-                }
+                if (company) { totalAssets += company.marketCap * holding.unitsOwned; }
             });
-            
             bankingNetWorthDisplay.textContent = currencyFormatter.format(totalAssets);
-            bankingNetWorthDisplay.className = `stat-value positive`; // Always positive assets
-
+            bankingNetWorthDisplay.className = `stat-value positive`;
             currentDebtDisplay.textContent = currencyFormatter.format(totalBorrowed);
-            currentDebtDisplay.className = `stat-value ${totalBorrowed > 0 ? 'negative' : 'positive'}`; // Debt is usually negative connotation
-
+            currentDebtDisplay.className = `stat-value ${totalBorrowed > 0 ? 'negative' : 'positive'}`;
             maxBorrowDisplay.textContent = currencyFormatter.format(maxBorrowing);
         }
-
-        function showBankingModal() {
-            updateBankingDisplay();
-            bankingModal.classList.add('active');
-        }
-
-        function hideBankingModal() {
-            bankingModal.classList.remove('active');
-            bankingAmountInput.value = '';
-        }
-
+    
+        function showBankingModal() { updateBankingDisplay(); bankingModal.classList.add('active'); }
+        function hideBankingModal() { bankingModal.classList.remove('active'); bankingAmountInput.value = ''; }
+    
         function endGame(reason) {
-            isPaused = true;
-            clearInterval(gameInterval);
+            pauseGame();
             let message = "";
-            if (reason === "bankrupt") {
-                message = "GAME OVER! You went bankrupt!";
-            } else if (reason === "timeline_end") {
-                message = `Game Over! You reached ${GAME_END_YEAR}.`;
-            }
+            if (reason === "bankrupt") { message = "GAME OVER! You went bankrupt!"; } 
+            else if (reason === "timeline_end") { message = `Game Over! You reached ${GAME_END_YEAR}.`; }
             alert(`${message}\nFinal Net Worth: ${currencyFormatter.format(netWorth)}`);
-            // For now, let's allow a reload
-            if (confirm("Play again?")) {
-                location.reload();
-            }
+            if (confirm("Play again?")) { location.reload(); }
         }
-
+    
         function gameLoop() {
-            if (isPaused) return;
-
-            // timeline check
-            if (currentDate.getFullYear() >= GAME_END_YEAR) {
-                endGame("timeline_end");
-                return;
-            }
-
-            // advance calendar and simulation
+            if (!isGameReady) return;
+    
+            if (currentDate.getFullYear() >= GAME_END_YEAR) { endGame("timeline_end"); return; }
             currentDate.setDate(currentDate.getDate() + sim.dtDays);
-            sim.tick();          // no arguments, no return flag
-            renderCompanies();   // fresh caps each tick (cheap; throttle later if you like)
-
+            sim.tick(currentDate);
+            
+            if (activeCompanyDetail && activeCompanyDetail.newAnnualData) {
+                document.getElementById('financialHistoryContainer').innerHTML = activeCompanyDetail.getFinancialTableHTML();
+                activeCompanyDetail.newAnnualData = false;
+            }
+            renderCompanies(false); // Only update caps
             chargeInterest();
             updateNetWorth();
-
             updateDisplay();
             renderPortfolio();
             netWorthChart.update();
             if (companyDetailChart) companyDetailChart.update();
-            if (activeCompanyDetail) updateInvestmentPanelStats(activeCompanyDetail);
+            
+            if (activeCompanyDetail) {
+                updateInvestmentPanelStats(activeCompanyDetail);
+                updatePipelineDisplay(activeCompanyDetail); // Update pipeline every tick
+            }
         }
-
-
-        // --- Investment Functions ---
+    
         function buy(companyName, amount) {
             amount = parseFloat(amount);
             if (isNaN(amount) || amount <= 0) { alert("Invalid amount."); return; }
             const company = companies.find(c => c.name === companyName);
             if (!company) return;
-
-            // Check if enough cash.
             if (amount > cash) { alert("Insufficient cash for this purchase."); return; }
-
-            // Ensure company has sufficient marketCap to buy any meaningful units
-            if (company.marketCap < 0.0001) { // Very small threshold
-                alert("This company's valuation is too low to purchase right now.");
-                return;
-            }
-
+            if (company.marketCap < 0.0001) { alert("This company's valuation is too low to purchase right now."); return; }
             cash -= amount;
             const unitsToBuy = amount / company.marketCap;
             let holding = portfolio.find(h => h.companyName === companyName);
             if (holding) { holding.unitsOwned += unitsToBuy; } 
             else { portfolio.push({ companyName: companyName, unitsOwned: unitsToBuy }); }
-            
-            updateNetWorth();
-            updateDisplay();
-            renderPortfolio();
-            updateInvestmentPanel(company);
+            updateNetWorth(); updateDisplay(); renderPortfolio(); updateInvestmentPanel(company);
         }
-
+    
         function sell(companyName, amount) {
             amount = parseFloat(amount);
             if (isNaN(amount) || amount <= 0) { alert("Invalid amount."); return; }
             const company = companies.find(c => c.name === companyName);
             const holding = portfolio.find(h => h.companyName === companyName);
             if (!company || !holding) { alert("You don't own this stock."); return; }
-
             const currentValue = company.marketCap * holding.unitsOwned;
             if (amount > currentValue) { alert("You cannot sell more than you own."); return; }
-
             cash += amount;
             const unitsToSell = (amount / currentValue) * holding.unitsOwned;
             holding.unitsOwned -= unitsToSell;
-
-            if (holding.unitsOwned < 1e-9) { // Use a small epsilon to check for near-zero units due to float precision
+            if (holding.unitsOwned < 1e-9) {
                 portfolio = portfolio.filter(h => h.companyName !== companyName);
             }
-
-            updateNetWorth();
-            updateDisplay();
-            renderPortfolio();
-            updateInvestmentPanel(company);
+            updateNetWorth(); updateDisplay(); renderPortfolio(); updateInvestmentPanel(company);
         }
-
-        // --- View Switching & Detail View Logic ---
+    
         function updateInvestmentPanelStats(company) {
             playerCashDisplay.textContent = currencyFormatter.format(cash);
             const holding = portfolio.find(h => h.companyName === company.name);
@@ -646,41 +811,61 @@
             if (holding) { stakeValue = company.marketCap * holding.unitsOwned; }
             playerStakeDisplay.textContent = currencyFormatter.format(stakeValue);
         }
-
+    
         function updateInvestmentPanel(company) {
             updateInvestmentPanelStats(company);
             investmentAmountInput.value = '';
         }
-
+    
         function showCompanyDetail(company) {
             activeCompanyDetail = company;
             bodyEl.classList.add('detail-active');
             document.getElementById('detailCompanyName').textContent = company.name;
             document.getElementById('detailCompanySector').textContent = company.sector;
             updateInvestmentPanel(company);
-
             const ctx = document.getElementById('companyDetailChart').getContext('2d');
             if (companyDetailChart) { companyDetailChart.destroy(); }
             companyDetailChart = new Chart(ctx, {
-                type: 'line',
-                data: { datasets: [{
-                    label: 'Market Cap', data: company.history, borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)', borderWidth: 2, pointRadius: 0, tension: 0.1, fill: true
-                }]},
-                options: {
-                    responsive: true, maintainAspectRatio: false, animation: { duration: 0 },
-                    plugins: { legend: { display: false } },
-                    scales: { x: { type: 'time', time: { unit: 'year' } }, y: { ticks: { callback: value => formatLargeNumber(value) } } }
-                }
+                type: 'line', data: { datasets: [{ label: 'Market Cap', data: company.history, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderWidth: 2, pointRadius: 0, tension: 0.1, fill: true }]},
+                options: { responsive: true, maintainAspectRatio: false, animation: { duration: 0 }, plugins: { legend: { display: false } }, scales: { x: { type: 'time', time: { unit: 'year' } }, y: { ticks: { callback: value => formatLargeNumber(value) } } } }
             });
+            document.getElementById('financialHistoryContainer').innerHTML = company.getFinancialTableHTML();
+            updatePipelineDisplay(company); // Draw pipeline on view
         }
-
+    
         function hideCompanyDetail() {
             activeCompanyDetail = null;
             bodyEl.classList.remove('detail-active');
             if (companyDetailChart) { companyDetailChart.destroy(); companyDetailChart = null; }
         }
-
+        
+        function pauseGame() {
+            if (isPaused) return; 
+            isPaused = true;
+            clearInterval(gameInterval);
+            togglePauseBtn.textContent = 'Resume';
+        }
+    
+        function resumeGame() {
+            if (!isPaused) return; 
+            isPaused = false;
+            wasAutoPaused = false; 
+            setGameSpeed(currentSpeed);
+            togglePauseBtn.textContent = 'Pause';
+        }
+    
+        function setGameSpeed(speed) {
+            currentSpeed = speed;
+            if (!isPaused) {
+                clearInterval(gameInterval);
+                gameInterval = setInterval(gameLoop, 400 / speed);
+            }
+            Object.values(speedBtns).forEach(btn => btn.classList.remove('speed-active'));
+            if (speed === 0.5) speedBtns.half.classList.add('speed-active');
+            if (speed === 1) speedBtns.normal.classList.add('speed-active');
+            if (speed === 2) speedBtns.double.classList.add('speed-active');
+        }
+    
         // --- Event Listeners ---
         companiesGrid.addEventListener('click', (event) => {
             const companyBox = event.target.closest('.company-box');
@@ -692,13 +877,45 @@
         backBtn.addEventListener('click', hideCompanyDetail);
         buyBtn.addEventListener('click', () => { if (activeCompanyDetail) buy(activeCompanyDetail.name, investmentAmountInput.value); });
         sellBtn.addEventListener('click', () => { if (activeCompanyDetail) sell(activeCompanyDetail.name, investmentAmountInput.value); });
-        togglePauseBtn.addEventListener('click', () => { isPaused = !isPaused; togglePauseBtn.textContent = isPaused ? 'Resume' : 'Pause'; });
-        function setGameSpeed(speed) { clearInterval(gameInterval); gameInterval = setInterval(gameLoop, 400 / speed); Object.values(speedBtns).forEach(btn => btn.classList.remove('speed-active')); if (speed === 0.5) speedBtns.half.classList.add('speed-active'); if (speed === 1) speedBtns.normal.classList.add('speed-active'); if (speed === 2) speedBtns.double.classList.add('speed-active'); }
+
+        // Buy Max: buy as much as possible with available cash
+        buyMaxBtn.addEventListener('click', () => {
+            if (activeCompanyDetail) {
+                const company = activeCompanyDetail;
+                if (company.marketCap > 0.0001) {
+                    buy(company.name, cash);
+                } else {
+                    alert("This company's valuation is too low to purchase right now.");
+                }
+            }
+        });
+        // Sell Max: sell all holdings in this company
+        sellMaxBtn.addEventListener('click', () => {
+            if (activeCompanyDetail) {
+                const company = activeCompanyDetail;
+                const holding = portfolio.find(h => h.companyName === company.name);
+                if (holding && holding.unitsOwned > 0) {
+                    const currentValue = company.marketCap * holding.unitsOwned;
+                    sell(company.name, currentValue);
+                } else {
+                    alert("You don't own any shares of this company.");
+                }
+            }
+        });
+        
+        togglePauseBtn.addEventListener('click', () => { 
+            if (isPaused) {
+                resumeGame();
+            } else {
+                wasAutoPaused = false;
+                pauseGame();
+            }
+        });
+        
         speedBtns.half.addEventListener('click', () => setGameSpeed(0.5));
         speedBtns.normal.addEventListener('click', () => setGameSpeed(1));
         speedBtns.double.addEventListener('click', () => setGameSpeed(2));
-
-        // --- Banking Event Listeners ---
+    
         bankBtn.addEventListener('click', showBankingModal);
         closeBankingBtn.addEventListener('click', hideBankingModal);
         bankingModal.addEventListener('click', (event) => {
@@ -707,36 +924,105 @@
         borrowBtn.addEventListener('click', () => borrow(bankingAmountInput.value));
         repayBtn.addEventListener('click', () => repay(bankingAmountInput.value));
         bankingAmountInput.addEventListener('keypress', (event) => {
-            if (event.key === 'Enter') {
-                if (event.target === bankingAmountInput) {
-                    const amount = bankingAmountInput.value;
-                    if (amount) borrow(amount);
-                }
+            if (event.key === 'Enter' && event.target === bankingAmountInput) {
+                const amount = bankingAmountInput.value;
+                if (amount) borrow(amount);
             }
         });
+    
+        function getPipelineHTML(company) {
+            if (!company.products || company.products.length === 0) {
+                return '<div class="no-pipeline">No product pipeline for this company</div>';
+            }
 
+            let html = '';
+            
+            company.products.forEach(product => {
+                html += `<div class="pipeline-section"><h3>Product Pipeline: ${product.label}</h3>`;
+                html += '<div class="pipeline">';
+                
+                let lastStageSucceeded = true;
+
+                product.stages.forEach((stage, index) => {
+                    let stageClass = 'incomplete';
+                    let nodeContent = index + 1;
+
+                    if (stage.completed) {
+                        if (stage.succeeded) {
+                            stageClass = 'completed';
+                            nodeContent = '✓';
+                        } else {
+                            stageClass = 'failed';
+                            nodeContent = '✗';
+                            lastStageSucceeded = false;
+                        }
+                    } else if (lastStageSucceeded) {
+                        const done = new Set(product.stages.filter(s => s.completed && s.succeeded).map(s => s.id));
+                        const canStart = !stage.depends_on || done.has(stage.depends_on);
+                        if (canStart) {
+                           stageClass = 'current';
+                           nodeContent = '...';
+                        }
+                    }
+                    
+                    html += `
+                        <div class="stage ${stageClass}">
+                            <div class="stage-node">${nodeContent}</div>
+                            <div class="stage-label">${stage.name}</div>
+                        </div>
+                    `;
+                    
+                    if (index < product.stages.length - 1) {
+                        let connectorClass = 'incomplete';
+                        if (stage.completed) {
+                            connectorClass = stage.succeeded ? 'completed' : 'failed';
+                        }
+                        html += `<div class="connector ${connectorClass}"></div>`;
+                    }
+                });
+                
+                html += '</div></div>';
+            });
+            
+            return html;
+        }
+
+        function updatePipelineDisplay(company) {
+            const container = document.getElementById('pipelineContainer');
+            if (container) {
+                container.innerHTML = getPipelineHTML(company);
+            }
+        }
+    
         // --- Initialization ---
         async function init() {
             sim = await loadCompaniesData();
-            if (!sim) {
-                // If loading failed, stop initialization or show an error screen
-                return;
-            }
-
-            // Reference the companies array from the simulation engine
+            if (!sim) { return; }
             companies = sim.companies;
-
+    
             netWorthChart = new Chart(document.getElementById('netWorthChart').getContext('2d'), {
-                type: 'line',
-                data: { datasets: [{ label: 'Net Worth', data: netWorthHistory, borderColor: '#00c742', backgroundColor: 'rgba(0, 199, 66, 0.1)', borderWidth: 2, pointRadius: 0, tension: 0.4, fill: true }] },
+                type: 'line', data: { datasets: [{ label: 'Net Worth', data: netWorthHistory, borderColor: '#00c742', backgroundColor: 'rgba(0, 199, 66, 0.1)', borderWidth: 2, pointRadius: 0, tension: 0.4, fill: true }] },
                 options: { responsive: true, maintainAspectRatio: false, animation: { duration: 0 }, plugins: { legend: { display: false } }, scales: { x: { type: 'time', time: { unit: 'year' } }, y: { ticks: { callback: value => formatLargeNumber(value) } } } }
             });
-            renderCompanies();
+    
+            renderCompanies(true); // Initial full render
             renderPortfolio();
             updateDisplay();
-            setGameSpeed(1); // Start the game loop
+            
+            isGameReady = true;
+            setGameSpeed(currentSpeed);
         }
-
+    
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && !isPaused) {
+                wasAutoPaused = true;
+                pauseGame();
+            } 
+            if (!document.hidden && wasAutoPaused) {
+                resumeGame();
+            }
+        });
+    
         init();
     </script>
 </body>
