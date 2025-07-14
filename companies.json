@@ -33,10 +33,10 @@
         "label": "Pan-cancer Immunotherapy",
         "full_revenue_usd": 40000000000,
         "stages": [
-          { "id": "phase_1", "name": "Phase 1 Trials", "duration_days": 730,  "success_prob": 0.29, "value_realization": 0.005 },
+          { "id": "phase_1", "name": "Phase 1 Trials", "duration_days": 730,  "success_prob": 0.26, "value_realization": 0.005 },
           { "id": "phase_2", "name": "Phase 2 Trials", "duration_days": 1095, "success_prob": 0.37, "depends_on": "phase_1", "value_realization": 0.025 },
-          { "id": "phase_3", "name": "Phase 3 Trials", "duration_days": 1460, "success_prob": 0.56, "depends_on": "phase_2", "value_realization": 0.35 },
-          { "id": "market",   "name": "On Market",      "duration_days": 1,    "success_prob": 0.9, "depends_on": "phase_3", "value_realization": 1.0 }
+          { "id": "phase_3", "name": "Phase 3 Trials", "duration_days": 1460, "success_prob": 0.56, "depends_on": "phase_2", "value_realization": 0.65 },
+          { "id": "market",   "name": "On Market",      "duration_days": 365,    "success_prob": 1, "depends_on": "phase_3", "value_realization": 1.0 }
         ]
       }
     ],

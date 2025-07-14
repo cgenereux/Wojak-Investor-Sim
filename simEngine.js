@@ -1,8 +1,7 @@
-// simEngine.js – continuous-volatility version (non-module build)
-// =============================================================
-//  • Removes the old “×10 volatility for 3 years” pump hack.
-//  • σ is always the base value times active TimedEffects.
-// -------------------------------------------------------------
+// simEngine.js – CORRECTED VERSION
+// ================================
+// Uses the game's internal date for history tracking, not Date.now()
+// -------------------------------------------------------------------
 
 /*────────────────── Random helper ──────────────────*/
 class Random {
@@ -128,111 +127,87 @@ class ScheduledEvent {
 
 /*──────────────────── Company ─────────────────────*/
 class Company {
-  constructor (cfg) {
-    /*---- static ----*/
-    this.id     = cfg.id;
-    this.name   = cfg.static.name;
-    this.sector = cfg.static.sector;
-
-    /*---- revenue process ----*/
+  constructor (cfg, startYear = 1990) {
+    this.id = cfg.id; this.name = cfg.static.name; this.sector = cfg.static.sector;
     const rp = cfg.base_business.revenue_process;
-    this.revProc = new RevenueProcess(
-      between(rp.initial_revenue_usd.min, rp.initial_revenue_usd.max),
-      rp.gbm_drift_annual,
-      rp.gbm_volatility_annual
-    );
-
-    /*---- curves ----*/
-    const mc = cfg.base_business.margin_curve;
-    const mu = cfg.base_business.multiple_curve;
+    this.revProc = new RevenueProcess(between(rp.initial_revenue_usd.min, rp.initial_revenue_usd.max), rp.gbm_drift_annual, rp.gbm_volatility_annual);
+    const mc = cfg.base_business.margin_curve; const mu = cfg.base_business.multiple_curve;
     this.marginCurve = new MarginCurve(mc.start_profit_margin, mc.terminal_profit_margin, mc.years_to_mature);
-    this.multCurve   = new MultipleCurve(mu.initial_ps_ratio, mu.terminal_pe_ratio, mu.years_to_converge);
-
-    /*---- state ----*/
-    this.revMult    = 1;
-    this.volMult    = 1;
-    this.flatRev    = 0;
-    this.cash       = 0;
-    this.multFreeze = null;
-    this.ageDays    = 0;
-    this.marketCap  = 0;
-    this.displayCap = 0;
-    this.history    = [];
-
-    /*---- pipeline & events ----*/
-    this.products = (cfg.pipeline || []).map(p => new Product(p));
-    this.events   = (cfg.events   || []).map(e => new ScheduledEvent(e));
-    this.effects  = [];
+    this.multCurve = new MultipleCurve(mu.initial_ps_ratio, mu.terminal_pe_ratio, mu.years_to_converge);
+    this.revMult = 1; this.volMult = 1; this.flatRev = 0; this.cash = 0; this.multFreeze = null; this.ageDays = 0; this.marketCap = 0; this.displayCap = 0; this.history = [];
+    this.startYear = startYear; this.currentYearRevenue = 0; this.currentYearProfit = 0; this.lastYearEnd = 0; this.financialHistory = [];
+    this.products = (cfg.pipeline || []).map(p => new Product(p)); this.events = (cfg.events || []).map(e => new ScheduledEvent(e)); this.effects = [];
   }
 
-  step (dt) {
+  // MODIFIED: Accepts the gameDate object
+  step (dt, gameDate) {
     this.ageDays += dt;
     const dtYears  = dt / 365;
     const ageYears = this.ageDays / 365;
 
-    /*── events ──*/
-    for (const ev of this.events)
-      for (const eff of ev.maybe(dt, this.name)) {
-        eff.apply(this);
-        this.effects.push(eff);
-      }
-    this.effects = this.effects.filter(e => {
-      if (e.left <= 0) { e.revert(this); return false; }
-      e.left -= dt;
-      return true;
-    });
+    for (const ev of this.events) for (const eff of ev.maybe(dt, this.name)) { eff.apply(this); this.effects.push(eff); }
+    this.effects = this.effects.filter(e => { if (e.left <= 0) { e.revert(this); return false; } e.left -= dt; return true; });
 
-    /*── pipeline ──*/
     let successThisTick = false;
-    for (const p of this.products) {
-      const revBefore = p.realised();
-      p.advance(dt, Math.random, this.name);
-      if (p.realised() > revBefore) successThisTick = true;
-    }
-    if (successThisTick && this.multFreeze === null) {
-      const marginNowTemp = this.marginCurve.value(ageYears);
-      this.multFreeze     = this.multCurve.value(ageYears, marginNowTemp);
-    }
+    for (const p of this.products) { const revBefore = p.realised(); p.advance(dt, Math.random, this.name); if (p.realised() > revBefore) successThisTick = true; }
+    if (successThisTick && this.multFreeze === null) { const marginNowTemp = this.marginCurve.value(ageYears); this.multFreeze = this.multCurve.value(ageYears, marginNowTemp); }
 
-    /*── revenue ──*/
-    const volNow   = this.volMult;   // ← always base volatility
+    const volNow = this.volMult;
     const realised = this.products.reduce((s, p) => s + p.realised(), 0);
-    const RevCore  = this.revProc.step(dtYears, volNow) * this.revMult
-                   - this.flatRev + realised;
-
-    /*── valuation ──*/
-    const marginNow  = this.marginCurve.value(ageYears);
-    const multNow    = this.multFreeze ?? this.multCurve.value(ageYears, marginNow);
-
-    const hasMarket     = this.products.some(p => p.hasMarket);
-    const horizonYears  = hasMarket ? 0 : 10;
-
+    const RevCore = this.revProc.step(dtYears, volNow) * this.revMult - this.flatRev + realised;
+    const marginNow = this.marginCurve.value(ageYears);
+    const multNow = this.multFreeze ?? this.multCurve.value(ageYears, marginNow);
+    const hasMarket = this.products.some(p => p.hasMarket);
+    const horizonYears = hasMarket ? 0 : 10;
     const earnNow = RevCore * marginNow;
-    const futRev  = RevCore * Math.exp(this.revProc.mu * horizonYears);
-    const futEarn = futRev  * this.marginCurve.value(ageYears + horizonYears);
-
-    const multH = this.multFreeze ??
-                  this.multCurve.value(
-                    ageYears + horizonYears,
-                    this.marginCurve.value(ageYears + horizonYears)
-                  );
-
-    this.marketCap  = earnNow * multNow + futEarn * multH;
+    const futRev = RevCore * Math.exp(this.revProc.mu * horizonYears);
+    const futEarn = futRev * this.marginCurve.value(ageYears + horizonYears);
+    const multH = this.multFreeze ?? this.multCurve.value(ageYears + horizonYears, this.marginCurve.value(ageYears + horizonYears));
+    this.marketCap = earnNow * multNow + futEarn * multH;
     this.displayCap = this.marketCap;
 
-    this.history.push({ x: Date.now(), y: this.marketCap });
+    this.currentYearRevenue += RevCore * dtYears;
+    this.currentYearProfit += earnNow * dtYears;
+    const currentYear = Math.floor(this.ageDays / 365);
+    const lastYear = Math.floor(this.lastYearEnd / 365);
+    if (currentYear > lastYear && this.ageDays >= 365) {
+      const ps = this.currentYearRevenue > 0 ? this.marketCap / this.currentYearRevenue : 0;
+      const pe = this.currentYearProfit > 0 ? this.marketCap / this.currentYearProfit : 0;
+      const actualYear = this.startYear + lastYear;
+      this.financialHistory.push({ year: actualYear, revenue: this.currentYearRevenue, profit: this.currentYearProfit, marketCap: this.marketCap, ps: ps, pe: pe });
+      if (this.financialHistory.length > 10) { this.financialHistory.shift(); }
+      this.currentYearRevenue = 0; this.currentYearProfit = 0; this.newAnnualData = true;
+    }
+    this.lastYearEnd = this.ageDays;
+
+    // MODIFIED: Use the game's date, not the real-world clock
+    this.history.push({ x: gameDate.getTime(), y: this.marketCap });
+  }
+
+  getFinancialTable() { if (this.financialHistory.length === 0) return null; return this.financialHistory.slice().reverse(); }
+  getFinancialTableHTML() {
+    const data = this.getFinancialTable();
+    if (!data || data.length === 0) return '<p>No annual data available yet</p>';
+    const formatMoney = (val) => { if (val >= 1e9) return `$${(val/1e9).toFixed(1)}B`; if (val >= 1e6) return `$${(val/1e6).toFixed(1)}M`; if (val >= 1e3) return `$${(val/1e3).toFixed(1)}K`; return `$${val.toFixed(0)}`; };
+    const formatRatio = (val) => { if (val === 0 || !isFinite(val)) return 'N/A'; return `${val.toFixed(1)}x`; };
+    let html = `<div class="financial-table"><h3>Financial History</h3><table><thead><tr><th>Year</th><th>Revenue</th><th>Profit</th><th>P/S</th><th>P/E</th></tr></thead><tbody>`;
+    data.forEach(row => { html += `<tr><td>${row.year}</td><td>${formatMoney(row.revenue)}</td><td>${formatMoney(row.profit)}</td><td>${formatRatio(row.ps)}</td><td>${formatRatio(row.pe)}</td></tr>`; });
+    html += `</tbody></table></div>`; return html;
   }
 }
 
 /*────────────────── Simulation ────────────────────*/
 class Simulation {
-  constructor (cfg, dt = 14) {
+  constructor (cfg, startYear = 1990, dt = 14) {
     this.dtDays    = dt;
-    this.companies = cfg.map(c => new Company(c));
-    this.tick();
+    this.companies = cfg.map(c => new Company(c, startYear));
+    // We can't pass a date here, so we do an initial tick with a dummy date
+    this.tick(new Date(startYear, 0, 1)); 
   }
-  tick () { this.companies.forEach(c => c.step(this.dtDays)); }
+  // MODIFIED: Accepts the gameDate object
+  tick (gameDate) {
+    this.companies.forEach(c => c.step(this.dtDays, gameDate));
+  }
 }
 
-/*────────── expose to browser global ──────────────*/
 if (typeof window !== 'undefined') window.Simulation = Simulation;
