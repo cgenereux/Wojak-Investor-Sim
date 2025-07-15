@@ -1,0 +1,201 @@
+[
+  {
+    "id": "pharming_labs",
+    "static": {
+      "name": "Pharming Labs",
+      "sector": "Biotech",
+      "founders": [
+        { "name": "Jason Shmitt",  "degree": "BSc", "school": "Stanford" },
+        { "name": "Gale Boetticher","degree": "PhD", "school": "UNM" }
+      ],
+      "ipo_window": { "from": 1990, "to": 1990 },
+      "ipo_instantly": true
+    },
+    "base_business": {
+      "revenue_process": {
+        "initial_revenue_usd": { "min": 1000000, "max": 43000000 },
+        "gbm_drift_annual": 0.025,
+        "gbm_volatility_annual": 0.35
+      },
+      "margin_curve": {
+        "start_profit_margin": 0.05,
+        "terminal_profit_margin": 0.26,
+        "years_to_mature": 12
+      },
+      "multiple_curve": {
+        "initial_ps_ratio": 50,
+        "terminal_pe_ratio": 20,
+        "years_to_converge": 10
+      }
+    },
+    "pipeline": [
+      {
+        "id": "cancer_cure",
+        "label": "Pan-cancer Immunotherapy",
+        "full_revenue_usd": 40000000000,
+        "stages": [
+          { "id": "phase_1", "name": "Phase 1 Trials", "duration_days": 730,  "success_prob": 0.26, "value_realization": 0.07 },
+          { "id": "phase_2", "name": "Phase 2 Trials", "duration_days": 1095, "success_prob": 0.41, "depends_on": "phase_1", "value_realization": 0.25 },
+          { "id": "phase_3", "name": "Phase 3 Trials", "duration_days": 1460, "success_prob": 0.57, "depends_on": "phase_2", "value_realization": 0.7 },
+          { "id": "market",   "name": "On Market",      "duration_days": 365,    "success_prob": 1, "depends_on": "phase_3", "value_realization": 1.0 }
+        ]
+      }
+
+    ],
+    "events": [
+      {
+        "id": "trial_fraud",
+        "description": "Falsified drug data discovered",
+        "trigger_prob_per_year": 0.005,
+        "effects": [
+          { "type": "cash_fine",                     "value_usd": 200000000 },
+          { "type": "revenue_multiplier",            "multiplier": 0.9, "duration_days": 730 },
+          { "type": "volatility_multiplier",         "multiplier": 1.5, "duration_days": 365 }
+        ]
+      }
+    ]
+  },
+
+  {
+    "id": "smartmart",
+    "static": {
+      "name": "SmartMart",
+      "sector": "Retail",
+      "founders": [
+        { "name": "Linda Harris", "degree": "MBA", "school": "Harvard" }
+      ],
+      "ipo_window": { "from": 1980, "to": 1980 }
+    },
+    "base_business": {
+      "revenue_process": {
+        "initial_revenue_usd": { "min": 200000000000, "max": 60000000000 },
+        "gbm_drift_annual": 0.13,
+        "gbm_volatility_annual": 0.15
+      },
+      "margin_curve": {
+        "start_profit_margin": 0.03,      
+        "terminal_profit_margin": 0.06,
+        "years_to_mature": 8
+      },
+      "multiple_curve": {
+        "initial_ps_ratio": 0.8,
+        "terminal_pe_ratio": 14,
+        "years_to_converge": 8
+      }
+    },
+    "pipeline": [ ],                   
+    "events":   [ ]                   
+  },
+
+  {
+    "id": "chips_and_such",
+    "static": {
+      "name": "Chips & Such",
+      "sector": "Semiconductor",
+      "founders": [
+        { "name": "Joe Ryan", "degree": "MBA", "school": "Harvard" }
+      ],
+      "ipo_window": { "from": 1986, "to": 1988 }
+    },
+    "base_business": {
+      "revenue_process": {
+        "initial_revenue_usd": { "min": 2000000000, "max": 600000000 },
+        "gbm_drift_annual": 0.31,
+        "gbm_volatility_annual": 0.36
+      },
+      "margin_curve": {
+        "start_profit_margin": 0.03,      
+        "terminal_profit_margin": 0.06,
+        "years_to_mature": 8
+      },
+      "multiple_curve": {
+        "initial_ps_ratio": 10,
+        "terminal_pe_ratio": 14,
+        "years_to_converge": 8
+      }
+    },
+    "pipeline": [ ],                   
+    "events":   [ ]                   
+  },
+
+  {
+    "id": "american_real_estate",
+    "static": {
+      "name": "American Real Estate",
+      "sector": "Real Estate",
+      "founders": [
+        { "name": "Teddy Backus", "degree": "MBA", "school": "UCLA" }
+      ],
+      "ipo_window": { "from": 1993, "to": 1996 },
+      "ipo_instantly": true
+    },
+    "base_business": {
+      "revenue_process": {
+        "initial_revenue_usd": { "min": 200000000000, "max": 60000000000 },
+        "gbm_drift_annual": 0.011,
+        "gbm_volatility_annual": 0.05
+      },
+      "margin_curve": {
+        "start_profit_margin": 0.03,      
+        "terminal_profit_margin": 0.03,
+        "years_to_mature": 8
+      },
+      "multiple_curve": {
+        "initial_ps_ratio": 1,
+        "terminal_pe_ratio": 20,
+        "years_to_converge": 8
+      }
+    },
+    "pipeline": [ ],                   
+    "events":   [ ]                   
+  },
+
+  {
+    "id": "Cosmosis",
+    "static": {
+      "name": "Cosmosis",
+      "sector": "Rockets ",
+      "founders": [
+        { "name": "Simon Xavier III ", "degree": "PHD", "school": "Harvard" }
+      ],
+      "ipo_window": { "from": 2000, "to": 2000 }
+    },
+    "base_business": {
+      "revenue_process": {
+        "initial_revenue_usd": { "min": 60000000, "max": 100000000 },
+        "gbm_drift_annual": 0.15,
+        "gbm_volatility_annual": 0.69
+      },
+      "margin_curve": {
+        "start_profit_margin": 0.03,      
+        "terminal_profit_margin": 0.06,
+        "years_to_mature": 16
+      },
+      "multiple_curve": {
+        "initial_ps_ratio": 100,
+        "terminal_pe_ratio": 42,
+        "years_to_converge": 8
+      }
+    },
+    "pipeline": [
+      {
+        "id": "rockets",
+        "label": "Rockets",
+        "full_revenue_usd": 200500100300,
+        "stages": [ 
+          { "id": "x1-rocket", "name": "X1 Rocket", "duration_days": 730,  "success_prob": 0.35, "value_realization": 0.005 },
+          { "id": "x2-rocket", "name": "X2 Rocket", "duration_days": 730, "success_prob": 0.45, "depends_on": "x1-rocket", "value_realization": 0.01 },
+          { "id": "x3-rocket", "name": "X3 Rocket", "duration_days": 730, "success_prob": 0.55, "depends_on": "x2-rocket", "value_realization": 0.02 },
+          { "id": "x4-rocket",   "name": "X4 Rocket",      "duration_days": 730,    "success_prob": 0.65, "depends_on": "x3-rocket", "value_realization": 0.035 },
+          { "id": "x5-rocket", "name": "X5 Rocket", "duration_days": 730,  "success_prob": 0.70,  "depends_on": "x4-rocket", "value_realization": 0.06 },
+          { "id": "x6-rocket", "name": "X6 Rocket", "duration_days": 730, "success_prob": 0.75, "depends_on": "x5-rocket", "value_realization": 0.1 },
+          { "id": "x7-rocket", "name": "X7 Rocket", "duration_days": 730, "success_prob": 0.80, "depends_on": "x6-rocket", "value_realization": 0.20 },
+          { "id": "x8-rocket",   "name": "X8 Rocket",      "duration_days": 730,    "success_prob": 0.83, "depends_on": "x7-rocket", "value_realization": 0.3 }
+        ]
+      }
+
+    ],              
+    "events":   [ ]                   
+  }
+
+]

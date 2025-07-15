@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wojak Investor Sim</title>
+    
+    <!-- External Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-confetti@latest/dist/js-confetti.browser.js"></script>
+
+    <!-- Your Custom CSS and JS -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="vc.css">
+    <link rel="shortcut icon" type="image/png" href="wojaks/standard-wojak.png" id="faviconLink"/>
+</head>
+<body>
+    <div class="container">
+        <!-- Main View -->
+        <div id="main-view" class="view">
+            <div class="header">
+                <div class="header-content">
+                    <img src="wojaks/wojak (1).png" alt="Wojak" class="wojak-image" id="wojakImage">
+                    <div class="financial-info">
+                        <div class="net-worth" id="netWorthDisplay">$3,000.00</div>
+                        <div class="date" id="currentDateDisplay">1990-01-01</div>
+                        <div class="sub-financial-display" id="subFinancialDisplay"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="netWorthChart"></canvas>
+            </div>
+            <div class="controls">
+                <button id="togglePauseBtn">Pause</button>
+                <button class="speed-btn" id="halfSpeedBtn">0.5x</button>
+                <button class="speed-btn" id="normalSpeedBtn">1x</button>
+                <button class="speed-btn" id="doubleSpeedBtn">2x</button>
+                <button class="speed-btn" id="quadSpeedBtn">4x</button>
+                <button class="speed-btn" id="octoSpeedBtn">8x</button>
+                <button id="bankBtn">Bank</button>
+                <div class="tooltip-container">
+                    <button id="vcBtn" disabled>Venture Capital</button>
+                    <span class="tooltip-text">Access to elite investments requires a net worth of $5,000,000.</span>
+                </div>
+            </div>
+
+            <div class="debug-controls">
+                <button id="setMillionaireBtn">M</button>
+                <button id="setBillionaireBtn">B</button>
+                <button id="setTrillionaireBtn">T</button>
+            </div>
+
+            <div class="portfolio">
+                <h2 class="section-title">My Portfolio</h2>
+                <div id="portfolioList" class="portfolio-list">
+                    <p id="emptyPortfolioMsg">You haven't invested in any companies yet.</p>
+                </div>
+            </div>
+
+            <div class="companies-section">
+                <div class="market-header">
+                    <h2 class="section-title">Market</h2>
+                    <div class="market-controls">
+                        <div class="sort-controls">
+                            <label for="sortCompanies">Sort by:</label>
+                            <select id="sortCompanies">
+                                <option value="marketCapDesc">Highest Market Cap</option>
+                                <option value="ipoDateDesc">IPO Date (Newest First)</option>
+                            </select>
+                        </div>
+                        <div class="filter-controls">
+                            <label for="filterCompanies">Sector:</label>
+                            <select id="filterCompanies">
+                                <option value="all">All</option>
+                                <option value="sector_Biotech">Biotech</option>
+                                <option value="sector_Retail">Retail</option>
+                                <option value="sector_Semiconductor">Semiconductor</option>
+                                <option value="sector_Real Estate">Real Estate</option>
+                                <option value="sector_Rockets ">Rockets</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="companies-grid" id="companiesGrid"></div>
+            </div>
+        </div>
+
+        <!-- Detail View -->
+        <div id="detail-view" class="view">
+            <div class="detail-header">
+                <div>
+                    <h2 id="detailCompanyName" class="detail-title">Company Name</h2>
+                    <p id="detailCompanySector" class="detail-sector">Sector</p>
+                </div>
+                <button id="back-btn">← Back to Market</button>
+            </div>
+            <div class="chart-container">
+                <canvas id="companyDetailChart"></canvas>
+            </div>
+
+            <div class="investment-panel invest-panel">
+                <h3 class="investment-title">Invest</h3>
+                <div class="investment-stats-row">
+                    <div class="stake-label">Your Stake: <span id="playerStakeDisplay" class="stat-value">$0.00</span></div>
+                    <div class="cash-label">Your Cash: <span id="playerCashDisplay" class="stat-value"></span></div>
+                </div>
+                <div class="investment-actions">
+                    <button id="buyBtn" class="buy-btn">Buy</button>
+                    <button id="sellBtn" class="sell-btn">Sell</button>
+                </div>
+                <input type="number" id="investmentAmountInput" placeholder="Enter amount" class="investment-input">
+                <div class="investment-actions">
+                    <button id="buyMaxBtn" class="buy-btn">Buy Max</button>
+                    <button id="sellMaxBtn" class="sell-btn">Sell Max</button>
+                </div>
+            </div>
+
+            <div class="investment-panel" id="pipelineContainer">
+                <!-- The pipeline HTML will be inserted here by JavaScript -->
+            </div>
+
+            <div class="investment-panel">
+                <div id="financialHistoryContainer"></div>
+            </div>
+        </div>
+
+        <!-- VC View -->
+        <div id="vc-view" class="view">
+            <div class="detail-header">
+                <div>
+                    <h2 class="detail-title">Venture Capital</h2>
+                </div>
+                <button id="back-to-main-btn">← Back to Market</button>
+            </div>
+            <div id="vc-content">
+                <p>You need a net worth of $5,000,000 to unlock this feature.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Banking Modal -->
+    <div id="bankingModal" class="banking-modal">
+        <div class="banking-panel">
+            <div class="banking-header">
+                <h2 class="banking-title">Banking Services</h2>
+                <button class="close-btn" id="closeBankingBtn">×</button>
+            </div>
+            <div class="banking-stats">
+                <div class="stat-box">
+                    <div class="stat-label">Your Cash</div>
+                    <div id="bankingCashDisplay" class="stat-value"></div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Total Assets</div>
+                    <div id="bankingNetWorthDisplay" class="stat-value"></div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Current Debt</div>
+                    <div id="currentDebtDisplay" class="stat-value"></div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Max Borrowing</div>
+                    <div id="maxBorrowDisplay" class="stat-value"></div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Interest Rate</div>
+                    <div class="stat-value">7% annually</div>
+                </div>
+            </div>
+            <div class="banking-actions">
+                <input type="number" id="bankingAmountInput" placeholder="Enter amount">
+                <button id="borrowBtn" class="borrow-btn">Borrow</button>
+                <button id="repayBtn" class="repay-btn">Repay</button>
+            </div>
+            <div class="banking-info">
+                💡 You can borrow up to 5x your net worth. Interest is charged from your cash balance.
+                You only go bankrupt if your net worth goes negative.
+            </div>
+        </div>
+    </div>
+
+    <!-- Your Game Scripts -->
+    <script src="simEngine.js"></script>
+    <script src="vc.js"></script>
+    <script src="main.js" defer></script>
+</body>
+</html>
