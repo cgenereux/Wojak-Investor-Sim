@@ -1,25 +1,22 @@
 const vcContent = document.getElementById('vc-content');
 
-function renderVentureCompanies() {
-    fetch('venture_companies.json')
-        .then(response => response.json())
-        .then(companies => {
-            const ventureCompaniesGrid = document.getElementById('ventureCompaniesGrid');
-            ventureCompaniesGrid.innerHTML = ''; // Clear previous content
-            companies.forEach(company => {
-                const companyDiv = document.createElement('div');
-                companyDiv.classList.add('company-card');
-                companyDiv.innerHTML = `
-                    <h3>${company.name}</h3>
-                    <p>Sector: ${company.sector}</p>
-                    <p>Valuation: ${company.valuation_usd.toLocaleString()}</p>
-                    <p>Funding Round: ${company.funding_round}</p>
-                    <button onclick="investInVentureCompany('${company.name}', ${company.valuation_usd})">Invest</button>
-                `;
-                ventureCompaniesGrid.appendChild(companyDiv);
-            });
-        })
-        .catch(error => console.error('Error loading venture companies:', error));
+function renderVentureCompanies(companiesData, formatLargeNumber) {
+    const ventureCompaniesGrid = document.getElementById('ventureCompaniesGrid');
+    ventureCompaniesGrid.innerHTML = ''; // Clear previous content
+    companiesData.forEach(company => {
+        const companyDiv = document.createElement('div');
+        companyDiv.classList.add('company-box'); // Use company-box class for consistent styling
+        companyDiv.dataset.companyName = company.name; // Add data-company-name for consistency
+        companyDiv.innerHTML = `
+            <div class="company-name">${company.name}</div>
+            <div class="company-info">
+                <div class="company-valuation" data-company-cap="${company.name}">Valuation: ${formatLargeNumber(company.valuation_usd)}</div>
+                <div class="company-sector">Sector: ${company.sector}</div>
+                <div class="company-funding-round">Funding Round: ${company.funding_round}</div>
+            </div>
+        `;
+        ventureCompaniesGrid.appendChild(companyDiv);
+    });
 }
 
 function investInVentureCompany(companyName, valuation) {

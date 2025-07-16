@@ -554,7 +554,7 @@ bankingAmountInput.addEventListener('keypress', (event) => {
 
 vcBtn.addEventListener('click', () => {
     bodyEl.classList.add('vc-active');
-    renderVentureCompanies(); // Render venture companies when the VC tab is opened
+    renderVentureCompanies(ventureCompanies, formatLargeNumber); // Render venture companies when the VC tab is opened
 });
 
 backToMainBtn.addEventListener('click', () => {
