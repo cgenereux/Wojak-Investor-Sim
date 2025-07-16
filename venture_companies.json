@@ -1,0 +1,26 @@
+[
+  {
+    "id": "quantum_leap_ai",
+    "name": "Quantum Leap AI",
+    "sector": "Artificial Intelligence",
+    "valuation_usd": 15000000,
+    "funding_round": "Seed",
+    "description": "Developing next-gen AI for complex problem-solving."
+  },
+  {
+    "id": "bio_regen_therapeutics",
+    "name": "BioRegen Therapeutics",
+    "sector": "Biotech",
+    "valuation_usd": 30000000,
+    "funding_round": "Series A",
+    "description": "Pioneering regenerative medicine solutions."
+  },
+  {
+    "id": "space_harvest_systems",
+    "name": "Space Harvest Systems",
+    "sector": "Space Exploration",
+    "valuation_usd": 50000000,
+    "funding_round": "Series B",
+    "description": "Automated asteroid mining and resource extraction."
+  }
+]

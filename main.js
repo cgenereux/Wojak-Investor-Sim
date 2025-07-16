@@ -69,13 +69,26 @@ let companies = [];
 
 async function loadCompaniesData() {
     try {
-        const response = await fetch('companies.json');
-        if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
-        const rawCompanies = await response.json();
+        console.log('Attempting to fetch companies.json and venture_companies.json...');
+        const [companiesResponse, ventureCompaniesResponse] = await Promise.all([
+            fetch('companies.json'),
+            fetch('venture_companies.json')
+        ]);
+
+        console.log('companies.json response status:', companiesResponse.status);
+        console.log('venture_companies.json response status:', ventureCompaniesResponse.status);
+
+        if (!companiesResponse.ok) { throw new Error(`HTTP error! status: ${companiesResponse.status} for companies.json`); }
+        if (!ventureCompaniesResponse.ok) { throw new Error(`HTTP error! status: ${ventureCompaniesResponse.status} for venture_companies.json`); }
+
+        const rawCompanies = await companiesResponse.json();
+        ventureCompanies = await ventureCompaniesResponse.json();
+        console.log('Venture companies loaded:', ventureCompanies);
+
         return new Simulation(rawCompanies);
     } catch (error) {
-        console.error("Could not load companies data:", error);
-        alert("Failed to load company data. Please ensure 'companies.json' is in the same directory and a local server is running.");
+        console.error("Could not load data:", error);
+        alert("Failed to load game data. Please ensure JSON files are in the same directory and a local server is running.");
         return null;
     }
 }
@@ -86,9 +99,10 @@ let netWorthChart, companyDetailChart;
 // --- Formatting ---
 const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 function formatLargeNumber(num) {
-    if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
-    if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`;
-    if (num >= 1e3) return `$${(num / 1e3).toFixed(1)}K`;
+    if (num >= 1e12) return `${(num / 1e12).toFixed(2)}T`;
+    if (num >= 1e9) return `${(num / 1e9).toFixed(2)}B`;
+    if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
+    if (num >= 1e3) return `${(num / 1e3).toFixed(1)}K`;
     return currencyFormatter.format(num);
 }
 function formatDate(date) { return date.toISOString().split('T')[0]; }
@@ -247,6 +261,7 @@ function updateNetWorth() {
     if (netWorth >= 5000000) {
         vcBtn.disabled = false;
         vcBtn.parentElement.classList.remove('disabled');
+        
     } else {
         vcBtn.disabled = true;
         vcBtn.parentElement.classList.add('disabled');
@@ -539,6 +554,7 @@ bankingAmountInput.addEventListener('keypress', (event) => {
 
 vcBtn.addEventListener('click', () => {
     bodyEl.classList.add('vc-active');
+    renderVentureCompanies(); // Render venture companies when the VC tab is opened
 });
 
 backToMainBtn.addEventListener('click', () => {
@@ -674,6 +690,7 @@ async function init() {
     
     isGameReady = true;
     setGameSpeed(currentSpeed);
+    initVC();
 
     // Event Listeners for sort and filter dropdowns
     sortCompaniesSelect.addEventListener('change', (event) => {
@@ -685,7 +702,7 @@ async function init() {
         currentFilter = event.target.value;
         renderCompanies(true); // Re-render with new filter
     });
-    
+
 }
 
 document.addEventListener('visibilitychange', () => {

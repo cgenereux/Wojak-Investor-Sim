@@ -42,7 +42,7 @@
                 <button id="bankBtn">Bank</button>
                 <div class="tooltip-container">
                     <button id="vcBtn" disabled>Venture Capital</button>
-                    <span class="tooltip-text">Access to elite investments requires a net worth of $5,000,000.</span>
+                    <span class="tooltip-text">Access to venture investments requires a net worth of at least $5,000,000.</span>
                 </div>
             </div>
 
@@ -53,7 +53,9 @@
             </div>
 
             <div class="portfolio">
-                <h2 class="section-title">My Portfolio</h2>
+                <div class="portfolio-header">
+                    <h2 class="section-title">My Portfolio</h2>
+                </div>
                 <div id="portfolioList" class="portfolio-list">
                     <p id="emptyPortfolioMsg">You haven't invested in any companies yet.</p>
                 </div>
@@ -136,6 +138,13 @@
             </div>
             <div id="vc-content">
                 <p>You need a net worth of $5,000,000 to unlock this feature.</p>
+
+                <div class="venture-market-section">
+                    <div class="venture-market-header">
+                        <h2 class="section-title">Venture Market</h2>
+                    </div>
+                    <div class="venture-companies-grid" id="ventureCompaniesGrid"></div>
+                </div>
             </div>
         </div>
     </div>
