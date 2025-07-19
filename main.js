@@ -71,8 +71,8 @@ async function loadCompaniesData() {
     try {
         console.log('Attempting to fetch companies.json and venture_companies.json...');
         const [companiesResponse, ventureCompaniesResponse] = await Promise.all([
-            fetch('companies.json'),
-            fetch('venture_companies.json')
+            fetch('data/companies.json'),
+            fetch('data/venture_companies.json')
         ]);
 
         console.log('companies.json response status:', companiesResponse.status);
@@ -230,6 +230,17 @@ function renderPortfolio() {
     }
 }
 
+// --- Utility: Parse user-entered currency/number strings ---
+function parseUserAmount(input) {
+    if (typeof input !== 'string') input = String(input);
+    // Remove everything except digits, decimal point, and minus sign
+    input = input.replace(/[^0-9.\-]/g, '');
+    // Handle multiple decimals (keep only the first)
+    const parts = input.split('.');
+    if (parts.length > 2) input = parts[0] + '.' + parts.slice(1).join('');
+    return parseFloat(input);
+}
+
 // --- Game Logic ---
 function updateNetWorth() {
     let totalHoldingsValue = portfolio.reduce((sum, holding) => {
@@ -284,31 +295,29 @@ function chargeInterest() {
 }
 
 function getMaxBorrowing() {
-    let totalAssets = cash;
-    portfolio.forEach(holding => {
-        const company = companies.find(c => c.name === holding.companyName);
-        if (company) { totalAssets += company.marketCap * holding.unitsOwned; }
-    });
-    return Math.max(0, totalAssets * 5 - totalBorrowed);
+    // netWorth is already cash + portfolio - totalBorrowed
+    return Math.max(0, netWorth * 5 - totalBorrowed);
 }
 
 function borrow(amount) {
-    amount = parseFloat(amount);
+    amount = parseUserAmount(amount);
     if (isNaN(amount) || amount <= 0) { alert("Please enter a valid amount to borrow."); return; }
     const maxBorrowing = getMaxBorrowing();
     if (amount > maxBorrowing) { alert(`You can only borrow up to ${currencyFormatter.format(maxBorrowing)}.`); return; }
     totalBorrowed += amount;
     cash += amount;
+    lastInterestDate = new Date(currentDate); // Reset interest timer on borrow
     updateNetWorth(); updateDisplay(); updateBankingDisplay(); bankingAmountInput.value = '';
 }
 
 function repay(amount) {
-    amount = parseFloat(amount);
+    amount = parseUserAmount(amount);
     if (isNaN(amount) || amount <= 0) { alert("Please enter a valid amount to repay."); return; }
     if (amount > totalBorrowed) { alert(`You only owe ${currencyFormatter.format(totalBorrowed)}.`); return; }
     if (amount > cash) { alert("You don't have enough cash to repay this amount."); return; }
     totalBorrowed -= amount;
     cash -= amount;
+    lastInterestDate = new Date(currentDate); // Reset interest timer on repay
     updateNetWorth(); updateDisplay(); updateBankingDisplay(); bankingAmountInput.value = '';
 }
 
@@ -350,6 +359,20 @@ function gameLoop() {
     sim.tick(currentDate);
     const companiesAfter = sim.companies.length;
 
+    // --- Dividend payout to player ---
+    portfolio.forEach(holding => {
+        const company = companies.find(c => c.name === holding.companyName);
+        if (company && company.financialHistory && company.financialHistory.length > 0) {
+            const lastYear = company.financialHistory[company.financialHistory.length - 1];
+            if (lastYear && lastYear.dividend > 0 && lastYear.year === currentDate.getFullYear() - 1) {
+                // Calculate payout for this year (last completed year)
+                const playerShare = holding.unitsOwned * lastYear.dividend / company.marketCap;
+                cash += playerShare;
+            }
+        }
+    });
+    // --- End dividend payout ---
+
     // If a new company IPO'd, re-render the entire grid
     if (companiesAfter > companiesBefore) {
         companies = sim.companies; // Update the global list
@@ -381,7 +404,7 @@ function gameLoop() {
 }
 
 function buy(companyName, amount) {
-    amount = parseFloat(amount);
+    amount = parseUserAmount(amount);
     if (isNaN(amount) || amount <= 0) { alert("Invalid amount."); return; }
     const company = companies.find(c => c.name === companyName);
     if (!company) return;
@@ -650,14 +673,14 @@ function getPipelineHTML(company) {
         });
         
         // If product failed and 10s have passed, show only 'Result: fail'
-        if (
-            product.stages.some(s => s.completed && !s.succeeded) &&
-            product.resultFailTimeout && Date.now() > product.resultFailTimeout
-        ) {
-            html = `<div class="pipeline-section"><h4 class="product-name-label">${product.label}</h4><div class="pipeline" style="min-height:60px;display:flex;align-items:center;justify-content:center;"><span style="font-size:1.3em;color:#dc3545;font-weight:600;">Result: fail</span></div></div>`;
-        } else {
+        // if (
+        //     product.stages.some(s => s.completed && !s.succeeded) &&
+        //     product.resultFailTimeout && Date.now() > product.resultFailTimeout
+        // ) {
+        //     html = `<div class="pipeline-section"><h4 class="product-name-label">${product.label}</h4><div class="pipeline" style="min-height:60px;display:flex;align-items:center;justify-content:center;"><span style="font-size:1.3em;color:#dc3545;font-weight:600;">Result: fail</span></div></div>`;
+        // } else {
             html += '</div></div>';
-        }
+        // }
     });
     
     return html;
