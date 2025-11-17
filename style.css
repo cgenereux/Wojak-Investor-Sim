@@ -50,6 +50,49 @@ body.detail-active #detail-view {
     display: flex; flex-direction: column; align-items: center;
     flex-grow: 1; justify-content: center; margin-left: -72px;
 }
+.drip-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    font-weight: 600;
+}
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+}
+.switch input { display: none; }
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #bbb;
+    transition: 0.4s;
+    border-radius: 24px;
+}
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 2px;
+    bottom: 2px;
+    background-color: #fff;
+    transition: 0.4s;
+    border-radius: 50%;
+}
+input:checked + .slider { background-color: #3b82f6; }
+input:checked + .slider:before { transform: translateX(20px); }
+.drip-label {
+    font-size: 13px;
+    text-transform: uppercase;
+    color: #444;
+}
 .net-worth { font-size: 48px; font-weight: 600; color: #00c742; margin-bottom: 5px; letter-spacing: -1.5px; }
 .date { font-size: 18px; color: #555; font-weight: 500; }
 
@@ -161,15 +204,34 @@ button.speed-active:hover { background: #00a827; }
     cursor: grab;
 }
 .company-box, .portfolio-item { cursor: pointer; }
-.company-box:hover, .portfolio-item:hover { border-color: #999; transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+.company-box:hover,
+.company-box.hovered,
+.portfolio-item:hover { border-color: #999; box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: none; }
+.companies-grid { pointer-events: auto; }
 .company-name { font-weight: 600; font-size: 16px; margin-bottom: 8px; color: #333; }
 .company-info, .portfolio-info { font-size: 14px; color: #666; line-height: 1.4; }
+.portfolio-stake { display: inline-block; margin-top: 4px; font-size: 13px; color: #555; }
+.vc-quick-lead-btn {
+    margin-top: 12px;
+    width: 100%;
+    font-size: 13px;
+    padding: 6px 10px;
+}
+.vc-quick-lead-btn:disabled {
+    background-color: #c9c9c9;
+    border-color: #b5b5b5;
+    color: #666;
+    cursor: not-allowed;
+}
 .company-valuation, .portfolio-value { color: #000; font-weight: 500; }
-.company-sector, .portfolio-name { font-size: 12px; color: #888; margin-top: 4px; font-style: italic; }
+.company-sector, .portfolio-name, .company-stage, .company-status, .company-note { font-size: 12px; color: #888; margin-top: 4px; }
+.company-status, .company-sector { font-style: italic; }
+.company-note { color: #666; font-style: normal; }
 
 .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .detail-title { font-size: 36px; font-weight: 600; }
 .detail-sector { font-size: 18px; color: #555; }
+.detail-subtext { font-size: 16px; color: #777; margin-top: 4px; }
 #back-btn { background-color: #f0f0f0; }
 
 .investment-panel {
@@ -428,6 +490,34 @@ button.speed-active:hover { background: #00a827; }
     text-align: left;
 }
 
+.vc-detail-overview {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    font-size: 16px;
+    color: #444;
+}
+.vc-detail-line {
+    font-weight: 600;
+}
+.vc-detail-description {
+    line-height: 1.5;
+    color: #555;
+}
+.vc-detail-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 16px;
+}
+.vc-detail-note {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.4;
+}
+.vc-detail-note.negative { color: #b91c1c; }
+.vc-detail-note.positive { color: #0f766e; }
+
 .invest-panel {
     display: grid;
     grid-template-columns: auto 1fr auto;
@@ -449,4 +539,14 @@ button.speed-active:hover { background: #00a827; }
 }
 .invest-panel .investment-input {
     grid-area: 2 / 1 / 3 / 3;
+}
+
+.company-box.bankrupt {
+    border: 1px solid #ff9aa2;
+    background: #fff1f1;
+    opacity: 0.85;
+}
+
+.company-box.bankrupt .company-name {
+    color: #d32f2f;
 }

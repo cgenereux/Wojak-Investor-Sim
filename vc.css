@@ -3,11 +3,33 @@
     position: absolute; top: 0; left: 0;
     transform: translateX(100%); opacity: 0; visibility: hidden;
 }
+#vc-detail-view {
+    position: absolute; top: 0; left: 0;
+    transform: translateX(100%); opacity: 0; visibility: hidden;
+}
 body.vc-active #main-view {
     transform: translateX(-100%); opacity: 0; visibility: hidden;
 }
 body.vc-active #vc-view {
     transform: translateX(0); opacity: 1; visibility: visible;
+}
+body.vc-active.vc-detail-active #vc-view {
+    transform: translateX(-100%); opacity: 0; visibility: hidden;
+}
+body.vc-active.vc-detail-active #vc-detail-view {
+    transform: translateX(0); opacity: 1; visibility: visible;
+}
+
+.vc-disabled {
+    background-color: #6b7280 !important;
+    border-color: #4b5563 !important;
+    color: #f9fafb !important;
+    cursor: not-allowed !important;
+    opacity: 0.75;
+}
+
+.vc-disabled:hover {
+    background-color: #6b7280 !important;
 }
 
 .tooltip-container {
@@ -47,5 +69,3 @@ body.vc-active #vc-view {
     visibility: visible;
     opacity: 1;
 }
-
-

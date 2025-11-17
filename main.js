@@ -23,6 +23,228 @@ const sellMaxBtn = document.getElementById('sellMaxBtn');
 const vcBtn = document.getElementById('vcBtn');
 const vcView = document.getElementById('vc-view');
 const backToMainBtn = document.getElementById('back-to-main-btn');
+const dripToggle = document.getElementById('dripToggle');
+
+// --- Helper utilities ---
+const randBetween = (min, max) => Math.random() * (max - min) + min;
+const randIntBetween = (min, max) => Math.floor(randBetween(min, max));
+
+const riskyBiotechRoster = [
+    {
+        name: 'Helixor Biosystems',
+        founders: [
+            { name: 'Dr. Sahana Patel', degree: 'PhD', school: 'MIT' },
+            { name: 'Dr. Kai Nakamura', degree: 'PhD', school: 'Tokyo University' }
+        ],
+        ipo_window: { from: 1990, to: 1991 }
+    },
+    {
+        name: 'NeuroVance Therapeutics',
+        founders: [
+            { name: 'Dr. Elise Carver', degree: 'MD', school: 'Johns Hopkins' },
+            { name: 'Dr. Malik Hassan', degree: 'PhD', school: 'Oxford' }
+        ],
+        ipo_window: { from: 1991, to: 1992 }
+    },
+    {
+        name: 'OptiGene BioPharma',
+        founders: [
+            { name: 'Dr. Lucia Romero', degree: 'PhD', school: 'Stanford' },
+            { name: 'Dr. Noah Bernstein', degree: 'MD', school: 'Harvard' }
+        ],
+        ipo_window: { from: 1992, to: 1993 }
+    }
+];
+
+const riskyBiotechPipelineTemplate = [
+    {
+        id: 'pan_cancer_immunotherapy',
+        label: 'Pan-cancer Immunotherapy',
+        full_revenue_usd: 40_000_000_000,
+        stages: [
+            { id: 'phase_1', name: 'Phase 1 Trials', duration_days: 730, success_prob: 0.26, value_realization: 0.15, cost_usd: 120_000_000, max_retries: 2 },
+            { id: 'phase_2', name: 'Phase 2 Trials', duration_days: 1095, depends_on: 'phase_1', success_prob: 0.41, value_realization: 0.3, cost_usd: 220_000_000, max_retries: 2 },
+            { id: 'phase_3', name: 'Phase 3 Trials', duration_days: 1460, depends_on: 'phase_2', success_prob: 0.58, value_realization: 0.4, cost_usd: 380_000_000, max_retries: 1 },
+            { id: 'fda_review', name: 'FDA Review', duration_days: 365, depends_on: 'phase_3', success_prob: 0.78, value_realization: 0.15, cost_usd: 110_000_000, max_retries: 1, commercialises_revenue: true }
+        ]
+    }
+];
+
+const cloneBiotechPipeline = (scale = 1, prefix = '') => {
+    return riskyBiotechPipelineTemplate.map(entry => ({
+        id: `${prefix || entry.id}`,
+        label: entry.label,
+        full_revenue_usd: Math.round(entry.full_revenue_usd * scale),
+        stages: entry.stages.map(stage => ({ ...stage }))
+    }));
+};
+
+function pickRandom(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function generateRiskyBiotechCompanies(count = 1) {
+    const roster = [...riskyBiotechRoster];
+    const picked = [];
+    while (picked.length < count && roster.length > 0) {
+        const idx = Math.floor(Math.random() * roster.length);
+        picked.push(roster.splice(idx, 1)[0]);
+    }
+    const companies = [];
+    picked.forEach((entry, i) => {
+        const name = entry.name || `Biotech Innovator ${i + 1}`;
+        const founders = (entry.founders || []).map(f => ({ ...f }));
+        const id = `preset_bio_${name.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}_${i}`;
+        const initialRevenueMin = randBetween(1_000_000, 5_000_000);
+        const initialRevenueMax = initialRevenueMin * randBetween(4, 8);
+        const ipoYear = entry.ipo_window ? randIntBetween(entry.ipo_window.from, entry.ipo_window.to) : randIntBetween(1990, 1993);
+        const company = {
+            id,
+            static: {
+                name,
+                sector: 'Biotech',
+                founders,
+                ipo_window: entry.ipo_window || { from: ipoYear, to: ipoYear },
+                ipo_instantly: true
+            },
+            sentiment: {
+                structural_bias: { min: 0.2, max: 6, half_life_years: 25 }
+            },
+            base_business: {
+                revenue_process: {
+                    initial_revenue_usd: {
+                        min: initialRevenueMin,
+                        max: initialRevenueMax
+                    }
+                },
+                margin_curve: {
+                    start_profit_margin: randBetween(0.08, 0.15),
+                    terminal_profit_margin: randBetween(0.5, 0.7),
+                    years_to_mature: randBetween(10, 14)
+                },
+                multiple_curve: {
+                    initial_ps_ratio: randBetween(28, 45),
+                    terminal_pe_ratio: randBetween(16, 22),
+                    years_to_converge: randBetween(8, 12)
+                }
+            },
+            finance: {},
+            pipeline: cloneBiotechPipeline(randBetween(0.75, 1.25), `${id}_pipeline`),
+            events: []
+        };
+        companies.push(company);
+    });
+    return companies;
+}
+
+const megacorpRoster = [
+    {
+        name: 'SmartCart Holdings',
+        founders: [{ name: 'Linda Harris', degree: 'MBA', school: 'Harvard' }],
+        sector: 'Retail',
+        ipo_window: { from: 1979, to: 1981 }
+    },
+    {
+        name: 'UrbanShop Group',
+        founders: [{ name: 'Marco Viteri', degree: 'MBA', school: 'Columbia' }],
+        sector: 'Consumer Staples',
+        ipo_window: { from: 1981, to: 1983 }
+    },
+    {
+        name: 'GlobalMart Logistics',
+        founders: [{ name: 'Sandra Osei', degree: 'MBA', school: 'Wharton' }],
+        sector: 'Retail',
+        ipo_window: { from: 1980, to: 1982 }
+    }
+];
+
+function generateSteadyMegacorpCompanies(count = 1) {
+    const roster = [...megacorpRoster];
+    const picked = [];
+    while (picked.length < count && roster.length > 0) {
+        const idx = Math.floor(Math.random() * roster.length);
+        picked.push(roster.splice(idx, 1)[0]);
+    }
+    const companies = [];
+    picked.forEach((entry, i) => {
+        const name = entry.name || `MegaMart ${i + 1}`;
+        const founders = (entry.founders || []).map(f => ({ ...f }));
+        const id = `preset_megacorp_${name.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}_${i}`;
+        const baseRevenue = randBetween(60_000_000_000, 200_000_000_000);
+        const ipoRange = entry.ipo_window || { from: 1980, to: 1985 };
+        const company = {
+            id,
+            static: {
+                name,
+                sector: entry.sector || 'Retail',
+                founders,
+                ipo_window: ipoRange,
+                ipo_instantly: true
+            },
+            sentiment: {
+                structural_bias: { min: 0.5, max: 3, half_life_years: 15 }
+            },
+            base_business: {
+                revenue_process: {
+                    initial_revenue_usd: {
+                        min: baseRevenue * 0.8,
+                        max: baseRevenue * 1.2
+                    }
+                },
+                margin_curve: {
+                    start_profit_margin: randBetween(0.025, 0.04),
+                    terminal_profit_margin: randBetween(0.05, 0.08),
+                    years_to_mature: randBetween(7, 10)
+                },
+                multiple_curve: {
+                    initial_ps_ratio: randBetween(0.7, 1.1),
+                    terminal_pe_ratio: randBetween(12, 15),
+                    years_to_converge: randBetween(6, 9)
+                }
+            },
+            finance: {
+                starting_cash_usd: baseRevenue * 0.03,
+                starting_debt_usd: baseRevenue * 0.05,
+                interest_rate_annual: 0.05
+            },
+        pipeline: [],
+        events: []
+        };
+        companies.push(company);
+    });
+    return companies;
+}
+
+function generateHypergrowthPresetCompanies() {
+    const companies = [];
+    const names = ['ViaWave', 'LinkPulse', 'HyperLoom'];
+    names.forEach((name, idx) => {
+        const valuation = randBetween(6_000_000, 18_000_000);
+        companies.push({
+            id: `preset_web_vc_${idx}_${Date.now()}`,
+            name,
+            sector: 'Web',
+            description: '1990s hypergrowth web preset (private)',
+            valuation_usd: valuation,
+            funding_round: 'Seed',
+            ipo_stage: 'series_f',
+            binary_success: false,
+            gate_stage: 'series_c',
+            hypergrowth_window_years: randBetween(2, 4),
+            hypergrowth_total_multiplier: randBetween(6, 12),
+            long_run_revenue_ceiling_usd: valuation * randBetween(20, 40),
+            long_run_growth_rate: randBetween(0.45, 0.7),
+            long_run_growth_floor: randBetween(0.08, 0.18),
+            long_run_growth_decay: randBetween(0.25, 0.5),
+            post_gate_initial_multiple: randBetween(12, 20),
+            post_gate_baseline_multiple: randBetween(4, 7),
+            post_gate_multiple_decay_years: randBetween(5, 9),
+            post_gate_margin: randBetween(0.18, 0.3),
+            max_failures_before_collapse: 2
+        });
+    });
+    return companies;
+}
 
 // --- Banking Modal Elements ---
 const bankingModal = document.getElementById('bankingModal');
@@ -47,8 +269,17 @@ const jsConfetti = new JSConfetti();
 let currentSpeed = 1; 
 let wasAutoPaused = false; 
 let isGameReady = false;
-let currentSort = 'default';
+let currentSort = 'ipoQueue';
 let currentFilter = 'all';
+const DRIP_STORAGE_KEY = 'wojak_drip_enabled';
+let dripEnabled = false;
+try {
+    const stored = localStorage.getItem(DRIP_STORAGE_KEY);
+    if (stored === 'true') dripEnabled = true;
+    if (stored === 'false') dripEnabled = false;
+} catch (err) {
+    console.warn('Unable to read DRIP setting:', err);
+}
 
 // --- Financial State ---
 let cash = 3000;
@@ -66,26 +297,39 @@ const GAME_END_YEAR = 2050;
 
 let sim;
 let companies = []; 
+let ventureSim;
+let ventureCompanies = [];
+let companyQueueCounter = 0;
+
+function ensureVentureSimulation(force = false) {
+    if ((force || !ventureSim) && typeof VentureSimulation !== 'undefined' && ventureCompanies.length > 0) {
+        ventureSim = new VentureSimulation(ventureCompanies, currentDate);
+        window.ventureSim = ventureSim;
+    }
+}
 
 async function loadCompaniesData() {
     try {
-        console.log('Attempting to fetch companies.json and venture_companies.json...');
         const [companiesResponse, ventureCompaniesResponse] = await Promise.all([
             fetch('data/companies.json'),
             fetch('data/venture_companies.json')
         ]);
-
-        console.log('companies.json response status:', companiesResponse.status);
-        console.log('venture_companies.json response status:', ventureCompaniesResponse.status);
 
         if (!companiesResponse.ok) { throw new Error(`HTTP error! status: ${companiesResponse.status} for companies.json`); }
         if (!ventureCompaniesResponse.ok) { throw new Error(`HTTP error! status: ${ventureCompaniesResponse.status} for venture_companies.json`); }
 
         const rawCompanies = await companiesResponse.json();
         ventureCompanies = await ventureCompaniesResponse.json();
-        console.log('Venture companies loaded:', ventureCompanies);
-
-        return new Simulation(rawCompanies);
+        if (!Array.isArray(ventureCompanies)) ventureCompanies = [];
+        let filteredCompanies = rawCompanies.filter(cfg => !cfg.experimental);
+        const presetBiotechCompanies = generateRiskyBiotechCompanies(3);
+        filteredCompanies.push(...presetBiotechCompanies);
+        const presetMegacorpCompanies = generateSteadyMegacorpCompanies(2);
+        filteredCompanies.push(...presetMegacorpCompanies);
+        const presetVentureCompanies = generateHypergrowthPresetCompanies();
+        ventureCompanies.push(...presetVentureCompanies);
+        ensureVentureSimulation(true);
+        return new Simulation(filteredCompanies);
     } catch (error) {
         console.error("Could not load data:", error);
         alert("Failed to load game data. Please ensure JSON files are in the same directory and a local server is running.");
@@ -99,84 +343,124 @@ let netWorthChart, companyDetailChart;
 // --- Formatting ---
 const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 function formatLargeNumber(num) {
-    if (num >= 1e12) return `${(num / 1e12).toFixed(2)}T`;
-    if (num >= 1e9) return `${(num / 1e9).toFixed(2)}B`;
-    if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`;
-    if (num >= 1e3) return `${(num / 1e3).toFixed(1)}K`;
+    const absNum = Math.abs(num);
+    const sign = num < 0 ? '-' : '';
+    if (absNum >= 1e12) return `${sign}$${(absNum / 1e12).toFixed(2)}T`;
+    if (absNum >= 1e9) return `${sign}$${(absNum / 1e9).toFixed(2)}B`;
+    if (absNum >= 1e6) return `${sign}$${(absNum / 1e6).toFixed(2)}M`;
+    if (absNum >= 1e3) return `${sign}$${(absNum / 1e3).toFixed(1)}K`;
     return currencyFormatter.format(num);
 }
 function formatDate(date) { return date.toISOString().split('T')[0]; }
 
 // --- Rendering ---
+let lastCompanyRenderTs = 0;
+const COMPANIES_RENDER_MIN_INTERVAL = 500; // ms
+let hoveredCompanyName = null;
+
+function ensureCompanyQueueIndex(company) {
+    if (!company) return;
+    if (company.__queueIndex == null) {
+        company.__queueIndex = companyQueueCounter++;
+    }
+}
 function updateDisplay() {
-    let totalAssets = cash;
+    let publicAssets = 0;
     portfolio.forEach(holding => {
         const company = companies.find(c => c.name === holding.companyName);
         if (company) {
-            totalAssets += company.marketCap * holding.unitsOwned;
+            const value = company.marketCap * holding.unitsOwned;
+            publicAssets += value;
         }
     });
+    const privateAssets = ventureSim ? ventureSim.getPlayerHoldingsValue() : 0;
+    const pendingCommitments = ventureSim ? ventureSim.getPendingCommitments() : 0;
+    const equityValue = publicAssets + privateAssets;
+    const totalAssets = cash + equityValue - pendingCommitments;
     
     netWorthDisplay.textContent = currencyFormatter.format(netWorth);
     netWorthDisplay.style.color = netWorth >= 0 ? '#00c742' : '#dc3545';
     currentDateDisplay.textContent = formatDate(currentDate);
     
     // Update the single display line
-    subFinancialDisplay.textContent = `Cash: ${currencyFormatter.format(cash)} | Assets: ${currencyFormatter.format(totalAssets)} | Liabilities: ${currencyFormatter.format(totalBorrowed)}`;
+    const displayCash = Math.max(0, cash);
+    const commitmentsLabel = pendingCommitments > 0 ? ` | Commitments: ${currencyFormatter.format(-pendingCommitments)}` : '';
+    subFinancialDisplay.textContent = `Equities: ${currencyFormatter.format(equityValue)} | Cash: ${currencyFormatter.format(displayCash)}${commitmentsLabel} | Liabilities: ${currencyFormatter.format(totalBorrowed)}`;
     
     if (netWorth < 0 && totalBorrowed > 0) {
         endGame("bankrupt");
     }
 }
 
-function renderCompanies(initial = false) {
-    console.log('renderCompanies called. Initial:', initial);
-    console.log('Current companies array:', companies);
+function renderCompanies(force = false) {
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    if (!force && (now - lastCompanyRenderTs) < COMPANIES_RENDER_MIN_INTERVAL) {
+        return;
+    }
+    lastCompanyRenderTs = now;
+    (companies || []).forEach(ensureCompanyQueueIndex);
+    let filteredCompanies = [...companies];
 
-    if (initial) {
-        let filteredCompanies = [...companies];
-
-        // Apply filter
-        if (currentFilter !== 'all') {
-            if (currentFilter.startsWith('sector_')) {
-                const sector = currentFilter.substring(7);
-                filteredCompanies = filteredCompanies.filter(c => c.sector === sector);
-            }
+    if (currentFilter !== 'all') {
+        if (currentFilter.startsWith('sector_')) {
+            const sector = currentFilter.substring(7);
+            filteredCompanies = filteredCompanies.filter(c => c.sector === sector);
         }
+    }
 
-        console.log('Filtered companies:', filteredCompanies);
-
-        // Apply sort
-        if (currentSort === 'marketCapDesc') {
-            filteredCompanies.sort((a, b) => b.marketCap - a.marketCap);
-        } else if (currentSort === 'ipoDateDesc') {
-            filteredCompanies.sort((a, b) => b.ipoDate.getTime() - a.ipoDate.getTime());
-        }
-
-        companiesGrid.innerHTML = filteredCompanies.map(company => `
-            <div class="company-box" data-company-name="${company.name}">
-                <div class="company-name">${company.name}</div>
-                <div class="company-info">
-                    <div class="company-valuation" data-company-cap="${company.name}">Cap: ${formatLargeNumber(company.displayCap)}</div>
-                    <div class="company-sector">${company.sector}</div>
-                </div>
-            </div>
-        `).join('');
-    } else {
-        // Only update the market cap values
-        companies.forEach(company => {
-            const capEl = companiesGrid.querySelector(`.company-valuation[data-company-cap="${company.name}"]`);
-            if (capEl) {
-                capEl.textContent = `Cap: ${formatLargeNumber(company.displayCap)}`;
-            }
+    if (currentSort === 'marketCapDesc') {
+        filteredCompanies.sort((a, b) => b.marketCap - a.marketCap);
+    } else if (currentSort === 'ipoDateDesc') {
+        filteredCompanies.sort((a, b) => b.ipoDate.getTime() - a.ipoDate.getTime());
+    } else if (currentSort === 'ipoQueue') {
+        filteredCompanies.sort((a, b) => {
+            ensureCompanyQueueIndex(a);
+            ensureCompanyQueueIndex(b);
+            return (a.__queueIndex || 0) - (b.__queueIndex || 0);
         });
     }
+
+    companiesGrid.innerHTML = filteredCompanies.map(company => {
+        const boxClass = company.bankrupt ? 'company-box bankrupt' : 'company-box';
+        const capLabel = company.bankrupt ? 'Cap: Bankrupt' : `Cap: ${formatLargeNumber(company.displayCap)}`;
+        const sectorLabel = company.bankrupt ? 'Status: Bankrupt' : company.sector;
+        return `
+        <div class="${boxClass}" data-company-name="${company.name}">
+            <div class="company-name">${company.name}</div>
+            <div class="company-info">
+                <div class="company-valuation" data-company-cap="${company.name}">${capLabel}</div>
+                <div class="company-sector">${sectorLabel}</div>
+            </div>
+        </div>`;
+    }).join('');
+
+    const boxes = companiesGrid.querySelectorAll('.company-box');
+    boxes.forEach((box) => {
+        const name = box.getAttribute('data-company-name');
+        if (hoveredCompanyName === name) {
+            box.classList.add('hovered');
+        }
+        box.addEventListener('pointerenter', () => {
+            hoveredCompanyName = name;
+            box.classList.add('hovered');
+        });
+        box.addEventListener('pointerleave', () => {
+            if (hoveredCompanyName === name) hoveredCompanyName = null;
+            box.classList.remove('hovered');
+        });
+    });
 }
 
 function renderPortfolio() {
-    console.log('renderPortfolio called');
-    if (portfolio.length === 0) {
-        console.log('Portfolio is empty, clearing HTML.');
+    const hasPublicHoldings = portfolio.length > 0;
+    const ventureSummaries = ventureSim ? ventureSim.getCompanySummaries() : [];
+    const hasPrivateHoldings = ventureSummaries.some(summary => {
+        if (!summary) return false;
+        const detail = ventureSim.getCompanyDetail(summary.id);
+        if (!detail) return false;
+        return (detail.playerEquity || 0) > 0 || (detail.pendingCommitment || 0) > 0;
+    });
+    if (!hasPublicHoldings && !hasPrivateHoldings) {
         portfolioList.innerHTML = '';
         emptyPortfolioMsg.style.display = 'block';
         return;
@@ -185,8 +469,8 @@ function renderPortfolio() {
 
     const existingItems = new Map();
     portfolioList.querySelectorAll('.portfolio-item').forEach(item => {
-        const companyName = item.querySelector('.company-name').textContent;
-        existingItems.set(companyName, item);
+        const key = item.dataset.portfolioKey || item.querySelector('.company-name').textContent;
+        existingItems.set(key, item);
     });
 
     const newPortfolioHtml = [];
@@ -196,17 +480,17 @@ function renderPortfolio() {
 
         const currentValue = company.marketCap * holding.unitsOwned;
         const formattedValue = currencyFormatter.format(currentValue);
+        const key = `public:${holding.companyName}`;
 
-        if (existingItems.has(holding.companyName)) {
+        if (existingItems.has(key)) {
             // Update existing item
-            const item = existingItems.get(holding.companyName);
+            const item = existingItems.get(key);
             item.querySelector('.portfolio-value').textContent = formattedValue;
-            existingItems.delete(holding.companyName); // Mark as processed
+            existingItems.delete(key);
         } else {
             // Create new item
-            console.log(`Adding new portfolio item: ${holding.companyName}`);
             newPortfolioHtml.push(`
-                <div class="portfolio-item">
+                <div class="portfolio-item" data-portfolio-type="public" data-portfolio-key="${key}">
                     <div class="company-name">${holding.companyName}</div>
                     <div class="portfolio-info">
                         Value: <span class="portfolio-value">${formattedValue}</span>
@@ -216,14 +500,55 @@ function renderPortfolio() {
         }
     });
 
-    // Append new items
+    ventureSummaries.forEach(summary => {
+        if (!summary) return;
+        const detail = ventureSim.getCompanyDetail(summary.id);
+        if (!detail) return;
+        const hasEquity = (detail.playerEquity || 0) > 0;
+        const pendingCommitment = detail.pendingCommitment || 0;
+        const hasPending = pendingCommitment > 0;
+        if (!hasEquity && !hasPending) return;
+        const equityValue = hasEquity ? detail.playerEquity * detail.valuation : 0;
+        const formattedValue = hasEquity ? currencyFormatter.format(equityValue) : '';
+        const pendingLabel = hasPending ? `Pending: ${currencyFormatter.format(pendingCommitment)}` : '';
+        const key = `private:${summary.id}`;
+        const stakeLabel = hasEquity ? `${detail.playerEquityPercent.toFixed(2)}% stake` : 'Stake pending';
+        if (existingItems.has(key)) {
+            const item = existingItems.get(key);
+            const valueRow = item.querySelector('.portfolio-value-row');
+            if (valueRow) valueRow.style.display = hasEquity ? 'block' : 'none';
+            const valueEl = item.querySelector('.portfolio-value');
+            if (valueEl) valueEl.textContent = formattedValue;
+            const stakeEl = item.querySelector('.portfolio-stake');
+            if (stakeEl) stakeEl.textContent = stakeLabel;
+            const pendingEl = item.querySelector('.portfolio-pending');
+            if (pendingEl) {
+                pendingEl.textContent = pendingLabel;
+                pendingEl.style.display = hasPending ? 'block' : 'none';
+            }
+            existingItems.delete(key);
+        } else {
+            const stageLabel = detail.stageLabel || summary.stageLabel || 'Private';
+            newPortfolioHtml.push(`
+                <div class="portfolio-item" data-portfolio-type="private" data-venture-id="${summary.id}" data-portfolio-key="${key}">
+                    <div class="company-name">${summary.name} (${stageLabel})</div>
+                    <div class="portfolio-info">
+                        <div class="portfolio-value-row" style="display:${hasEquity ? 'block' : 'none'}">
+                            Value: <span class="portfolio-value">${formattedValue}</span>
+                        </div>
+                        <span class="portfolio-stake">${stakeLabel}</span>
+                        <span class="portfolio-pending" style="display:${hasPending ? 'block' : 'none'}">${pendingLabel}</span>
+                    </div>
+                </div>
+            `);
+        }
+    });
+
     if (newPortfolioHtml.length > 0) {
         portfolioList.insertAdjacentHTML('beforeend', newPortfolioHtml.join(''));
     }
 
-    // Remove old items
     if (existingItems.size > 0) {
-        console.log('Removing old portfolio items:', Array.from(existingItems.keys()));
         existingItems.forEach(item => {
             item.remove();
         });
@@ -247,7 +572,9 @@ function updateNetWorth() {
         const company = companies.find(c => c.name === holding.companyName);
         return sum + (company ? company.marketCap * holding.unitsOwned : 0);
     }, 0);
-    netWorth = cash + totalHoldingsValue - totalBorrowed;
+    const ventureHoldingsValue = ventureSim ? ventureSim.getPlayerHoldingsValue() : 0;
+    const pendingCommitments = ventureSim ? ventureSim.getPendingCommitments() : 0;
+    netWorth = cash + totalHoldingsValue + ventureHoldingsValue - pendingCommitments - totalBorrowed;
     netWorthHistory.push({ x: currentDate.getTime(), y: netWorth });
     if (netWorthHistory.length > 2000) netWorthHistory.shift();
 
@@ -272,6 +599,7 @@ function updateNetWorth() {
     if (netWorth >= 5000000) {
         vcBtn.disabled = false;
         vcBtn.parentElement.classList.remove('disabled');
+        ensureVentureSimulation();
         
     } else {
         vcBtn.disabled = true;
@@ -291,6 +619,99 @@ function chargeInterest() {
     if (interest > 0) {
         cash -= interest;
         lastInterestDate = new Date(currentDate);
+    }
+}
+
+function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+}
+
+function convertVentureCompanyToPublic(event) {
+    if (!sim || !ventureSim || !event) return;
+    const ipoDate = new Date(currentDate);
+    let ventureCompany = null;
+    if (event.companyRef) {
+        ventureCompany = event.companyRef;
+        if (typeof ventureSim.extractCompany === 'function') {
+            ventureSim.extractCompany(event.companyId);
+        }
+    } else if (typeof ventureSim.extractCompany === 'function') {
+        ventureCompany = ventureSim.extractCompany(event.companyId);
+    }
+    if (!ventureCompany && typeof ventureSim.getCompanyById === 'function') {
+        ventureCompany = ventureSim.getCompanyById(event.companyId);
+    }
+    if (!ventureCompany) return;
+
+    if (typeof sim.adoptVentureCompany === 'function') {
+        sim.adoptVentureCompany(ventureCompany, ipoDate);
+    }
+
+    const unitsOwned = event.playerEquity || 0;
+    if (unitsOwned > 0) {
+        const targetName = ventureCompany.name;
+        const existing = portfolio.find(h => h.companyName === targetName);
+        if (existing) {
+            existing.unitsOwned += unitsOwned;
+        } else {
+            portfolio.push({ companyName: targetName, unitsOwned: unitsOwned });
+        }
+        renderPortfolio();
+    }
+}
+
+function removeVentureSpinoutFromMarket(name) {
+    if (!name || !Array.isArray(companies)) return;
+    let removed = false;
+    for (let i = companies.length - 1; i >= 0; i--) {
+        const entry = companies[i];
+        if (entry && entry.fromVenture && entry.name === name) {
+            companies.splice(i, 1);
+            removed = true;
+        }
+    }
+    if (removed && sim && Array.isArray(sim.companies) && sim.companies !== companies) {
+        for (let i = sim.companies.length - 1; i >= 0; i--) {
+            const entry = sim.companies[i];
+            if (entry && entry.fromVenture && entry.name === name) {
+                sim.companies.splice(i, 1);
+            }
+        }
+    }
+}
+
+function handleVentureEvents(events) {
+    if (!events || events.length === 0) return;
+    let needsRefresh = false;
+    events.forEach(event => {
+        if (event.type === 'venture_ipo') {
+            convertVentureCompanyToPublic(event);
+            needsRefresh = true;
+        } else if (event.type === 'venture_failed') {
+            if (event.refund && event.refund > 0) {
+                cash += event.refund;
+            }
+            removeVentureSpinoutFromMarket(event.name);
+            needsRefresh = true;
+        } else if (event.type === 'venture_round_failed') {
+            if (event.refund && event.refund > 0) {
+                cash += event.refund;
+            }
+            needsRefresh = true;
+        }
+    });
+
+    if (needsRefresh) {
+        if (typeof refreshVentureCompaniesList === 'function' && document.body.classList.contains('vc-active')) {
+            refreshVentureCompaniesList();
+        }
+        if (typeof refreshVentureDetailView === 'function' && document.body.classList.contains('vc-detail-active')) {
+            refreshVentureDetailView();
+        }
+        updateNetWorth();
+        updateDisplay();
+        renderPortfolio();
+        if (netWorthChart) { netWorthChart.update(); }
     }
 }
 
@@ -330,6 +751,8 @@ function updateBankingDisplay() {
         const company = companies.find(c => c.name === holding.companyName);
         if (company) { totalAssets += company.marketCap * holding.unitsOwned; }
     });
+    const privateAssets = ventureSim ? ventureSim.getPlayerHoldingsValue() : 0;
+    totalAssets += privateAssets;
     bankingNetWorthDisplay.textContent = currencyFormatter.format(totalAssets);
     bankingNetWorthDisplay.className = `stat-value positive`;
     currentDebtDisplay.textContent = currencyFormatter.format(totalBorrowed);
@@ -359,26 +782,58 @@ function gameLoop() {
     sim.tick(currentDate);
     const companiesAfter = sim.companies.length;
 
-    // --- Dividend payout to player ---
-    portfolio.forEach(holding => {
-        const company = companies.find(c => c.name === holding.companyName);
-        if (company && company.financialHistory && company.financialHistory.length > 0) {
-            const lastYear = company.financialHistory[company.financialHistory.length - 1];
-            if (lastYear && lastYear.dividend > 0 && lastYear.year === currentDate.getFullYear() - 1) {
-                // Calculate payout for this year (last completed year)
-                const playerShare = holding.unitsOwned * lastYear.dividend / company.marketCap;
-                cash += playerShare;
-            }
+    const ventureEvents = ventureSim ? ventureSim.tick(currentDate) : [];
+    if (ventureEvents.length > 0) {
+        handleVentureEvents(ventureEvents);
+    }
+    const stagesChanged = ventureSim ? ventureSim.consumeStageUpdates() : false;
+    if (stagesChanged) {
+        if (typeof refreshVentureCompaniesList === 'function' && document.body.classList.contains('vc-active')) {
+            refreshVentureCompaniesList();
+        }
+        if (typeof refreshVentureDetailView === 'function' && document.body.classList.contains('vc-detail-active')) {
+            refreshVentureDetailView();
+        }
+    } else if (typeof refreshVentureDetailView === 'function' && document.body.classList.contains('vc-detail-active')) {
+        refreshVentureDetailView();
+    }
+
+    // --- Dividend payout to player (quarterly events) ---
+    const dividendEventsMap = new Map();
+    companies.forEach(company => {
+        if (!company || typeof company.drainDividendEvents !== 'function') return;
+        const events = company.drainDividendEvents();
+        if (events && events.length) {
+            dividendEventsMap.set(company.name, events);
         }
     });
+
+    if (dividendEventsMap.size > 0 && portfolio.length > 0) {
+        portfolio.forEach(holding => {
+            const events = dividendEventsMap.get(holding.companyName);
+            if (!events || !events.length) return;
+            events.forEach(evt => {
+                const playerShare = holding.unitsOwned * evt.amount;
+                if (playerShare <= 0) return;
+                if (dripEnabled) {
+                    const company = companies.find(c => c.name === holding.companyName);
+                    if (!company || company.marketCap <= 0) return;
+                    const units = playerShare / company.marketCap;
+                    holding.unitsOwned += units;
+                } else {
+                    cash += playerShare;
+                }
+            });
+        });
+    }
     // --- End dividend payout ---
 
     // If a new company IPO'd, re-render the entire grid
     if (companiesAfter > companiesBefore) {
         companies = sim.companies; // Update the global list
-        renderCompanies(true); // Force a full re-render
+        renderCompanies(true); // Force a full re-render when new companies list changes
     } else {
-        renderCompanies(false); // Otherwise, just update market caps
+        renderCompanies(); // Otherwise, re-render (throttled) to keep ordering accurate
     }
     
     if (activeCompanyDetail && activeCompanyDetail.newAnnualData) {
@@ -435,6 +890,49 @@ function sell(companyName, amount) {
     updateNetWorth(); updateDisplay(); renderPortfolio(); updateInvestmentPanel(company);
 }
 
+function leadVentureRound(companyId) {
+    ensureVentureSimulation();
+    if (!ventureSim) {
+        return { success: false, reason: 'Venture market unavailable.' };
+    }
+    const detail = ventureSim.getCompanyDetail(companyId);
+    if (!detail) {
+        return { success: false, reason: 'Company not found.' };
+    }
+    if (!detail.round) {
+        return { success: false, reason: 'No active fundraising round.' };
+    }
+    const requiredAmount = detail.round.raiseAmount;
+    if (requiredAmount > cash) {
+        return { success: false, reason: "Insufficient cash to lead this round." };
+    }
+
+    const result = ventureSim.leadRound(companyId);
+    if (!result.success) {
+        return result;
+    }
+
+    cash -= requiredAmount;
+    updateNetWorth();
+    updateDisplay();
+    if (netWorthChart) { netWorthChart.update(); }
+    renderPortfolio();
+
+    if (typeof refreshVentureCompaniesList === 'function' && document.body.classList.contains('vc-active')) {
+        refreshVentureCompaniesList();
+    }
+    if (typeof refreshVentureDetailView === 'function' && document.body.classList.contains('vc-detail-active')) {
+        refreshVentureDetailView();
+    }
+
+    return {
+        success: true,
+        invested: requiredAmount,
+        stageLabel: result.stageLabel,
+        equityOffered: result.equityOffered
+    };
+}
+
 function updateInvestmentPanelStats(company) {
     playerCashDisplay.textContent = currencyFormatter.format(cash);
     const holding = portfolio.find(h => h.companyName === company.name);
@@ -445,14 +943,21 @@ function updateInvestmentPanelStats(company) {
 
 function updateInvestmentPanel(company) {
     updateInvestmentPanelStats(company);
-    investmentAmountInput.value = '';
+    const disabled = !!company.bankrupt;
+    [buyBtn, sellBtn, buyMaxBtn, sellMaxBtn].forEach(btn => {
+        if (btn) btn.disabled = disabled;
+    });
+    if (investmentAmountInput) {
+        investmentAmountInput.disabled = disabled;
+        if (!disabled) investmentAmountInput.value = '';
+    }
 }
 
 function showCompanyDetail(company) {
     activeCompanyDetail = company;
     bodyEl.classList.add('detail-active');
     document.getElementById('detailCompanyName').textContent = company.name;
-    document.getElementById('detailCompanySector').textContent = company.sector;
+    document.getElementById('detailCompanySector').textContent = company.bankrupt ? 'Status: Bankrupt' : company.sector;
     updateInvestmentPanel(company);
     const ctx = document.getElementById('companyDetailChart').getContext('2d');
     if (companyDetailChart) { companyDetailChart.destroy(); }
@@ -556,9 +1061,17 @@ speedBtns.octo.addEventListener('click', () => setGameSpeed(8));
 portfolioList.addEventListener('click', (event) => {
     const portfolioItem = event.target.closest('.portfolio-item');
     if (!portfolioItem) return;
-    const companyName = portfolioItem.querySelector('.company-name').textContent;
-    const company = companies.find(c => c.name === companyName);
-    if (company) showCompanyDetail(company);
+    const type = portfolioItem.dataset.portfolioType || 'public';
+    if (type === 'public') {
+        const companyName = portfolioItem.querySelector('.company-name').textContent;
+        const company = companies.find(c => c.name === companyName);
+        if (company) showCompanyDetail(company);
+    } else if (type === 'private') {
+        const ventureId = portfolioItem.dataset.ventureId;
+        if (ventureId && typeof showVentureCompanyDetail === 'function') {
+            showVentureCompanyDetail(ventureId);
+        }
+    }
 });
 
 bankBtn.addEventListener('click', showBankingModal);
@@ -577,12 +1090,27 @@ bankingAmountInput.addEventListener('keypress', (event) => {
 
 vcBtn.addEventListener('click', () => {
     bodyEl.classList.add('vc-active');
-    renderVentureCompanies(ventureCompanies, formatLargeNumber); // Render venture companies when the VC tab is opened
+    ensureVentureSimulation();
+    const summaries = typeof getVentureCompanySummaries === 'function' ? getVentureCompanySummaries() : ventureCompanies;
+    renderVentureCompanies(
+        summaries,
+        formatLargeNumber,
+        formatLargeNumber
+    );
 });
 
 backToMainBtn.addEventListener('click', () => {
+    if (typeof hideVentureCompanyDetail === 'function') {
+        hideVentureCompanyDetail();
+    }
     bodyEl.classList.remove('vc-active');
+    bodyEl.classList.remove('vc-detail-active');
 });
+
+window.leadVentureRound = leadVentureRound;
+window.getVentureCompanyDetail = (companyId) => ventureSim ? ventureSim.getCompanyDetail(companyId) : null;
+window.getVentureCompanySummaries = () => ventureSim ? ventureSim.getCompanySummaries() : [];
+window.ensureVentureSimulation = ensureVentureSimulation;
 
 setMillionaireBtn.addEventListener('click', () => {
     cash = 1000000;
@@ -698,6 +1226,10 @@ async function init() {
     const sortCompaniesSelect = document.getElementById('sortCompanies');
     const filterCompaniesSelect = document.getElementById('filterCompanies');
 
+    if (sortCompaniesSelect) {
+        sortCompaniesSelect.value = currentSort;
+    }
+
     sim = await loadCompaniesData();
     if (!sim) { return; }
     companies = sim.companies;
@@ -739,3 +1271,14 @@ document.addEventListener('visibilitychange', () => {
 });
 
 init();
+if (dripToggle) {
+    dripToggle.checked = dripEnabled;
+    dripToggle.addEventListener('change', () => {
+        dripEnabled = dripToggle.checked;
+        try {
+            localStorage.setItem(DRIP_STORAGE_KEY, dripEnabled);
+        } catch (err) {
+            console.warn('Unable to store DRIP setting:', err);
+        }
+    });
+}

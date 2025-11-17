@@ -1,167 +1,230 @@
 [
   {
-    "id": "immunexus_bio",
-    "static": {
-      "name": "Immunexus Biotherapeutics",
-      "sector": "Biotech",
-      "founders": [
-        { "name": "Jason Shmitt",  "degree": "BSc", "school": "Stanford" },
-        { "name": "Gale Boetticher","degree": "PhD", "school": "UNM" }
-      ],
-      "ipo_window": { "from": 1990, "to": 1990 },
-      "ipo_instantly": true
-    },
-    "sentiment": { "structural_bias": { "min": 0.2, "max": 6, "half_life_years": 25 } },
-
-    "base_business": {
-      "revenue_process": {
-        "initial_revenue_usd": { "min": 1000000, "max": 25000000 }
-      },
-      "margin_curve": {
-        "start_profit_margin": 0.10,
-        "terminal_profit_margin": 0.65,
-        "years_to_mature": 12
-      },
-      "multiple_curve": {
-        "initial_ps_ratio": 40,
-        "terminal_pe_ratio": 18,
-        "years_to_converge": 10
-      }
-    },
-
-    "finance": { "payout_ratio": 0.0 },
-
-    "pipeline": [
-      {
-        "id": "cancer_cure",
-        "label": "Pan-cancer Immunotherapy",
-        "full_revenue_usd": 40000000000,
-        "stages": [
-          { "id": "phase_1", "name": "Phase 1 Trials",  "duration_days": 730,  "success_prob": 0.26, "value_realization": 0.15, "cost_usd": 120000000, "max_retries": 2 },
-          { "id": "phase_2", "name": "Phase 2 Trials",  "duration_days": 1095, "depends_on": "phase_1", "success_prob": 0.41, "value_realization": 0.30, "cost_usd": 220000000, "max_retries": 2 },
-          { "id": "phase_3", "name": "Phase 3 Trials",  "duration_days": 1460, "depends_on": "phase_2", "success_prob": 0.57, "value_realization": 0.70, "cost_usd": 320000000, "max_retries": 2 },
-          { "id": "market",   "name": "On Market",      "duration_days": 365,  "depends_on": "phase_3", "success_prob": 1.0, "value_realization": 1.0, "commercialises_revenue": true }
-        ]
-      }
-    ],
-
-    "events": [
-      {
-        "id": "trial_fraud",
-        "description": "Falsified drug data discovered",
-        "trigger_prob_per_year": 0.005,
-        "effects": [
-          { "type": "cash_fine", "value_usd": 200000000 },
-          { "type": "revenue_multiplier", "multiplier": 0.90, "duration_days": 730 },
-          { "type": "volatility_multiplier", "multiplier": 1.5, "duration_days": 365 }
-        ]
-      }
-    ]
-  },
-
-  {
     "id": "smartmart",
     "static": {
       "name": "SmartMart",
       "sector": "Retail",
-      "founders": [ { "name": "Linda Harris", "degree": "MBA", "school": "Harvard" } ],
-      "ipo_window": { "from": 1980, "to": 1980 }
+      "founders": [
+        {
+          "name": "Linda Harris",
+          "degree": "MBA",
+          "school": "Harvard"
+        }
+      ],
+      "ipo_window": {
+        "from": 1980,
+        "to": 1980
+      }
     },
-    "sentiment": { "structural_bias": { "min": 0.5, "max": 3, "half_life_years": 15 } },
-
+    "sentiment": {
+      "structural_bias": {
+        "min": 0.5,
+        "max": 3,
+        "half_life_years": 15
+      }
+    },
     "base_business": {
       "revenue_process": {
-        "initial_revenue_usd": { "min": 60000000000, "max": 200000000000 }
+        "initial_revenue_usd": {
+          "min": 60000000000,
+          "max": 200000000000
+        }
       },
-      "margin_curve": { "start_profit_margin": 0.03, "terminal_profit_margin": 0.06, "years_to_mature": 8 },
-      "multiple_curve": { "initial_ps_ratio": 0.9, "terminal_pe_ratio": 14, "years_to_converge": 8 }
+      "margin_curve": {
+        "start_profit_margin": 0.03,
+        "terminal_profit_margin": 0.06,
+        "years_to_mature": 8
+      },
+      "multiple_curve": {
+        "initial_ps_ratio": 0.9,
+        "terminal_pe_ratio": 14,
+        "years_to_converge": 8
+      }
     },
-
-    "finance": { "payout_ratio": 0.35 },
-
+    "finance": {},
     "pipeline": [],
     "events": []
   },
-
   {
     "id": "siliconwave_micro",
     "static": {
       "name": "SiliconWave Microsystems",
       "sector": "Semiconductor",
-      "founders": [ { "name": "Joe Ryan", "degree": "MBA", "school": "Harvard" } ],
-      "ipo_window": { "from": 1986, "to": 1988 }
+      "founders": [
+        {
+          "name": "Joe Ryan",
+          "degree": "MBA",
+          "school": "Harvard"
+        }
+      ],
+      "ipo_window": {
+        "from": 1986,
+        "to": 1988
+      }
     },
-    "sentiment": { "structural_bias": { "min": 0.4, "max": 4, "half_life_years": 20 } },
-
+    "sentiment": {
+      "structural_bias": {
+        "min": 0.4,
+        "max": 4,
+        "half_life_years": 20
+      }
+    },
     "base_business": {
       "revenue_process": {
-        "initial_revenue_usd": { "min": 600000000, "max": 2500000000 }
+        "initial_revenue_usd": {
+          "min": 600000000,
+          "max": 2500000000
+        }
       },
-      "margin_curve": { "start_profit_margin": 0.6, "terminal_profit_margin": 0.31, "years_to_mature": 12 },
-      "multiple_curve": { "initial_ps_ratio": 8, "terminal_pe_ratio": 14, "years_to_converge": 8 }
+      "margin_curve": {
+        "start_profit_margin": 0.6,
+        "terminal_profit_margin": 0.31,
+        "years_to_mature": 12
+      },
+      "multiple_curve": {
+        "initial_ps_ratio": 8,
+        "terminal_pe_ratio": 14,
+        "years_to_converge": 8
+      }
     },
-
-  "finance": { "payout_ratio": 0.20 },
-
+    "finance": {},
     "pipeline": [],
     "events": []
   },
-
   {
     "id": "american_real_estate",
     "static": {
       "name": "American Real Estate",
       "sector": "Real Estate",
-      "founders": [ { "name": "Teddy Backus", "degree": "MBA", "school": "UCLA" } ],
-      "ipo_window": { "from": 1993, "to": 1996 },
+      "founders": [
+        {
+          "name": "Teddy Backus",
+          "degree": "MBA",
+          "school": "UCLA"
+        }
+      ],
+      "ipo_window": {
+        "from": 1993,
+        "to": 1996
+      },
       "ipo_instantly": true
     },
-    "sentiment": { "structural_bias": { "min": 0.7, "max": 2, "half_life_years": 12 } },
-
+    "sentiment": {
+      "structural_bias": {
+        "min": 0.7,
+        "max": 2,
+        "half_life_years": 12
+      }
+    },
     "base_business": {
       "revenue_process": {
-        "initial_revenue_usd": { "min": 8000000000, "max": 25000000000 }
+        "initial_revenue_usd": {
+          "min": 8000000000,
+          "max": 25000000000
+        }
       },
-      "margin_curve": { "start_profit_margin": 0.15, "terminal_profit_margin": 0.30, "years_to_mature": 6 },
-      "multiple_curve": { "initial_ps_ratio": 1.2, "terminal_pe_ratio": 18, "years_to_converge": 6 }
+      "margin_curve": {
+        "start_profit_margin": 0.15,
+        "terminal_profit_margin": 0.3,
+        "years_to_mature": 6
+      },
+      "multiple_curve": {
+        "initial_ps_ratio": 1.2,
+        "terminal_pe_ratio": 18,
+        "years_to_converge": 6
+      }
     },
-
-    "finance": { "payout_ratio": 0.60 },   
-
+    "finance": {},
     "pipeline": [],
     "events": []
   },
-
   {
     "id": "stellarrise",
     "static": {
       "name": "StellarRise Space Systems",
       "sector": "Aerospace",
-      "founders": [ { "name": "Simon Xavier III", "degree": "PhD", "school": "Harvard" } ],
-      "ipo_window": { "from": 2000, "to": 2000 }
+      "founders": [
+        {
+          "name": "Simon Xavier III",
+          "degree": "PhD",
+          "school": "Harvard"
+        }
+      ],
+      "ipo_window": {
+        "from": 2000,
+        "to": 2000
+      }
     },
-    "sentiment": { "structural_bias": { "min": 0.3, "max": 8, "half_life_years": 25 } },
-
+    "sentiment": {
+      "structural_bias": {
+        "min": 0.3,
+        "max": 8,
+        "half_life_years": 25
+      }
+    },
     "base_business": {
       "revenue_process": {
-        "initial_revenue_usd": { "min": 50000000, "max": 120000000 }
+        "initial_revenue_usd": {
+          "min": 50000000,
+          "max": 120000000
+        }
       },
-      "margin_curve": { "start_profit_margin": 0.02, "terminal_profit_margin": 0.10, "years_to_mature": 16 },
-      "multiple_curve": { "initial_ps_ratio": 80, "terminal_pe_ratio": 35, "years_to_converge": 10 }
+      "margin_curve": {
+        "start_profit_margin": 0.02,
+        "terminal_profit_margin": 0.1,
+        "years_to_mature": 16
+      },
+      "multiple_curve": {
+        "initial_ps_ratio": 80,
+        "terminal_pe_ratio": 35,
+        "years_to_converge": 10
+      }
     },
-
-    "finance": { "payout_ratio": 0.0 },
-
-    "pipeline": [  
+    "finance": {},
+    "pipeline": [
       {
         "id": "phoenix_mk1",
         "label": "Phoenix-1 Reusable Medium-Lift Launcher",
         "full_revenue_usd": 3000000000,
         "stages": [
-          { "id": "design",    "name": "Design & Simulation",     "duration_days": 365, "success_prob": 0.80, "value_realization": 0.05, "cost_usd": 60000000,  "max_retries": 1 },
-          { "id": "hop_tests", "name": "Prototype Hop Tests",     "duration_days": 270, "depends_on": "design", "success_prob": 0.65, "value_realization": 0.15, "cost_usd": 90000000,  "max_retries": 2 },
-          { "id": "orbital",   "name": "Orbital Demo Flights",    "duration_days": 365, "depends_on": "hop_tests", "success_prob": 0.75, "value_realization": 0.40, "cost_usd": 140000000, "max_retries": 2 },
-          { "id": "service",   "name": "Commercial Service",      "duration_days": 365, "depends_on": "orbital", "success_prob": 0.90, "value_realization": 1.0,  "commercialises_revenue": true }
+          {
+            "id": "design",
+            "name": "Design & Simulation",
+            "duration_days": 365,
+            "success_prob": 0.8,
+            "value_realization": 0.05,
+            "cost_usd": 60000000,
+            "max_retries": 1
+          },
+          {
+            "id": "hop_tests",
+            "name": "Prototype Hop Tests",
+            "duration_days": 270,
+            "depends_on": "design",
+            "success_prob": 0.65,
+            "value_realization": 0.15,
+            "cost_usd": 90000000,
+            "max_retries": 2
+          },
+          {
+            "id": "orbital",
+            "name": "Orbital Demo Flights",
+            "duration_days": 365,
+            "depends_on": "hop_tests",
+            "success_prob": 0.75,
+            "value_realization": 0.4,
+            "cost_usd": 140000000,
+            "max_retries": 2
+          },
+          {
+            "id": "service",
+            "name": "Commercial Service",
+            "duration_days": 365,
+            "depends_on": "orbital",
+            "success_prob": 0.9,
+            "value_realization": 1.0,
+            "commercialises_revenue": true
+          }
         ]
       },
       {
@@ -169,11 +232,54 @@
         "label": "Colossus Heavy-Lift Reusable Launcher",
         "full_revenue_usd": 10000000000,
         "stages": [
-          { "id": "concept",       "name": "Concept & Funding",         "duration_days": 365, "success_prob": 0.70, "value_realization": 0.04, "cost_usd": 90000000,  "max_retries": 1 },
-          { "id": "structure",     "name": "Structural Test Article",   "duration_days": 365, "depends_on": "concept", "success_prob": 0.55, "value_realization": 0.15, "cost_usd": 170000000, "max_retries": 2 },
-          { "id": "static_fire",   "name": "Full-Stack Static Fires",   "duration_days": 180, "depends_on": "structure", "success_prob": 0.65, "value_realization": 0.30, "cost_usd": 230000000, "max_retries": 2 },
-          { "id": "qualification", "name": "Flight Qualification",      "duration_days": 365, "depends_on": "static_fire", "success_prob": 0.75, "value_realization": 0.60, "cost_usd": 330000000, "max_retries": 2 },
-          { "id": "fleet_service", "name": "Fleet Service",             "duration_days": 365, "depends_on": "qualification", "success_prob": 0.88, "value_realization": 1.0,  "commercialises_revenue": true }
+          {
+            "id": "concept",
+            "name": "Concept & Funding",
+            "duration_days": 365,
+            "success_prob": 0.7,
+            "value_realization": 0.04,
+            "cost_usd": 90000000,
+            "max_retries": 1
+          },
+          {
+            "id": "structure",
+            "name": "Structural Test Article",
+            "duration_days": 365,
+            "depends_on": "concept",
+            "success_prob": 0.55,
+            "value_realization": 0.15,
+            "cost_usd": 170000000,
+            "max_retries": 2
+          },
+          {
+            "id": "static_fire",
+            "name": "Full-Stack Static Fires",
+            "duration_days": 180,
+            "depends_on": "structure",
+            "success_prob": 0.65,
+            "value_realization": 0.3,
+            "cost_usd": 230000000,
+            "max_retries": 2
+          },
+          {
+            "id": "qualification",
+            "name": "Flight Qualification",
+            "duration_days": 365,
+            "depends_on": "static_fire",
+            "success_prob": 0.75,
+            "value_realization": 0.6,
+            "cost_usd": 330000000,
+            "max_retries": 2
+          },
+          {
+            "id": "fleet_service",
+            "name": "Fleet Service",
+            "duration_days": 365,
+            "depends_on": "qualification",
+            "success_prob": 0.88,
+            "value_realization": 1.0,
+            "commercialises_revenue": true
+          }
         ]
       },
       {
@@ -181,112 +287,248 @@
         "label": "Pathfinder Lunar Lander",
         "full_revenue_usd": 12000000000,
         "stages": [
-          { "id": "lander_r_and_d", "name": "Lander R&D",             "duration_days": 540, "success_prob": 0.60, "value_realization": 0.10, "cost_usd": 120000000, "max_retries": 2 },
-          { "id": "proto_mission",  "name": "Prototype Mission",      "duration_days": 365, "depends_on": "lander_r_and_d", "success_prob": 0.55, "value_realization": 0.25, "cost_usd": 170000000, "max_retries": 2 },
-          { "id": "crewed_demo",    "name": "Crewed Demo Landing",    "duration_days": 540, "depends_on": "proto_mission", "success_prob": 0.50, "value_realization": 0.60, "cost_usd": 240000000, "max_retries": 2 },
-          { "id": "commercial_ops", "name": "Commercial Ops",         "duration_days": 365, "depends_on": "crewed_demo", "success_prob": 0.85, "value_realization": 1.0,  "commercialises_revenue": true }
+          {
+            "id": "lander_r_and_d",
+            "name": "Lander R&D",
+            "duration_days": 540,
+            "success_prob": 0.6,
+            "value_realization": 0.1,
+            "cost_usd": 120000000,
+            "max_retries": 2
+          },
+          {
+            "id": "proto_mission",
+            "name": "Prototype Mission",
+            "duration_days": 365,
+            "depends_on": "lander_r_and_d",
+            "success_prob": 0.55,
+            "value_realization": 0.25,
+            "cost_usd": 170000000,
+            "max_retries": 2
+          },
+          {
+            "id": "crewed_demo",
+            "name": "Crewed Demo Landing",
+            "duration_days": 540,
+            "depends_on": "proto_mission",
+            "success_prob": 0.5,
+            "value_realization": 0.6,
+            "cost_usd": 240000000,
+            "max_retries": 2
+          },
+          {
+            "id": "commercial_ops",
+            "name": "Commercial Ops",
+            "duration_days": 365,
+            "depends_on": "crewed_demo",
+            "success_prob": 0.85,
+            "value_realization": 1.0,
+            "commercialises_revenue": true
+          }
         ]
       }
     ],
-
     "events": [
       {
         "id": "launch_failure",
         "description": "High-profile launch failure",
         "trigger_prob_per_year": 0.03,
         "effects": [
-          { "type": "cash_fine", "value_usd": 25000000 },
-          { "type": "revenue_multiplier", "multiplier": 0.90, "duration_days": 180 },
-          { "type": "volatility_multiplier", "multiplier": 1.6, "duration_days": 365 }
+          {
+            "type": "cash_fine",
+            "value_usd": 25000000
+          },
+          {
+            "type": "revenue_multiplier",
+            "multiplier": 0.9,
+            "duration_days": 180
+          },
+          {
+            "type": "volatility_multiplier",
+            "multiplier": 1.6,
+            "duration_days": 365
+          }
         ]
       }
     ]
   },
-
   {
     "id": "quantumware",
     "static": {
       "name": "QuantumWare",
       "sector": "Software",
       "founders": [
-        { "name": "Alice Nguyen", "degree": "BSc", "school": "MIT" },
-        { "name": "Raj Patel", "degree": "MBA", "school": "Wharton" }
+        {
+          "name": "Alice Nguyen",
+          "degree": "BSc",
+          "school": "MIT"
+        },
+        {
+          "name": "Raj Patel",
+          "degree": "MBA",
+          "school": "Wharton"
+        }
       ],
-      "ipo_window": { "from": 1995, "to": 1997 }
+      "ipo_window": {
+        "from": 1995,
+        "to": 1997
+      }
     },
-    "sentiment": { "structural_bias": { "min": 0.4, "max": 5, "half_life_years": 18 } },
-
+    "sentiment": {
+      "structural_bias": {
+        "min": 0.4,
+        "max": 5,
+        "half_life_years": 18
+      }
+    },
     "base_business": {
       "revenue_process": {
-        "initial_revenue_usd": { "min": 5000000, "max": 40000000 }
+        "initial_revenue_usd": {
+          "min": 5000000,
+          "max": 40000000
+        }
       },
-      "margin_curve": { "start_profit_margin": 0.05, "terminal_profit_margin": 0.25, "years_to_mature": 10 },
-      "multiple_curve": { "initial_ps_ratio": 12, "terminal_pe_ratio": 25, "years_to_converge": 8 }
+      "margin_curve": {
+        "start_profit_margin": 0.05,
+        "terminal_profit_margin": 0.25,
+        "years_to_mature": 10
+      },
+      "multiple_curve": {
+        "initial_ps_ratio": 12,
+        "terminal_pe_ratio": 25,
+        "years_to_converge": 8
+      }
     },
-
-    "finance": { "payout_ratio": 0.05 },
-
+    "finance": {},
     "pipeline": [],
     "events": []
   },
-
   {
     "id": "green_grid_energy",
     "static": {
       "name": "GreenGrid Energy",
       "sector": "Renewable Energy",
-      "founders": [ { "name": "Maria Lopez", "degree": "PhD", "school": "Caltech" } ],
-      "ipo_window": { "from": 1994, "to": 1996 },
+      "founders": [
+        {
+          "name": "Maria Lopez",
+          "degree": "PhD",
+          "school": "Caltech"
+        }
+      ],
+      "ipo_window": {
+        "from": 1994,
+        "to": 1996
+      },
       "ipo_instantly": true
     },
-    "sentiment": { "structural_bias": { "min": 0.3, "max": 4, "half_life_years": 20 } },
-
+    "sentiment": {
+      "structural_bias": {
+        "min": 0.3,
+        "max": 4,
+        "half_life_years": 20
+      }
+    },
     "base_business": {
       "revenue_process": {
-        "initial_revenue_usd": { "min": 20000000, "max": 150000000 }
+        "initial_revenue_usd": {
+          "min": 20000000,
+          "max": 150000000
+        }
       },
-      "margin_curve": { "start_profit_margin": 0.02, "terminal_profit_margin": 0.12, "years_to_mature": 12 },
-      "multiple_curve": { "initial_ps_ratio": 6, "terminal_pe_ratio": 18, "years_to_converge": 10 }
+      "margin_curve": {
+        "start_profit_margin": 0.02,
+        "terminal_profit_margin": 0.12,
+        "years_to_mature": 12
+      },
+      "multiple_curve": {
+        "initial_ps_ratio": 6,
+        "terminal_pe_ratio": 18,
+        "years_to_converge": 10
+      }
     },
-
-    "finance": { "payout_ratio": 0.0 },
-
+    "finance": {},
     "pipeline": [
       {
         "id": "solar_farm_rollout",
         "label": "Utility-Scale Solar Farms",
         "full_revenue_usd": 1500000000,
         "stages": [
-          { "id": "pilot",    "name": "Pilot Site",        "duration_days": 365,  "success_prob": 0.80, "value_realization": 0.10, "cost_usd": 40000000, "max_retries": 1 },
-          { "id": "regional", "name": "Regional Expansion","duration_days": 730,  "depends_on": "pilot", "success_prob": 0.70, "value_realization": 0.30, "cost_usd": 80000000, "max_retries": 2 },
-          { "id": "national", "name": "National Roll-out", "duration_days": 1095,"depends_on": "regional", "success_prob": 0.60, "value_realization": 0.60, "commercialises_revenue": true }
+          {
+            "id": "pilot",
+            "name": "Pilot Site",
+            "duration_days": 365,
+            "success_prob": 0.8,
+            "value_realization": 0.1,
+            "cost_usd": 40000000,
+            "max_retries": 1
+          },
+          {
+            "id": "regional",
+            "name": "Regional Expansion",
+            "duration_days": 730,
+            "depends_on": "pilot",
+            "success_prob": 0.7,
+            "value_realization": 0.3,
+            "cost_usd": 80000000,
+            "max_retries": 2
+          },
+          {
+            "id": "national",
+            "name": "National Roll-out",
+            "duration_days": 1095,
+            "depends_on": "regional",
+            "success_prob": 0.6,
+            "value_realization": 0.6,
+            "commercialises_revenue": true
+          }
         ]
       }
     ],
-
     "events": []
   },
-
   {
     "id": "telesphere_comm",
     "static": {
       "name": "TeleSphere Communications",
       "sector": "Telecom",
-      "founders": [ { "name": "Robert Chan", "degree": "BEng", "school": "Cornell" } ],
-      "ipo_window": { "from": 1983, "to": 1984 }
+      "founders": [
+        {
+          "name": "Robert Chan",
+          "degree": "BEng",
+          "school": "Cornell"
+        }
+      ],
+      "ipo_window": {
+        "from": 1983,
+        "to": 1984
+      }
     },
-    "sentiment": { "structural_bias": { "min": 0.6, "max": 2.5, "half_life_years": 12 } },
-
+    "sentiment": {
+      "structural_bias": {
+        "min": 0.6,
+        "max": 2.5,
+        "half_life_years": 12
+      }
+    },
     "base_business": {
       "revenue_process": {
-        "initial_revenue_usd": { "min": 120000000, "max": 600000000 }
+        "initial_revenue_usd": {
+          "min": 120000000,
+          "max": 600000000
+        }
       },
-      "margin_curve": { "start_profit_margin": 0.08, "terminal_profit_margin": 0.18, "years_to_mature": 6 },
-      "multiple_curve": { "initial_ps_ratio": 1.4, "terminal_pe_ratio": 12, "years_to_converge": 6 }
+      "margin_curve": {
+        "start_profit_margin": 0.08,
+        "terminal_profit_margin": 0.18,
+        "years_to_mature": 6
+      },
+      "multiple_curve": {
+        "initial_ps_ratio": 1.4,
+        "terminal_pe_ratio": 12,
+        "years_to_converge": 6
+      }
     },
-
-    "finance": { "payout_ratio": 0.28 },
-
+    "finance": {},
     "pipeline": [],
     "events": [
       {
@@ -294,83 +536,172 @@
         "description": "Nation-wide network outage",
         "trigger_prob_per_year": 0.02,
         "effects": [
-          { "type": "revenue_multiplier", "multiplier": 0.85, "duration_days": 90 },
-          { "type": "volatility_multiplier", "multiplier": 1.3, "duration_days": 180 }
+          {
+            "type": "revenue_multiplier",
+            "multiplier": 0.85,
+            "duration_days": 90
+          },
+          {
+            "type": "volatility_multiplier",
+            "multiplier": 1.3,
+            "duration_days": 180
+          }
         ]
       }
     ]
   },
-
   {
     "id": "saturn_micro",
     "static": {
       "name": "Saturn Microsystems",
       "sector": "Computer Hardware",
       "founders": [
-        { "name": "Gloria Tan", "degree": "BSc", "school": "UC Berkeley" },
-        { "name": "Ken Hatori", "degree": "MEng", "school": "Tokyo Tech" }
+        {
+          "name": "Gloria Tan",
+          "degree": "BSc",
+          "school": "UC Berkeley"
+        },
+        {
+          "name": "Ken Hatori",
+          "degree": "MEng",
+          "school": "Tokyo Tech"
+        }
       ],
-      "ipo_window": { "from": 1984, "to": 1984 }
+      "ipo_window": {
+        "from": 1984,
+        "to": 1984
+      }
     },
-    "sentiment": { "structural_bias": { "min": 0.4, "max": 4, "half_life_years": 18 } },
-
+    "sentiment": {
+      "structural_bias": {
+        "min": 0.4,
+        "max": 4,
+        "half_life_years": 18
+      }
+    },
     "base_business": {
       "revenue_process": {
-        "initial_revenue_usd": { "min": 15000000, "max": 90000000 }
+        "initial_revenue_usd": {
+          "min": 15000000,
+          "max": 90000000
+        }
       },
-      "margin_curve": { "start_profit_margin": 0.05, "terminal_profit_margin": 0.18, "years_to_mature": 10 },
-      "multiple_curve": { "initial_ps_ratio": 4, "terminal_pe_ratio": 22, "years_to_converge": 8 }
+      "margin_curve": {
+        "start_profit_margin": 0.05,
+        "terminal_profit_margin": 0.18,
+        "years_to_mature": 10
+      },
+      "multiple_curve": {
+        "initial_ps_ratio": 4,
+        "terminal_pe_ratio": 22,
+        "years_to_converge": 8
+      }
     },
-
-    "finance": { "payout_ratio": 0.12 },
-
+    "finance": {},
     "pipeline": [
       {
         "id": "risc32",
         "label": "32-bit RISC CPU",
         "full_revenue_usd": 1200000000,
         "stages": [
-          { "id": "design", "name": "Chip Design",  "duration_days": 540, "success_prob": 0.75, "value_realization": 0.15, "cost_usd": 50000000, "max_retries": 2 },
-          { "id": "fab",    "name": "First Silicon","duration_days": 270, "depends_on": "design", "success_prob": 0.60, "value_realization": 0.35, "cost_usd": 80000000, "max_retries": 2 },
-          { "id": "market", "name": "Market Launch","duration_days": 365, "depends_on": "fab", "success_prob": 0.80, "value_realization": 1.0, "commercialises_revenue": true }
+          {
+            "id": "design",
+            "name": "Chip Design",
+            "duration_days": 540,
+            "success_prob": 0.75,
+            "value_realization": 0.15,
+            "cost_usd": 50000000,
+            "max_retries": 2
+          },
+          {
+            "id": "fab",
+            "name": "First Silicon",
+            "duration_days": 270,
+            "depends_on": "design",
+            "success_prob": 0.6,
+            "value_realization": 0.35,
+            "cost_usd": 80000000,
+            "max_retries": 2
+          },
+          {
+            "id": "market",
+            "name": "Market Launch",
+            "duration_days": 365,
+            "depends_on": "fab",
+            "success_prob": 0.8,
+            "value_realization": 1.0,
+            "commercialises_revenue": true
+          }
         ]
       }
     ],
-
     "events": [
       {
         "id": "product_recall",
         "description": "Faulty cache controller forces recall",
         "trigger_prob_per_year": 0.015,
         "effects": [
-          { "type": "cash_fine", "value_usd": 60000000 },
-          { "type": "revenue_multiplier", "multiplier": 0.90, "duration_days": 180 },
-          { "type": "volatility_multiplier", "multiplier": 1.4, "duration_days": 365 }
+          {
+            "type": "cash_fine",
+            "value_usd": 60000000
+          },
+          {
+            "type": "revenue_multiplier",
+            "multiplier": 0.9,
+            "duration_days": 180
+          },
+          {
+            "type": "volatility_multiplier",
+            "multiplier": 1.4,
+            "duration_days": 365
+          }
         ]
       }
     ]
   },
-
   {
     "id": "prairie_cable",
     "static": {
       "name": "Prairie Cable & Media",
       "sector": "Telecom / Media",
-      "founders": [ { "name": "Ernest Wilcox", "degree": "BA", "school": "Kansas State" } ],
-      "ipo_window": { "from": 1988, "to": 1989 }
+      "founders": [
+        {
+          "name": "Ernest Wilcox",
+          "degree": "BA",
+          "school": "Kansas State"
+        }
+      ],
+      "ipo_window": {
+        "from": 1988,
+        "to": 1989
+      }
     },
-    "sentiment": { "structural_bias": { "min": 0.5, "max": 2.5, "half_life_years": 14 } },
-
+    "sentiment": {
+      "structural_bias": {
+        "min": 0.5,
+        "max": 2.5,
+        "half_life_years": 14
+      }
+    },
     "base_business": {
       "revenue_process": {
-        "initial_revenue_usd": { "min": 90000000, "max": 300000000 }
+        "initial_revenue_usd": {
+          "min": 90000000,
+          "max": 300000000
+        }
       },
-      "margin_curve": { "start_profit_margin": 0.10, "terminal_profit_margin": 0.18, "years_to_mature": 7 },
-      "multiple_curve": { "initial_ps_ratio": 1.6, "terminal_pe_ratio": 13, "years_to_converge": 7 }
+      "margin_curve": {
+        "start_profit_margin": 0.1,
+        "terminal_profit_margin": 0.18,
+        "years_to_mature": 7
+      },
+      "multiple_curve": {
+        "initial_ps_ratio": 1.6,
+        "terminal_pe_ratio": 13,
+        "years_to_converge": 7
+      }
     },
-
-    "finance": { "payout_ratio": 0.32 },
-
+    "finance": {},
     "pipeline": [],
     "events": [
       {
@@ -378,104 +709,224 @@
         "description": "FCC fines for carriage-fee dispute",
         "trigger_prob_per_year": 0.03,
         "effects": [
-          { "type": "cash_fine", "value_usd": 15000000 },
-          { "type": "volatility_multiplier", "multiplier": 1.2, "duration_days": 120 }
+          {
+            "type": "cash_fine",
+            "value_usd": 15000000
+          },
+          {
+            "type": "volatility_multiplier",
+            "multiplier": 1.2,
+            "duration_days": 120
+          }
         ]
       }
     ]
   },
-
   {
     "id": "aurora_robotics",
     "static": {
       "name": "Aurora Robotics",
       "sector": "Robotics",
       "founders": [
-        { "name": "Elena Voronova", "degree": "PhD", "school": "ETH Zürich" },
-        { "name": "Michael Reyes", "degree": "MSc", "school": "CMU" }
+        {
+          "name": "Elena Voronova",
+          "degree": "PhD",
+          "school": "ETH Z\u00fcrich"
+        },
+        {
+          "name": "Michael Reyes",
+          "degree": "MSc",
+          "school": "CMU"
+        }
       ],
-      "ipo_window": { "from": 1998, "to": 1999 }
+      "ipo_window": {
+        "from": 1998,
+        "to": 1999
+      }
     },
-    "sentiment": { "structural_bias": { "min": 0.4, "max": 5, "half_life_years": 18 } },
-
+    "sentiment": {
+      "structural_bias": {
+        "min": 0.4,
+        "max": 5,
+        "half_life_years": 18
+      }
+    },
     "base_business": {
       "revenue_process": {
-        "initial_revenue_usd": { "min": 30000000, "max": 150000000 }
+        "initial_revenue_usd": {
+          "min": 30000000,
+          "max": 150000000
+        }
       },
-      "margin_curve": { "start_profit_margin": 0.03, "terminal_profit_margin": 0.18, "years_to_mature": 10 },
-      "multiple_curve": { "initial_ps_ratio": 10, "terminal_pe_ratio": 28, "years_to_converge": 8 }
+      "margin_curve": {
+        "start_profit_margin": 0.03,
+        "terminal_profit_margin": 0.18,
+        "years_to_mature": 10
+      },
+      "multiple_curve": {
+        "initial_ps_ratio": 10,
+        "terminal_pe_ratio": 28,
+        "years_to_converge": 8
+      }
     },
-
-    "finance": { "payout_ratio": 0.0 },
-
+    "finance": {},
     "pipeline": [
       {
         "id": "warehouse_bot",
         "label": "Autonomous Warehouse Robot",
         "full_revenue_usd": 800000000,
         "stages": [
-          { "id": "prototype", "name": "Prototype",          "duration_days": 365, "success_prob": 0.70, "value_realization": 0.10, "cost_usd": 30000000, "max_retries": 2 },
-          { "id": "pilot",     "name": "Pilot Deployments",  "duration_days": 365, "depends_on": "prototype", "success_prob": 0.60, "value_realization": 0.30, "cost_usd": 45000000, "max_retries": 2 },
-          { "id": "market",    "name": "Market Launch",      "duration_days": 365, "depends_on": "pilot", "success_prob": 0.80, "value_realization": 1.0, "commercialises_revenue": true }
+          {
+            "id": "prototype",
+            "name": "Prototype",
+            "duration_days": 365,
+            "success_prob": 0.7,
+            "value_realization": 0.1,
+            "cost_usd": 30000000,
+            "max_retries": 2
+          },
+          {
+            "id": "pilot",
+            "name": "Pilot Deployments",
+            "duration_days": 365,
+            "depends_on": "prototype",
+            "success_prob": 0.6,
+            "value_realization": 0.3,
+            "cost_usd": 45000000,
+            "max_retries": 2
+          },
+          {
+            "id": "market",
+            "name": "Market Launch",
+            "duration_days": 365,
+            "depends_on": "pilot",
+            "success_prob": 0.8,
+            "value_realization": 1.0,
+            "commercialises_revenue": true
+          }
         ]
       }
     ],
-
     "events": [
       {
         "id": "supply_crunch",
         "description": "Critical component supply crunch",
         "trigger_prob_per_year": 0.025,
         "effects": [
-          { "type": "revenue_multiplier", "multiplier": 0.88, "duration_days": 120 },
-          { "type": "volatility_multiplier", "multiplier": 1.3, "duration_days": 180 }
+          {
+            "type": "revenue_multiplier",
+            "multiplier": 0.88,
+            "duration_days": 120
+          },
+          {
+            "type": "volatility_multiplier",
+            "multiplier": 1.3,
+            "duration_days": 180
+          }
         ]
       }
     ]
   },
-
   {
     "id": "medisphere_diagnostics",
     "static": {
       "name": "Medisphere Diagnostics",
       "sector": "Medical Devices",
-      "founders": [ { "name": "Dr. Priya Rao", "degree": "MD-PhD", "school": "Johns Hopkins" } ],
-      "ipo_window": { "from": 1995, "to": 1996 }
+      "founders": [
+        {
+          "name": "Dr. Priya Rao",
+          "degree": "MD-PhD",
+          "school": "Johns Hopkins"
+        }
+      ],
+      "ipo_window": {
+        "from": 1995,
+        "to": 1996
+      }
     },
-    "sentiment": { "structural_bias": { "min": 0.4, "max": 4, "half_life_years": 18 } },
-
+    "sentiment": {
+      "structural_bias": {
+        "min": 0.4,
+        "max": 4,
+        "half_life_years": 18
+      }
+    },
     "base_business": {
       "revenue_process": {
-        "initial_revenue_usd": { "min": 25000000, "max": 110000000 }
+        "initial_revenue_usd": {
+          "min": 25000000,
+          "max": 110000000
+        }
       },
-      "margin_curve": { "start_profit_margin": 0.10, "terminal_profit_margin": 0.24, "years_to_mature": 9 },
-      "multiple_curve": { "initial_ps_ratio": 6, "terminal_pe_ratio": 22, "years_to_converge": 9 }
+      "margin_curve": {
+        "start_profit_margin": 0.1,
+        "terminal_profit_margin": 0.24,
+        "years_to_mature": 9
+      },
+      "multiple_curve": {
+        "initial_ps_ratio": 6,
+        "terminal_pe_ratio": 22,
+        "years_to_converge": 9
+      }
     },
-
-    "finance": { "payout_ratio": 0.0 },
-
+    "finance": {},
     "pipeline": [
       {
         "id": "portable_mri",
         "label": "Portable MRI Scanner",
         "full_revenue_usd": 600000000,
         "stages": [
-          { "id": "r_and_d",  "name": "R&D",            "duration_days": 540, "success_prob": 0.65, "value_realization": 0.20, "cost_usd": 40000000, "max_retries": 2 },
-          { "id": "clinical", "name": "Clinical Trials", "duration_days": 730, "depends_on": "r_and_d", "success_prob": 0.70, "value_realization": 0.50, "cost_usd": 55000000, "max_retries": 2 },
-          { "id": "market",   "name": "Market Launch",  "duration_days": 365, "depends_on": "clinical", "success_prob": 0.90, "value_realization": 1.0, "commercialises_revenue": true }
+          {
+            "id": "r_and_d",
+            "name": "R&D",
+            "duration_days": 540,
+            "success_prob": 0.65,
+            "value_realization": 0.2,
+            "cost_usd": 40000000,
+            "max_retries": 2
+          },
+          {
+            "id": "clinical",
+            "name": "Clinical Trials",
+            "duration_days": 730,
+            "depends_on": "r_and_d",
+            "success_prob": 0.7,
+            "value_realization": 0.5,
+            "cost_usd": 55000000,
+            "max_retries": 2
+          },
+          {
+            "id": "market",
+            "name": "Market Launch",
+            "duration_days": 365,
+            "depends_on": "clinical",
+            "success_prob": 0.9,
+            "value_realization": 1.0,
+            "commercialises_revenue": true
+          }
         ]
       }
     ],
-
     "events": [
       {
         "id": "fda_recall",
         "description": "FDA recall of early production units",
         "trigger_prob_per_year": 0.02,
         "effects": [
-          { "type": "cash_fine", "value_usd": 25000000 },
-          { "type": "revenue_multiplier", "multiplier": 0.92, "duration_days": 180 },
-          { "type": "volatility_multiplier", "multiplier": 1.4, "duration_days": 365 }
+          {
+            "type": "cash_fine",
+            "value_usd": 25000000
+          },
+          {
+            "type": "revenue_multiplier",
+            "multiplier": 0.92,
+            "duration_days": 180
+          },
+          {
+            "type": "volatility_multiplier",
+            "multiplier": 1.4,
+            "duration_days": 365
+          }
         ]
       }
     ]

@@ -27,6 +27,13 @@
                         <div class="date" id="currentDateDisplay">1990-01-01</div>
                         <div class="sub-financial-display" id="subFinancialDisplay"></div>
                     </div>
+                    <div class="drip-toggle">
+                        <label class="switch">
+                            <input type="checkbox" id="dripToggle">
+                            <span class="slider round"></span>
+                        </label>
+                        <span class="drip-label">DRIP</span>
+                    </div>
                 </div>
             </div>
             <div class="chart-container">
@@ -68,6 +75,7 @@
                         <div class="sort-controls">
                             <label for="sortCompanies">Sort by:</label>
                             <select id="sortCompanies">
+                                <option value="ipoQueue">Oldest (Stable Order)</option>
                                 <option value="marketCapDesc">Highest Market Cap</option>
                                 <option value="ipoDateDesc">IPO Date (Newest First)</option>
                             </select>
@@ -144,6 +152,51 @@
                         <h2 class="section-title">Venture Market</h2>
                     </div>
                     <div class="companies-grid" id="ventureCompaniesGrid"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VC Detail View -->
+        <div id="vc-detail-view" class="view">
+            <div class="detail-header">
+                <div>
+                    <h2 id="vcDetailCompanyName" class="detail-title">Company Name</h2>
+                    <p id="vcDetailCompanySector" class="detail-sector">Sector</p>
+                    <p id="vcDetailFundingRound" class="detail-sector detail-subtext">Stage</p>
+                </div>
+                <button id="back-to-vc-list-btn">← Back to VC Market</button>
+            </div>
+            <div class="chart-container">
+                <canvas id="vcCompanyDetailChart"></canvas>
+            </div>
+            <div class="investment-panel">
+                <h3 class="investment-title">Summary</h3>
+                <div class="vc-detail-overview">
+                    <div id="vcDetailStatus" class="vc-detail-line"></div>
+                    <div id="vcDetailDescription" class="vc-detail-description"></div>
+                </div>
+            </div>
+            <div class="investment-panel">
+                <div id="vcFinancialHistoryContainer"></div>
+            </div>
+            <div class="investment-panel">
+                <h3 class="investment-title">Round Details</h3>
+                <div class="vc-detail-overview">
+                    <div id="vcDetailRoundInfo" class="vc-detail-line"></div>
+                    <div id="vcDetailSuccessChance" class="vc-detail-line"></div>
+                    <div id="vcDetailTimer" class="vc-detail-line"></div>
+                </div>
+                <div class="vc-detail-actions">
+                    <button id="vcLeadRoundBtn" class="buy-btn">Lead This Round</button>
+                    <div id="vcLeadRoundNote" class="vc-detail-note"></div>
+                </div>
+            </div>
+            <div class="investment-panel">
+                <h3 class="investment-title">Your Position</h3>
+                <div class="vc-detail-overview">
+                    <div id="vcDetailOwnership" class="vc-detail-line"></div>
+                    <div id="vcDetailInvested" class="vc-detail-line"></div>
+                    <div id="vcDetailLastEvent" class="vc-detail-description"></div>
                 </div>
             </div>
         </div>
