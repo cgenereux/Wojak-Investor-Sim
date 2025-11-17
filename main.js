@@ -246,6 +246,125 @@ function generateHypergrowthPresetCompanies() {
     return companies;
 }
 
+const hardTechRoster = [
+    {
+        name: 'Apex Fusion Works',
+        sector: 'Energy',
+        description: 'Building compact fusion cores for terrestrial grids.',
+        funding_round: 'Series B',
+        gate_stage: 'series_f'
+    },
+    {
+        name: 'Odin Launch Systems',
+        sector: 'Aerospace',
+        description: 'Reusable heavy-lift platform for deep space industry.',
+        funding_round: 'Series C',
+        gate_stage: 'series_f'
+    },
+    {
+        name: 'NeuraForge Interfaces',
+        sector: 'BioTech',
+        description: 'High-bandwidth BMI hardware for clinical and defense.',
+        funding_round: 'Series B',
+        gate_stage: 'series_e'
+    }
+];
+
+const hardTechPipelineTemplate = [
+    {
+        id: 'deeptech_flagship',
+        label: 'Flagship Hard-Tech Program',
+        full_revenue_usd: 30_000_000_000,
+        stages: [
+            { id: 'concept_validation', name: 'Concept Validation', duration_days: 720, success_prob: 0.55, value_realization: 0.1, cost_usd: 120_000_000, max_retries: 2 },
+            { id: 'prototype_build', name: 'Prototype Build', duration_days: 900, depends_on: 'concept_validation', success_prob: 0.5, value_realization: 0.2, cost_usd: 180_000_000, max_retries: 2 },
+            { id: 'pilot_demo', name: 'Pilot Demonstration', duration_days: 720, depends_on: 'prototype_build', success_prob: 0.6, value_realization: 0.25, cost_usd: 220_000_000, max_retries: 1 },
+            { id: 'regulatory_clearance', name: 'Regulatory Clearance', duration_days: 540, depends_on: 'pilot_demo', success_prob: 0.7, value_realization: 0.25, cost_usd: 150_000_000, max_retries: 1 },
+            { id: 'commercial_ramp', name: 'Commercial Ramp', duration_days: 540, depends_on: 'regulatory_clearance', success_prob: 0.85, value_realization: 0.2, cost_usd: 120_000_000, max_retries: 1, commercialises_revenue: true }
+        ]
+    }
+];
+
+const cloneHardTechPipeline = (scale = 1, prefix = '') => {
+    return hardTechPipelineTemplate.map(entry => ({
+        id: prefix ? `${prefix}_${entry.id}` : entry.id,
+        label: entry.label,
+        full_revenue_usd: Math.round(entry.full_revenue_usd * scale),
+        stages: entry.stages.map(stage => ({ ...stage }))
+    }));
+};
+
+function generateBinaryHardTechCompanies(count = 1) {
+    const roster = [...hardTechRoster];
+    const companies = [];
+    while (companies.length < count && roster.length > 0) {
+        const idx = Math.floor(Math.random() * roster.length);
+        const entry = roster.splice(idx, 1)[0];
+        const valuation = randBetween(15_000_000, 40_000_000);
+        const id = `preset_hardtech_${entry.name.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}_${companies.length}`;
+        const pipelineScale = randBetween(0.8, 1.4);
+        const pipelineIdPrefix = `${id}_binary`;
+        const pipeline = cloneHardTechPipeline(pipelineScale, pipelineIdPrefix);
+        const initialRevenue = randBetween(2_000_000, 6_000_000);
+        const baseBusiness = {
+            revenue_process: {
+                initial_revenue_usd: {
+                    min: initialRevenue * 0.7,
+                    max: initialRevenue * 1.4
+                }
+            },
+            margin_curve: {
+                start_profit_margin: randBetween(-1.4, -0.6),
+                terminal_profit_margin: randBetween(0.18, 0.32),
+                years_to_mature: randBetween(9, 14)
+            },
+            multiple_curve: {
+                initial_ps_ratio: randBetween(14, 22),
+                terminal_pe_ratio: randBetween(20, 30),
+                years_to_converge: randBetween(10, 14)
+            }
+        };
+        const finance = {
+            starting_cash_usd: initialRevenue * randBetween(6, 12),
+            starting_debt_usd: 0,
+            interest_rate_annual: 0.06
+        };
+        const costs = {
+            opex_fixed_usd: randBetween(30_000_000, 60_000_000),
+            opex_variable_ratio: randBetween(0.18, 0.32),
+            rd_base_ratio: randBetween(0.05, 0.1)
+        };
+        companies.push({
+            id,
+            name: entry.name,
+            sector: entry.sector || 'Deep Tech',
+            description: entry.description || 'Binary hard-tech preset (private)',
+            valuation_usd: valuation,
+            funding_round: entry.funding_round || 'Series B',
+            ipo_stage: 'pre_ipo',
+            binary_success: true,
+            archetype: 'hardtech',
+            gate_stage: entry.gate_stage || 'series_f',
+            hypergrowth_window_years: randBetween(1.5, 3.5),
+            hypergrowth_total_multiplier: randBetween(10, 25),
+            long_run_revenue_ceiling_usd: valuation * randBetween(35, 70),
+            long_run_growth_rate: randBetween(0.25, 0.45),
+            long_run_growth_floor: randBetween(0.05, 0.12),
+            long_run_growth_decay: randBetween(0.08, 0.2),
+            post_gate_initial_multiple: randBetween(10, 16),
+            post_gate_baseline_multiple: randBetween(4, 8),
+            post_gate_multiple_decay_years: randBetween(6, 11),
+            post_gate_margin: randBetween(0.2, 0.35),
+            max_failures_before_collapse: 1,
+            base_business: baseBusiness,
+            finance,
+            costs,
+            pipeline
+        });
+    }
+    return companies;
+}
+
 // --- Banking Modal Elements ---
 const bankingModal = document.getElementById('bankingModal');
 const closeBankingBtn = document.getElementById('closeBankingBtn');
@@ -328,6 +447,8 @@ async function loadCompaniesData() {
         filteredCompanies.push(...presetMegacorpCompanies);
         const presetVentureCompanies = generateHypergrowthPresetCompanies();
         ventureCompanies.push(...presetVentureCompanies);
+        const hardTechCompanies = generateBinaryHardTechCompanies(1);
+        ventureCompanies.push(...hardTechCompanies);
         ensureVentureSimulation(true);
         return new Simulation(filteredCompanies);
     } catch (error) {
@@ -1213,6 +1334,7 @@ function getPipelineHTML(company) {
     
     return html;
 }
+window.getPipelineHTML = getPipelineHTML;
 
 function updatePipelineDisplay(company) {
     const container = document.getElementById('pipelineContainer');

@@ -473,8 +473,8 @@ const buildPublicConfigFromVenture = (cfg, startYear) => {
     base_business: baseBusiness,
     finance,
     costs,
-    pipeline: [],
-    events: []
+    pipeline: Array.isArray(cfg.pipeline) ? cfg.pipeline : [],
+    events: Array.isArray(cfg.events) ? cfg.events : []
   };
 };
 
@@ -779,6 +779,7 @@ class VentureCompany extends Company {
     this.fromVenture = true;
 
     this.description = config.description || '';
+    this.archetype = config.archetype || 'hypergrowth';
     const stageLabel = (config.funding_round || 'Seed').toLowerCase();
     const idx = STAGE_INDEX_BY_LABEL[stageLabel];
     this.stageIndex = typeof idx === 'number' ? idx : 0;
@@ -881,6 +882,15 @@ class VentureCompany extends Company {
   }
 
   computeFairValue(applyNoise = true) {
+    if (this.archetype === 'hardtech' && !this.postGateMode) {
+      const unlockedPV = this.products.reduce((sum, product) => sum + (typeof product.unlockedValue === 'function' ? product.unlockedValue() : 0), 0);
+      const optionPV = this.products.reduce((sum, product) => sum + (typeof product.expectedValue === 'function' ? product.expectedValue() : 0), 0);
+      let base = Math.max(1, unlockedPV + optionPV);
+      if (applyNoise) {
+        base *= between(0.9, 1.15);
+      }
+      return base;
+    }
     const fin = this.getStageFinancials();
     const ps = fin.ps || 6;
     const margin = clampValue(fin.margin ?? 0.1, -2, 0.35);
@@ -972,6 +982,10 @@ class VentureCompany extends Company {
   }
 
   advancePreGateRevenue(dtYears) {
+    if (this.archetype === 'hardtech') {
+      this.advanceHardTechPreGate(dtYears);
+      return;
+    }
     if (this.binarySuccess) {
       this.revenue = 0;
       this.profit = 0;
@@ -984,6 +998,27 @@ class VentureCompany extends Company {
     const smoothing = 1 - Math.exp(-5 * dtYears);
     this.revenue += (targetRevenue - this.revenue) * smoothing;
     this.profit = this.revenue * fin.margin;
+  }
+
+  advanceHardTechPreGate(dtYears) {
+    const smoothing = 1 - Math.exp(-3 * dtYears);
+    const stats = this.getHardTechPipelineStats();
+    const hasCommercial = stats.commercialCount > 0;
+    if (!hasCommercial) {
+      const targetRevenue = Math.max(250_000, stats.progress * 5_000_000);
+      const baseBurn = 18_000_000 + stats.activeCost * 0.25;
+      const progressBurn = baseBurn * (1 + stats.progress * 2.5);
+      const targetProfit = -progressBurn;
+      this.revenue += (targetRevenue - this.revenue) * smoothing;
+      this.profit += (targetProfit - this.profit) * smoothing;
+    } else {
+      const commercialRevenue = stats.commercialValue * this.micro;
+      const targetRevenue = Math.max(1, commercialRevenue);
+      const targetMargin = clampValue(this.postGateMargin || 0.25, 0.05, 0.45);
+      const targetProfit = targetRevenue * targetMargin;
+      this.revenue += (targetRevenue - this.revenue) * smoothing;
+      this.profit += (targetProfit - this.profit) * smoothing;
+    }
   }
 
   advancePostGateRevenue(dtYears) {
@@ -1008,6 +1043,41 @@ class VentureCompany extends Company {
     if (this.revenue > this.longRunRevenueCeiling) {
       this.revenue = this.longRunRevenueCeiling;
     }
+  }
+
+  getHardTechPipelineStats() {
+    const stats = {
+      totalStages: 0,
+      completedStages: 0,
+      commercialCount: 0,
+      commercialValue: 0,
+      activeCost: 0
+    };
+    if (!Array.isArray(this.products)) {
+      return stats;
+    }
+    this.products.forEach(product => {
+      let activeStageCost = 0;
+      product.stages.forEach(stage => {
+        stats.totalStages += 1;
+        if (stage.completed && stage.succeeded) {
+          stats.completedStages += 1;
+        }
+        if (!stage.completed && activeStageCost === 0) {
+          const canStart = !stage.depends_on || product.stages.some(s => s.id === stage.depends_on && s.completed && s.succeeded);
+          if (canStart) {
+            activeStageCost = stage.cost || 0;
+          }
+        }
+      });
+      stats.activeCost += activeStageCost;
+      if (product.isCommercialised && product.isCommercialised()) {
+        stats.commercialCount += 1;
+        stats.commercialValue += product.fullVal || 0;
+      }
+    });
+    stats.progress = stats.totalStages > 0 ? stats.completedStages / stats.totalStages : 0;
+    return stats;
   }
 
   applyRunwayFlow(dtDays) {
@@ -1038,6 +1108,13 @@ class VentureCompany extends Company {
   }
 
   calculateRoundHealth() {
+    if (this.archetype === 'hardtech') {
+      const stats = this.getHardTechPipelineStats();
+      const runwayDenom = Math.max(this.runwayTargetDays || 240, 120);
+      const runwayScore = clampValue(this.cachedRunwayDays / runwayDenom, 0, 1);
+      const progressScore = stats.progress;
+      return clampValue(0.6 * progressScore + 0.4 * runwayScore, 0, 1);
+    }
     const revenue = Math.max(1, this.revenue);
     const prev = Math.max(1, this.lastRoundRevenue || revenue);
     const growth = (revenue - prev) / prev;
@@ -1365,6 +1442,20 @@ class VentureCompany extends Company {
       runwayDays: isFinite(this.cachedRunwayDays) ? this.cachedRunwayDays : null,
       history: this.history.slice(),
       financialHistory: this.financialHistory.slice(),
+      products: this.products.map(product => ({
+        label: product.label,
+        fullVal: product.fullVal,
+        stages: product.stages.map(stage => ({
+          id: stage.id,
+          name: stage.name,
+          duration_days: stage.duration_days,
+          success_prob: stage.success_prob,
+          depends_on: stage.depends_on,
+          completed: stage.completed,
+          succeeded: stage.succeeded,
+          commercialises_revenue: !!stage.commercialises_revenue
+        }))
+      })),
       round: round ? {
         stageLabel: round.stageLabel,
         raiseAmount: round.raiseAmount,
@@ -1458,7 +1549,13 @@ class VentureSimulation {
       post_gate_baseline_multiple: cfg.post_gate_baseline_multiple,
       post_gate_multiple_decay_years: cfg.post_gate_multiple_decay_years,
       post_gate_margin: cfg.post_gate_margin,
-      max_failures_before_collapse: cfg.max_failures_before_collapse
+      max_failures_before_collapse: cfg.max_failures_before_collapse,
+      base_business: cfg.base_business,
+      finance: cfg.finance,
+      costs: cfg.costs,
+      archetype: cfg.archetype,
+      pipeline: Array.isArray(cfg.pipeline) ? cfg.pipeline : [],
+      events: Array.isArray(cfg.events) ? cfg.events : []
     }, startDate));
     this.lastTick = startDate ? new Date(startDate) : new Date('1990-01-01T00:00:00Z');
     this.stageUpdateFlag = false;

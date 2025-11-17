@@ -16,6 +16,7 @@ const backToVcListBtn = document.getElementById('back-to-vc-list-btn');
 const vcDetailChartCanvas = document.getElementById('vcCompanyDetailChart');
 const vcDetailChartCtx = vcDetailChartCanvas ? vcDetailChartCanvas.getContext('2d') : null;
 const vcFinancialHistoryContainer = document.getElementById('vcFinancialHistoryContainer');
+const vcPipelineContainer = document.getElementById('vcPipelineContainer');
 
 let currentVentureCompanyId = null;
 let vcFormatLargeNumber = (value) => {
@@ -209,6 +210,13 @@ function updateVentureDetail(companyId) {
     vcDetailLastEventEl.textContent = detail.lastEventNote || '';
     if (vcFinancialHistoryContainer) {
         vcFinancialHistoryContainer.innerHTML = getFinancialTableHTML(detail.financialHistory);
+    }
+    if (vcPipelineContainer) {
+        if (typeof window.getPipelineHTML === 'function') {
+            vcPipelineContainer.innerHTML = window.getPipelineHTML(detail);
+        } else {
+            vcPipelineContainer.innerHTML = '<h3 class="investment-title">Product Pipeline</h3><div class="no-pipeline">Pipeline view unavailable.</div>';
+        }
     }
 
     if (vcLeadRoundBtn) {

@@ -131,3 +131,33 @@ To keep balancing centralized while still authoring memorable companies, we’ll
 6. **Tooling Ready:** With clean JSON, future tools (simple editors, diff-friendly reviews, even AI-assisted authoring) can add companies without touching code. Testing scripts can also validate that every metadata entry resolves to a real preset and product catalog.
 
 This transition keeps the flavor of hand-authored companies while ensuring game balance lives in one preset system rather than scattered across dozens of bespoke JSON entries.
+
+---
+
+## 9. Venture Archetypes & Pipeline Mechanics
+We now treat venture companies as explicit archetypes instead of one-size-fits-all hypergrowth clones.
+
+### Dual Archetypes
+- **Hypergrowth (default):** Keeps the existing ARR decay curve, stage-based round health, and valuation logic tied to `VC_STAGE_CONFIG`.
+- **Hard-Tech / Binary:** New lifecycle driven by product pipelines, with deep negative margins pre-commercialization and binary stage success. `generateBinaryHardTechCompanies()` injects a dedicated hard-tech pipeline template, base business, finance, costs, and metadata (`archetype: 'hardtech'`).
+
+### Engine Changes
+1. **Archetype Flag:** `VentureCompany` stores `archetype` and copies preset `pipeline/events` through `buildPublicConfigFromVenture()` and `VentureSimulation` so private companies keep their authored DNA.
+2. **Hard-Tech Financials:**
+   - `advancePreGateRevenue` delegates to `advanceHardTechPreGate` when `archetype === 'hardtech'`, tying revenue/burn to pipeline progress and commercialized stages instead of generic stage multipliers.
+   - `computeFairValue` uses unlocked/expected pipeline value for hard-tech firms in the private phase.
+   - `calculateRoundHealth` scores hard-tech rounds based on pipeline progress + runway rather than revenue growth.
+3. **Stats Helper:** `getHardTechPipelineStats()` summarizes total stages, completed stages, active stage costs, and commercialized value, feeding the hard-tech revenue/valuation logic.
+4. **Round Dynamics:** All funding rounds still share the same timelines today, but because archetypes are explicit we can add hard-tech-specific stage configs later (longer duration, different valuation clamps) without impacting hypergrowth.
+
+### VC Pipeline Visibility
+- `VentureCompany.getDetail()` now emits a lightweight `products` array so the UI can render pipeline state.
+- The VC detail view includes the existing `getPipelineHTML()` panel, refreshed on every venture tick, so hypergrowth and hard-tech players can watch stages advance in real time.
+
+### Future Work
+1. **Preset Separation:** Continue authoring hypergrowth and hard-tech presets independently so neither shares hidden parameters.
+2. **Round Cadence per Archetype:** Introduce optional per-archetype stage tables (e.g., slower raises for hard-tech) to better match real-world capital cycles.
+3. **UI Improvements:** Surface private cash/runway alongside the pipeline, plus event logs for stage successes/failures.
+4. **Public Continuity:** When a hard-tech firm IPOs, its pipeline and revenue curve already match the private state (no reset to hypergrowth defaults).
+
+This structure keeps the venture and public engines on the same simulation clock while letting each archetype evolve with its own financial model, pipeline, and presentation.
