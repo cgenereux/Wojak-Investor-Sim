@@ -25,6 +25,23 @@ const vcView = document.getElementById('vc-view');
 const backToMainBtn = document.getElementById('back-to-main-btn');
 const dripToggle = document.getElementById('dripToggle');
 
+const DEFAULT_WOJAK_SRC = 'wojaks/wojak.png';
+const MALDING_WOJAK_SRC = 'wojaks/malding-wojak.png';
+let baseWojakSrc = DEFAULT_WOJAK_SRC;
+let isMalding = false;
+let maldingTimeoutId = null;
+let maldingAth = null;
+let maldingRecoveryThreshold = null;
+let maldingSevere = false;
+let maldingMinDurationElapsed = false;
+if (wojakImage) {
+    const initialSrc = wojakImage.getAttribute('src');
+    baseWojakSrc = initialSrc || DEFAULT_WOJAK_SRC;
+    if (!initialSrc) {
+        wojakImage.src = baseWojakSrc;
+    }
+}
+
 // --- Helper utilities ---
 const randBetween = (min, max) => Math.random() * (max - min) + min;
 const randIntBetween = (min, max) => Math.floor(randBetween(min, max));
@@ -84,6 +101,63 @@ const cloneBiotechPipeline = (scale = 1, prefix = '') => {
 
 function pickRandom(arr) {
     return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function setWojakImageSrc(path) {
+    if (wojakImage) {
+        wojakImage.src = path;
+    }
+}
+
+function endMalding(force = false) {
+    if (maldingTimeoutId) {
+        clearTimeout(maldingTimeoutId);
+        maldingTimeoutId = null;
+    }
+    maldingAth = null;
+    maldingRecoveryThreshold = null;
+    maldingSevere = false;
+    maldingMinDurationElapsed = false;
+    if (isMalding || force) {
+        isMalding = false;
+        setWojakImageSrc(baseWojakSrc);
+    }
+}
+
+function setBaseWojakImage(path, forceDisplay = false) {
+    baseWojakSrc = path || DEFAULT_WOJAK_SRC;
+    if (forceDisplay) {
+        endMalding(true);
+    } else if (!isMalding) {
+        setWojakImageSrc(baseWojakSrc);
+    }
+}
+
+function triggerMaldingWojak(drawdownAth, drawdownPercent = 0) {
+    if (!wojakImage) return;
+    if (maldingTimeoutId) {
+        clearTimeout(maldingTimeoutId);
+    }
+    isMalding = true;
+    maldingAth = drawdownAth || null;
+    maldingSevere = drawdownPercent >= 0.6;
+    maldingMinDurationElapsed = false;
+    if (drawdownAth) {
+        const thresholdFactor = maldingSevere ? 0.6 : 1;
+        maldingRecoveryThreshold = drawdownAth * thresholdFactor;
+    } else {
+        maldingRecoveryThreshold = null;
+    }
+    setWojakImageSrc(MALDING_WOJAK_SRC);
+    maldingTimeoutId = setTimeout(() => {
+        maldingTimeoutId = null;
+        maldingMinDurationElapsed = true;
+        if (!maldingSevere && (!maldingRecoveryThreshold || netWorth >= maldingRecoveryThreshold)) {
+            endMalding();
+        } else if (maldingSevere && maldingRecoveryThreshold && netWorth >= maldingRecoveryThreshold) {
+            endMalding();
+        }
+    }, 10000);
 }
 
 function generateRiskyBiotechCompanies(count = 1) {
@@ -410,6 +484,8 @@ let cash = 3000;
 let portfolio = [];
 let netWorth = cash;
 let netWorthHistory = [{ x: currentDate.getTime(), y: netWorth }];
+let netWorthAth = netWorth;
+let lastDrawdownTriggerAth = 0;
 
 // --- Banking State ---
 let totalBorrowed = 0;
@@ -704,19 +780,36 @@ function updateNetWorth() {
     netWorthHistory.push({ x: currentDate.getTime(), y: netWorth });
     if (netWorthHistory.length > 2000) netWorthHistory.shift();
 
+    if (netWorth > netWorthAth) {
+        netWorthAth = netWorth;
+        lastDrawdownTriggerAth = 0;
+    }
+    const drawdown = netWorthAth > 0 ? (netWorthAth - netWorth) / netWorthAth : 0;
+    if (drawdown >= 0.4 && netWorthAth > 0 && lastDrawdownTriggerAth !== netWorthAth) {
+        lastDrawdownTriggerAth = netWorthAth;
+        triggerMaldingWojak(netWorthAth, drawdown);
+    }
+    if (isMalding && maldingRecoveryThreshold != null) {
+        if (!maldingSevere && netWorth >= maldingRecoveryThreshold) {
+            endMalding();
+        } else if (maldingSevere && maldingMinDurationElapsed && netWorth >= maldingRecoveryThreshold) {
+            endMalding();
+        }
+    }
+
     if (netWorth >= 1000000 && !isMillionaire) {
         isMillionaire = true; 
-        wojakImage.src = 'wojaks/suit-wojak.png';
+        setBaseWojakImage('wojaks/suit-wojak.png', true);
         jsConfetti.addConfetti({ emojis: ['💰', '💵'], confettiNumber: 150, emojiSize: 30, });
     }
     if (netWorth >=  1000000000  && !isBillionaire) {
         isBillionaire = true;
-        wojakImage.src = 'wojaks/red-suit-wojak.png';
+        setBaseWojakImage('wojaks/red-suit-wojak.png', true);
         jsConfetti.addConfetti({ emojis: ['💎','📀'], confettiNumber: 40, emojiSize: 40, });
     }
     if (netWorth >= 1000000000000 && !isTrillionaire) {
         isTrillionaire = true;
-        wojakImage.src = 'wojaks/purple-suit-wojak.png';
+        setBaseWojakImage('wojaks/purple-suit-wojak.png', true);
         jsConfetti.addConfetti({ emojis: ['🌌','🥇','🔮'], confettiNumber: 100, emojiSize: 30, });
         setTimeout(() => { jsConfetti.addConfetti({ emojis: ['🌌','🥇','🔮'], confettiNumber: 100, emojiSize: 30, }); }, 1000); 
         setTimeout(() => { jsConfetti.addConfetti({ emojis: ['🌌','🥇','🔮'], confettiNumber: 100, emojiSize: 30, }); }, 2000); 
