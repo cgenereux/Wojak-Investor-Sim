@@ -196,3 +196,44 @@ Hypergrowth and hard-tech startups now run through archetype-specific strategies
 - **Strategy extensions:** Add per-archetype cadence tables, richer stage events, and new archetypes (deep tech, fusion, etc.) on top of the same interface.
 
 This refactor keeps hypergrowth and hard-tech equal citizens: both read their round order from data, both run on the same tick loop, but each archetype can evolve its financing lifecycle independently. It also sets the stage for richer presets (era-specific rosters, custom odds) without touching the engine again.
+
+---
+
+## 12. Macro Event Brainstorm
+Early ideas for headline events that could shake up the sim mid-run:
+
+- **Pandemics:** demand shock across travel/retail, biotech pops, long-tailed recovery in services.
+- **Financial crises:** market-wide multiple compression, tighter credit, higher default risk and forced deleveraging.
+- **Debt crises:** sovereign or corporate spreads blow out; interest expense spikes and highly levered names risk insolvency.
+- **Overstimulation:** QE/low-rate waves that temporarily inflate valuations and accelerate IPO windows.
+- **Interest rate shocks:** rapid hikes or cuts that ripple through borrowing costs, dividend yields, and banking income.
+- **AI threats:** regulatory crackdowns or existential scares that hammer AI-heavy companies while boosting “safety” plays.
+- **Bogdanov manipulation:** tongue-in-cheek event where a mysterious actor props up (or crashes) select assets.
+- **War / geopolitical conflict:** sector-specific disruptions (defense boom, energy shortages, supply-chain hits).
+
+Each event should have clear entry/exit triggers, sector-level effects (macro multipliers, cost shocks), and narrative hooks so the dashboard feels alive when they hit.
+
+---
+
+## 11. Company Population Roadmap
+We need a much deeper roster so every run feels fresh. Rough plan by era:
+
+### 1990‑2000
+- ~3 Walmart-style retailers, 1 biotech-ish hard-tech, 1 manufacturing (WMT-like), 1 defense contractor, 2 banks (higher growth/risk), 1 small-cap software shop.
+- Sprinkle ~3 additional IPOs from those sectors and keep the product catalog simple (one flagship pipeline per company).
+
+### 2000‑2010
+- Add 3 venture hypergrowth startups (ViaWave-style web plays) that unlock over the decade—ideally with a pulsing VC button indicator when a new deal appears.
+- Introduce another round of IPOs across retail, biotech, manufacturing, plus a few tech-heavy listings (rockets, biotech, SaaS).
+
+### 2010‑2020
+- Lean into hard tech + consumer platforms: food delivery, ride-hailing, AI/robotics, space launch, etc. Mix public listings and venture deals so the VC panel stays busy.
+
+### 2020‑2030
+- Lots of AI/superintelligence/robotics/autonomy bets. Some should be binary hard-tech, others high-growth platforms. Macro backdrop should trend bullish so late-game runs feel explosive.
+
+### 2030‑2050
+- Big swings: genetic engineering, life extension, asteroid mining, off-world logistics. Blend public and private opportunities so the player can keep deploying capital.
+
+### Variety Rule
+Only ~⅓ of the available companies should spawn per playthrough (randomized per era) so no two runs share the exact roster. The remaining entries stay dormant until the next game.
