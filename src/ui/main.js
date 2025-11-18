@@ -141,8 +141,8 @@ function ensureVentureSimulation(force = false) {
 async function loadCompaniesData() {
     try {
         const [companiesResponse, ventureCompaniesResponse] = await Promise.all([
-            fetch('data/companies.json'),
-            fetch('data/venture_companies.json')
+            fetch('data/legacy_companies/companies.json'),
+            fetch('data/legacy_companies/venture_companies.json')
         ]);
 
         if (!companiesResponse.ok) { throw new Error(`HTTP error! status: ${companiesResponse.status} for companies.json`); }
@@ -203,8 +203,8 @@ function updateDisplay() {
     });
     const privateAssets = ventureSim ? ventureSim.getPlayerHoldingsValue() : 0;
     const pendingCommitments = ventureSim ? ventureSim.getPendingCommitments() : 0;
-    const equityValue = publicAssets + privateAssets;
-    const totalAssets = cash + equityValue - pendingCommitments;
+    const equityValue = publicAssets + privateAssets + pendingCommitments;
+    const totalAssets = cash + equityValue;
     
     netWorthDisplay.textContent = currencyFormatter.format(netWorth);
     netWorthDisplay.style.color = netWorth >= 0 ? '#00c742' : '#dc3545';
@@ -212,8 +212,8 @@ function updateDisplay() {
     
     // Update the single display line
     const displayCash = Math.max(0, cash);
-    const commitmentsLabel = pendingCommitments > 0 ? ` | Commitments: ${currencyFormatter.format(-pendingCommitments)}` : '';
-    subFinancialDisplay.textContent = `Equities: ${currencyFormatter.format(equityValue)} | Cash: ${currencyFormatter.format(displayCash)}${commitmentsLabel} | Liabilities: ${currencyFormatter.format(totalBorrowed)}`;
+    const commitmentsLabel = pendingCommitments > 0 ? ` | VC Commitments: ${currencyFormatter.format(pendingCommitments)}` : '';
+    subFinancialDisplay.textContent = `Equities: ${currencyFormatter.format(publicAssets + privateAssets)}${commitmentsLabel} | Cash: ${currencyFormatter.format(displayCash)} | Liabilities: ${currencyFormatter.format(totalBorrowed)}`;
     
     if (netWorth < 0 && totalBorrowed > 0) {
         endGame("bankrupt");
@@ -262,7 +262,7 @@ function updateNetWorth() {
     }, 0);
     const ventureHoldingsValue = ventureSim ? ventureSim.getPlayerHoldingsValue() : 0;
     const pendingCommitments = ventureSim ? ventureSim.getPendingCommitments() : 0;
-    netWorth = cash + totalHoldingsValue + ventureHoldingsValue - pendingCommitments - totalBorrowed;
+    netWorth = cash + totalHoldingsValue + ventureHoldingsValue + pendingCommitments - totalBorrowed;
     netWorthHistory.push({ x: currentDate.getTime(), y: netWorth });
     if (netWorthHistory.length > 2000) netWorthHistory.shift();
 
@@ -461,7 +461,8 @@ function updateBankingDisplay() {
         if (company) { totalAssets += company.marketCap * holding.unitsOwned; }
     });
     const privateAssets = ventureSim ? ventureSim.getPlayerHoldingsValue() : 0;
-    totalAssets += privateAssets;
+    const pendingCommitments = ventureSim ? ventureSim.getPendingCommitments() : 0;
+    totalAssets += privateAssets + pendingCommitments;
     bankingNetWorthDisplay.textContent = currencyFormatter.format(totalAssets);
     bankingNetWorthDisplay.className = `stat-value positive`;
     currentDebtDisplay.textContent = currencyFormatter.format(totalBorrowed);

@@ -143,7 +143,7 @@
       if (!hasEquity && !hasPending) return;
       const equityValue = hasEquity ? detail.playerEquity * detail.valuation : 0;
       const formattedValue = hasEquity ? currencyFormatter.format(equityValue) : '';
-      const pendingLabel = hasPending ? `Pending: ${currencyFormatter.format(pendingCommitment)}` : '';
+      const pendingLabel = hasPending ? `Committed (in flight): ${currencyFormatter.format(pendingCommitment)}` : '';
       const key = `private:${summary.id}`;
       const stakeLabel = hasEquity ? `${detail.playerEquityPercent.toFixed(2)}% stake` : 'Stake pending';
       const stageLabel = detail.stageLabel || summary.stageLabel || 'Private';

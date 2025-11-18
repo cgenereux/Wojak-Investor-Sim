@@ -21,11 +21,12 @@ This README is a single, detailed snapshot of how the sim works today, how the c
 - **`src/ui/`** – Browser-facing modules: `main.js` (portfolio/banking/loop), `vc.js` (venture panel), `pipelineUi.js`, `dashboardRenderers.js`, and `wojakManager.js`.
 - **`src/presets/presets.js`** – Procedural company/venture generators that seed the game at boot.
 - **`styles/style.css` / `styles/vc.css`** – Presentation for the dashboard and venture console.
-- **`data/*.json`** – Curated public & private company configs. These can be empty because the preset generators seed default rosters at runtime, but the legacy configs (SmartMart, Immunexus, etc.) still live here for reference.
+- **`data/legacy_companies/*.json`** – Legacy public & private company configs (used as fallbacks/reference only). Preset generators seed the active rosters at runtime.
 
 ### Supporting Assets
 - `data/presets/*.json` – Data-driven preset definitions (`hardtech.json`, `megacorp.json`, `hypergrowth.json`) consumed by the preset generators.
 - `wojaks/*` – Wojak avatars / icons.
+- `data/legacy_companies/*.json` – Archived company lists (`companies.json`, `venture_companies.json`) for reference/testing.
 - `data/*backup*.json` – Prior snapshots of company lists in case you need to roll back presets.
 
 **Quick loader smoke test (Node):**
