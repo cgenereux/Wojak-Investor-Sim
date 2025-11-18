@@ -424,6 +424,13 @@ const STAGE_INDEX = VC_STAGE_CONFIG.reduce((map, stage, idx) => {
   return map;
 }, {});
 
+const VC_STAGE_LOOKUP = VC_STAGE_CONFIG.reduce((map, stage) => {
+  map[stage.id.toLowerCase()] = stage;
+  return map;
+}, {});
+
+const DEFAULT_ROUND_ORDER = VC_STAGE_CONFIG.map(stage => stage.id.toLowerCase());
+
 const DummyMacroEnv = {
   getValue: () => 1,
   getMu: () => 0.06,
