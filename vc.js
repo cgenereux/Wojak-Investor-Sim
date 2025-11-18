@@ -155,6 +155,9 @@ function buildRoundInfo(detail) {
 
     const { round } = detail;
     let info = `Raising ${vcFormatCurrency(round.raiseAmount)} at a ${vcFormatCurrency(round.preMoney)} pre (${(round.equityOffered * 100).toFixed(2)}% offered).`;
+    if (round.pipelineStage) {
+        info += ` Pipeline: ${round.pipelineStage}`;
+    }
     let chance = `Success Chance: ${(round.successProb * 100).toFixed(1)}%`;
     const monthsRemaining = Math.max(0, round.daysRemaining / 30);
     let timer = `Next round in ~${Math.max(0, Math.ceil(monthsRemaining))} months`;

@@ -1662,9 +1662,7 @@ class VentureCompany extends Company {
     }
 
     const previousStageLabel = closingRound.stageLabel;
-    if (this.archetype !== 'hardtech') {
-      this.stageIndex = Math.min(this.stageIndex + 1, Math.max(0, this.roundDefinitions.length - 1));
-    }
+    this.stageIndex = Math.min(this.stageIndex + 1, Math.max(0, this.roundDefinitions.length - 1));
     const displayValuation = this.currentValuation;
     const cashNote = Math.round(raiseAmount).toLocaleString();
     this.stageChanged = true;
