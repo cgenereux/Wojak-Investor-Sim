@@ -27,20 +27,6 @@ const dripToggle = document.getElementById('dripToggle');
 
 const DEFAULT_WOJAK_SRC = 'wojaks/wojak.png';
 const MALDING_WOJAK_SRC = 'wojaks/malding-wojak.png';
-let baseWojakSrc = DEFAULT_WOJAK_SRC;
-let isMalding = false;
-let maldingTimeoutId = null;
-let maldingAth = null;
-let maldingRecoveryThreshold = null;
-let maldingSevere = false;
-let maldingMinDurationElapsed = false;
-if (wojakImage) {
-    const initialSrc = wojakImage.getAttribute('src');
-    baseWojakSrc = initialSrc || DEFAULT_WOJAK_SRC;
-    if (!initialSrc) {
-        wojakImage.src = baseWojakSrc;
-    }
-}
 
 // --- Helper utilities ---
 const PresetGenerators = window.PresetGenerators || {};
@@ -57,62 +43,22 @@ if (!generateRiskyBiotechCompanies || !generateSteadyMegacorpCompanies || !gener
     throw new Error('PresetGenerators failed to load. Ensure presets.js is included before main.js.');
 }
 
-function setWojakImageSrc(path) {
-    if (wojakImage) {
-        wojakImage.src = path;
-    }
+const pipelineModule = window.PipelineUI;
+if (!pipelineModule) {
+    throw new Error('Pipeline UI module failed to load. Ensure pipelineUi.js is included before main.js.');
+}
+const { getPipelineHTML, updatePipelineDisplay } = pipelineModule;
+
+const wojakFactory = window.WojakManagerFactory;
+if (!wojakFactory) {
+    throw new Error('Wojak manager module failed to load. Ensure wojakManager.js is included before main.js.');
 }
 
-function endMalding(force = false) {
-    if (maldingTimeoutId) {
-        clearTimeout(maldingTimeoutId);
-        maldingTimeoutId = null;
-    }
-    maldingAth = null;
-    maldingRecoveryThreshold = null;
-    maldingSevere = false;
-    maldingMinDurationElapsed = false;
-    if (isMalding || force) {
-        isMalding = false;
-        setWojakImageSrc(baseWojakSrc);
-    }
+const dashboardModule = window.DashboardRenderers;
+if (!dashboardModule) {
+    throw new Error('Dashboard renderer module failed to load. Ensure dashboardRenderers.js is included before main.js.');
 }
-
-function setBaseWojakImage(path, forceDisplay = false) {
-    baseWojakSrc = path || DEFAULT_WOJAK_SRC;
-    if (forceDisplay) {
-        endMalding(true);
-    } else if (!isMalding) {
-        setWojakImageSrc(baseWojakSrc);
-    }
-}
-
-function triggerMaldingWojak(drawdownAth, drawdownPercent = 0) {
-    if (!wojakImage) return;
-    if (maldingTimeoutId) {
-        clearTimeout(maldingTimeoutId);
-    }
-    isMalding = true;
-    maldingAth = drawdownAth || null;
-    maldingSevere = drawdownPercent >= 0.6;
-    maldingMinDurationElapsed = false;
-    if (drawdownAth) {
-        const thresholdFactor = maldingSevere ? 0.6 : 1;
-        maldingRecoveryThreshold = drawdownAth * thresholdFactor;
-    } else {
-        maldingRecoveryThreshold = null;
-    }
-    setWojakImageSrc(MALDING_WOJAK_SRC);
-    maldingTimeoutId = setTimeout(() => {
-        maldingTimeoutId = null;
-        maldingMinDurationElapsed = true;
-        if (!maldingSevere && (!maldingRecoveryThreshold || netWorth >= maldingRecoveryThreshold)) {
-            endMalding();
-        } else if (maldingSevere && maldingRecoveryThreshold && netWorth >= maldingRecoveryThreshold) {
-            endMalding();
-        }
-    }, 10000);
-}
+const { renderCompanies: renderCompaniesUI, renderPortfolio: renderPortfolioUI } = dashboardModule;
 
 // --- Banking Modal Elements ---
 const bankingModal = document.getElementById('bankingModal');
@@ -156,6 +102,15 @@ let netWorth = cash;
 let netWorthHistory = [{ x: currentDate.getTime(), y: netWorth }];
 let netWorthAth = netWorth;
 let lastDrawdownTriggerAth = 0;
+let wojakManager = null;
+if (wojakImage) {
+    wojakManager = wojakFactory.createWojakManager({
+        imageElement: wojakImage,
+        defaultSrc: DEFAULT_WOJAK_SRC,
+        maldingSrc: MALDING_WOJAK_SRC,
+        getNetWorth: () => netWorth
+    });
+}
 
 // --- Banking State ---
 let totalBorrowed = 0;
@@ -169,7 +124,12 @@ let sim;
 let companies = []; 
 let ventureSim;
 let ventureCompanies = [];
-let companyQueueCounter = 0;
+const companyRenderState = {
+    lastRenderTs: 0,
+    minInterval: 500,
+    hoveredCompanyName: null,
+    companyQueueCounter: 0
+};
 
 function ensureVentureSimulation(force = false) {
     if ((force || !ventureSim) && typeof VentureSimulation !== 'undefined' && ventureCompanies.length > 0) {
@@ -225,17 +185,7 @@ function formatLargeNumber(num) {
 }
 function formatDate(date) { return date.toISOString().split('T')[0]; }
 
-// --- Rendering ---
-let lastCompanyRenderTs = 0;
-const COMPANIES_RENDER_MIN_INTERVAL = 500; // ms
-let hoveredCompanyName = null;
 
-function ensureCompanyQueueIndex(company) {
-    if (!company) return;
-    if (company.__queueIndex == null) {
-        company.__queueIndex = companyQueueCounter++;
-    }
-}
 function updateDisplay() {
     let publicAssets = 0;
     portfolio.forEach(holding => {
@@ -265,166 +215,26 @@ function updateDisplay() {
 }
 
 function renderCompanies(force = false) {
-    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-    if (!force && (now - lastCompanyRenderTs) < COMPANIES_RENDER_MIN_INTERVAL) {
-        return;
-    }
-    lastCompanyRenderTs = now;
-    (companies || []).forEach(ensureCompanyQueueIndex);
-    let filteredCompanies = [...companies];
-
-    if (currentFilter !== 'all') {
-        if (currentFilter.startsWith('sector_')) {
-            const sector = currentFilter.substring(7);
-            filteredCompanies = filteredCompanies.filter(c => c.sector === sector);
-        }
-    }
-
-    if (currentSort === 'marketCapDesc') {
-        filteredCompanies.sort((a, b) => b.marketCap - a.marketCap);
-    } else if (currentSort === 'ipoDateDesc') {
-        filteredCompanies.sort((a, b) => b.ipoDate.getTime() - a.ipoDate.getTime());
-    } else if (currentSort === 'ipoQueue') {
-        filteredCompanies.sort((a, b) => {
-            ensureCompanyQueueIndex(a);
-            ensureCompanyQueueIndex(b);
-            return (a.__queueIndex || 0) - (b.__queueIndex || 0);
-        });
-    }
-
-    companiesGrid.innerHTML = filteredCompanies.map(company => {
-        const boxClass = company.bankrupt ? 'company-box bankrupt' : 'company-box';
-        const capLabel = company.bankrupt ? 'Cap: Bankrupt' : `Cap: ${formatLargeNumber(company.displayCap)}`;
-        const sectorLabel = company.bankrupt ? 'Status: Bankrupt' : company.sector;
-        return `
-        <div class="${boxClass}" data-company-name="${company.name}">
-            <div class="company-name">${company.name}</div>
-            <div class="company-info">
-                <div class="company-valuation" data-company-cap="${company.name}">${capLabel}</div>
-                <div class="company-sector">${sectorLabel}</div>
-            </div>
-        </div>`;
-    }).join('');
-
-    const boxes = companiesGrid.querySelectorAll('.company-box');
-    boxes.forEach((box) => {
-        const name = box.getAttribute('data-company-name');
-        if (hoveredCompanyName === name) {
-            box.classList.add('hovered');
-        }
-        box.addEventListener('pointerenter', () => {
-            hoveredCompanyName = name;
-            box.classList.add('hovered');
-        });
-        box.addEventListener('pointerleave', () => {
-            if (hoveredCompanyName === name) hoveredCompanyName = null;
-            box.classList.remove('hovered');
-        });
+    renderCompaniesUI({
+        companies,
+        companiesGrid,
+        currentFilter,
+        currentSort,
+        formatLargeNumber,
+        state: companyRenderState,
+        force
     });
 }
 
 function renderPortfolio() {
-    const hasPublicHoldings = portfolio.length > 0;
-    const ventureSummaries = ventureSim ? ventureSim.getCompanySummaries() : [];
-    const hasPrivateHoldings = ventureSummaries.some(summary => {
-        if (!summary) return false;
-        const detail = ventureSim.getCompanyDetail(summary.id);
-        if (!detail) return false;
-        return (detail.playerEquity || 0) > 0 || (detail.pendingCommitment || 0) > 0;
+    renderPortfolioUI({
+        portfolio,
+        companies,
+        ventureSim,
+        portfolioList,
+        emptyPortfolioMsg,
+        currencyFormatter
     });
-    if (!hasPublicHoldings && !hasPrivateHoldings) {
-        portfolioList.innerHTML = '';
-        emptyPortfolioMsg.style.display = 'block';
-        return;
-    }
-    emptyPortfolioMsg.style.display = 'none';
-
-    const existingItems = new Map();
-    portfolioList.querySelectorAll('.portfolio-item').forEach(item => {
-        const key = item.dataset.portfolioKey || item.querySelector('.company-name').textContent;
-        existingItems.set(key, item);
-    });
-
-    const newPortfolioHtml = [];
-    portfolio.forEach(holding => {
-        const company = companies.find(c => c.name === holding.companyName);
-        if (!company) return;
-
-        const currentValue = company.marketCap * holding.unitsOwned;
-        const formattedValue = currencyFormatter.format(currentValue);
-        const key = `public:${holding.companyName}`;
-
-        if (existingItems.has(key)) {
-            // Update existing item
-            const item = existingItems.get(key);
-            item.querySelector('.portfolio-value').textContent = formattedValue;
-            existingItems.delete(key);
-        } else {
-            // Create new item
-            newPortfolioHtml.push(`
-                <div class="portfolio-item" data-portfolio-type="public" data-portfolio-key="${key}">
-                    <div class="company-name">${holding.companyName}</div>
-                    <div class="portfolio-info">
-                        Value: <span class="portfolio-value">${formattedValue}</span>
-                    </div>
-                </div>
-            `);
-        }
-    });
-
-    ventureSummaries.forEach(summary => {
-        if (!summary) return;
-        const detail = ventureSim.getCompanyDetail(summary.id);
-        if (!detail) return;
-        const hasEquity = (detail.playerEquity || 0) > 0;
-        const pendingCommitment = detail.pendingCommitment || 0;
-        const hasPending = pendingCommitment > 0;
-        if (!hasEquity && !hasPending) return;
-        const equityValue = hasEquity ? detail.playerEquity * detail.valuation : 0;
-        const formattedValue = hasEquity ? currencyFormatter.format(equityValue) : '';
-        const pendingLabel = hasPending ? `Pending: ${currencyFormatter.format(pendingCommitment)}` : '';
-        const key = `private:${summary.id}`;
-        const stakeLabel = hasEquity ? `${detail.playerEquityPercent.toFixed(2)}% stake` : 'Stake pending';
-        if (existingItems.has(key)) {
-            const item = existingItems.get(key);
-            const valueRow = item.querySelector('.portfolio-value-row');
-            if (valueRow) valueRow.style.display = hasEquity ? 'block' : 'none';
-            const valueEl = item.querySelector('.portfolio-value');
-            if (valueEl) valueEl.textContent = formattedValue;
-            const stakeEl = item.querySelector('.portfolio-stake');
-            if (stakeEl) stakeEl.textContent = stakeLabel;
-            const pendingEl = item.querySelector('.portfolio-pending');
-            if (pendingEl) {
-                pendingEl.textContent = pendingLabel;
-                pendingEl.style.display = hasPending ? 'block' : 'none';
-            }
-            existingItems.delete(key);
-        } else {
-            const stageLabel = detail.stageLabel || summary.stageLabel || 'Private';
-            newPortfolioHtml.push(`
-                <div class="portfolio-item" data-portfolio-type="private" data-venture-id="${summary.id}" data-portfolio-key="${key}">
-                    <div class="company-name">${summary.name} (${stageLabel})</div>
-                    <div class="portfolio-info">
-                        <div class="portfolio-value-row" style="display:${hasEquity ? 'block' : 'none'}">
-                            Value: <span class="portfolio-value">${formattedValue}</span>
-                        </div>
-                        <span class="portfolio-stake">${stakeLabel}</span>
-                        <span class="portfolio-pending" style="display:${hasPending ? 'block' : 'none'}">${pendingLabel}</span>
-                    </div>
-                </div>
-            `);
-        }
-    });
-
-    if (newPortfolioHtml.length > 0) {
-        portfolioList.insertAdjacentHTML('beforeend', newPortfolioHtml.join(''));
-    }
-
-    if (existingItems.size > 0) {
-        existingItems.forEach(item => {
-            item.remove();
-        });
-    }
 }
 
 // --- Utility: Parse user-entered currency/number strings ---
@@ -457,29 +267,33 @@ function updateNetWorth() {
     const drawdown = netWorthAth > 0 ? (netWorthAth - netWorth) / netWorthAth : 0;
     if (drawdown >= 0.4 && netWorthAth > 0 && lastDrawdownTriggerAth !== netWorthAth) {
         lastDrawdownTriggerAth = netWorthAth;
-        triggerMaldingWojak(netWorthAth, drawdown);
-    }
-    if (isMalding && maldingRecoveryThreshold != null) {
-        if (!maldingSevere && netWorth >= maldingRecoveryThreshold) {
-            endMalding();
-        } else if (maldingSevere && maldingMinDurationElapsed && netWorth >= maldingRecoveryThreshold) {
-            endMalding();
+        if (wojakManager) {
+            wojakManager.triggerMalding(netWorthAth, drawdown);
         }
+    }
+    if (wojakManager) {
+        wojakManager.handleRecovery(netWorth);
     }
 
     if (netWorth >= 1000000 && !isMillionaire) {
         isMillionaire = true; 
-        setBaseWojakImage('wojaks/suit-wojak.png', true);
+        if (wojakManager) {
+            wojakManager.setBaseImage('wojaks/suit-wojak.png', true);
+        }
         jsConfetti.addConfetti({ emojis: ['💰', '💵'], confettiNumber: 150, emojiSize: 30, });
     }
     if (netWorth >=  1000000000  && !isBillionaire) {
         isBillionaire = true;
-        setBaseWojakImage('wojaks/red-suit-wojak.png', true);
+        if (wojakManager) {
+            wojakManager.setBaseImage('wojaks/red-suit-wojak.png', true);
+        }
         jsConfetti.addConfetti({ emojis: ['💎','📀'], confettiNumber: 40, emojiSize: 40, });
     }
     if (netWorth >= 1000000000000 && !isTrillionaire) {
         isTrillionaire = true;
-        setBaseWojakImage('wojaks/purple-suit-wojak.png', true);
+        if (wojakManager) {
+            wojakManager.setBaseImage('wojaks/purple-suit-wojak.png', true);
+        }
         jsConfetti.addConfetti({ emojis: ['🌌','🥇','🔮'], confettiNumber: 100, emojiSize: 30, });
         setTimeout(() => { jsConfetti.addConfetti({ emojis: ['🌌','🥇','🔮'], confettiNumber: 100, emojiSize: 30, }); }, 1000); 
         setTimeout(() => { jsConfetti.addConfetti({ emojis: ['🌌','🥇','🔮'], confettiNumber: 100, emojiSize: 30, }); }, 2000); 
@@ -1018,98 +832,6 @@ setTrillionaireBtn.addEventListener('click', () => {
     updateNetWorth();
     updateDisplay();
 });
-
-function getPipelineHTML(company) {
-    let html = '<h3 class="investment-title">Product Pipeline</h3>';
-
-    if (!company.products || company.products.length === 0) {
-        html += '<div class="no-pipeline">No product pipeline for this company</div>';
-        return html;
-    }
-    
-    company.products.forEach(product => {
-        html += `<div class="pipeline-section">
-                    <h4 class="product-name-label">${product.label}</h4>
-                    <div class="pipeline">`;
-        
-        let lastStageSucceeded = true;
-
-        product.stages.forEach((stage, index) => {
-            let stageClass = 'incomplete';
-            let nodeContent = index + 1;
-
-            if (stage.completed) {
-                if (stage.succeeded) {
-                    stageClass = 'completed';
-                    nodeContent = '✓';
-                } else {
-                    stageClass = 'failed';
-                    nodeContent = 'X';
-                    lastStageSucceeded = false;
-                    // Set a fail timeout if not already set
-                    if (!product.resultFailTimeout) {
-                        product.resultFailTimeout = Date.now() + 10000;
-                        // Schedule a re-render after 10 seconds
-                        setTimeout(() => { updatePipelineDisplay(company); }, 10000);
-                    }
-                }
-            } else if (lastStageSucceeded) {
-                const done = new Set(product.stages.filter(s => s.completed && s.succeeded).map(s => s.id));
-                const canStart = !stage.depends_on || done.has(stage.depends_on);
-                if (canStart) {
-                    if (typeof stage.success_prob !== 'undefined' && stage.success_prob < 1) {
-                        // Orange, pulsing, question mark
-                        stageClass = 'completed current current-uncertain';
-                        nodeContent = '?';
-                    } else if (typeof stage.success_prob !== 'undefined' && stage.success_prob === 1) {
-                        // Green, pulsing, stage number
-                        stageClass = 'completed current';
-                        nodeContent = index + 1;
-                    } else {
-                        // Default: blue, pulsing, stage number (fallback)
-                        stageClass = 'incomplete current';
-                        nodeContent = index + 1;
-                    }
-                }
-            }
-            
-            html += `
-                <div class="stage ${stageClass}">
-                    <div class="stage-node">${nodeContent}</div>
-                    <div class="stage-label">${stage.name}</div>
-                </div>
-            `;
-            
-            if (index < product.stages.length - 1) {
-                let connectorClass = 'incomplete';
-                if (stage.completed) {
-                    connectorClass = stage.succeeded ? 'completed' : 'failed';
-                }
-                html += `<div class="connector ${connectorClass}"></div>`;
-            }
-        });
-        
-        // If product failed and 10s have passed, show only 'Result: fail'
-        // if (
-        //     product.stages.some(s => s.completed && !s.succeeded) &&
-        //     product.resultFailTimeout && Date.now() > product.resultFailTimeout
-        // ) {
-        //     html = `<div class="pipeline-section"><h4 class="product-name-label">${product.label}</h4><div class="pipeline" style="min-height:60px;display:flex;align-items:center;justify-content:center;"><span style="font-size:1.3em;color:#dc3545;font-weight:600;">Result: fail</span></div></div>`;
-        // } else {
-            html += '</div></div>';
-        // }
-    });
-    
-    return html;
-}
-window.getPipelineHTML = getPipelineHTML;
-
-function updatePipelineDisplay(company) {
-    const container = document.getElementById('pipelineContainer');
-    if (container) {
-        container.innerHTML = getPipelineHTML(company);
-    }
-}
 
 // --- Initialization ---
 async function init() {

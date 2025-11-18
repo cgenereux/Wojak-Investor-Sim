@@ -17,14 +17,21 @@ This README is a single, detailed snapshot of how the sim works today, how the c
 
 ## 2. Code Structure
 ### Core Files
-- **`simEngine.js`** – Macro environment, all company archetypes (public + private), valuation logic, random events. `BaseCompany` handles bookkeeping (cash/debt, annual rollups, history). `Company` extends it for public firms, `VentureCompany`/`VentureSimulation` use the same base so IPOs simply flip phase.
-- **`main.js`** – UI orchestrator: portfolio/banking state, DRIP handling, preset generators, and venture hooks. Runs entirely client-side.
+- **`simShared.js` / `publicCompanies.js` / `ventureEngineCore.js`** – Shared simulation primitives (random helpers, macro indices, pipeline stages), public-company implementations, and the refactored venture engine. `simEngine.js` now just bootstraps `Simulation` with these globals.
+- **`simEngine.js`** – Macro clock/IPO scheduler that stitches the shared modules together and exposes `Simulation`.
+- **`main.js`** – UI orchestrator: portfolio/banking state, DRIP handling, preset generators, and venture hooks. Runs entirely client-side, leaning on helper modules (`pipelineUi.js`, `dashboardRenderers.js`, `wojakManager.js`) for focused UI logic.
 - **`style.css` / `vc.css`** – Presentation for the main dashboard and venture console.
 - **`data/*.json`** – Curated public & private company configs. These can be empty because `main.js` seeds default presets when the game boots, but the legacy configs (SmartMart, Immunexus, etc.) still live here for reference.
 
 ### Supporting Assets
+- `dashboardRenderers.js` – Pure rendering helpers for the company grid and portfolio list; `main.js` simply feeds it data/state.
 - `wojaks/*` – Wojak avatars / icons.
 - `data/*backup*.json` – Prior snapshots of company lists in case you need to roll back presets.
+
+**Quick loader smoke test (Node):**
+```bash
+node -e "require('./simShared.js');require('./ventureStrategies.js');require('./publicCompanies.js');require('./ventureEngineCore.js');require('./simEngine.js')"
+```
 
 ---
 
@@ -112,6 +119,7 @@ Multiplayer stays on hold until the single-player loop, presets, and balance pol
 8. **Preset-First Companies (Long Term):** Continue migrating every legacy entry onto curated preset definitions so balancing stays centralized.
 9. **Era Depth & Product Catalogs (Long Term):** Author many more companies/startups across 1990‑2050 plus deeper product libraries so each era feels distinct and varied.
 10. **Macro Event System:** Introduce headline macro shocks (pandemics, QE waves, financial crises, Bogdanov-style manipulation) that temporarily alter earnings/macro indices across many companies at once to keep late-game runs spicy.
+11. **Malding Wojak Polish:** Track a few outstanding edge cases (post-milestone overrides, deep drawdowns) and tighten the revert logic so avatars always swap back at the right time; fixes are noted but still pending.
 
 ---
 
