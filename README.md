@@ -17,20 +17,19 @@ This README is a single, detailed snapshot of how the sim works today, how the c
 
 ## 2. Code Structure
 ### Core Files
-- **`simShared.js` / `publicCompanies.js` / `ventureEngineCore.js`** – Shared simulation primitives (random helpers, macro indices, pipeline stages), public-company implementations, and the refactored venture engine. `simEngine.js` now just bootstraps `Simulation` with these globals.
-- **`simEngine.js`** – Macro clock/IPO scheduler that stitches the shared modules together and exposes `Simulation`.
-- **`main.js`** – UI orchestrator: portfolio/banking state, DRIP handling, preset generators, and venture hooks. Runs entirely client-side, leaning on helper modules (`pipelineUi.js`, `dashboardRenderers.js`, `wojakManager.js`) for focused UI logic.
-- **`style.css` / `vc.css`** – Presentation for the main dashboard and venture console.
-- **`data/*.json`** – Curated public & private company configs. These can be empty because `main.js` seeds default presets when the game boots, but the legacy configs (SmartMart, Immunexus, etc.) still live here for reference.
+- **`src/sim/`** – Simulation primitives (`simShared.js`), public-company models (`publicCompanies.js`), venture strategies (`ventureStrategies.js`), the venture engine (`ventureEngineCore.js`), and the `Simulation` bootstrap (`simEngine.js`). These files never touch the DOM.
+- **`src/ui/`** – Browser-facing modules: `main.js` (portfolio/banking/loop), `vc.js` (venture panel), `pipelineUi.js`, `dashboardRenderers.js`, and `wojakManager.js`.
+- **`src/presets/presets.js`** – Procedural company/venture generators that seed the game at boot.
+- **`styles/style.css` / `styles/vc.css`** – Presentation for the dashboard and venture console.
+- **`data/*.json`** – Curated public & private company configs. These can be empty because the preset generators seed default rosters at runtime, but the legacy configs (SmartMart, Immunexus, etc.) still live here for reference.
 
 ### Supporting Assets
-- `dashboardRenderers.js` – Pure rendering helpers for the company grid and portfolio list; `main.js` simply feeds it data/state.
 - `wojaks/*` – Wojak avatars / icons.
 - `data/*backup*.json` – Prior snapshots of company lists in case you need to roll back presets.
 
 **Quick loader smoke test (Node):**
 ```bash
-node -e "require('./simShared.js');require('./ventureStrategies.js');require('./publicCompanies.js');require('./ventureEngineCore.js');require('./simEngine.js')"
+node -e "require('./src/sim/simShared.js');require('./src/sim/ventureStrategies.js');require('./src/sim/publicCompanies.js');require('./src/sim/ventureEngineCore.js');require('./src/sim/simEngine.js')"
 ```
 
 ---
