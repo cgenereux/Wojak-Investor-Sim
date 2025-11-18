@@ -31,7 +31,7 @@ const MALDING_WOJAK_SRC = 'wojaks/malding-wojak.png';
 // --- Helper utilities ---
 const PresetGenerators = window.PresetGenerators || {};
 const {
-    generateRiskyBiotechCompanies,
+    generateHardTechPresetCompanies,
     generateSteadyMegacorpCompanies,
     generateHypergrowthPresetCompanies,
     generateBinaryHardTechCompanies,
@@ -39,7 +39,7 @@ const {
     HARDTECH_VC_ROUNDS
 } = PresetGenerators;
 
-if (!generateRiskyBiotechCompanies || !generateSteadyMegacorpCompanies || !generateHypergrowthPresetCompanies || !generateBinaryHardTechCompanies) {
+if (!generateHardTechPresetCompanies || !generateSteadyMegacorpCompanies || !generateHypergrowthPresetCompanies || !generateBinaryHardTechCompanies) {
     throw new Error('PresetGenerators failed to load. Ensure presets.js is included before main.js.');
 }
 
@@ -152,14 +152,18 @@ async function loadCompaniesData() {
         ventureCompanies = await ventureCompaniesResponse.json();
         if (!Array.isArray(ventureCompanies)) ventureCompanies = [];
         let filteredCompanies = rawCompanies.filter(cfg => !cfg.experimental);
-        const presetBiotechCompanies = await generateRiskyBiotechCompanies(3);
-        if (Array.isArray(presetBiotechCompanies)) {
-            filteredCompanies.push(...presetBiotechCompanies);
+        const presetHardTechCompanies = await generateHardTechPresetCompanies(3);
+        if (Array.isArray(presetHardTechCompanies)) {
+            filteredCompanies.push(...presetHardTechCompanies);
         }
-        const presetMegacorpCompanies = generateSteadyMegacorpCompanies(2);
-        filteredCompanies.push(...presetMegacorpCompanies);
-        const presetVentureCompanies = generateHypergrowthPresetCompanies();
-        ventureCompanies.push(...presetVentureCompanies);
+        const presetMegacorpCompanies = await generateSteadyMegacorpCompanies(2);
+        if (Array.isArray(presetMegacorpCompanies)) {
+            filteredCompanies.push(...presetMegacorpCompanies);
+        }
+        const presetVentureCompanies = await generateHypergrowthPresetCompanies();
+        if (Array.isArray(presetVentureCompanies)) {
+            ventureCompanies.push(...presetVentureCompanies);
+        }
         const hardTechCompanies = generateBinaryHardTechCompanies(1);
         ventureCompanies.push(...hardTechCompanies);
         ensureVentureSimulation(true);

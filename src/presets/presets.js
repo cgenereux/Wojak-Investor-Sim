@@ -6,7 +6,9 @@
     const HARDTECH_VC_ROUNDS = ['series_b','series_c','series_d','pre_ipo'];
 
     const PRESET_JSON_CACHE = {};
-    const RISKY_BIOTECH_DATA_PATH = 'data/presets/risky_biotech.json';
+    const HARDTECH_DATA_PATH = 'data/presets/hardtech.json';
+    const MEGACORP_DATA_PATH = 'data/presets/megacorp.json';
+    const HYPERGROWTH_DATA_PATH = 'data/presets/hypergrowth.json';
 
     function loadPresetJson(path) {
         if (PRESET_JSON_CACHE[path]) {
@@ -52,8 +54,8 @@
         }));
     }
 
-    async function generateRiskyBiotechCompanies(count = 1) {
-        const data = await loadPresetJson(RISKY_BIOTECH_DATA_PATH);
+    async function generateHardTechPresetCompanies(count = 1) {
+        const data = await loadPresetJson(HARDTECH_DATA_PATH);
         const rosterSource = Array.isArray(data?.roster) ? data.roster.slice() : [];
         if (rosterSource.length === 0) return [];
         const picked = [];
@@ -119,41 +121,29 @@
         return companies;
     }
 
-    const megacorpRoster = [
-        {
-            name: 'SmartCart Holdings',
-            founders: [{ name: 'Linda Harris', degree: 'MBA', school: 'Harvard' }],
-            sector: 'Retail',
-            ipo_window: { from: 1979, to: 1981 }
-        },
-        {
-            name: 'UrbanShop Group',
-            founders: [{ name: 'Marco Viteri', degree: 'MBA', school: 'Columbia' }],
-            sector: 'Consumer Staples',
-            ipo_window: { from: 1981, to: 1983 }
-        },
-        {
-            name: 'GlobalMart Logistics',
-            founders: [{ name: 'Sandra Osei', degree: 'MBA', school: 'Wharton' }],
-            sector: 'Retail',
-            ipo_window: { from: 1980, to: 1982 }
-        }
-    ];
-
-    function generateSteadyMegacorpCompanies(count = 1) {
-        const roster = [...megacorpRoster];
+    async function generateSteadyMegacorpCompanies(count = 1) {
+        const data = await loadPresetJson(MEGACORP_DATA_PATH);
+        const rosterSource = Array.isArray(data?.roster) ? data.roster.slice() : [];
+        if (rosterSource.length === 0) return [];
+        const defaults = data?.defaults || {};
+        const structuralBiasDefaults = defaults.structural_bias || { min: 0.5, max: 3, half_life_years: 15 };
+        const marginDefaults = defaults.margin_curve || {};
+        const multipleDefaults = defaults.multiple_curve || {};
+        const financeDefaults = defaults.finance || {};
         const picked = [];
-        while (picked.length < count && roster.length > 0) {
-            const idx = Math.floor(Math.random() * roster.length);
-            picked.push(roster.splice(idx, 1)[0]);
+        while (picked.length < count && rosterSource.length > 0) {
+            const idx = Math.floor(Math.random() * rosterSource.length);
+            picked.push(rosterSource.splice(idx, 1)[0]);
         }
         const companies = [];
         picked.forEach((entry, i) => {
             const name = entry.name || `MegaMart ${i + 1}`;
             const founders = (entry.founders || []).map(f => ({ ...f }));
             const id = `preset_megacorp_${name.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}_${i}`;
-            const baseRevenue = randBetween(60_000_000_000, 200_000_000_000);
+            const baseRevenue = pickRange(defaults.base_revenue_usd, 60_000_000_000, 200_000_000_000);
             const ipoRange = entry.ipo_window || { from: 1980, to: 1985 };
+            const startingCashRatio = financeDefaults.starting_cash_ratio ?? 0.03;
+            const startingDebtRatio = financeDefaults.starting_debt_ratio ?? 0.05;
             const company = {
                 id,
                 static: {
@@ -164,7 +154,7 @@
                     ipo_instantly: true
                 },
                 sentiment: {
-                    structural_bias: { min: 0.5, max: 3, half_life_years: 15 }
+                    structural_bias: { ...structuralBiasDefaults }
                 },
                 base_business: {
                     revenue_process: {
@@ -174,20 +164,20 @@
                         }
                     },
                     margin_curve: {
-                        start_profit_margin: randBetween(0.025, 0.04),
-                        terminal_profit_margin: randBetween(0.05, 0.08),
-                        years_to_mature: randBetween(7, 10)
+                        start_profit_margin: pickRange(marginDefaults.start_profit_margin, 0.025, 0.04),
+                        terminal_profit_margin: pickRange(marginDefaults.terminal_profit_margin, 0.05, 0.08),
+                        years_to_mature: pickRange(marginDefaults.years_to_mature, 7, 10)
                     },
                     multiple_curve: {
-                        initial_ps_ratio: randBetween(0.7, 1.1),
-                        terminal_pe_ratio: randBetween(12, 15),
-                        years_to_converge: randBetween(6, 9)
+                        initial_ps_ratio: pickRange(multipleDefaults.initial_ps_ratio, 0.7, 1.1),
+                        terminal_pe_ratio: pickRange(multipleDefaults.terminal_pe_ratio, 12, 15),
+                        years_to_converge: pickRange(multipleDefaults.years_to_converge, 6, 9)
                     }
                 },
                 finance: {
-                    starting_cash_usd: baseRevenue * 0.03,
-                    starting_debt_usd: baseRevenue * 0.05,
-                    interest_rate_annual: 0.05
+                    starting_cash_usd: baseRevenue * startingCashRatio,
+                    starting_debt_usd: baseRevenue * startingDebtRatio,
+                    interest_rate_annual: financeDefaults.interest_rate_annual ?? 0.05
                 },
                 pipeline: [],
                 events: []
@@ -197,36 +187,39 @@
         return companies;
     }
 
-    function generateHypergrowthPresetCompanies() {
-        const companies = [];
-        const names = ['ViaWave', 'LinkPulse', 'HyperLoom'];
-        names.forEach((name, idx) => {
-            const valuation = randBetween(6_000_000, 18_000_000);
-            companies.push({
+    async function generateHypergrowthPresetCompanies() {
+        const data = await loadPresetJson(HYPERGROWTH_DATA_PATH);
+        const entries = Array.isArray(data?.companies) ? data.companies : [];
+        if (entries.length === 0) return [];
+        const defaults = data?.defaults || {};
+        const results = entries.map((entry, idx) => {
+            const valuation = pickRange(defaults.valuation_usd, 6_000_000, 18_000_000);
+            const longRunRevenueMultiplier = pickRange(defaults.long_run_revenue_ceiling_multiplier, 20, 40);
+            return {
                 id: `preset_web_vc_${idx}_${Date.now()}`,
-                name,
-                sector: 'Web',
-                description: '1990s hypergrowth web preset (private)',
+                name: entry.name || `Hypergrowth ${idx + 1}`,
+                sector: entry.sector || defaults.sector || 'Web',
+                description: entry.description || defaults.description || 'Hypergrowth preset',
                 valuation_usd: valuation,
-                funding_round: 'Seed',
-                ipo_stage: 'series_f',
-                binary_success: false,
-                gate_stage: 'series_c',
-                hypergrowth_window_years: randBetween(2, 4),
-                hypergrowth_total_multiplier: randBetween(6, 12),
-                long_run_revenue_ceiling_usd: valuation * randBetween(20, 40),
-                long_run_growth_rate: randBetween(0.45, 0.7),
-                long_run_growth_floor: randBetween(0.08, 0.18),
-                long_run_growth_decay: randBetween(0.25, 0.5),
-                post_gate_initial_multiple: randBetween(12, 20),
-                post_gate_baseline_multiple: randBetween(4, 7),
-                post_gate_multiple_decay_years: randBetween(5, 9),
-                post_gate_margin: randBetween(0.18, 0.3),
-                max_failures_before_collapse: 2,
-                rounds: DEFAULT_VC_ROUNDS
-            });
+                funding_round: entry.funding_round || defaults.funding_round || 'Seed',
+                ipo_stage: entry.ipo_stage || defaults.ipo_stage || 'series_f',
+                binary_success: entry.binary_success ?? defaults.binary_success ?? false,
+                gate_stage: entry.gate_stage || defaults.gate_stage || 'series_c',
+                hypergrowth_window_years: pickRange(defaults.hypergrowth_window_years, 2, 4),
+                hypergrowth_total_multiplier: pickRange(defaults.hypergrowth_total_multiplier, 6, 12),
+                long_run_revenue_ceiling_usd: valuation * longRunRevenueMultiplier,
+                long_run_growth_rate: pickRange(defaults.long_run_growth_rate, 0.45, 0.7),
+                long_run_growth_floor: pickRange(defaults.long_run_growth_floor, 0.08, 0.18),
+                long_run_growth_decay: pickRange(defaults.long_run_growth_decay, 0.25, 0.5),
+                post_gate_initial_multiple: pickRange(defaults.post_gate_initial_multiple, 12, 20),
+                post_gate_baseline_multiple: pickRange(defaults.post_gate_baseline_multiple, 4, 7),
+                post_gate_multiple_decay_years: pickRange(defaults.post_gate_multiple_decay_years, 5, 9),
+                post_gate_margin: pickRange(defaults.post_gate_margin, 0.18, 0.3),
+                max_failures_before_collapse: entry.max_failures_before_collapse ?? defaults.max_failures_before_collapse ?? 2,
+                rounds: entry.rounds || defaults.rounds || DEFAULT_VC_ROUNDS
+            };
         });
-        return companies;
+        return results;
     }
 
     const hardTechRoster = [
@@ -350,7 +343,7 @@
     }
 
     global.PresetGenerators = {
-        generateRiskyBiotechCompanies,
+        generateHardTechPresetCompanies,
         generateSteadyMegacorpCompanies,
         generateHypergrowthPresetCompanies,
         generateBinaryHardTechCompanies,

@@ -1,0 +1,48 @@
+{
+  "$schema": "https://example.com/megacorp.schema.json",
+  "roster": [
+    {
+      "name": "SmartCart Holdings",
+      "founders": [
+        { "name": "Linda Harris", "degree": "MBA", "school": "Harvard" }
+      ],
+      "sector": "Retail",
+      "ipo_window": { "from": 1979, "to": 1981 }
+    },
+    {
+      "name": "UrbanShop Group",
+      "founders": [
+        { "name": "Marco Viteri", "degree": "MBA", "school": "Columbia" }
+      ],
+      "sector": "Consumer Staples",
+      "ipo_window": { "from": 1981, "to": 1983 }
+    },
+    {
+      "name": "GlobalMart Logistics",
+      "founders": [
+        { "name": "Sandra Osei", "degree": "MBA", "school": "Wharton" }
+      ],
+      "sector": "Retail",
+      "ipo_window": { "from": 1980, "to": 1982 }
+    }
+  ],
+  "defaults": {
+    "structural_bias": { "min": 0.5, "max": 3, "half_life_years": 15 },
+    "base_revenue_usd": [60000000000, 200000000000],
+    "margin_curve": {
+      "start_profit_margin": [0.025, 0.04],
+      "terminal_profit_margin": [0.05, 0.08],
+      "years_to_mature": [7, 10]
+    },
+    "multiple_curve": {
+      "initial_ps_ratio": [0.7, 1.1],
+      "terminal_pe_ratio": [12, 15],
+      "years_to_converge": [6, 9]
+    },
+    "finance": {
+      "starting_cash_ratio": 0.03,
+      "starting_debt_ratio": 0.05,
+      "interest_rate_annual": 0.05
+    }
+  }
+}

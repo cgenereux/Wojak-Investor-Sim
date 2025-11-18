@@ -1,0 +1,45 @@
+{
+  "$schema": "https://example.com/hypergrowth-web.schema.json",
+  "companies": [
+    {
+      "name": "ViaWave",
+      "sector": "Web",
+      "description": "1990s hypergrowth web preset (private)",
+      "funding_round": "Seed",
+      "ipo_stage": "series_f",
+      "gate_stage": "series_c"
+    },
+    {
+      "name": "LinkPulse",
+      "sector": "Web",
+      "description": "1990s hypergrowth web preset (private)",
+      "funding_round": "Seed",
+      "ipo_stage": "series_f",
+      "gate_stage": "series_c"
+    },
+    {
+      "name": "HyperLoom",
+      "sector": "Web",
+      "description": "1990s hypergrowth web preset (private)",
+      "funding_round": "Seed",
+      "ipo_stage": "series_f",
+      "gate_stage": "series_c"
+    }
+  ],
+  "defaults": {
+    "valuation_usd": [6000000, 18000000],
+    "hypergrowth_window_years": [2, 4],
+    "hypergrowth_total_multiplier": [6, 12],
+    "long_run_revenue_ceiling_multiplier": [20, 40],
+    "long_run_growth_rate": [0.45, 0.7],
+    "long_run_growth_floor": [0.08, 0.18],
+    "long_run_growth_decay": [0.25, 0.5],
+    "post_gate_initial_multiple": [12, 20],
+    "post_gate_baseline_multiple": [4, 7],
+    "post_gate_multiple_decay_years": [5, 9],
+    "post_gate_margin": [0.18, 0.3],
+    "max_failures_before_collapse": 2,
+    "binary_success": false,
+    "rounds": ["seed","series_a","series_b","series_c","series_d","series_e","series_f","pre_ipo"]
+  }
+}
