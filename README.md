@@ -161,3 +161,49 @@ We now treat venture companies as explicit archetypes instead of one-size-fits-a
 4. **Public Continuity:** When a hard-tech firm IPOs, its pipeline and revenue curve already match the private state (no reset to hypergrowth defaults).
 
 This structure keeps the venture and public engines on the same simulation clock while letting each archetype evolve with its own financial model, pipeline, and presentation.
+
+---
+
+## 10. Planned VC Engine Refactor
+To make hypergrowth and hard-tech startups truly data driven, the venture engine needs a deeper refactor. The current code hardcodes Seed→F round order, shared success odds, and IPO gating (`VC_STAGE_CONFIG`). Any pipeline-driven behavior fights those assumptions. Here’s the refactor that will cleanly separate concerns and unlock future presets.
+
+### Goals
+1. **Per-company round sequences:** Every venture config (JSON or preset) can declare its own ordered list of rounds, e.g.: `["seed","series_a","series_b","pre_ipo"]` for hypergrowth or `["series_b","series_c","launch_round","pre_ipo"]` for hard-tech. When omitted, we default to the current Seed→F order to keep legacy data working.
+2. **Archetype strategies:** `VentureCompany` delegates round mechanics to an archetype strategy:
+   - **HypergrowthStrategy:** Matches today’s behavior (cash/runway triggers, series odds, valuation curves) but reads the round order from config instead of `VC_STAGE_CONFIG`.
+   - **HardTechStrategy:** Rounds are tied to pipeline stages. Stage start opens the round; stage success closes it immediately; stage failure collapses the company; the final stage triggers IPO. Round labels still come from the config so UI stays consistent.
+3. **Config layering:** Later we can stack presets (`preset: "hypergrowth", subpreset: "web_2000s"`) without more code. For now, we just ensure the schema is flexible enough to add that metadata.
+
+### Required Changes
+1. **Round Schema:** Add a `rounds` array to venture configs. Each entry can be a string (referencing a default stage definition) or an object (`{ "id": "series_b", "label": "Series B", "success_prob": 0.85, ... }`). Provide defaults for success odds, raise fractions, and duration formulas.
+
+   ✅ Implemented: venture presets (hypergrowth + hard-tech) now ship a `rounds` array, and the engine resolves any venture config into a per-company round sequence. Entries can override `label`, `success_prob`, `raise_fraction`, `pre_money_multiplier`, `months_to_next_round`, or even provide a bespoke `financials` block. When omitted, the loader falls back to the legacy Seed→Pre-IPO order, so existing JSON continues to work unchanged.
+2. **Stage Resolution:** Replace all `this.currentStage` / `VC_STAGE_CONFIG` lookups with a new `RoundDefinition` structure resolved from the config. Hypergrowth companies use the classic seed→F list; hard-tech presets can reorder or rename entries.
+3. **Strategy Interface:** Implement something like:
+   ```js
+   class VentureStrategy {
+     shouldOpenRound(company) {}
+     openRound(company, date) {}
+     resolveRound(company, success, date) {}
+   }
+   ```
+   Then provide `HypergrowthStrategy` and `HardTechStrategy` implementations.
+4. **Valuation Hooks:** Move pre-IPO valuation logic into the strategies so each archetype can compute `computeFairValue`, `advancePreGateRevenue`, and `calculateRoundHealth` differently.
+5. **IPO/Fault Events:** Strategies emit IPO and failure events when their round sequence completes or a stage fails. `promoteToPublic` remains unchanged; it just needs to be called when the strategy signals IPO.
+6. **Data Migration:** For existing preset generators (`generateHypergrowthPresetCompanies`, `generateBinaryHardTechCompanies`, etc.), populate the `rounds` array with the appropriate order. For example, seed hypergrowth companies get the full Seed→F list, whereas `generateBinaryHardTechCompanies` can define `["series_b","series_c","pre_ipo"]` or custom labels.
+
+### Rollout Plan
+1. **Schema Update:** Define `rounds` in venture configs and add defaults so existing data still loads.
+2. **Strategy Extraction:** Introduce the strategy interface and swap `VentureCompany` over to it while keeping hypergrowth behavior identical. Once this works, the old `VC_STAGE_CONFIG` references vanish from core logic.
+3. **Hard-Tech Strategy:** Implement the pipeline-driven behavior (stage-driven rounds, instant failure) within `HardTechStrategy` using the shared round order.
+4. **Testing:** Simulate a few years for hypergrowth and hard-tech companies to ensure:
+   - Round labels follow the configured sequence.
+   - Valuation dots and events align with the new logic.
+   - IPO conversion still hands off history/cash correctly.
+
+### Future Enhancements
+- **Sub-presets / eras:** Once the strategy system is in place, add metadata like `subpreset: "web_2000s"` so multiple hypergrowth flavors (web, mobile, AI) can share the same strategy but tweak defaults (round order, success odds, margin curves).
+- **UI support:** Display the configured round label alongside the pipeline stage so players see both the financial “Series B” label and the product milestone.
+- **Tooling:** Build validation scripts to ensure each `rounds` entry references a known stage or overrides all required fields (success probability, raise fraction, etc.).
+
+This refactor keeps hypergrowth and hard-tech equal citizens: both read their round order from data, both run on the same tick loop, but each archetype can evolve its financing lifecycle independently. It also sets the stage for richer presets (era-specific rosters, custom odds) without touching the engine again.

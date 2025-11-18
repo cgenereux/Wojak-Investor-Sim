@@ -29,6 +29,9 @@ const dripToggle = document.getElementById('dripToggle');
 const randBetween = (min, max) => Math.random() * (max - min) + min;
 const randIntBetween = (min, max) => Math.floor(randBetween(min, max));
 
+const DEFAULT_VC_ROUNDS = ['seed','series_a','series_b','series_c','series_d','series_e','series_f','pre_ipo'];
+const HARDTECH_VC_ROUNDS = ['series_b','series_c','series_d','pre_ipo'];
+
 const riskyBiotechRoster = [
     {
         name: 'Helixor Biosystems',
@@ -240,7 +243,8 @@ function generateHypergrowthPresetCompanies() {
             post_gate_baseline_multiple: randBetween(4, 7),
             post_gate_multiple_decay_years: randBetween(5, 9),
             post_gate_margin: randBetween(0.18, 0.3),
-            max_failures_before_collapse: 2
+            max_failures_before_collapse: 2,
+            rounds: DEFAULT_VC_ROUNDS
         });
     });
     return companies;
@@ -359,7 +363,8 @@ function generateBinaryHardTechCompanies(count = 1) {
             base_business: baseBusiness,
             finance,
             costs,
-            pipeline
+            pipeline,
+            rounds: HARDTECH_VC_ROUNDS
         });
     }
     return companies;

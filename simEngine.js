@@ -399,6 +399,16 @@ const VC_STAGE_CONFIG = [
   { id: 'ipo',       label: 'IPO',       successProb: 1 }
 ];
 
+const normalizeStageId = (id) => (id || '').toString().trim().toLowerCase();
+const ROUND_DEFINITION_MAP = VC_STAGE_CONFIG.reduce((map, stage) => {
+  const key = normalizeStageId(stage.id);
+  map[key] = Object.assign({ durationDays: null }, stage);
+  if (stage.label) {
+    map[normalizeStageId(stage.label)] = map[key];
+  }
+  return map;
+}, {});
+
 const STAGE_FINANCIALS = {
   seed:     { ps: 9.5, margin: -1.6 },
   series_a: { ps: 8.5, margin: -1.1 },
@@ -430,6 +440,141 @@ const VC_STAGE_LOOKUP = VC_STAGE_CONFIG.reduce((map, stage) => {
 }, {});
 
 const DEFAULT_ROUND_ORDER = VC_STAGE_CONFIG.map(stage => stage.id.toLowerCase());
+
+function mergeRoundDefinition(base, override = {}) {
+  const result = {
+    id: normalizeStageId(override.id || base.id),
+    label: override.label || base.label,
+    successProb: override.successProb ?? override.success_prob ?? base.successProb,
+    preMoneyMultiplier: override.preMoneyMultiplier || override.pre_money_multiplier || base.preMoneyMultiplier,
+    raiseFraction: override.raiseFraction || override.raise_fraction || base.raiseFraction,
+    monthsToNextRound: override.monthsToNextRound || override.months_to_next_round || base.monthsToNextRound,
+    durationDays: override.durationDays ?? override.duration_days ?? base.durationDays ?? null,
+    pipelineStage: override.pipelineStage || override.pipeline_stage || null,
+    financials: override.financials || null
+  };
+  if (!Array.isArray(result.preMoneyMultiplier)) {
+    result.preMoneyMultiplier = base.preMoneyMultiplier;
+  }
+  if (!Array.isArray(result.raiseFraction)) {
+    result.raiseFraction = base.raiseFraction;
+  }
+  if (!Array.isArray(result.monthsToNextRound)) {
+    result.monthsToNextRound = base.monthsToNextRound;
+  }
+  return result;
+}
+
+function resolveRoundDefinitions(rounds) {
+  const order = Array.isArray(rounds) && rounds.length > 0 ? rounds : DEFAULT_ROUND_ORDER;
+  return order.map(entry => {
+    if (typeof entry === 'string') {
+      const base = ROUND_DEFINITION_MAP[normalizeStageId(entry)] || ROUND_DEFINITION_MAP['seed'];
+      return mergeRoundDefinition(base);
+    }
+    if (entry && typeof entry === 'object') {
+      const refId = normalizeStageId(entry.id || entry.ref || entry.base || entry.stage);
+      const base = ROUND_DEFINITION_MAP[refId] || ROUND_DEFINITION_MAP['seed'];
+      return mergeRoundDefinition(base, entry);
+    }
+    return mergeRoundDefinition(ROUND_DEFINITION_MAP['seed']);
+  });
+}
+
+class VentureStrategy {
+  constructor(company) {
+    this.company = company;
+  }
+  shouldStartNextRound() { return false; }
+  configureRound(stage, draftRound) { return draftRound; }
+  calculateRoundHealth(stage) { return 1; }
+  shouldResolveRound() {
+    const company = this.company;
+    if (!company || !company.currentRound) return false;
+    return company.daysSinceRound >= (company.currentRound.durationDays || 0);
+  }
+}
+
+class HypergrowthStrategy extends VentureStrategy {
+  shouldStartNextRound() {
+    const company = this.company;
+    if (company.status === 'failed' || company.status === 'exited' || company.status === 'ipo' || company.status === 'ipo_pending') return false;
+    if (company.postGateMode && company.stageIndex >= company.targetStageIndex) return false;
+    if (company.currentRound) return false;
+    const burnTrigger = company.cashBurnPerDay > 0 ? company.cashBurnPerDay * 90 : 0;
+    const triggerCash = Math.max(company.raiseTriggerCash, burnTrigger, 250_000);
+    const cashDepleted = company.cash <= triggerCash;
+    const runwayExpired = company.runwayTargetDays > 0 && company.daysSinceLastRaise >= company.runwayTargetDays;
+    return cashDepleted || runwayExpired;
+  }
+
+  calculateRoundHealth(stage) {
+    const company = this.company;
+    const revenue = Math.max(1, company.revenue);
+    const prev = Math.max(1, company.lastRoundRevenue || revenue);
+    const growth = (revenue - prev) / prev;
+    const growthScore = clampValue((growth + 0.4) / 0.8, 0, 1);
+
+    const stageFin = company.getStageFinancials(stage);
+    const expectedMargin = stageFin.margin ?? -0.2;
+    const actualMargin = revenue > 0 ? company.profit / revenue : expectedMargin;
+    const marginDenom = Math.max(0.3, Math.abs(expectedMargin) + 0.2);
+    const marginScore = clampValue(1 - Math.abs(actualMargin - expectedMargin) / marginDenom, 0, 1);
+
+    const runwayDenom = Math.max(company.runwayTargetDays || 0, 120);
+    const runwayScore = clampValue(company.cachedRunwayDays / runwayDenom, 0, 1);
+
+    let base = 0.5 * growthScore + 0.35 * marginScore + 0.15 * runwayScore;
+    if (company.binarySuccess && !company.gateCleared) {
+      base *= 0.9;
+    }
+    return clampValue(base, 0, 1);
+  }
+}
+
+class HardTechStrategy extends VentureStrategy {
+  shouldStartNextRound() {
+    const company = this.company;
+    if (company.status === 'failed' || company.status === 'exited' || company.status === 'ipo' || company.status === 'ipo_pending') return false;
+    if (company.currentRound) return false;
+    const nextStage = company.getNextHardTechStage();
+    return company.status === 'raising' && !!nextStage;
+  }
+
+  configureRound(stage, draftRound) {
+    const company = this.company;
+    const activeStage = company.getNextHardTechStage();
+    if (!activeStage) return null;
+    draftRound.durationDays = Math.max(30, activeStage.duration_days || draftRound.durationDays);
+    draftRound.runwayMonths = draftRound.durationDays / 30;
+    draftRound.pipelineStage = activeStage.name || activeStage.id;
+    draftRound.requiredStageId = activeStage.id;
+    draftRound.stageReadyToResolve = false;
+    return draftRound;
+  }
+
+  calculateRoundHealth() {
+    const company = this.company;
+    const stats = company.getHardTechPipelineStats();
+    const runwayDenom = Math.max(company.runwayTargetDays || 240, 120);
+    const runwayScore = clampValue(company.cachedRunwayDays / runwayDenom, 0, 1);
+    const progressScore = stats.progress;
+    return clampValue(0.6 * progressScore + 0.4 * runwayScore, 0, 1);
+  }
+
+  shouldResolveRound() {
+    const company = this.company;
+    const round = company.currentRound;
+    return !!(round && round.stageReadyToResolve);
+  }
+}
+
+const createVentureStrategy = (company) => {
+  if (company.archetype === 'hardtech') {
+    return new HardTechStrategy(company);
+  }
+  return new HypergrowthStrategy(company);
+};
 
 const DummyMacroEnv = {
   getValue: () => 1,
@@ -787,16 +932,18 @@ class VentureCompany extends Company {
 
     this.description = config.description || '';
     this.archetype = config.archetype || 'hypergrowth';
-    const stageLabel = (config.funding_round || 'Seed').toLowerCase();
-    const idx = STAGE_INDEX_BY_LABEL[stageLabel];
-    this.stageIndex = typeof idx === 'number' ? idx : 0;
+    this.roundDefinitions = resolveRoundDefinitions(config.rounds);
+    const startingStageId = normalizeStageId(config.funding_round || 'seed');
+    let startingIndex = this.roundDefinitions.findIndex(stage => stage.id === startingStageId);
+    if (startingIndex < 0) startingIndex = 0;
+    this.stageIndex = startingIndex;
 
-    const targetLabel = (config.ipo_stage || 'series_f').toLowerCase();
-    let targetIdx = STAGE_INDEX[targetLabel] ?? STAGE_INDEX['pre_ipo'];
-    if (targetIdx >= STAGE_INDEX['ipo']) {
-      targetIdx = Math.max(0, STAGE_INDEX['pre_ipo']);
+    const targetLabel = normalizeStageId(config.ipo_stage || 'series_f');
+    let targetIdx = this.roundDefinitions.findIndex(stage => stage.id === targetLabel);
+    if (targetIdx < 0) {
+      targetIdx = this.roundDefinitions.length - 1;
     }
-    this.targetStageIndex = targetIdx;
+    this.targetStageIndex = Math.max(0, Math.min(targetIdx, this.roundDefinitions.length - 1));
 
     this.currentValuation = Math.max(1, Number(config.valuation_usd) || 10_000_000);
     this.status = 'raising';
@@ -833,16 +980,13 @@ class VentureCompany extends Company {
     this.pendingHardTechFailure = null;
 
     this.binarySuccess = Boolean(config.binary_success);
-    const gateLabel = (config.gate_stage || 'series_c').toLowerCase();
-    let gateIndex = STAGE_INDEX[gateLabel];
-    if (typeof gateIndex !== 'number') {
-      gateIndex = STAGE_INDEX['series_c'];
+    const gateLabel = normalizeStageId(config.gate_stage || 'series_c');
+    let gateIndex = this.roundDefinitions.findIndex(stage => stage.id === gateLabel);
+    if (gateIndex < 0) {
+      gateIndex = Math.max(1, Math.min(this.targetStageIndex, this.roundDefinitions.length - 2));
     }
-    const minGate = STAGE_INDEX['series_b'];
-    const maxGate = STAGE_INDEX['series_e'] ?? STAGE_INDEX['series_c'];
-    gateIndex = Math.max(minGate, Math.min(maxGate, gateIndex));
-    this.gateStageIndex = gateIndex;
-    this.gateStageId = VC_STAGE_CONFIG[this.gateStageIndex].id;
+    this.gateStageIndex = Math.max(0, Math.min(gateIndex, this.roundDefinitions.length - 1));
+    this.gateStageId = this.roundDefinitions[this.gateStageIndex]?.id || gateLabel;
 
     this.hypergrowthWindowYears = Math.max(Number(config.hypergrowth_window_years || 2), 0.25);
     this.hypergrowthTotalMultiplier = Math.max(Number(config.hypergrowth_total_multiplier || 3), 1.5);
@@ -855,6 +999,7 @@ class VentureCompany extends Company {
     this.postGateMultipleDecayYears = Math.max(Number(config.post_gate_multiple_decay_years || 6), 1);
     this.postGateMargin = Math.max(Number(config.post_gate_margin || 0.2), 0.05);
 
+    this.strategy = createVentureStrategy(this);
     this.gateCleared = false;
     this.postGatePending = false;
     this.postGateMode = false;
@@ -881,12 +1026,18 @@ class VentureCompany extends Company {
   }
 
   get currentStage() {
-    return VC_STAGE_CONFIG[Math.min(this.stageIndex, VC_STAGE_CONFIG.length - 1)];
+    if (!Array.isArray(this.roundDefinitions) || this.roundDefinitions.length === 0) {
+      this.roundDefinitions = resolveRoundDefinitions();
+    }
+    return this.roundDefinitions[Math.min(this.stageIndex, this.roundDefinitions.length - 1)];
   }
 
   getStageFinancials(stageOverride = null) {
     const stage = stageOverride || this.currentStage;
-    const stageKey = stage ? stage.id : 'seed';
+    const stageKey = normalizeStageId(stage ? stage.id : 'seed');
+    if (stage && stage.financials) {
+      return stage.financials;
+    }
     const fin = STAGE_FINANCIALS[stageKey] || STAGE_FINANCIALS.seed;
     return fin;
   }
@@ -1045,11 +1196,11 @@ class VentureCompany extends Company {
     if (stageCompleted) {
       this.hasPipelineUpdate = true;
       if (this.currentRound) {
-        this.daysSinceRound = this.currentRound.durationDays;
-        if (!this.currentRound.pipelineStage) {
-          const lastStage = this.getLastCompletedHardTechStage();
-          this.currentRound.pipelineStage = lastStage ? lastStage.name || lastStage.id : null;
+        const lastStage = this.getLastCompletedHardTechStage();
+        if (lastStage) {
+          this.currentRound.pipelineStage = lastStage.name || lastStage.id || this.currentRound.pipelineStage;
         }
+        this.currentRound.stageReadyToResolve = true;
       }
       if (stats.totalStages > 0 && stats.completedStages >= stats.totalStages) {
         this.stageIndex = this.targetStageIndex;
@@ -1189,46 +1340,13 @@ class VentureCompany extends Company {
   }
 
   shouldStartNextRound() {
-    if (this.archetype === 'hardtech') {
-      return this.status === 'raising' && !this.currentRound && !!this.getNextHardTechStage();
-    }
-    if (this.status === 'failed' || this.status === 'exited' || this.status === 'ipo' || this.status === 'ipo_pending') return false;
-    if (this.postGateMode && this.stageIndex >= this.targetStageIndex) return false;
-    if (this.currentRound) return false;
-    const burnTrigger = this.cashBurnPerDay > 0 ? this.cashBurnPerDay * 90 : 0;
-    const triggerCash = Math.max(this.raiseTriggerCash, burnTrigger, 250_000);
-    const cashDepleted = this.cash <= triggerCash;
-    const runwayExpired = this.runwayTargetDays > 0 && this.daysSinceLastRaise >= this.runwayTargetDays;
-    return cashDepleted || runwayExpired;
+    if (!this.strategy) return false;
+    return this.strategy.shouldStartNextRound();
   }
 
   calculateRoundHealth() {
-    if (this.archetype === 'hardtech') {
-      const stats = this.getHardTechPipelineStats();
-      const runwayDenom = Math.max(this.runwayTargetDays || 240, 120);
-      const runwayScore = clampValue(this.cachedRunwayDays / runwayDenom, 0, 1);
-      const progressScore = stats.progress;
-      return clampValue(0.6 * progressScore + 0.4 * runwayScore, 0, 1);
-    }
-    const revenue = Math.max(1, this.revenue);
-    const prev = Math.max(1, this.lastRoundRevenue || revenue);
-    const growth = (revenue - prev) / prev;
-    const growthScore = clampValue((growth + 0.4) / 0.8, 0, 1);
-
-    const stageFin = this.getStageFinancials();
-    const expectedMargin = stageFin.margin ?? -0.2;
-    const actualMargin = revenue > 0 ? this.profit / revenue : expectedMargin;
-    const marginDenom = Math.max(0.3, Math.abs(expectedMargin) + 0.2);
-    const marginScore = clampValue(1 - Math.abs(actualMargin - expectedMargin) / marginDenom, 0, 1);
-
-    const runwayDenom = Math.max(this.runwayTargetDays || 0, 120);
-    const runwayScore = clampValue(this.cachedRunwayDays / runwayDenom, 0, 1);
-
-    let base = 0.5 * growthScore + 0.35 * marginScore + 0.15 * runwayScore;
-    if (this.binarySuccess && !this.gateCleared) {
-      base *= 0.9;
-    }
-    return clampValue(base, 0, 1);
+    if (!this.strategy) return 1;
+    return this.strategy.calculateRoundHealth(this.currentStage);
   }
 
   syncPostGateMultiple(currentDate) {
@@ -1273,45 +1391,54 @@ class VentureCompany extends Company {
       this.currentRound = null;
       return;
     }
-    const raiseFraction = between(stage.raiseFraction[0], stage.raiseFraction[1]);
+    const raiseRange = Array.isArray(stage.raiseFraction) && stage.raiseFraction.length >= 2
+      ? stage.raiseFraction
+      : [0.15, 0.3];
+    const raiseFraction = between(raiseRange[0], raiseRange[1]);
     const baseFairValue = this.computeFairValue(true);
     const prevValuation = Math.max(1, this.currentValuation || this.lastFairValue || 1);
-    const multiplierRange = stage.preMoneyMultiplier || [1.05, 1.25];
+    const multiplierRange = Array.isArray(stage.preMoneyMultiplier) && stage.preMoneyMultiplier.length >= 2
+      ? stage.preMoneyMultiplier
+      : [1.05, 1.25];
     const minFairValue = prevValuation * multiplierRange[0];
     const maxFairValue = prevValuation * multiplierRange[1];
     const fairValue = clampValue(baseFairValue, minFairValue, maxFairValue);
     const preMoney = fairValue;
     const raiseAmount = Math.max(500_000, fairValue * raiseFraction);
     const postMoney = preMoney + raiseAmount;
-    let runwayMonths = between(stage.monthsToNextRound[0], stage.monthsToNextRound[1]);
-    let durationDays = Math.max(60, Math.round(Math.max(2, runwayMonths * 0.35) * 30)) * 3;
+    const monthsRange = Array.isArray(stage.monthsToNextRound) && stage.monthsToNextRound.length >= 2
+      ? stage.monthsToNextRound
+      : [12, 18];
+    let runwayMonths = between(monthsRange[0], monthsRange[1]);
+    let durationDays = stage.durationDays
+      ? Math.max(30, stage.durationDays)
+      : Math.max(60, Math.round(Math.max(2, runwayMonths * 0.35) * 30)) * 3;
     let pipelineStageName = null;
-    if (this.archetype === 'hardtech') {
-      const activeStage = this.getNextHardTechStage();
-      if (!activeStage) {
-        this.currentRound = null;
-        return;
-      }
-      durationDays = Math.max(30, activeStage.duration_days || durationDays);
-      runwayMonths = durationDays / 30;
-      pipelineStageName = activeStage.name || activeStage.id;
-    }
 
-    this.currentRound = {
+    let nextRound = {
       stageId: stage.id,
       stageLabel: stage.label,
       preMoney,
       raiseAmount,
       postMoney,
       equityOffered: raiseAmount / postMoney,
-      successProb: stage.successProb,
+      successProb: typeof stage.successProb === 'number' ? stage.successProb : 0.85,
       durationDays,
       runwayMonths,
       playerCommitted: false,
       openedOn: new Date(currentDate || new Date()),
       fairValue: fairValue,
-      pipelineStage: pipelineStageName
+      pipelineStage: pipelineStageName,
+      stageReadyToResolve: false
     };
+    if (this.strategy) {
+      nextRound = this.strategy.configureRound(stage, nextRound);
+    }
+    if (!nextRound) {
+      this.currentRound = null;
+      return;
+    }
+    this.currentRound = nextRound;
     this.daysSinceRound = 0;
     this.status = 'raising';
   }
@@ -1368,11 +1495,11 @@ class VentureCompany extends Company {
     this.daysSinceRound += dtDays;
     const events = [];
 
-    if (this.daysSinceRound < this.currentRound.durationDays) {
+    const stage = this.currentStage;
+    if (!this.strategy || !this.strategy.shouldResolveRound(stage)) {
       return events;
     }
 
-    const stage = this.currentStage;
     const closingRound = this.currentRound;
     const healthScore = this.calculateRoundHealth();
     const baseProb = stage && stage.successProb ? stage.successProb : 0;
@@ -1483,9 +1610,9 @@ class VentureCompany extends Company {
       this.recordHistory(currentDate);
     }
 
-    const reachedTarget = this.stageIndex >= this.targetStageIndex || stage.id === 'pre_ipo';
+    const reachedTarget = this.stageIndex >= this.targetStageIndex || stage.id === 'pre_ipo' || stage.id === 'ipo';
     if (reachedTarget) {
-      this.stageIndex = VC_STAGE_CONFIG.length - 1;
+      this.stageIndex = Math.max(0, this.roundDefinitions.length - 1);
       this.status = 'ipo_pending';
       const finalValuation = this.currentValuation;
       this.lastEventNote = `IPO set at $${finalValuation.toLocaleString()}.`;
@@ -1505,7 +1632,7 @@ class VentureCompany extends Company {
 
     const previousStageLabel = closingRound.stageLabel;
     if (this.archetype !== 'hardtech') {
-      this.stageIndex = Math.min(this.stageIndex + 1, VC_STAGE_CONFIG.length - 1);
+      this.stageIndex = Math.min(this.stageIndex + 1, Math.max(0, this.roundDefinitions.length - 1));
     }
     const displayValuation = this.currentValuation;
     const cashNote = Math.round(raiseAmount).toLocaleString();
