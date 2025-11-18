@@ -90,6 +90,7 @@ This README is a single, detailed snapshot of how the sim works today, how the c
 ## 5. Banking & DRIP
 - Banking panel lets the player borrow up to 5× net worth at 7% annual interest. Interest accrues automatically and is withdrawn from cash; hitting negative net worth with debt outstanding ends the game.
 - DRIP toggle in the header persists via `localStorage`. When enabled, each quarterly dividend event automatically buys fractional shares using `payout / marketCap` units.
+- Wojak reacts to your fortunes: become a millionaire/billionaire/trillionaire to unlock new suits, or suffer a 40%+ drawdown from your all-time high and he’ll mald for a few seconds (or until you recover past the –40% line, whichever comes last). Severe drawdowns (60%+) keep him malding until both the timer lapses and the slide eases.
 
 ---
 
