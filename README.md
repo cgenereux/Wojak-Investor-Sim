@@ -223,20 +223,17 @@ Only ~⅓ of the available companies should spawn per playthrough (randomized pe
 
 ---
 
-## 12. Macro Event Brainstorm
-Early ideas for headline events that could shake up the sim mid-run:
+## 12. Macro Events
+Macro turbulence is now data-driven via `data/macroEvents.json`. Each definition includes:
 
-- **Pandemics:** demand shock across travel/retail, biotech pops, long-tailed recovery in services.
-- **Financial crises:** market-wide multiple compression, tighter credit, higher default risk and forced deleveraging.
-- **Debt crises:** sovereign or corporate spreads blow out; interest expense spikes and highly levered names risk insolvency.
-- **Overstimulation:** QE/low-rate waves that temporarily inflate valuations and accelerate IPO windows.
-- **Interest rate shocks:** rapid hikes or cuts that ripple through borrowing costs, dividend yields, and banking income.
-- **AI threats:** regulatory crackdowns or existential scares that hammer AI-heavy companies while boosting “safety” plays.
-- **Bogdanov manipulation:** tongue-in-cheek event where a mysterious actor props up (or crashes) select assets.
-- **War / geopolitical conflict:** sector-specific disruptions (defense boom, energy shortages, supply-chain hits).
+- `start_year_range` + `chance`: rolled once per run so events only occur during their authored window.
+- `impact_days_range` / `recovery_days_range`: define the drawdown and rebound windows (revenue slides down during impact, glides back during recovery).
+- `global_multiplier_range` plus optional `sector_impacts`: multipliers applied before costs/margins, so pandemics hammer retail/travel but boost biotech.
+- `valuation_compression_range`: optional multiple compression that undoes over the recovery phase.
+- Optional mu/volatility deltas (`effects`) for extra flavor.
 
-Each event should have clear entry/exit triggers, sector-level effects (macro multipliers, cost shocks), and narrative hooks so the dashboard feels alive when they hit.
+`MacroEventManager` schedules each event once, applies the revenue/valuation curves through impact/recovery, and exposes active crises in the UI (orange pills under the header). Public-company revenue and fair value automatically reference these multipliers, so profits and prices visibly react to pandemics, rate shocks, etc.
 
-**Dev tip:** run `triggerMacroEvent('pandemic_global')` (or any event ID) from the browser console to force-test events mid-run.
+**Dev tip:** run `triggerMacroEvent('pandemic_global')` (or any event ID) from the browser console to force an event mid-run while testing.
 
 ---
