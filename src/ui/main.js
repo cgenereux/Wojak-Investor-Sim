@@ -152,8 +152,10 @@ async function loadCompaniesData() {
         ventureCompanies = await ventureCompaniesResponse.json();
         if (!Array.isArray(ventureCompanies)) ventureCompanies = [];
         let filteredCompanies = rawCompanies.filter(cfg => !cfg.experimental);
-        const presetBiotechCompanies = generateRiskyBiotechCompanies(3);
-        filteredCompanies.push(...presetBiotechCompanies);
+        const presetBiotechCompanies = await generateRiskyBiotechCompanies(3);
+        if (Array.isArray(presetBiotechCompanies)) {
+            filteredCompanies.push(...presetBiotechCompanies);
+        }
         const presetMegacorpCompanies = generateSteadyMegacorpCompanies(2);
         filteredCompanies.push(...presetMegacorpCompanies);
         const presetVentureCompanies = generateHypergrowthPresetCompanies();
@@ -497,6 +499,7 @@ function gameLoop() {
         if (typeof refreshVentureDetailView === 'function' && document.body.classList.contains('vc-detail-active')) {
             refreshVentureDetailView();
         }
+        renderPortfolio();
     } else if (typeof refreshVentureDetailView === 'function' && document.body.classList.contains('vc-detail-active')) {
         refreshVentureDetailView();
     }

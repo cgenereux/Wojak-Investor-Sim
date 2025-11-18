@@ -5,82 +5,92 @@
     const DEFAULT_VC_ROUNDS = ['seed','series_a','series_b','series_c','series_d','series_e','series_f','pre_ipo'];
     const HARDTECH_VC_ROUNDS = ['series_b','series_c','series_d','pre_ipo'];
 
-    const riskyBiotechRoster = [
-        {
-            name: 'Helixor Biosystems',
-            founders: [
-                { name: 'Dr. Sahana Patel', degree: 'PhD', school: 'MIT' },
-                { name: 'Dr. Kai Nakamura', degree: 'PhD', school: 'Tokyo University' }
-            ],
-            ipo_window: { from: 1990, to: 1991 }
-        },
-        {
-            name: 'NeuroVance Therapeutics',
-            founders: [
-                { name: 'Dr. Elise Carver', degree: 'MD', school: 'Johns Hopkins' },
-                { name: 'Dr. Malik Hassan', degree: 'PhD', school: 'Oxford' }
-            ],
-            ipo_window: { from: 1991, to: 1992 }
-        },
-        {
-            name: 'OptiGene BioPharma',
-            founders: [
-                { name: 'Dr. Lucia Romero', degree: 'PhD', school: 'Stanford' },
-                { name: 'Dr. Noah Bernstein', degree: 'MD', school: 'Harvard' }
-            ],
-            ipo_window: { from: 1992, to: 1993 }
-        }
-    ];
+    const PRESET_JSON_CACHE = {};
+    const RISKY_BIOTECH_DATA_PATH = 'data/presets/risky_biotech.json';
 
-    const riskyBiotechPipelineTemplate = [
-        {
-            id: 'pan_cancer_immunotherapy',
-            label: 'Pan-cancer Immunotherapy',
-            full_revenue_usd: 40_000_000_000,
-            stages: [
-                { id: 'phase_1', name: 'Phase 1 Trials', duration_days: 730, success_prob: 0.26, value_realization: 0.15, cost_usd: 120_000_000, max_retries: 2 },
-                { id: 'phase_2', name: 'Phase 2 Trials', duration_days: 1095, depends_on: 'phase_1', success_prob: 0.41, value_realization: 0.3, cost_usd: 220_000_000, max_retries: 2 },
-                { id: 'phase_3', name: 'Phase 3 Trials', duration_days: 1460, depends_on: 'phase_2', success_prob: 0.58, value_realization: 0.4, cost_usd: 380_000_000, max_retries: 1 },
-                { id: 'fda_review', name: 'FDA Review', duration_days: 365, depends_on: 'phase_3', success_prob: 0.78, value_realization: 0.15, cost_usd: 110_000_000, max_retries: 1, commercialises_revenue: true }
-            ]
+    function loadPresetJson(path) {
+        if (PRESET_JSON_CACHE[path]) {
+            return PRESET_JSON_CACHE[path];
         }
-    ];
+        if (typeof fetch !== 'function') {
+            return Promise.reject(new Error(`fetch is unavailable; cannot load preset data from ${path}`));
+        }
+        PRESET_JSON_CACHE[path] = fetch(path)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Failed to load preset JSON ${path}: ${response.status}`);
+                }
+                return response.json();
+            })
+            .catch(err => {
+                console.error('Preset JSON load failed:', path, err);
+                PRESET_JSON_CACHE[path] = null;
+                throw err;
+            });
+        return PRESET_JSON_CACHE[path];
+    }
 
-    const cloneBiotechPipeline = (scale = 1, prefix = '') => {
-        return riskyBiotechPipelineTemplate.map(entry => ({
-            id: `${prefix || entry.id}`,
+    function pickRange(range, fallbackMin, fallbackMax) {
+        if (Array.isArray(range) && range.length >= 2) {
+            return randBetween(range[0], range[1]);
+        }
+        if (typeof range === 'number') {
+            return range;
+        }
+        if (typeof fallbackMin === 'number' && typeof fallbackMax === 'number') {
+            return randBetween(fallbackMin, fallbackMax);
+        }
+        return fallbackMin ?? 0;
+    }
+
+    function clonePipelineTemplate(template = [], scale = 1, prefix = '') {
+        return template.map(entry => ({
+            id: prefix ? `${prefix}_${entry.id}` : entry.id,
             label: entry.label,
-            full_revenue_usd: Math.round(entry.full_revenue_usd * scale),
-            stages: entry.stages.map(stage => ({ ...stage }))
+            full_revenue_usd: Math.round((entry.full_revenue_usd || 0) * scale),
+            stages: (entry.stages || []).map(stage => ({ ...stage }))
         }));
-    };
+    }
 
-    function generateRiskyBiotechCompanies(count = 1) {
-        const roster = [...riskyBiotechRoster];
+    async function generateRiskyBiotechCompanies(count = 1) {
+        const data = await loadPresetJson(RISKY_BIOTECH_DATA_PATH);
+        const rosterSource = Array.isArray(data?.roster) ? data.roster.slice() : [];
+        if (rosterSource.length === 0) return [];
         const picked = [];
-        while (picked.length < count && roster.length > 0) {
-            const idx = Math.floor(Math.random() * roster.length);
-            picked.push(roster.splice(idx, 1)[0]);
+        while (picked.length < count && rosterSource.length > 0) {
+            const idx = Math.floor(Math.random() * rosterSource.length);
+            picked.push(rosterSource.splice(idx, 1)[0]);
         }
         const companies = [];
+        const defaults = data?.defaults || {};
+        const pipelineTemplate = Array.isArray(data?.pipelineTemplate) ? data.pipelineTemplate : [];
+        const structuralBiasDefaults = defaults.structural_bias || { min: 0.2, max: 6, half_life_years: 25 };
+        const marginDefaults = defaults.margin_curve || {};
+        const multipleDefaults = defaults.multiple_curve || {};
+        const initialRevenueConfig = defaults.initial_revenue_usd || {};
+        const pipelineScaleRange = defaults.pipeline_scale || [0.75, 1.25];
+
         picked.forEach((entry, i) => {
             const name = entry.name || `Biotech Innovator ${i + 1}`;
             const founders = (entry.founders || []).map(f => ({ ...f }));
             const id = `preset_bio_${name.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}_${i}`;
-            const initialRevenueMin = randBetween(1_000_000, 5_000_000);
-            const initialRevenueMax = initialRevenueMin * randBetween(4, 8);
+            const initialRevenueMin = pickRange(initialRevenueConfig.min, 1_000_000, 5_000_000);
+            const maxMultiplier = pickRange(initialRevenueConfig.maxMultiplier, 4, 8);
+            const initialRevenueMax = initialRevenueMin * maxMultiplier;
             const ipoYear = entry.ipo_window ? randIntBetween(entry.ipo_window.from, entry.ipo_window.to) : randIntBetween(1990, 1993);
+            const currentPipelineScale = pickRange(pipelineScaleRange, 0.75, 1.25);
+
             const company = {
                 id,
                 static: {
                     name,
-                    sector: 'Biotech',
+                    sector: defaults.sector || 'Biotech',
                     founders,
                     ipo_window: entry.ipo_window || { from: ipoYear, to: ipoYear },
                     ipo_instantly: true
                 },
                 sentiment: {
-                    structural_bias: { min: 0.2, max: 6, half_life_years: 25 }
+                    structural_bias: { ...structuralBiasDefaults }
                 },
                 base_business: {
                     revenue_process: {
@@ -90,18 +100,18 @@
                         }
                     },
                     margin_curve: {
-                        start_profit_margin: randBetween(0.08, 0.15),
-                        terminal_profit_margin: randBetween(0.5, 0.7),
-                        years_to_mature: randBetween(10, 14)
+                        start_profit_margin: pickRange(marginDefaults.start_profit_margin, 0.08, 0.15),
+                        terminal_profit_margin: pickRange(marginDefaults.terminal_profit_margin, 0.5, 0.7),
+                        years_to_mature: pickRange(marginDefaults.years_to_mature, 10, 14)
                     },
                     multiple_curve: {
-                        initial_ps_ratio: randBetween(28, 45),
-                        terminal_pe_ratio: randBetween(16, 22),
-                        years_to_converge: randBetween(8, 12)
+                        initial_ps_ratio: pickRange(multipleDefaults.initial_ps_ratio, 28, 45),
+                        terminal_pe_ratio: pickRange(multipleDefaults.terminal_pe_ratio, 16, 22),
+                        years_to_converge: pickRange(multipleDefaults.years_to_converge, 8, 12)
                     }
                 },
                 finance: {},
-                pipeline: cloneBiotechPipeline(randBetween(0.75, 1.25), `${id}_pipeline`),
+                pipeline: clonePipelineTemplate(pipelineTemplate, currentPipelineScale, `${id}_pipeline`),
                 events: []
             };
             companies.push(company);

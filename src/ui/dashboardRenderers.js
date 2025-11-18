@@ -146,6 +146,7 @@
       const pendingLabel = hasPending ? `Pending: ${currencyFormatter.format(pendingCommitment)}` : '';
       const key = `private:${summary.id}`;
       const stakeLabel = hasEquity ? `${detail.playerEquityPercent.toFixed(2)}% stake` : 'Stake pending';
+      const stageLabel = detail.stageLabel || summary.stageLabel || 'Private';
       if (existingItems.has(key)) {
         const item = existingItems.get(key);
         const valueRow = item.querySelector('.portfolio-value-row');
@@ -159,9 +160,12 @@
           pendingEl.textContent = pendingLabel;
           pendingEl.style.display = hasPending ? 'block' : 'none';
         }
+        const nameEl = item.querySelector('.company-name');
+        if (nameEl) {
+          nameEl.textContent = `${summary.name} (${stageLabel})`;
+        }
         existingItems.delete(key);
       } else {
-        const stageLabel = detail.stageLabel || summary.stageLabel || 'Private';
         newPortfolioHtml.push(`
           <div class="portfolio-item" data-portfolio-type="private" data-venture-id="${summary.id}" data-portfolio-key="${key}">
               <div class="company-name">${summary.name} (${stageLabel})</div>

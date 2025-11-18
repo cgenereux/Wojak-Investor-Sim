@@ -24,6 +24,7 @@ This README is a single, detailed snapshot of how the sim works today, how the c
 - **`data/*.json`** – Curated public & private company configs. These can be empty because the preset generators seed default rosters at runtime, but the legacy configs (SmartMart, Immunexus, etc.) still live here for reference.
 
 ### Supporting Assets
+- `data/presets/*.json` – Data-driven preset definitions (currently the risky biotech roster/pipeline lives in `data/presets/risky_biotech.json`).
 - `wojaks/*` – Wojak avatars / icons.
 - `data/*backup*.json` – Prior snapshots of company lists in case you need to roll back presets.
 
@@ -72,7 +73,7 @@ node -e "require('./src/sim/simShared.js');require('./src/sim/ventureStrategies.
 ## 4. Presets & Rosters
 ### Current State
 - Procedural helpers in `main.js` now append preset companies when the sim loads:
-  - **Risky Biotech:** draws from a curated roster (Helixor, NeuroVance, OptiGene) plus founders + IPO windows. Each uses the Immunexus-style hypergrowth curves and pipeline, but only one preset biotech spawns per game for now. The original Immunexus JSON entry still exists.
+  - **Risky Biotech:** now sourced from `data/presets/risky_biotech.json`, which lists the roster (Helixor, NeuroVance, OptiGene), founders, IPO windows, and pipeline template. The loader randomizes the same Immunexus-style curves/pipeline, but only one preset biotech spawns per game for now. The original Immunexus JSON entry still exists.
   - **Steady Megacorp:** mirrors SmartMart’s DNA (low margin, low PS/PE retail giant). A roster of SmartMart‑style companies (SmartCart, UrbanShop, GlobalMart) exists, and we currently spawn one of them each run, alongside the legacy SmartMart entry.
   - **Hypergrowth Web Startups:** `generateHypergrowthPresetCompanies()` continues to seed the venture market with 1990s web companies (ViaWave, LinkPulse, HyperLoom). They exercise the Hypergrowth lifecycle described above, then IPO by flipping phase.
 
