@@ -481,6 +481,93 @@ function resolveRoundDefinitions(rounds) {
   });
 }
 
+function computeHypergrowthFairValue(company, applyNoise = true) {
+  const fin = company.getStageFinancials();
+  const ps = fin.ps || 6;
+  const margin = clampValue(fin.margin ?? 0.1, -2, 0.35);
+  const revenue = Math.max(1, company.revenue || company.currentValuation / Math.max(ps, 1));
+  let base = revenue * ps;
+  if (company.postGateMode) {
+    const forwardMargin = company.postGateMargin || margin;
+    const forwardE = revenue * forwardMargin;
+    const impliedPE = Math.max(ps * 2, 8);
+    base = forwardE * impliedPE;
+  }
+  if (applyNoise) {
+    base *= between(0.9, 1.15);
+  }
+  return Math.max(1, base);
+}
+
+function computeHardTechFairValue(company, applyNoise = true) {
+  const unlockedPV = company.products.reduce((sum, product) => sum + (typeof product.unlockedValue === 'function' ? product.unlockedValue() : 0), 0);
+  const optionPV = company.products.reduce((sum, product) => sum + (typeof product.expectedValue === 'function' ? product.expectedValue() : 0), 0);
+  let base = Math.max(1, unlockedPV + optionPV);
+  if (applyNoise) {
+    base *= between(0.9, 1.15);
+  }
+  return base;
+}
+
+function advanceHypergrowthPreGate(company, dtYears) {
+  if (company.binarySuccess) {
+    company.revenue = 0;
+    company.profit = 0;
+    return;
+  }
+  const stage = company.currentStage;
+  const stageKey = stage ? stage.id : 'seed';
+  const fin = STAGE_FINANCIALS[stageKey] || STAGE_FINANCIALS.seed;
+  const targetRevenue = Math.max(company.currentValuation / Math.max(fin.ps || 1, 1e-3), 0);
+  const smoothing = 1 - Math.exp(-5 * dtYears);
+  company.revenue += (targetRevenue - company.revenue) * smoothing;
+  company.profit = company.revenue * fin.margin;
+}
+
+function advanceHardTechPreGate(company, dtYears, dtDays, currentDate) {
+  const days = typeof dtDays === 'number' ? dtDays : dtYears * DAYS_PER_YEAR;
+  const years = days / DAYS_PER_YEAR;
+  const smoothing = 1 - Math.exp(-3 * Math.max(years, 0));
+  const stats = company.getHardTechPipelineStats();
+  if (stats.failedStage) {
+    company.handleHardTechFailure(currentDate);
+    return;
+  }
+  const prevCompleted = company.completedStageCount || 0;
+  company.completedStageCount = stats.completedStages;
+  const stageCompleted = stats.completedStages > prevCompleted;
+  const hasCommercial = stats.commercialCount > 0;
+  if (!hasCommercial) {
+    const targetRevenue = Math.max(250_000, stats.progress * 5_000_000);
+    const baseBurn = 18_000_000 + stats.activeCost * 0.25;
+    const progressBurn = baseBurn * (1 + stats.progress * 2.5);
+    const targetProfit = -progressBurn;
+    company.revenue += (targetRevenue - company.revenue) * smoothing;
+    company.profit += (targetProfit - company.profit) * smoothing;
+  } else {
+    const commercialRevenue = stats.commercialValue * company.micro;
+    const targetRevenue = Math.max(1, commercialRevenue);
+    const targetMargin = clampValue(company.postGateMargin || 0.25, 0.05, 0.45);
+    const targetProfit = targetRevenue * targetMargin;
+    company.revenue += (targetRevenue - company.revenue) * smoothing;
+    company.profit += (targetProfit - company.profit) * smoothing;
+  }
+  if (stageCompleted) {
+    company.hasPipelineUpdate = true;
+    if (company.currentRound) {
+      const lastStage = company.getLastCompletedHardTechStage();
+      if (lastStage) {
+        company.currentRound.pipelineStage = lastStage.name || lastStage.id || company.currentRound.pipelineStage;
+      }
+      company.currentRound.stageReadyToResolve = true;
+    }
+    if (stats.totalStages > 0 && stats.completedStages >= stats.totalStages) {
+      company.stageIndex = company.targetStageIndex;
+      company.hardTechReadyForIPO = true;
+    }
+  }
+}
+
 class VentureStrategy {
   constructor(company) {
     this.company = company;
@@ -530,6 +617,14 @@ class HypergrowthStrategy extends VentureStrategy {
     }
     return clampValue(base, 0, 1);
   }
+
+  advancePreGate(dtYears) {
+    advanceHypergrowthPreGate(this.company, dtYears);
+  }
+
+  computeFairValue(applyNoise = true) {
+    return computeHypergrowthFairValue(this.company, applyNoise);
+  }
 }
 
 class HardTechStrategy extends VentureStrategy {
@@ -566,6 +661,17 @@ class HardTechStrategy extends VentureStrategy {
     const company = this.company;
     const round = company.currentRound;
     return !!(round && round.stageReadyToResolve);
+  }
+
+  advancePreGate(dtYears, dtDays, currentDate) {
+    advanceHardTechPreGate(this.company, dtYears, dtDays, currentDate);
+  }
+
+  computeFairValue(applyNoise = true) {
+    if (!this.company.postGateMode) {
+      return computeHardTechFairValue(this.company, applyNoise);
+    }
+    return computeHypergrowthFairValue(this.company, applyNoise);
   }
 }
 
@@ -1043,30 +1149,10 @@ class VentureCompany extends Company {
   }
 
   computeFairValue(applyNoise = true) {
-    if (this.archetype === 'hardtech' && !this.postGateMode) {
-      const unlockedPV = this.products.reduce((sum, product) => sum + (typeof product.unlockedValue === 'function' ? product.unlockedValue() : 0), 0);
-      const optionPV = this.products.reduce((sum, product) => sum + (typeof product.expectedValue === 'function' ? product.expectedValue() : 0), 0);
-      let base = Math.max(1, unlockedPV + optionPV);
-      if (applyNoise) {
-        base *= between(0.9, 1.15);
-      }
-      return base;
+    if (this.strategy && typeof this.strategy.computeFairValue === 'function') {
+      return this.strategy.computeFairValue(applyNoise);
     }
-    const fin = this.getStageFinancials();
-    const ps = fin.ps || 6;
-    const margin = clampValue(fin.margin ?? 0.1, -2, 0.35);
-    const revenue = Math.max(1, this.revenue || this.currentValuation / Math.max(ps, 1));
-    let base = revenue * ps;
-    if (this.postGateMode) {
-      const forwardMargin = this.postGateMargin || margin;
-      const forwardE = revenue * forwardMargin;
-      const impliedPE = Math.max(ps * 2, 8);
-      base = forwardE * impliedPE;
-    }
-    if (applyNoise) {
-      base *= between(0.9, 1.15);
-    }
-    return Math.max(1, base);
+    return computeHypergrowthFairValue(this, applyNoise);
   }
 
   updateFinancialsFromValuation() {
@@ -1142,72 +1228,19 @@ class VentureCompany extends Company {
       this.profit = this.revenue * this.postGateMargin;
       this.lastFairValue = Math.max(1, this.revenue * this.currentMultiple);
     } else if (dtYears > 0) {
-      this.advancePreGateRevenue(dtYears);
+      this.advancePreGateRevenue(dtYears, dtDays, currentDate);
     }
     this.marketCap = this.currentValuation;
   }
 
-  advancePreGateRevenue(dtYears) {
-    if (this.archetype === 'hardtech') {
-      this.advanceHardTechPreGate(dtYears, currentDate);
+  advancePreGateRevenue(dtYears, dtDays, currentDate) {
+    if (this.strategy && typeof this.strategy.advancePreGate === 'function') {
+      this.strategy.advancePreGate(dtYears, dtDays, currentDate);
       return;
     }
-    if (this.binarySuccess) {
-      this.revenue = 0;
-      this.profit = 0;
-      return;
-    }
-    const stage = this.currentStage;
-    const stageKey = stage ? stage.id : 'seed';
-    const fin = STAGE_FINANCIALS[stageKey] || STAGE_FINANCIALS.seed;
-    const targetRevenue = Math.max(this.currentValuation / Math.max(fin.ps || 1, 1e-3), 0);
-    const smoothing = 1 - Math.exp(-5 * dtYears);
-    this.revenue += (targetRevenue - this.revenue) * smoothing;
-    this.profit = this.revenue * fin.margin;
+    advanceHypergrowthPreGate(this, dtYears);
   }
 
-  advanceHardTechPreGate(dtDays, currentDate) {
-    const dtYears = dtDays / DAYS_PER_YEAR;
-    const smoothing = 1 - Math.exp(-3 * dtYears);
-    const stats = this.getHardTechPipelineStats();
-    if (stats.failedStage) {
-      this.handleHardTechFailure(currentDate);
-      return;
-    }
-    const prevCompleted = this.completedStageCount || 0;
-    this.completedStageCount = stats.completedStages;
-    const stageCompleted = stats.completedStages > prevCompleted;
-    const hasCommercial = stats.commercialCount > 0;
-    if (!hasCommercial) {
-      const targetRevenue = Math.max(250_000, stats.progress * 5_000_000);
-      const baseBurn = 18_000_000 + stats.activeCost * 0.25;
-      const progressBurn = baseBurn * (1 + stats.progress * 2.5);
-      const targetProfit = -progressBurn;
-      this.revenue += (targetRevenue - this.revenue) * smoothing;
-      this.profit += (targetProfit - this.profit) * smoothing;
-    } else {
-      const commercialRevenue = stats.commercialValue * this.micro;
-      const targetRevenue = Math.max(1, commercialRevenue);
-      const targetMargin = clampValue(this.postGateMargin || 0.25, 0.05, 0.45);
-      const targetProfit = targetRevenue * targetMargin;
-      this.revenue += (targetRevenue - this.revenue) * smoothing;
-      this.profit += (targetProfit - this.profit) * smoothing;
-    }
-    if (stageCompleted) {
-      this.hasPipelineUpdate = true;
-      if (this.currentRound) {
-        const lastStage = this.getLastCompletedHardTechStage();
-        if (lastStage) {
-          this.currentRound.pipelineStage = lastStage.name || lastStage.id || this.currentRound.pipelineStage;
-        }
-        this.currentRound.stageReadyToResolve = true;
-      }
-      if (stats.totalStages > 0 && stats.completedStages >= stats.totalStages) {
-        this.stageIndex = this.targetStageIndex;
-        this.hardTechReadyForIPO = true;
-      }
-    }
-  }
 
   advancePostGateRevenue(dtYears) {
     if (this.hypergrowthActive) {
@@ -1599,8 +1632,6 @@ class VentureCompany extends Company {
     this.lastRoundRevenue = this.revenue;
     this.lastRoundMargin = this.revenue > 0 ? this.profit / Math.max(this.revenue, 1) : -1;
     this.currentRound = null;
-    if (this.archetype === 'hardtech') {
-    }
 
     if (stageWasGate && success) {
       this.gateCleared = true;

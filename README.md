@@ -144,7 +144,7 @@ We now treat venture companies as explicit archetypes instead of one-size-fits-a
 ### Engine Changes
 1. **Archetype Flag:** `VentureCompany` stores `archetype` and copies preset `pipeline/events` through `buildPublicConfigFromVenture()` and `VentureSimulation` so private companies keep their authored DNA.
 2. **Hard-Tech Financials:**
-   - `advancePreGateRevenue` delegates to `advanceHardTechPreGate` when `archetype === 'hardtech'`, tying revenue/burn to pipeline progress and commercialized stages instead of generic stage multipliers.
+   - Pre-gate revenue + valuation loops now live on the strategy classes, so hypergrowth keeps its PS/margin glide while hard-tech leans entirely on pipeline EV and stage progress before commercialization.
    - `computeFairValue` uses unlocked/expected pipeline value for hard-tech firms in the private phase.
    - `calculateRoundHealth` scores hard-tech rounds based on pipeline progress + runway rather than revenue growth.
 3. **Stats Helper:** `getHardTechPipelineStats()` summarizes total stages, completed stages, active stage costs, and commercialized value, feeding the hard-tech revenue/valuation logic.
@@ -189,6 +189,8 @@ To make hypergrowth and hard-tech startups truly data driven, the venture engine
    ```
    Then provide `HypergrowthStrategy` and `HardTechStrategy` implementations.
 4. **Valuation Hooks:** Move pre-IPO valuation logic into the strategies so each archetype can compute `computeFairValue`, `advancePreGateRevenue`, and `calculateRoundHealth` differently.
+
+   ✅ Implemented: `HypergrowthStrategy` and `HardTechStrategy` now own `computeFairValue` plus their pre-gate revenue curves. Hard tech derives valuations directly from pipeline EV and only resolves rounds when the active stage succeeds, while hypergrowth keeps the classic PS/margin glide path. `calculateRoundHealth` had already been strategy-specific in the previous iteration.
 5. **IPO/Fault Events:** Strategies emit IPO and failure events when their round sequence completes or a stage fails. `promoteToPublic` remains unchanged; it just needs to be called when the strategy signals IPO.
 6. **Data Migration:** For existing preset generators (`generateHypergrowthPresetCompanies`, `generateBinaryHardTechCompanies`, etc.), populate the `rounds` array with the appropriate order. For example, seed hypergrowth companies get the full Seed→F list, whereas `generateBinaryHardTechCompanies` can define `["series_b","series_c","pre_ipo"]` or custom labels.
 
