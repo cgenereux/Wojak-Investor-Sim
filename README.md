@@ -119,6 +119,7 @@ Multiplayer stays on hold until the single-player loop, presets, and balance pol
 - **Preset data:** Hard Tech, megacorp, and hypergrowth startups read from `data/presets/*.json`, so balancing lives in data instead of inline JS. Legacy `companies.json` files sit under `data/legacy-companies/` for reference only.
 - **VC experience:** Portfolio cards show live round labels, VC commitments count toward net worth immediately (“Committed (in flight)” label), and Wojak/portfolio modules stay in sync when stages advance.
 - **Promises everywhere:** Preset generators and company loading paths are async so they can fetch JSON first, keeping future preset migrations straightforward.
+- **Macro events:** `data/macroEvents.json` feeds a `MacroEventManager` that applies revenue shocks (pandemics, rate spikes, Bogdanov manipulation) and surfaces active events in the dashboard.
 
 ### Upcoming Work
 1. **Complete preset migration:** Move the remaining legacy companies (plus any new archetypes) into JSON with schema validation so every roster/pipeline is data-driven.
@@ -197,24 +198,6 @@ Hypergrowth and hard-tech startups now run through archetype-specific strategies
 
 This refactor keeps hypergrowth and hard-tech equal citizens: both read their round order from data, both run on the same tick loop, but each archetype can evolve its financing lifecycle independently. It also sets the stage for richer presets (era-specific rosters, custom odds) without touching the engine again.
 
----
-
-## 12. Macro Event Brainstorm
-Early ideas for headline events that could shake up the sim mid-run:
-
-- **Pandemics:** demand shock across travel/retail, biotech pops, long-tailed recovery in services.
-- **Financial crises:** market-wide multiple compression, tighter credit, higher default risk and forced deleveraging.
-- **Debt crises:** sovereign or corporate spreads blow out; interest expense spikes and highly levered names risk insolvency.
-- **Overstimulation:** QE/low-rate waves that temporarily inflate valuations and accelerate IPO windows.
-- **Interest rate shocks:** rapid hikes or cuts that ripple through borrowing costs, dividend yields, and banking income.
-- **AI threats:** regulatory crackdowns or existential scares that hammer AI-heavy companies while boosting “safety” plays.
-- **Bogdanov manipulation:** tongue-in-cheek event where a mysterious actor props up (or crashes) select assets.
-- **War / geopolitical conflict:** sector-specific disruptions (defense boom, energy shortages, supply-chain hits).
-
-Each event should have clear entry/exit triggers, sector-level effects (macro multipliers, cost shocks), and narrative hooks so the dashboard feels alive when they hit.
-
----
-
 ## 11. Company Population Roadmap
 We need a much deeper roster so every run feels fresh. Rough plan by era:
 
@@ -237,3 +220,23 @@ We need a much deeper roster so every run feels fresh. Rough plan by era:
 
 ### Variety Rule
 Only ~⅓ of the available companies should spawn per playthrough (randomized per era) so no two runs share the exact roster. The remaining entries stay dormant until the next game.
+
+---
+
+## 12. Macro Event Brainstorm
+Early ideas for headline events that could shake up the sim mid-run:
+
+- **Pandemics:** demand shock across travel/retail, biotech pops, long-tailed recovery in services.
+- **Financial crises:** market-wide multiple compression, tighter credit, higher default risk and forced deleveraging.
+- **Debt crises:** sovereign or corporate spreads blow out; interest expense spikes and highly levered names risk insolvency.
+- **Overstimulation:** QE/low-rate waves that temporarily inflate valuations and accelerate IPO windows.
+- **Interest rate shocks:** rapid hikes or cuts that ripple through borrowing costs, dividend yields, and banking income.
+- **AI threats:** regulatory crackdowns or existential scares that hammer AI-heavy companies while boosting “safety” plays.
+- **Bogdanov manipulation:** tongue-in-cheek event where a mysterious actor props up (or crashes) select assets.
+- **War / geopolitical conflict:** sector-specific disruptions (defense boom, energy shortages, supply-chain hits).
+
+Each event should have clear entry/exit triggers, sector-level effects (macro multipliers, cost shocks), and narrative hooks so the dashboard feels alive when they hit.
+
+**Dev tip:** run `triggerMacroEvent('pandemic_global')` (or any event ID) from the browser console to force-test events mid-run.
+
+---

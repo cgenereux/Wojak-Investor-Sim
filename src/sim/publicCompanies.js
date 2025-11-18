@@ -267,16 +267,20 @@
       this.micro = Math.max(0.1, Math.min(5, this.micro));
 
       const sectorFactor = this.macroEnv.getValue(this.sector);
+      const revenueMultiplier = this.macroEnv.getRevenueMultiplier
+        ? this.macroEnv.getRevenueMultiplier(this.sector)
+        : 1;
       const coreAnnual = this.baseRevenue * sectorFactor * this.micro * this.revMult - this.flatRev;
       const pipelineAnnual = this.products.reduce((s, p) => s + p.realisedRevenuePerYear(), 0);
-      const revenueThisTick = (coreAnnual + pipelineAnnual) * dtYears;
+      const effectiveAnnual = (coreAnnual + pipelineAnnual) * revenueMultiplier;
+      const revenueThisTick = effectiveAnnual * dtYears;
 
       let marginNow;
       if (this.marginCurve) {
         marginNow = this.marginCurve.value(ageYears);
       } else {
         const base = sectorMargin[this.sector] ?? sectorMargin.DEFAULT;
-        const sizeKick = 0.02 * Math.log10(Math.max(1, (coreAnnual + pipelineAnnual) / 1e9));
+        const sizeKick = 0.02 * Math.log10(Math.max(1, effectiveAnnual / 1e9));
         const cycle = this.macroEnv.getValue(this.sector);
         const downPenalty = Math.max(0, 1 - cycle);
         marginNow = Math.max(0.01, base + sizeKick - 0.15 * downPenalty);
@@ -309,9 +313,13 @@
 
       const unlockedPV = this.products.reduce((s, p) => s + p.unlockedValue(), 0);
       const pipelineOption = this.products.reduce((s, p) => s + p.expectedValue(), 0);
-      const forwardE = (coreAnnual + pipelineAnnual) * marginNow;
+      const forwardE = effectiveAnnual * marginNow;
       const fairPE = this.multCurve.value(ageYears, marginNow);
       const fairValue = forwardE * fairPE + unlockedPV + pipelineOption;
+      const valuationMultiplier = this.macroEnv.getValuationMultiplier
+        ? this.macroEnv.getValuationMultiplier(this.sector)
+        : 1;
+      const adjustedFairValue = fairValue * valuationMultiplier;
 
       this.structBias = 1 + (this.structBias - 1) * Math.exp(-this.biasLambda * dtYears);
       const epsCyc = Random.gaussian();
@@ -320,7 +328,7 @@
       this.cyclical = Math.max(0.2, Math.min(5, this.cyclical));
 
       const sentiment = this.structBias * this.cyclical;
-      const enterprise = fairValue * sentiment;
+      const enterprise = adjustedFairValue * sentiment;
 
       const leverage = this.debt / Math.max(1, enterprise);
       const survivalProb = 1 / (1 + Math.exp(4 * (leverage - 0.6)));

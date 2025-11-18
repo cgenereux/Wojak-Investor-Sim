@@ -102,6 +102,27 @@ input:checked + .slider:before { transform: translateX(20px); }
     font-weight: 400;
     margin-top: 8px;
 }
+.macro-events-bar {
+    display: none;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin: 10px auto 0;
+    max-width: 800px;
+}
+.macro-events-bar.active {
+    display: flex;
+}
+.macro-event-pill {
+    background: #f97316;
+    color: #fff;
+    font-size: 11px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 999px;
+    box-shadow: 0 2px 6px rgba(249, 115, 22, 0.25);
+}
 
 .chart-container {
     background: #fdfdfd; border-radius: 12px; padding: 20px;

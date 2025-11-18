@@ -1,0 +1,58 @@
+[
+  {
+    "id": "pandemic_global",
+    "label": "Global Pandemic",
+    "chance": 0.75,
+    "start_year_range": [1995, 2015],
+    "impact_days_range": [150, 240],
+    "recovery_days_range": [240, 420],
+    "global_multiplier_range": [0.55, 0.75],
+    "valuation_compression_range": [0.7, 0.85],
+    "sector_impacts": [
+      { "sector": "Retail", "min_multiplier": [0.4, 0.6] },
+      { "sector": "Travel", "min_multiplier": [0.3, 0.5] },
+      { "sector": "Biotech", "min_multiplier": [1.15, 1.35] }
+    ],
+    "effects": [
+      { "type": "macro_mu_delta", "value": -0.02 }
+    ],
+    "description": "Demand collapses in physical retail and travel while biotech surges on vaccine/treatment spending."
+  },
+  {
+    "id": "rate_shock",
+    "label": "Interest Rate Shock",
+    "chance": 0.6,
+    "start_year_range": [2000, 2035],
+    "impact_days_range": [120, 200],
+    "recovery_days_range": [240, 360],
+    "global_multiplier_range": [0.7, 0.9],
+    "valuation_compression_range": [0.75, 0.9],
+    "sector_impacts": [
+      { "sector": "Financials", "min_multiplier": [0.6, 0.8] },
+      { "sector": "Real Estate", "min_multiplier": [0.6, 0.85] }
+    ],
+    "effects": [
+      { "type": "macro_mu_delta", "value": -0.015 },
+      { "type": "volatility_multiplier", "value": 1.4 }
+    ],
+    "description": "Central banks hike aggressively; growth slows, volatility spikes, and levered financials wobble."
+  },
+  {
+    "id": "bogdanov_push",
+    "label": "Bogdanov Manipulation",
+    "chance": 0.5,
+    "start_year_range": [2010, 2040],
+    "impact_days_range": [90, 150],
+    "recovery_days_range": [120, 240],
+    "global_multiplier_range": [0.95, 1.05],
+    "valuation_compression_range": [1.05, 1.2],
+    "sector_impacts": [
+      { "sector": "Tech", "min_multiplier": [1.2, 1.35] },
+      { "sector": "Energy", "min_multiplier": [0.75, 0.9] }
+    ],
+    "effects": [
+      { "type": "macro_mu_delta", "value": 0.01 }
+    ],
+    "description": "Shadowy whales goose tech valuations while draining capital from old-economy names."
+  }
+]

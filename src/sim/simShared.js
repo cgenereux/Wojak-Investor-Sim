@@ -53,7 +53,7 @@
   };
 
   class MacroEnvironment {
-    constructor (sectorsSet) {
+    constructor (sectorsSet, eventManager = null) {
       this.defaultParams = { mu: 0.06, sigma: 0.15 };
       this.sectorPresets = {
         Biotech:        { mu: 0.08, sigma: 0.25 },
@@ -61,6 +61,7 @@
         Tech:           { mu: 0.12, sigma: 0.22 },
         Retail:         { mu: 0.04, sigma: 0.10 }
       };
+      this.eventManager = eventManager || null;
 
       this.idxs = {};
       sectorsSet.forEach(sec => {
@@ -80,10 +81,14 @@
     }
 
     step (dtYears) {
+      const muDelta = this.eventManager ? this.eventManager.getMacroMuDelta() : 0;
+      const volMult = this.eventManager ? this.eventManager.getVolatilityMultiplier() : 1;
       Object.values(this.idxs).forEach(idx => {
+        const effectiveMu = idx.mu + muDelta;
+        const effectiveSigma = Math.max(0.01, idx.sigma * volMult);
         idx.value *= Math.exp(
-          (idx.mu - 0.5 * idx.sigma * idx.sigma) * dtYears +
-          idx.sigma * Math.sqrt(dtYears) * Random.gaussian()
+          (effectiveMu - 0.5 * effectiveSigma * effectiveSigma) * dtYears +
+          effectiveSigma * Math.sqrt(dtYears) * Random.gaussian()
         );
       });
     }
@@ -106,6 +111,11 @@
       this.ensureSector(sector);
       const entry = this.idxs[sector] || this.idxs.DEFAULT || { mu: this.defaultParams.mu };
       return entry.mu;
+    }
+
+    getRevenueMultiplier(sector) {
+      if (!this.eventManager) return 1;
+      return this.eventManager.getRevenueMultiplier(sector);
     }
   }
 

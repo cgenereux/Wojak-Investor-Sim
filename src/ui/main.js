@@ -18,6 +18,7 @@ const bankBtn = document.getElementById('bankBtn');
 const subFinancialDisplay = document.getElementById('subFinancialDisplay');
 const wojakImage = document.getElementById('wojakImage');
 const faviconLink = document.getElementById('faviconLink');
+const macroEventsDisplay = document.getElementById('macroEventsDisplay');
 const buyMaxBtn = document.getElementById('buyMaxBtn');
 const sellMaxBtn = document.getElementById('sellMaxBtn');
 const vcBtn = document.getElementById('vcBtn');
@@ -59,6 +60,21 @@ if (!dashboardModule) {
     throw new Error('Dashboard renderer module failed to load. Ensure dashboardRenderers.js is included before main.js.');
 }
 const { renderCompanies: renderCompaniesUI, renderPortfolio: renderPortfolioUI } = dashboardModule;
+
+window.triggerMacroEvent = function(eventId) {
+    if (!sim || typeof sim.triggerMacroEvent !== 'function') {
+        console.warn('Simulation not ready; cannot trigger macro event.');
+        return null;
+    }
+    const event = sim.triggerMacroEvent(eventId);
+    if (event) {
+        console.log(`Macro event triggered: ${event.label}`);
+        updateMacroEventsDisplay();
+    } else {
+        console.warn('Macro event not found or failed to trigger:', eventId);
+    }
+    return event;
+};
 
 // --- Banking Modal Elements ---
 const bankingModal = document.getElementById('bankingModal');
@@ -140,9 +156,10 @@ function ensureVentureSimulation(force = false) {
 
 async function loadCompaniesData() {
     try {
-        const [companiesResponse, ventureCompaniesResponse] = await Promise.all([
+        const [companiesResponse, ventureCompaniesResponse, macroEventsResponse] = await Promise.all([
             fetch('data/legacy-companies/companies.json'),
-            fetch('data/legacy-companies/venture_companies.json')
+            fetch('data/legacy-companies/venture_companies.json'),
+            fetch('data/macroEvents.json')
         ]);
 
         if (!companiesResponse.ok) { throw new Error(`HTTP error! status: ${companiesResponse.status} for companies.json`); }
@@ -150,6 +167,7 @@ async function loadCompaniesData() {
 
         const rawCompanies = await companiesResponse.json();
         ventureCompanies = await ventureCompaniesResponse.json();
+        const macroEvents = macroEventsResponse.ok ? await macroEventsResponse.json() : [];
         if (!Array.isArray(ventureCompanies)) ventureCompanies = [];
         let filteredCompanies = rawCompanies.filter(cfg => !cfg.experimental);
         const presetHardTechCompanies = await generateHardTechPresetCompanies(3);
@@ -167,7 +185,7 @@ async function loadCompaniesData() {
         const hardTechCompanies = generateBinaryHardTechCompanies(1);
         ventureCompanies.push(...hardTechCompanies);
         ensureVentureSimulation(true);
-        return new Simulation(filteredCompanies);
+        return new Simulation(filteredCompanies, { macroEvents });
     } catch (error) {
         console.error("Could not load data:", error);
         alert("Failed to load game data. Please ensure JSON files are in the same directory and a local server is running.");
@@ -218,6 +236,7 @@ function updateDisplay() {
     if (netWorth < 0 && totalBorrowed > 0) {
         endGame("bankrupt");
     }
+    updateMacroEventsDisplay();
 }
 
 function renderCompanies(force = false) {
@@ -241,6 +260,22 @@ function renderPortfolio() {
         emptyPortfolioMsg,
         currencyFormatter
     });
+}
+
+function updateMacroEventsDisplay() {
+    if (!macroEventsDisplay) return;
+    const events = (sim && typeof sim.getActiveMacroEvents === 'function') ? sim.getActiveMacroEvents() : [];
+    if (!events || events.length === 0) {
+        macroEventsDisplay.innerHTML = '';
+        macroEventsDisplay.classList.remove('active');
+        return;
+    }
+    macroEventsDisplay.classList.add('active');
+    const html = events.map(evt => {
+        const desc = evt.description ? evt.description.replace(/"/g, '&quot;') : '';
+        return `<span class="macro-event-pill" title="${desc}">${evt.label}</span>`;
+    }).join('');
+    macroEventsDisplay.innerHTML = html;
 }
 
 // --- Utility: Parse user-entered currency/number strings ---

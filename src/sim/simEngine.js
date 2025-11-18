@@ -2,33 +2,50 @@
   const shared = global.SimShared || {};
   const companyModule = global.CompanyModule || {};
   const ventureModule = global.VentureEngineModule || {};
+  const macroModule = global.MacroEventModule || {};
   if (!shared.MacroEnvironment || !companyModule.Company) {
     throw new Error('SimShared and CompanyModule must load before simEngine.js');
   }
   const { MacroEnvironment, between, SIM_DAY_MS } = shared;
   const { Company, HypergrowthCompany } = companyModule;
   const { VentureSimulation } = ventureModule;
+  const { MacroEventManager } = macroModule;
   if (!VentureSimulation) {
     throw new Error('Venture engine module failed to load.');
   }
+  if (!MacroEventManager) {
+    throw new Error('MacroEventModule must load before simEngine.js.');
+  }
 
 class Simulation {
-  constructor(cfg, startYear = 1990, dt = 14) {
+  constructor(cfg, options = {}) {
+    const startYear = options.startYear ?? 1990;
+    const dt = options.dt ?? 14;
+    const macroEvents = Array.isArray(options.macroEvents) ? options.macroEvents : [];
     this.dtDays = dt;
     this.startYear = startYear;
+    this.macroEventManager = new MacroEventManager(macroEvents, this.startYear);
 
     // build a set of sectors we will need macros for
     const sectorSet = new Set(cfg.map(c => c.static.sector));
-    this.macroEnv = new MacroEnvironment(sectorSet);
+    this.macroEnv = new MacroEnvironment(sectorSet, this.macroEventManager);
 
     this.companyConfigs = cfg.map(c => ({ ...c, isLive: false, ipoDate: null }));
     this.companies = [];
+    this.lastTick = new Date(startYear, 0, 1);
 
-    this.tick(new Date(startYear, 0, 1));
+    this.tick(new Date(this.lastTick));
   }
 
   tick(gameDate) {
+    if (!gameDate) return;
+    const tickDate = gameDate instanceof Date ? new Date(gameDate) : new Date(gameDate);
+    this.lastTick = tickDate;
     const dtYears = this.dtDays / 365;
+
+    if (this.macroEventManager) {
+      this.macroEventManager.tick(tickDate);
+    }
 
     /* 1. advance macro environment */
     this.macroEnv.step(dtYears);
@@ -50,7 +67,7 @@ class Simulation {
         }
       }
 
-      if (gameDate >= config.ipoDate) {
+      if (tickDate >= config.ipoDate) {
         let co;
         if (config.preset === 'hypergrowth_web_1990') {
           co = new HypergrowthCompany(config, this.macroEnv, this.startYear, config.ipoDate);
@@ -91,7 +108,7 @@ class Simulation {
     this.companyConfigs = this.companyConfigs.filter(c => !c.isLive);
 
     /* 3. Step live companies */
-    this.companies.forEach(c => c.step(this.dtDays, gameDate));
+    this.companies.forEach(c => c.step(this.dtDays, tickDate));
   }
 
   adoptVentureCompany(company, ipoDate) {
@@ -99,6 +116,15 @@ class Simulation {
     const effectiveDate = ipoDate ? new Date(ipoDate) : new Date();
     company.promoteToPublic(this.macroEnv, effectiveDate);
     this.companies.push(company);
+  }
+
+  getActiveMacroEvents() {
+    return this.macroEventManager ? this.macroEventManager.getActiveEvents(this.lastTick) : [];
+  }
+
+  triggerMacroEvent(eventId) {
+    if (!this.macroEventManager) return null;
+    return this.macroEventManager.forceTrigger(eventId, this.lastTick || new Date());
   }
 }
 
