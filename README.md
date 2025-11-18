@@ -4,30 +4,19 @@ This README is a single, detailed snapshot of how the sim works today, how the c
 
 ---
 
-## 1. Running the Sim
-1. Serve the repo root so the JSON files load via `fetch`:
-   ```bash
-   cd Downloads/Wojak-Investor-Sim-main
-   python3 -m http.server 8000
-   ```
-2. Visit `http://localhost:8000/index.html`.
-3. Use the controls at the top to pause, change simulation speed, or (once net worth ≥ $5M) open the venture view. The DRIP toggle in the header (defaults to your last setting via `localStorage`) controls whether quarterly dividends reinvest automatically.
-
----
-
-## 2. Code Structure
+## 1. Code Structure
 ### Core Files
 - **`src/sim/`** – Simulation primitives (`simShared.js`), public-company models (`publicCompanies.js`), venture strategies (`ventureStrategies.js`), the venture engine (`ventureEngineCore.js`), and the `Simulation` bootstrap (`simEngine.js`). These files never touch the DOM.
 - **`src/ui/`** – Browser-facing modules: `main.js` (portfolio/banking/loop), `vc.js` (venture panel), `pipelineUi.js`, `dashboardRenderers.js`, and `wojakManager.js`.
 - **`src/presets/presets.js`** – Procedural company/venture generators that seed the game at boot.
 - **`styles/style.css` / `styles/vc.css`** – Presentation for the dashboard and venture console.
-- **`data/legacy_companies/*.json`** – Legacy public & private company configs (used as fallbacks/reference only). Preset generators seed the active rosters at runtime.
+- **`data/legacy-companies/*.json`** – Legacy public & private company configs (used as fallbacks/reference only). Preset generators seed the active rosters at runtime.
 
 ### Supporting Assets
 - `data/presets/*.json` – Data-driven preset definitions (`hardtech.json`, `megacorp.json`, `hypergrowth.json`) consumed by the preset generators.
-- `wojaks/*` – Wojak avatars / icons.
-- `data/legacy_companies/*.json` – Archived company lists (`companies.json`, `venture_companies.json`) for reference/testing.
+- `data/legacy-companies/*.json` – Archived company lists (`companies.json`, `venture_companies.json`) kept for reference/testing only.
 - `data/*backup*.json` – Prior snapshots of company lists in case you need to roll back presets.
+- `wojaks/*` – Wojak avatars / icons.
 
 **Quick loader smoke test (Node):**
 ```bash
@@ -36,7 +25,7 @@ node -e "require('./src/sim/simShared.js');require('./src/sim/ventureStrategies.
 
 ---
 
-## 3. Simulation Mechanics
+## 2. Simulation Mechanics
 ### Clock & Macro
 - The sim advances in 14‑day ticks. Each tick updates:
   1. Sector macro indices (geometric Brownian motion with sector-specific mu/sigma).
@@ -71,10 +60,10 @@ node -e "require('./src/sim/simShared.js');require('./src/sim/ventureStrategies.
 
 ---
 
-## 4. Presets & Rosters
+## 3. Presets & Rosters
 ### Current State
 - Procedural helpers in `main.js` now append preset companies when the sim loads:
-  - **Hard Tech (ex-biotech preset):** now sourced from `data/presets/hardtech.json`, which lists the roster (Helixor, NeuroVance, OptiGene), founders, IPO windows, and pipeline template. The loader randomizes the same pipeline/financial curves, but only one preset hard-tech company spawns per game for now.
+  - **Hard Tech:** sourced from `data/presets/hardtech.json` (Helixor, NeuroVance, OptiGene). Each entry defines founders, IPO windows, and the flagship deep-tech pipeline; the loader randomizes financial curves but only one hard-tech company spawns per run today.
   - **Steady Megacorp:** data now lives in `data/presets/megacorp.json`, so SmartCart/UrbanShop/GlobalMart are authored in JSON (founders, IPO windows, sectors, balance knobs). The generator reads those rows, randomizes revenue/margins/multiples, and still spawns a single megacorp alongside the legacy SmartMart entry.
   - **Hypergrowth Startups:** `data/presets/hypergrowth.json` declares the ViaWave/LinkPulse/HyperLoom presets. The generator reads that file, applies the hypergrowth ranges (valuations, decay curves, IPO targets), and seeds the venture market before flipping to public mode later.
 
@@ -102,14 +91,14 @@ node -e "require('./src/sim/simShared.js');require('./src/sim/ventureStrategies.
 
 ---
 
-## 6. Multiplayer Reality Check
+## 5. Multiplayer Reality Check
 Multiplayer stays on hold until the single-player loop, presets, and balance polish are in a good place.
 
 - Planned flow: hit **Play Multiplayer** in the header, either create a party or join one (public or private), invite up to two friends, and race for the highest net worth over the chosen time span. No long-term save/persistence is needed—each session is self-contained.
 
 ---
 
-## 7. Wishlist / TODO
+## 6. Wishlist / TODO
 1. **Preset Helpers & Rosters:** Formalize the API, migrate existing companies to `preset + overrides`, and document the schema so new entries are easy to author.
 2. **Sector Pipelines:** Author the biotech product catalog and start populating consumer/industrial equivalents (store formats, logistics projects, etc.). Ensure pipeline selection is unique per run.
 3. **UI Enhancements:** Surface quarterly dividend events/logs so players can see DRIP vs. cash payouts. Show private-company cash/runway directly in the venture view.
@@ -124,10 +113,28 @@ Multiplayer stays on hold until the single-player loop, presets, and balance pol
 
 ---
 
+## 7. Recent Changes & Near-Term Plan
+### Recent Refactors
+- **Module split & folders:** `src/sim/` and `src/ui/` now house simulation logic and DOM code separately; CSS sits under `styles/`. `index.html`/README reflect the new structure.
+- **Preset data:** Hard Tech, megacorp, and hypergrowth startups read from `data/presets/*.json`, so balancing lives in data instead of inline JS. Legacy `companies.json` files sit under `data/legacy-companies/` for reference only.
+- **VC experience:** Portfolio cards show live round labels, VC commitments count toward net worth immediately (“Committed (in flight)” label), and Wojak/portfolio modules stay in sync when stages advance.
+- **Promises everywhere:** Preset generators and company loading paths are async so they can fetch JSON first, keeping future preset migrations straightforward.
+
+### Upcoming Work
+1. **Complete preset migration:** Move the remaining legacy companies (plus any new archetypes) into JSON with schema validation so every roster/pipeline is data-driven.
+2. **Venture UI modularization:** Break `vc.js` into list/detail/chart modules, surface runway/cash/pipeline info directly, and keep it in sync with the dashboard renderers.
+3. **Automation:** Add a headless sim smoke test (public + venture) and a minimal browser check to catch NaNs, missing assets, or stage-sync regressions before release.
+4. **Further splits:** Extract banking modal logic, investment panel helpers, and fetch/bootstrap steps into their own modules to keep `main.js` small.
+5. **Hard Tech depth:** Expand the hard-tech JSON schema (multiple programs, per-stage odds) and have the strategies consume those knobs so deep-tech companies feel distinct from web hypergrowth.
+
+These steps keep the refactor momentum going while laying the groundwork for automated testing and richer presets.
+
+---
+
 ## 8. Preset-Driven Company Data Plan
 To keep balancing centralized while still authoring memorable companies, we’ll migrate away from giant JSON blobs full of bespoke financial knobs and toward a preset + metadata model.
 
-1. **Archive Legacy JSON:** Move the existing `data/*companies*.json` snapshots into a `data/legacy/` folder for reference only. They stay readable (for inspiration/testing) but stop feeding the live sim.
+1. **Archive Legacy JSON (done):** The old `companies.json` / `venture_companies.json` files now live under `data/legacy-companies/` for reference only. Future work is focused on authored preset data.
 2. **Fresh Metadata Files:** Stand up new, minimal JSON files—one per era or archetype—that only describe presentation details:
    - `id`, `displayName`, `sector`, founder blurbs, IPO/founding year, flavor text, etc.
    - `presetKey` or similar pointer so the loader knows which preset to apply.

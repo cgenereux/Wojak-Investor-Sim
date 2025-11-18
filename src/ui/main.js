@@ -141,8 +141,8 @@ function ensureVentureSimulation(force = false) {
 async function loadCompaniesData() {
     try {
         const [companiesResponse, ventureCompaniesResponse] = await Promise.all([
-            fetch('data/legacy_companies/companies.json'),
-            fetch('data/legacy_companies/venture_companies.json')
+            fetch('data/legacy-companies/companies.json'),
+            fetch('data/legacy-companies/venture_companies.json')
         ]);
 
         if (!companiesResponse.ok) { throw new Error(`HTTP error! status: ${companiesResponse.status} for companies.json`); }
