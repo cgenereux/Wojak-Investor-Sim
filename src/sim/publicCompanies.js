@@ -246,7 +246,7 @@
         return `${yieldPct.toFixed(2)}%`;
       };
       const includeDividend = this.showDividendColumn;
-      let html = `<div class="financial-table"><h3>Financial History</h3><table><thead><tr><th>Year</th><th>Revenue</th><th>Profit</th><th>Cash</th><th>Debt</th>`;
+      let html = `<div class="financial-table"><table><thead><tr><th>Year</th><th>Revenue</th><th>Profit</th><th>Cash</th><th>Debt</th>`;
       if (includeDividend) html += `<th>Dividend Yield</th>`;
       html += `<th>P/S</th><th>P/E</th></tr></thead><tbody>`;
       data.forEach(r => {

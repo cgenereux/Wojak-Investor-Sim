@@ -700,6 +700,9 @@ function renderCompanyFinancialHistory(company) {
 
     if (!chartWrapper) {
         container.innerHTML = ''; // Clear any old content if structure is missing
+
+        // Header is now part of controls, so we don't add it separately here
+
         chartWrapper = document.createElement('div');
         chartWrapper.className = 'financial-yoy-chart';
         chartWrapper.style.height = '200px';
@@ -722,9 +725,21 @@ function renderCompanyFinancialHistory(company) {
         controlsWrapper = document.createElement('div');
         controlsWrapper.className = 'chart-controls';
         controlsWrapper.style.display = 'flex';
-        controlsWrapper.style.justifyContent = 'flex-end';
+        controlsWrapper.style.justifyContent = 'space-between'; // Changed to space-between
+        controlsWrapper.style.alignItems = 'center'; // Align items vertically
         controlsWrapper.style.marginBottom = '5px';
-        controlsWrapper.style.gap = '5px';
+
+        // Add Title
+        const title = document.createElement('h3');
+        title.textContent = 'Financial Data';
+        title.style.margin = '0';
+        title.style.color = '#333';
+        controlsWrapper.appendChild(title);
+
+        // Button Container
+        const btnContainer = document.createElement('div');
+        btnContainer.style.display = 'flex';
+        btnContainer.style.gap = '5px';
 
         const ranges = [
             { label: '5Y', value: 20 },
@@ -753,8 +768,10 @@ function renderCompanyFinancialHistory(company) {
                 });
                 renderCompanyFinancialHistory(company);
             };
-            controlsWrapper.appendChild(btn);
+            btnContainer.appendChild(btn);
         });
+
+        controlsWrapper.appendChild(btnContainer);
 
         // Insert before chart wrapper
         container.insertBefore(controlsWrapper, chartWrapper);
@@ -853,6 +870,10 @@ function renderCompanyFinancialHistory(company) {
                     responsive: true,
                     maintainAspectRatio: false,
                     animation: { duration: 0 },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
                     scales: {
                         x: {
                             grid: { display: false }
@@ -870,7 +891,7 @@ function renderCompanyFinancialHistory(company) {
                             callbacks: {
                                 label: context => {
                                     const val = context.parsed.y ?? context.parsed;
-                                    return `${context.dataset.label}: ${formatLargeNumber(val)}`;
+                                    return `${context.dataset.label}: ${currencyFormatter.format(val)}`;
                                 }
                             }
                         }
@@ -915,8 +936,56 @@ function showCompanyDetail(company) {
     const ctx = document.getElementById('companyDetailChart').getContext('2d');
     if (companyDetailChart) { companyDetailChart.destroy(); }
     companyDetailChart = new Chart(ctx, {
-        type: 'line', data: { datasets: [{ label: 'Market Cap', data: company.history, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderWidth: 2, pointRadius: 0, tension: 0.1, fill: true }] },
-        options: { responsive: true, maintainAspectRatio: false, animation: { duration: 0 }, plugins: { legend: { display: false } }, scales: { x: { type: 'time', time: { unit: 'year' } }, y: { ticks: { callback: value => formatLargeNumber(value) } } } }
+        type: 'line',
+        data: {
+            datasets: [{
+                label: 'Market Cap',
+                data: company.history,
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHoverBackgroundColor: '#3b82f6',
+                pointHoverBorderWidth: 0,
+                pointHoverRadius: 6,
+                tension: 0.1,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 0 },
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        title: context => {
+                            const date = new Date(context[0].parsed.x);
+                            return `Date: ${date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}`;
+                        },
+                        label: function (context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += currencyFormatter.format(context.parsed.y);
+                            }
+                            return label;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { type: 'time', time: { unit: 'year' } },
+                y: { ticks: { callback: value => formatLargeNumber(value) } }
+            }
+        }
     });
     document.getElementById('financialHistoryContainer').innerHTML = '';
     renderCompanyFinancialHistory(company);
@@ -1122,9 +1191,106 @@ async function init() {
     if (!sim) { return; }
     companies = sim.companies;
 
+    companies = sim.companies;
+
+    const getNetWorthTooltipHandler = (context) => {
+        // Tooltip Element
+        let tooltipEl = document.getElementById('chartjs-tooltip');
+
+        // Create element on first render
+        if (!tooltipEl) {
+            tooltipEl = document.createElement('div');
+            tooltipEl.id = 'chartjs-tooltip';
+            tooltipEl.style.opacity = 1;
+            tooltipEl.style.pointerEvents = 'none';
+            tooltipEl.style.position = 'absolute';
+            tooltipEl.style.transform = 'translate(-50%, 0)';
+            tooltipEl.style.transition = 'all .1s ease';
+            tooltipEl.style.backgroundColor = '#ffffff';
+            tooltipEl.style.borderRadius = '6px';
+            tooltipEl.style.color = '#1e293b';
+            tooltipEl.style.padding = '8px';
+            tooltipEl.style.fontFamily = 'Inter, sans-serif';
+            tooltipEl.style.fontSize = '14px';
+            tooltipEl.style.whiteSpace = 'nowrap';
+            tooltipEl.style.zIndex = '100';
+            tooltipEl.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+            document.body.appendChild(tooltipEl);
+        }
+
+        // Hide if no tooltip
+        const tooltipModel = context.tooltip;
+        if (tooltipModel.opacity === 0) {
+            tooltipEl.style.opacity = 0;
+            return;
+        }
+
+        // Set Text
+        if (tooltipModel.body) {
+            const date = new Date(context.chart.data.datasets[0].data[tooltipModel.dataPoints[0].dataIndex].x);
+            const dateStr = date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+            const rawValue = tooltipModel.dataPoints[0].raw.y;
+            const valueStr = currencyFormatter.format(rawValue);
+
+            const innerHtml = `
+                <div style="margin-bottom: 4px; color: #1e293b; display: flex; align-items: center; gap: 4px;">
+                    <span style="font-weight: 600;">Date:</span>
+                    <span>${dateStr}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                    <span style="color: #1e293b; font-weight: 600;">Net Worth:</span>
+                    <span style="color: #00c742;">${valueStr}</span>
+                </div>
+            `;
+
+            tooltipEl.innerHTML = innerHtml;
+        }
+
+        const position = context.chart.canvas.getBoundingClientRect();
+
+        // Display, position, and set styles for font
+        tooltipEl.style.opacity = 1;
+        tooltipEl.style.left = position.left + window.pageXOffset + tooltipModel.caretX + 'px';
+        tooltipEl.style.top = position.top + window.pageYOffset + tooltipModel.caretY + 'px';
+    };
+
     netWorthChart = new Chart(document.getElementById('netWorthChart').getContext('2d'), {
-        type: 'line', data: { datasets: [{ label: 'Net Worth', data: netWorthHistory, borderColor: '#00c742', backgroundColor: 'rgba(0, 199, 66, 0.1)', borderWidth: 2, pointRadius: 0, tension: 0.4, fill: true }] },
-        options: { responsive: true, maintainAspectRatio: false, animation: { duration: 0 }, plugins: { legend: { display: false } }, scales: { x: { type: 'time', time: { unit: 'year' } }, y: { ticks: { callback: value => formatLargeNumber(value) } } } }
+        type: 'line',
+        data: {
+            datasets: [{
+                label: 'Net Worth',
+                data: netWorthHistory,
+                borderColor: '#00c742',
+                backgroundColor: 'rgba(0, 199, 66, 0.1)',
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHoverBackgroundColor: '#00c742',
+                pointHoverBorderWidth: 0,
+                pointHoverRadius: 6,
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 0 },
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    enabled: false,
+                    external: getNetWorthTooltipHandler
+                }
+            },
+            scales: {
+                x: { type: 'time', time: { unit: 'year' } },
+                y: { ticks: { callback: value => formatLargeNumber(value) } }
+            }
+        }
     });
 
     renderCompanies(true); // Initial full render

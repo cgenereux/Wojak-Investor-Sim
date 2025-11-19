@@ -357,6 +357,9 @@ function updateVentureDetail(companyId) {
                     tension: 0,
                     stepped: 'before',
                     pointRadius: 0,
+                    pointHoverBackgroundColor: '#3b82f6',
+                    pointHoverBorderWidth: 0,
+                    pointHoverRadius: 6,
                     fill: true,
                     parsing: false
                 }]
@@ -365,7 +368,31 @@ function updateVentureDetail(companyId) {
                 responsive: true,
                 maintainAspectRatio: false,
                 animation: { duration: 0 },
-                plugins: { legend: { display: false } },
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            title: context => {
+                                const date = new Date(context[0].parsed.x);
+                                return `Date: ${date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}`;
+                            },
+                            label: function (context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
                 scales: {
                     x: { type: 'time', time: { unit: 'year' } },
                     y: {
@@ -640,7 +667,7 @@ function renderVentureFinancialChart(company) {
                         callbacks: {
                             label: context => {
                                 const val = context.parsed.y ?? context.parsed;
-                                return `${context.dataset.label}: ${vcFormatCurrency(val)}`;
+                                return `${context.dataset.label}: ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val)}`;
                             }
                         }
                     }

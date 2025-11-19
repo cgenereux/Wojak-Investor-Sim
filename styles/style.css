@@ -1001,4 +1001,55 @@ button.speed-active:hover {
 
 .company-box.bankrupt .company-name {
     color: #d32f2f;
+}#chartjs-tooltip {
+    opacity: 1;
+    position: absolute;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    border-radius: 4px;
+    pointer-events: none;
+    transform: translate(-50%, 0);
+    transition: all .1s ease;
+    padding: 6px 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    z-index: 1000;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#chartjs-tooltip table {
+    margin: 0;
+    padding: 0;
+}
+
+#chartjs-tooltip th {
+    font-weight: normal;
+    text-align: left;
+    padding-bottom: 4px;
+    color: #a0a0a0;
+}
+
+#chartjs-tooltip td {
+    font-weight: normal;
+    color: #e0e0e0;
+}
+
+#chartjs-tooltip span.bold-value {
+    font-weight: 800;
+    color: #fff;
+}
+.chartjs-tooltip {
+    opacity: 1;
+    position: absolute;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    border-radius: 3px;
+    pointer-events: none;
+    transform: translate(-50%, 0);
+    transition: all .1s ease;
+    font-family: 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
+    font-size: 12px;
+    padding: 6px;
+    z-index: 100;
 }
