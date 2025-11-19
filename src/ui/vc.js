@@ -537,12 +537,11 @@ function renderVentureFinancialChart(company) {
     if (!yoySeries || yoySeries.length === 0) {
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.font = '14px Inter';
-        ctx.fillStyle = '#888';
-        ctx.textAlign = 'center';
-        ctx.fillText('Waiting for financial data...', canvas.width / 2, canvas.height / 2);
+        // Removed "Waiting for financial data..." text as requested
         return;
     }
+
+    const isFiniteNumber = value => typeof value === 'number' && Number.isFinite(value);
 
     const labels = yoySeries.map(item => {
         if (item.label) return item.label;
@@ -585,6 +584,8 @@ function renderVentureFinancialChart(company) {
                 ventureFinancialBarChart.destroy();
                 ventureFinancialBarChart = null;
             } else {
+                ventureFinancialBarChart.data.datasets[0].label = 'Revenue (Trailing 12 Months)';
+                ventureFinancialBarChart.data.datasets[1].label = 'Profit (Trailing 12 Months)';
                 ventureFinancialBarChart.data.labels = labels;
                 ventureFinancialBarChart.data.datasets[0].data = revenueData;
                 ventureFinancialBarChart.data.datasets[1].data = profitData;
@@ -600,7 +601,7 @@ function renderVentureFinancialChart(company) {
                 labels,
                 datasets: [
                     {
-                        label: 'Revenue',
+                        label: 'Revenue (Trailing 12 Months)',
                         data: revenueData,
                         backgroundColor: '#635bff',
                         borderRadius: 4,
@@ -634,16 +635,12 @@ function renderVentureFinancialChart(company) {
                     intersect: false,
                 },
                 plugins: {
-                    legend: { display: true, position: 'top' },
+                    legend: { display: true, position: 'top', reverse: true },
                     tooltip: {
                         callbacks: {
                             label: context => {
-                                let label = context.dataset.label || '';
-                                if (label) label += ': ';
-                                if (context.parsed.y !== null && context.parsed.y !== undefined) {
-                                    label += vcFormatCurrency(context.parsed.y);
-                                }
-                                return label;
+                                const val = context.parsed.y ?? context.parsed;
+                                return `${context.dataset.label}: ${vcFormatCurrency(val)}`;
                             }
                         }
                     }

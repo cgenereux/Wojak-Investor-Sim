@@ -216,6 +216,7 @@
         <div class="banking-panel">
             <div class="banking-header">
                 <h2 class="banking-title">Banking Services</h2>
+                <img src="wojaks/boomer-wojak.png" alt="Boomer Wojak" class="boomer-wojak-icon">
                 <button class="close-btn" id="closeBankingBtn">×</button>
             </div>
             <div class="banking-stats">
@@ -228,26 +229,29 @@
                     <div id="bankingNetWorthDisplay" class="stat-value"></div>
                 </div>
                 <div class="stat-box">
-                    <div class="stat-label">Current Debt</div>
-                    <div id="currentDebtDisplay" class="stat-value"></div>
-                </div>
-                <div class="stat-box">
                     <div class="stat-label">Max Borrowing</div>
                     <div id="maxBorrowDisplay" class="stat-value"></div>
                 </div>
                 <div class="stat-box">
-                    <div class="stat-label">Interest Rate</div>
-                    <div class="stat-value">7% annually</div>
+                    <div class="stat-label">Current Debt</div>
+                    <div id="currentDebtDisplay" class="stat-value"></div>
                 </div>
             </div>
-            <div class="banking-actions">
-                <input type="text" id="bankingAmountInput" placeholder="Enter amount">
-                <button id="borrowBtn" class="borrow-btn">Borrow</button>
-                <button id="repayBtn" class="repay-btn">Repay</button>
+            <div class="banking-controls">
+                <div class="banking-input-group">
+                    <div class="input-label">Interest Rate: 7% annually</div>
+                    <input type="text" id="bankingAmountInput" placeholder="Enter amount">
+                </div>
+                <div class="banking-button-grid">
+                    <button id="borrowBtn" class="borrow-btn">Borrow</button>
+                    <button id="repayBtn" class="repay-btn">Repay</button>
+                    <button id="maxBorrowBtn" class="borrow-btn">Max Borrow</button>
+                    <button id="maxRepayBtn" class="repay-btn">Max Repay</button>
+                </div>
             </div>
             <div class="banking-info">
-                💡 You can borrow up to 5x your net worth. Interest is charged from your cash balance.
-                You only go bankrupt if your net worth goes negative.
+                <strong>Tip:</strong> You can borrow up to 5x your net worth. Interest is charged from your cash
+                balance. You only go bankrupt if your net worth goes negative.
             </div>
         </div>
     </div>

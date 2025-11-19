@@ -774,7 +774,8 @@ function renderCompanyFinancialHistory(company) {
             financialYoyChart.destroy();
             financialYoyChart = null;
         }
-        chartWrapper.innerHTML = '<div class="financial-yoy-chart empty">Waiting for financial data...</div>';
+        // Removed "Waiting for financial data..." text as requested
+        chartWrapper.innerHTML = '';
     } else {
         // Ensure canvas exists if we came from empty state
         let canvas = chartWrapper.querySelector('canvas');
@@ -825,7 +826,7 @@ function renderCompanyFinancialHistory(company) {
                     labels,
                     datasets: [
                         {
-                            label: 'Revenue',
+                            label: 'Revenue (Trailing 12 Months)',
                             data: revenueData,
                             backgroundColor: '#635bff',
                             borderRadius: 4,
@@ -864,7 +865,7 @@ function renderCompanyFinancialHistory(company) {
                         }
                     },
                     plugins: {
-                        legend: { display: true, position: 'top' },
+                        legend: { display: true, position: 'top', reverse: true },
                         tooltip: {
                             callbacks: {
                                 label: context => {
@@ -1028,6 +1029,9 @@ portfolioList.addEventListener('click', (event) => {
     }
 });
 
+const maxBorrowBtn = document.getElementById('maxBorrowBtn');
+const maxRepayBtn = document.getElementById('maxRepayBtn');
+
 bankBtn.addEventListener('click', showBankingModal);
 closeBankingBtn.addEventListener('click', hideBankingModal);
 bankingModal.addEventListener('click', (event) => {
@@ -1035,6 +1039,27 @@ bankingModal.addEventListener('click', (event) => {
 });
 borrowBtn.addEventListener('click', () => borrow(bankingAmountInput.value));
 repayBtn.addEventListener('click', () => repay(bankingAmountInput.value));
+
+// Max Borrow Logic
+maxBorrowBtn.addEventListener('click', () => {
+    const max = getMaxBorrowing();
+    if (max > 0) {
+        borrow(max);
+    } else {
+        alert("You cannot borrow any more funds right now.");
+    }
+});
+
+// Max Repay Logic
+maxRepayBtn.addEventListener('click', () => {
+    const amount = Math.min(totalBorrowed, cash);
+    if (amount > 0) {
+        repay(amount);
+    } else {
+        alert("You have no debt to repay or no cash available.");
+    }
+});
+
 bankingAmountInput.addEventListener('keypress', (event) => {
     if (event.key === 'Enter' && event.target === bankingAmountInput) {
         const amount = bankingAmountInput.value;
