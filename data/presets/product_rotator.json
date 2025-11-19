@@ -1,0 +1,59 @@
+{
+  "defaults": {
+    "sector": "Tech",
+    "base_revenue_usd": [2000000000, 7000000000],
+    "margin_curve": {
+      "start_profit_margin": [0.06, 0.1],
+      "terminal_profit_margin": [0.18, 0.26],
+      "years_to_mature": [6, 9]
+    },
+    "multiple_curve": {
+      "initial_ps_ratio": [2.5, 3.5],
+      "terminal_pe_ratio": [12, 18],
+      "years_to_converge": [7, 11]
+    },
+    "structural_bias": {
+      "min": 0.6,
+      "max": 2.5,
+      "half_life_years": 18
+    },
+    "finance": {
+      "starting_cash_ratio": 0.05,
+      "starting_debt_ratio": 0.02,
+      "interest_rate_annual": 0.05
+    },
+    "costs": {
+      "opex_fixed_usd": [180000000, 360000000],
+      "opex_variable_ratio": [0.12, 0.2],
+      "rd_base_ratio": [0.05, 0.08]
+    },
+    "product_plan": {
+      "initial": 2,
+      "max_active": 2,
+      "replacement_years": [8, 12],
+      "gap_years": [1, 3],
+      "allow_duplicates": false
+    },
+    "ipo_window": { "from": 1989, "to": 1995 }
+  },
+  "roster": [
+    {
+      "name": "Nova Devices",
+      "sector": "Tech",
+      "ipo_window": { "from": 1989, "to": 1993 },
+      "founders": [{ "name": "R. Flores" }, { "name": "L. Tan" }]
+    },
+    {
+      "name": "Helio Systems",
+      "sector": "Tech",
+      "ipo_window": { "from": 1990, "to": 1996 },
+      "founders": [{ "name": "S. Kim" }, { "name": "A. Duarte" }]
+    },
+    {
+      "name": "Vector Labs",
+      "sector": "Industrial",
+      "ipo_window": { "from": 1991, "to": 1997 },
+      "founders": [{ "name": "M. Nwosu" }, { "name": "C. Patel" }]
+    }
+  ]
+}

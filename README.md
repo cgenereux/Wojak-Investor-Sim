@@ -237,3 +237,9 @@ Macro turbulence is now data-driven via `data/macroEvents.json`. Each definition
 **Dev tip:** run `triggerMacroEvent('pandemic_global')` (or any event ID) from the browser console to force an event mid-run while testing.
 
 ---
+
+## 13. Quarterly Accounting Shift
+- **Revenue & profit now quarterly-first:** Every public company tracks a rolling `quarterHistory`; annual rows in the financial table are derived from summed quarters (or fall back to the old accumulators if the year isn’t fully populated yet).
+- **TTM / YoY charts:** The YoY builder uses TTM (or partial TTM) from `quarterHistory`, so the optional quarterly chart can swap between annual table and quarterly trend without mixing units.
+- **Dividends remain quarterly:** Dividend eligibility still evaluates the last three full years of profit and zero debt, but payouts are scheduled as four quarterly installments with DRIP support unchanged.
+- **UI refresh hooks:** The game loop marks `newQuarterlyData`/`newAnnualData` so the financial panel and pipeline widgets refresh when a quarter closes; no behavior change needed for legacy companies.

@@ -17,6 +17,189 @@
 
   const QUARTER_DAYS = 365 / 4;
   const MAX_QUARTER_HISTORY = 100;
+  const PRODUCT_RETIRE_DELAY_DAYS = Math.round(2.5 * 365);
+
+  const sampleRange = (range, fallbackMin, fallbackMax) => {
+    if (Array.isArray(range) && range.length >= 2) return between(range[0], range[1]);
+    if (typeof range === 'number') return range;
+    return between(fallbackMin, fallbackMax);
+  };
+
+  const pickWeightedRandom = (items) => {
+    if (!Array.isArray(items) || items.length === 0) return null;
+    const total = items.reduce((sum, item) => sum + (item.weight || 1), 0);
+    let roll = Math.random() * total;
+    for (const item of items) {
+      roll -= (item.weight || 1);
+      if (roll <= 0) return item;
+    }
+    return items[items.length - 1];
+  };
+
+  const cloneProductTemplate = (template, suffix = '') => {
+    const baseId = template.id || template.label || 'product';
+    const cloneId = suffix ? `${baseId}_${suffix}` : baseId;
+    return {
+      id: cloneId,
+      label: template.label || template.id || 'Product',
+      full_revenue_usd: Number(template.full_revenue_usd || template.fullVal || 0),
+      stages: Array.isArray(template.stages) ? template.stages.map(stage => ({ ...stage })) : []
+    };
+  };
+
+  class ProductManager {
+    constructor(company, plan) {
+      this.company = company;
+      this.plan = this.normalizePlan(plan);
+      this.spawnQueue = [];
+      this.initialized = false;
+    }
+
+    normalizePlan(plan) {
+      if (!plan) return null;
+      const catalog = Array.isArray(plan.catalog) ? plan.catalog : [];
+      if (catalog.length === 0) return null;
+      const normalized = {
+        catalog,
+        maxActive: plan.max_active ?? plan.maxActive ?? 2,
+        initialCount: plan.initial ?? plan.initial_count ?? 1,
+        replacementYears: plan.replacement_years || plan.replacementYears || [8, 12],
+        gapYears: plan.gap_years || plan.gapYears || [0.5, 2],
+        allowDuplicates: plan.allow_duplicates ?? plan.allowDuplicates ?? false
+      };
+      normalized.maxActive = Math.max(1, Number(normalized.maxActive) || 1);
+      normalized.initialCount = Math.max(0, Number(normalized.initialCount) || 0);
+      return normalized;
+    }
+
+    tick() {
+      if (!this.plan) return;
+      if (!this.initialized) {
+        this.seedInitialProducts();
+        this.initialized = true;
+      }
+      this.trackCompletionsAndRetire();
+      this.scheduleSpawns();
+      this.processSpawnQueue();
+    }
+
+    seedInitialProducts() {
+      let managedCount = this.getManagedProducts().length;
+      while (managedCount < this.plan.initialCount && this.trySpawnProduct()) {
+        managedCount = this.getManagedProducts().length;
+      }
+    }
+
+    scheduleSpawns() {
+      const products = this.getManagedProducts();
+      products.forEach(product => {
+        const meta = product.__planMeta;
+        if (!meta) return;
+        if (!meta.nextSpawnScheduled && this.company.ageDays >= meta.nextSpawnAgeDays) {
+          const gapYears = sampleRange(this.plan.gapYears, 0.5, 2);
+          const gapDays = Math.max(0, gapYears * 365);
+          this.spawnQueue.push({
+            spawnAgeDays: this.company.ageDays + gapDays
+          });
+          meta.nextSpawnScheduled = true;
+        }
+      });
+      this.spawnQueue.sort((a, b) => a.spawnAgeDays - b.spawnAgeDays);
+    }
+
+    processSpawnQueue() {
+      if (!this.spawnQueue.length) return;
+      const now = this.company.ageDays || 0;
+      while (this.spawnQueue.length && this.spawnQueue[0].spawnAgeDays <= now) {
+        this.trySpawnProduct();
+        this.spawnQueue.shift();
+      }
+    }
+
+    trySpawnProduct() {
+      if (!this.plan) return false;
+      const template = this.pickNextTemplate();
+      if (!template) return false;
+      this.ensureCapacityForNew();
+      const suffix = `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+      const clone = cloneProductTemplate(template, suffix);
+      const product = new Product(clone);
+      const replacementYears = sampleRange(this.plan.replacementYears, 8, 12);
+      const nextSpawnAgeDays = (this.company.ageDays || 0) + Math.max(0, replacementYears * 365);
+      product.__planMeta = {
+        managed: true,
+        templateId: template.id || template.label || clone.id,
+        createdAgeDays: this.company.ageDays || 0,
+        nextSpawnAgeDays,
+        nextSpawnScheduled: false
+      };
+      this.company.products.push(product);
+      this.company.hasPipelineUpdate = true;
+      return true;
+    }
+
+    ensureCapacityForNew() {
+      const managed = this.getManagedProducts();
+      if (managed.length < this.plan.maxActive) return;
+      const oldest = managed.reduce((oldestSoFar, product) => {
+        const meta = product.__planMeta || {};
+        if (!oldestSoFar) return product;
+        const oldestMeta = oldestSoFar.__planMeta || {};
+        return (meta.createdAgeDays || 0) < (oldestMeta.createdAgeDays || 0) ? product : oldestSoFar;
+      }, null);
+      if (!oldest) return;
+      const idx = this.company.products.indexOf(oldest);
+      if (idx >= 0) {
+        this.company.products.splice(idx, 1);
+        this.company.hasPipelineUpdate = true;
+      }
+    }
+
+    pickNextTemplate() {
+      if (!this.plan || !Array.isArray(this.plan.catalog) || this.plan.catalog.length === 0) return null;
+      if (this.plan.allowDuplicates) {
+        return pickWeightedRandom(this.plan.catalog);
+      }
+      const used = new Set(
+        this.getManagedProducts()
+          .map(p => (p.__planMeta && p.__planMeta.templateId) || null)
+          .filter(Boolean)
+      );
+      const filtered = this.plan.catalog.filter(t => t && t.id ? !used.has(t.id) : true);
+      const pool = filtered.length > 0 ? filtered : this.plan.catalog;
+      return pickWeightedRandom(pool);
+    }
+
+    getManagedProducts() {
+      return Array.isArray(this.company.products)
+        ? this.company.products.filter(p => p && p.__planMeta && p.__planMeta.managed)
+        : [];
+    }
+
+    trackCompletionsAndRetire() {
+      const products = Array.isArray(this.company.products) ? this.company.products : [];
+      const now = this.company.ageDays || 0;
+      products.forEach(product => {
+        const meta = product.__planMeta || {};
+        const stages = Array.isArray(product.stages) ? product.stages : [];
+        const allDone = stages.length > 0 && stages.every(s => s.completed);
+        const hasFailure = typeof product.hasFailure === 'function'
+          ? product.hasFailure()
+          : Boolean(product.hasFailure);
+        if (!meta.completedAgeDays && (allDone || hasFailure)) {
+          meta.completedAgeDays = now;
+          product.__planMeta = meta;
+        }
+        if (meta.completedAgeDays && now - meta.completedAgeDays >= PRODUCT_RETIRE_DELAY_DAYS) {
+          const idx = this.company.products.indexOf(product);
+          if (idx >= 0) {
+            this.company.products.splice(idx, 1);
+            this.company.hasPipelineUpdate = true;
+          }
+        }
+      });
+    }
+  }
 
   class BaseCompany {
     constructor(cfg, macroEnv, gameStartYear = 1990, ipoDate = new Date(gameStartYear, 0, 1)) {
@@ -347,6 +530,8 @@
       this.events = (cfg.events || []).map(e => new ScheduledEvent(e));
       this.effects = [];
       this.hasPipelineUpdate = false;
+      const productPlanCfg = cfg.product_plan || cfg.productPlan || null;
+      this.productManager = productPlanCfg ? new ProductManager(this, productPlanCfg) : null;
 
       let simDate = new Date(ipoDate);
       const dt = 14;
@@ -362,6 +547,10 @@
       this.ageDays += dtDays;
       const dtYears = dtDays / 365;
       const ageYears = this.ageDays / 365;
+
+      if (this.productManager) {
+        this.productManager.tick();
+      }
 
       for (const ev of this.events) {
         for (const eff of ev.maybe(dtDays, this.name)) {

@@ -9,6 +9,8 @@
     const HARDTECH_DATA_PATH = 'data/presets/hardtech.json';
     const MEGACORP_DATA_PATH = 'data/presets/megacorp.json';
     const HYPERGROWTH_DATA_PATH = 'data/presets/hypergrowth.json';
+    const PRODUCT_ROTATOR_DATA_PATH = 'data/presets/product_rotator.json';
+    const PRODUCT_CATALOG_DATA_PATH = 'data/productCatalogs/core.json';
 
     function loadPresetJson(path) {
         if (PRESET_JSON_CACHE[path]) {
@@ -222,6 +224,88 @@
         return results;
     }
 
+    async function generateProductRotatorCompanies(count = 1) {
+        const [presetData, catalogData] = await Promise.all([
+            loadPresetJson(PRODUCT_ROTATOR_DATA_PATH),
+            loadPresetJson(PRODUCT_CATALOG_DATA_PATH)
+        ]);
+        const rosterSource = Array.isArray(presetData?.roster) ? presetData.roster.slice() : [];
+        const catalog = Array.isArray(catalogData?.products) ? catalogData.products : [];
+        if (rosterSource.length === 0 || catalog.length === 0) return [];
+        const defaults = presetData?.defaults || {};
+        const structuralBiasDefaults = defaults.structural_bias || { min: 0.6, max: 2.5, half_life_years: 18 };
+        const marginDefaults = defaults.margin_curve || {};
+        const multipleDefaults = defaults.multiple_curve || {};
+        const financeDefaults = defaults.finance || {};
+        const costDefaults = defaults.costs || {};
+        const planDefaults = defaults.product_plan || {};
+
+        const pickRoster = [];
+        while (pickRoster.length < count && rosterSource.length > 0) {
+            const idx = Math.floor(Math.random() * rosterSource.length);
+            pickRoster.push(rosterSource.splice(idx, 1)[0]);
+        }
+
+        return pickRoster.map((entry, idx) => {
+            const name = entry.name || `Product Rotator ${idx + 1}`;
+            const baseRevenue = pickRange(defaults.base_revenue_usd, 2_000_000_000, 8_000_000_000);
+            const ipoRange = entry.ipo_window || defaults.ipo_window || { from: 1990, to: 1995 };
+            const pipelineProductPlan = {
+                catalog,
+                initial: planDefaults.initial ?? 2,
+                max_active: planDefaults.max_active ?? 2,
+                replacement_years: planDefaults.replacement_years || [8, 12],
+                gap_years: planDefaults.gap_years || [1, 3],
+                allow_duplicates: planDefaults.allow_duplicates ?? false
+            };
+
+            return {
+                id: `preset_product_rotator_${name.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}_${idx}`,
+                static: {
+                    name,
+                    sector: entry.sector || defaults.sector || 'Tech',
+                    founders: (entry.founders || []).map(f => ({ ...f })),
+                    ipo_window: ipoRange,
+                    ipo_instantly: true
+                },
+                sentiment: {
+                    structural_bias: { ...structuralBiasDefaults }
+                },
+                base_business: {
+                    revenue_process: {
+                        initial_revenue_usd: {
+                            min: baseRevenue * 0.8,
+                            max: baseRevenue * 1.2
+                        }
+                    },
+                    margin_curve: {
+                        start_profit_margin: pickRange(marginDefaults.start_profit_margin, 0.08, 0.14),
+                        terminal_profit_margin: pickRange(marginDefaults.terminal_profit_margin, 0.18, 0.26),
+                        years_to_mature: pickRange(marginDefaults.years_to_mature, 6, 10)
+                    },
+                    multiple_curve: {
+                        initial_ps_ratio: pickRange(multipleDefaults.initial_ps_ratio, 2.8, 4.2),
+                        terminal_pe_ratio: pickRange(multipleDefaults.terminal_pe_ratio, 12, 18),
+                        years_to_converge: pickRange(multipleDefaults.years_to_converge, 8, 12)
+                    }
+                },
+                finance: {
+                    starting_cash_usd: baseRevenue * (financeDefaults.starting_cash_ratio ?? 0.04),
+                    starting_debt_usd: baseRevenue * (financeDefaults.starting_debt_ratio ?? 0.02),
+                    interest_rate_annual: financeDefaults.interest_rate_annual ?? 0.05
+                },
+                costs: {
+                    opex_fixed_usd: pickRange(costDefaults.opex_fixed_usd, 200_000_000, 400_000_000),
+                    opex_variable_ratio: pickRange(costDefaults.opex_variable_ratio, 0.12, 0.22),
+                    rd_base_ratio: pickRange(costDefaults.rd_base_ratio, 0.05, 0.08)
+                },
+                pipeline: [],
+                events: [],
+                product_plan: pipelineProductPlan
+            };
+        });
+    }
+
     const hardTechRoster = [
         {
             name: 'Apex Fusion Works',
@@ -347,6 +431,7 @@
         generateSteadyMegacorpCompanies,
         generateHypergrowthPresetCompanies,
         generateBinaryHardTechCompanies,
+        generateProductRotatorCompanies,
         DEFAULT_VC_ROUNDS,
         HARDTECH_VC_ROUNDS
     };

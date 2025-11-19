@@ -36,11 +36,12 @@ const {
     generateSteadyMegacorpCompanies,
     generateHypergrowthPresetCompanies,
     generateBinaryHardTechCompanies,
+    generateProductRotatorCompanies,
     DEFAULT_VC_ROUNDS,
     HARDTECH_VC_ROUNDS
 } = PresetGenerators;
 
-if (!generateHardTechPresetCompanies || !generateSteadyMegacorpCompanies || !generateHypergrowthPresetCompanies || !generateBinaryHardTechCompanies) {
+if (!generateHardTechPresetCompanies || !generateSteadyMegacorpCompanies || !generateHypergrowthPresetCompanies || !generateBinaryHardTechCompanies || !generateProductRotatorCompanies) {
     throw new Error('PresetGenerators failed to load. Ensure presets.js is included before main.js.');
 }
 
@@ -177,6 +178,10 @@ async function loadCompaniesData() {
         const presetMegacorpCompanies = await generateSteadyMegacorpCompanies(2);
         if (Array.isArray(presetMegacorpCompanies)) {
             filteredCompanies.push(...presetMegacorpCompanies);
+        }
+        const productRotatorCompanies = await generateProductRotatorCompanies(2);
+        if (Array.isArray(productRotatorCompanies)) {
+            filteredCompanies.push(...productRotatorCompanies);
         }
         const presetVentureCompanies = await generateHypergrowthPresetCompanies();
         if (Array.isArray(presetVentureCompanies)) {
