@@ -27,15 +27,15 @@
   const YEAR_MS = VC_DAY_MS * DAYS_PER_YEAR;
 
   const VC_STAGE_CONFIG = [
-    { id: 'seed',      label: 'Seed',      successProb: 0.92, preMoneyMultiplier: [1.6, 2.3], raiseFraction: [0.20, 0.35], monthsToNextRound: [10, 16] },
-    { id: 'series_a',  label: 'Series A',  successProb: 0.88, preMoneyMultiplier: [1.5, 2.2], raiseFraction: [0.20, 0.32], monthsToNextRound: [10, 16] },
-    { id: 'series_b',  label: 'Series B',  successProb: 0.84, preMoneyMultiplier: [1.4, 2.0], raiseFraction: [0.18, 0.28], monthsToNextRound: [12, 18] },
-    { id: 'series_c',  label: 'Series C',  successProb: 0.80, preMoneyMultiplier: [1.3, 1.9], raiseFraction: [0.16, 0.24], monthsToNextRound: [14, 20] },
-    { id: 'series_d',  label: 'Series D',  successProb: 0.78, preMoneyMultiplier: [1.25, 1.8], raiseFraction: [0.14, 0.22], monthsToNextRound: [14, 20] },
-    { id: 'series_e',  label: 'Series E',  successProb: 0.76, preMoneyMultiplier: [1.2, 1.7], raiseFraction: [0.12, 0.2], monthsToNextRound: [14, 20] },
-    { id: 'series_f',  label: 'Series F',  successProb: 0.74, preMoneyMultiplier: [1.15, 1.6], raiseFraction: [0.1, 0.18], monthsToNextRound: [14, 20] },
-    { id: 'pre_ipo',   label: 'Pre-IPO',   successProb: 0.95, preMoneyMultiplier: [1.1, 1.4], raiseFraction: [0.08, 0.15], monthsToNextRound: [12, 18] },
-    { id: 'ipo',       label: 'IPO',       successProb: 1 }
+    { id: 'seed', label: 'Seed', successProb: 0.92, preMoneyMultiplier: [1.6, 2.3], raiseFraction: [0.20, 0.35], monthsToNextRound: [10, 16] },
+    { id: 'series_a', label: 'Series A', successProb: 0.88, preMoneyMultiplier: [1.5, 2.2], raiseFraction: [0.20, 0.32], monthsToNextRound: [10, 16] },
+    { id: 'series_b', label: 'Series B', successProb: 0.84, preMoneyMultiplier: [1.4, 2.0], raiseFraction: [0.18, 0.28], monthsToNextRound: [12, 18] },
+    { id: 'series_c', label: 'Series C', successProb: 0.80, preMoneyMultiplier: [1.3, 1.9], raiseFraction: [0.16, 0.24], monthsToNextRound: [14, 20] },
+    { id: 'series_d', label: 'Series D', successProb: 0.78, preMoneyMultiplier: [1.25, 1.8], raiseFraction: [0.14, 0.22], monthsToNextRound: [14, 20] },
+    { id: 'series_e', label: 'Series E', successProb: 0.76, preMoneyMultiplier: [1.2, 1.7], raiseFraction: [0.12, 0.2], monthsToNextRound: [14, 20] },
+    { id: 'series_f', label: 'Series F', successProb: 0.74, preMoneyMultiplier: [1.15, 1.6], raiseFraction: [0.1, 0.18], monthsToNextRound: [14, 20] },
+    { id: 'pre_ipo', label: 'Pre-IPO', successProb: 0.95, preMoneyMultiplier: [1.1, 1.4], raiseFraction: [0.08, 0.15], monthsToNextRound: [12, 18] },
+    { id: 'ipo', label: 'IPO', successProb: 1 }
   ];
 
   const normalizeStageId = (id) => (id || '').toString().trim().toLowerCase();
@@ -49,20 +49,20 @@
   }, {});
 
   const STAGE_FINANCIALS = {
-    seed:     { ps: 9.5, margin: -1.6 },
+    seed: { ps: 9.5, margin: -1.6 },
     series_a: { ps: 8.5, margin: -1.1 },
     series_b: { ps: 7.5, margin: -0.8 },
     series_c: { ps: 6.5, margin: -0.35 },
     series_d: { ps: 5.8, margin: -0.12 },
     series_e: { ps: 5.1, margin: 0.05 },
     series_f: { ps: 4.6, margin: 0.12 },
-    pre_ipo:  { ps: 4.2, margin: 0.19 },
-    ipo:      { ps: 4.1, margin: 0.2 }
+    pre_ipo: { ps: 4.2, margin: 0.19 },
+    ipo: { ps: 4.1, margin: 0.2 }
   };
 
   const DEFAULT_ROUND_ORDER = VC_STAGE_CONFIG.map(stage => stage.id.toLowerCase());
 
-  function mergeRoundDefinition (base, override = {}) {
+  function mergeRoundDefinition(base, override = {}) {
     const result = {
       id: normalizeStageId(override.id || base.id),
       label: override.label || base.label,
@@ -86,7 +86,7 @@
     return result;
   }
 
-  function resolveRoundDefinitions (rounds) {
+  function resolveRoundDefinitions(rounds) {
     const order = Array.isArray(rounds) && rounds.length > 0 ? rounds : DEFAULT_ROUND_ORDER;
     return order.map(entry => {
       if (typeof entry === 'string') {
@@ -105,7 +105,7 @@
   const DummyMacroEnv = {
     getValue: () => 1,
     getMu: () => 0.06,
-    ensureSector: () => {}
+    ensureSector: () => { }
   };
 
   const buildPublicConfigFromVenture = (cfg, startYear) => {
@@ -156,887 +156,892 @@
     };
   };
 
-class VentureCompany extends Company {
-  constructor(config, startDate) {
-    const start = startDate ? new Date(startDate) : new Date('1990-01-01T00:00:00Z');
-    const publicCfg = buildPublicConfigFromVenture(config, start.getUTCFullYear());
-    super(publicCfg, DummyMacroEnv, start.getUTCFullYear(), start);
-    this.setPhase('private');
-    this.showDividendColumn = false;
-    this.fromVenture = true;
+  class VentureCompany extends Company {
+    constructor(config, startDate) {
+      const start = startDate ? new Date(startDate) : new Date('1990-01-01T00:00:00Z');
+      const publicCfg = buildPublicConfigFromVenture(config, start.getUTCFullYear());
+      super(publicCfg, DummyMacroEnv, start.getUTCFullYear(), start);
+      this.setPhase('private');
+      this.showDividendColumn = false;
+      this.fromVenture = true;
 
-    this.description = config.description || '';
-    this.archetype = config.archetype || 'hypergrowth';
-    this.roundDefinitions = resolveRoundDefinitions(config.rounds);
-    const startingStageId = normalizeStageId(config.funding_round || 'seed');
-    let startingIndex = this.roundDefinitions.findIndex(stage => stage.id === startingStageId);
-    if (startingIndex < 0) startingIndex = 0;
-    this.stageIndex = startingIndex;
+      this.description = config.description || '';
+      this.archetype = config.archetype || 'hypergrowth';
+      this.roundDefinitions = resolveRoundDefinitions(config.rounds);
+      const startingStageId = normalizeStageId(config.funding_round || 'seed');
+      let startingIndex = this.roundDefinitions.findIndex(stage => stage.id === startingStageId);
+      if (startingIndex < 0) startingIndex = 0;
+      this.stageIndex = startingIndex;
 
-    const targetLabel = normalizeStageId(config.ipo_stage || 'series_f');
-    let targetIdx = this.roundDefinitions.findIndex(stage => stage.id === targetLabel);
-    if (targetIdx < 0) {
-      targetIdx = this.roundDefinitions.length - 1;
-    }
-    this.targetStageIndex = Math.max(0, Math.min(targetIdx, this.roundDefinitions.length - 1));
-
-    this.currentValuation = Math.max(1, Number(config.valuation_usd) || 10_000_000);
-    this.status = 'raising';
-    this.daysSinceRound = 0;
-    this.playerEquity = 0;
-    this.playerInvested = 0;
-    this.pendingCommitment = 0;
-    this.cash = Number(config.starting_cash_usd ?? 0);
-    this.raiseTriggerCash = 0;
-    this.cashBurnPerDay = 0;
-    this.runwayTargetDays = 180;
-    this.daysSinceLastRaise = 0;
-    this.cachedRunwayDays = Infinity;
-    this.lastRoundRevenue = 0;
-    this.lastRoundMargin = 0;
-    this.lastEventNote = 'Fresh opportunity';
-    this.currentRound = null;
-    this.ipoReady = false;
-    this.exited = false;
-    this.revenue = 0;
-    this.profit = 0;
-    this.history = [];
-    this.financialHistory = [];
-    this.ageDays = 0;
-    this.currentYearRevenue = 0;
-    this.currentYearProfit = 0;
-    this.startDate = new Date(start);
-    this.lastYearRecorded = this.startDate.getUTCFullYear();
-    this.stageChanged = false;
-    this.consecutiveFails = 0;
-    this.maxFailuresBeforeCollapse = Math.max(1, Number(config.max_failures_before_collapse || 2));
-    this.completedStageCount = 0;
-    this.pendingStageCompletion = false;
-    this.pendingHardTechFailure = null;
-
-    this.binarySuccess = Boolean(config.binary_success);
-    const gateLabel = normalizeStageId(config.gate_stage || 'series_c');
-    let gateIndex = this.roundDefinitions.findIndex(stage => stage.id === gateLabel);
-    if (gateIndex < 0) {
-      gateIndex = Math.max(1, Math.min(this.targetStageIndex, this.roundDefinitions.length - 2));
-    }
-    this.gateStageIndex = Math.max(0, Math.min(gateIndex, this.roundDefinitions.length - 1));
-    this.gateStageId = this.roundDefinitions[this.gateStageIndex]?.id || gateLabel;
-
-    this.hypergrowthWindowYears = Math.max(Number(config.hypergrowth_window_years || 2), 0.25);
-    this.hypergrowthTotalMultiplier = Math.max(Number(config.hypergrowth_total_multiplier || 3), 1.5);
-    this.longRunRevenueCeiling = Math.max(Number(config.long_run_revenue_ceiling_usd || this.currentValuation * 40), this.currentValuation);
-    this.longRunGrowthRate = Math.max(Number(config.long_run_growth_rate || 0.3), 0.05);
-    this.longRunGrowthFloor = Math.max(Number(config.long_run_growth_floor || 0.05), 0.01);
-    this.longRunGrowthDecay = Math.max(Number(config.long_run_growth_decay || 0.25), 0.05);
-    this.postGateInitialMultiple = Math.max(Number(config.post_gate_initial_multiple || 12), 2);
-    this.postGateBaselineMultiple = Math.max(Number(config.post_gate_baseline_multiple || 4), 1);
-    this.postGateMultipleDecayYears = Math.max(Number(config.post_gate_multiple_decay_years || 6), 1);
-    this.postGateMargin = Math.max(Number(config.post_gate_margin || 0.2), 0.05);
-
-    this.strategy = createVentureStrategy(this);
-    this.gateCleared = false;
-    this.postGatePending = false;
-    this.postGateMode = false;
-    this.hypergrowthActive = false;
-    this.hypergrowthElapsedYears = 0;
-    this.hypergrowthTargetRevenue = null;
-    this.postGateStartDate = null;
-    this.hypergrowthEndDate = null;
-    this.currentMultiple = this.postGateInitialMultiple;
-
-    this.lastFairValue = this.currentValuation;
-
-    this.generateRound(start);
-    this.updateFinancialsFromValuation();
-    this.recordHistory(start);
-
-    if (!isFinite(this.cash) || this.cash <= 0) {
-      const seedCapital = this.currentRound ? this.currentRound.raiseAmount : this.currentValuation * 0.1;
-      this.cash = Math.max(500_000, seedCapital * 0.35);
-    }
-    this.raiseTriggerCash = Math.max(this.cash * 0.35, 250_000);
-    this.lastRoundRevenue = this.revenue;
-    this.lastRoundMargin = this.revenue > 0 ? this.profit / Math.max(this.revenue, 1) : -0.5;
-  }
-
-  get currentStage() {
-    if (!Array.isArray(this.roundDefinitions) || this.roundDefinitions.length === 0) {
-      this.roundDefinitions = resolveRoundDefinitions();
-    }
-    return this.roundDefinitions[Math.min(this.stageIndex, this.roundDefinitions.length - 1)];
-  }
-
-  getStageFinancials(stageOverride = null) {
-    const stage = stageOverride || this.currentStage;
-    const stageKey = normalizeStageId(stage ? stage.id : 'seed');
-    if (stage && stage.financials) {
-      return stage.financials;
-    }
-    const fin = STAGE_FINANCIALS[stageKey] || STAGE_FINANCIALS.seed;
-    return fin;
-  }
-
-  computeFairValue(applyNoise = true) {
-    if (this.strategy && typeof this.strategy.computeFairValue === 'function') {
-      return this.strategy.computeFairValue(applyNoise);
-    }
-    return computeHypergrowthFairValue(this, applyNoise);
-  }
-
-  updateFinancialsFromValuation() {
-    if (this.postGateMode) {
-      this.marketCap = this.currentValuation;
-      return;
-    }
-    const stage = this.currentStage;
-    const stageKey = stage ? stage.id : 'seed';
-    const fin = STAGE_FINANCIALS[stageKey] || STAGE_FINANCIALS.seed;
-    const ps = fin.ps || 6;
-    const margin = clampValue(fin.margin ?? 0.1, -2, 0.35);
-    const valuation = Math.max(this.currentValuation || 0, 0);
-    const revenue = this.binarySuccess ? 0 : valuation / Math.max(ps, 1e-3);
-    const profit = revenue * margin;
-    this.revenue = revenue;
-    this.profit = profit;
-    this.marketCap = this.currentValuation;
-  }
-
-  recordHistory(date) {
-    if (!date) return;
-    const timestamp = date.getTime ? date.getTime() : Date.now();
-    const last = this.history[this.history.length - 1];
-    if (last && last.x === timestamp) {
-      last.y = this.currentValuation;
-      return;
-    }
-    this.history.push({ x: timestamp, y: this.currentValuation });
-  }
-
-  accumulateFinancials(dtDays, currentDate) {
-    const dtYears = dtDays / 365;
-    this.currentYearRevenue += this.revenue * dtYears;
-    this.currentYearProfit += this.profit * dtYears;
-    this.ageDays += dtDays;
-    this.applyRunwayFlow(dtDays);
-
-    const year = currentDate.getUTCFullYear();
-    if (year > this.lastYearRecorded) {
-      this.financialHistory.push({
-        year: this.lastYearRecorded,
-        revenue: this.currentYearRevenue,
-        profit: this.currentYearProfit,
-        marketCap: this.currentValuation,
-        cash: Math.max(this.cash, 0),
-        debt: 0,
-        dividend: 0,
-        ps: this.currentYearRevenue > 0 ? this.currentValuation / this.currentYearRevenue : 0,
-        pe: this.currentYearProfit > 0 ? this.currentValuation / this.currentYearProfit : 0
-      });
-      if (this.financialHistory.length > 12) {
-        this.financialHistory.shift();
+      const targetLabel = normalizeStageId(config.ipo_stage || 'series_f');
+      let targetIdx = this.roundDefinitions.findIndex(stage => stage.id === targetLabel);
+      if (targetIdx < 0) {
+        targetIdx = this.roundDefinitions.length - 1;
       }
+      this.targetStageIndex = Math.max(0, Math.min(targetIdx, this.roundDefinitions.length - 1));
+
+      this.currentValuation = Math.max(1, Number(config.valuation_usd) || 10_000_000);
+      this.status = 'raising';
+      this.daysSinceRound = 0;
+      this.playerEquity = 0;
+      this.playerInvested = 0;
+      this.pendingCommitment = 0;
+      this.cash = Number(config.starting_cash_usd ?? 0);
+      this.raiseTriggerCash = 0;
+      this.cashBurnPerDay = 0;
+      this.runwayTargetDays = 180;
+      this.daysSinceLastRaise = 0;
+      this.cachedRunwayDays = Infinity;
+      this.lastRoundRevenue = 0;
+      this.lastRoundMargin = 0;
+      this.lastEventNote = 'Fresh opportunity';
+      this.currentRound = null;
+      this.ipoReady = false;
+      this.exited = false;
+      this.revenue = 0;
+      this.profit = 0;
+      this.history = [];
+      this.financialHistory = [];
+      this.ageDays = 0;
       this.currentYearRevenue = 0;
       this.currentYearProfit = 0;
-      this.lastYearRecorded = year;
-    }
-  }
+      this.startDate = new Date(start);
+      this.lastYearRecorded = this.startDate.getUTCFullYear();
+      this.stageChanged = false;
+      this.consecutiveFails = 0;
+      this.maxFailuresBeforeCollapse = Math.max(1, Number(config.max_failures_before_collapse || 2));
+      this.completedStageCount = 0;
+      this.pendingStageCompletion = false;
+      this.pendingHardTechFailure = null;
 
-  progressCompanyClock(dtDays, currentDate) {
-    const dtYears = dtDays / DAYS_PER_YEAR;
-    if (Array.isArray(this.products) && this.products.length > 0) {
-      for (const product of this.products) {
-        product.advance(dtDays, Math.random, this);
+      this.binarySuccess = Boolean(config.binary_success);
+      const gateLabel = normalizeStageId(config.gate_stage || 'series_c');
+      let gateIndex = this.roundDefinitions.findIndex(stage => stage.id === gateLabel);
+      if (gateIndex < 0) {
+        gateIndex = Math.max(1, Math.min(this.targetStageIndex, this.roundDefinitions.length - 2));
+      }
+      this.gateStageIndex = Math.max(0, Math.min(gateIndex, this.roundDefinitions.length - 1));
+      this.gateStageId = this.roundDefinitions[this.gateStageIndex]?.id || gateLabel;
+
+      this.hypergrowthWindowYears = Math.max(Number(config.hypergrowth_window_years || 2), 0.25);
+      this.hypergrowthTotalMultiplier = Math.max(Number(config.hypergrowth_total_multiplier || 3), 1.5);
+      this.longRunRevenueCeiling = Math.max(Number(config.long_run_revenue_ceiling_usd || this.currentValuation * 40), this.currentValuation);
+      this.longRunGrowthRate = Math.max(Number(config.long_run_growth_rate || 0.3), 0.05);
+      this.longRunGrowthFloor = Math.max(Number(config.long_run_growth_floor || 0.05), 0.01);
+      this.longRunGrowthDecay = Math.max(Number(config.long_run_growth_decay || 0.25), 0.05);
+      this.postGateInitialMultiple = Math.max(Number(config.post_gate_initial_multiple || 12), 2);
+      this.postGateBaselineMultiple = Math.max(Number(config.post_gate_baseline_multiple || 4), 1);
+      this.postGateMultipleDecayYears = Math.max(Number(config.post_gate_multiple_decay_years || 6), 1);
+      this.postGateMargin = Math.max(Number(config.post_gate_margin || 0.2), 0.05);
+
+      this.strategy = createVentureStrategy(this);
+      this.gateCleared = false;
+      this.postGatePending = false;
+      this.postGateMode = false;
+      this.hypergrowthActive = false;
+      this.hypergrowthElapsedYears = 0;
+      this.hypergrowthTargetRevenue = null;
+      this.postGateStartDate = null;
+      this.hypergrowthEndDate = null;
+      this.currentMultiple = this.postGateInitialMultiple;
+
+      this.lastFairValue = this.currentValuation;
+
+      this.generateRound(start);
+      this.updateFinancialsFromValuation();
+      this.recordHistory(start);
+
+      if (!isFinite(this.cash) || this.cash <= 0) {
+        const seedCapital = this.currentRound ? this.currentRound.raiseAmount : this.currentValuation * 0.1;
+        this.cash = Math.max(500_000, seedCapital * 0.35);
+      }
+      this.raiseTriggerCash = Math.max(this.cash * 0.35, 250_000);
+      this.lastRoundRevenue = this.revenue;
+      this.lastRoundMargin = this.revenue > 0 ? this.profit / Math.max(this.revenue, 1) : -0.5;
+    }
+
+    get currentStage() {
+      if (!Array.isArray(this.roundDefinitions) || this.roundDefinitions.length === 0) {
+        this.roundDefinitions = resolveRoundDefinitions();
+      }
+      return this.roundDefinitions[Math.min(this.stageIndex, this.roundDefinitions.length - 1)];
+    }
+
+    getStageFinancials(stageOverride = null) {
+      const stage = stageOverride || this.currentStage;
+      const stageKey = normalizeStageId(stage ? stage.id : 'seed');
+      if (stage && stage.financials) {
+        return stage.financials;
+      }
+      const fin = STAGE_FINANCIALS[stageKey] || STAGE_FINANCIALS.seed;
+      return fin;
+    }
+
+    computeFairValue(applyNoise = true) {
+      if (this.strategy && typeof this.strategy.computeFairValue === 'function') {
+        return this.strategy.computeFairValue(applyNoise);
+      }
+      return computeHypergrowthFairValue(this, applyNoise);
+    }
+
+    updateFinancialsFromValuation() {
+      if (this.postGateMode) {
+        this.marketCap = this.currentValuation;
+        return;
+      }
+      const stage = this.currentStage;
+      const stageKey = stage ? stage.id : 'seed';
+      const fin = STAGE_FINANCIALS[stageKey] || STAGE_FINANCIALS.seed;
+      const ps = fin.ps || 6;
+      const margin = clampValue(fin.margin ?? 0.1, -2, 0.35);
+      const valuation = Math.max(this.currentValuation || 0, 0);
+      const revenue = this.binarySuccess ? 0 : valuation / Math.max(ps, 1e-3);
+      const profit = revenue * margin;
+      this.revenue = revenue;
+      this.profit = profit;
+      this.marketCap = this.currentValuation;
+    }
+
+    recordHistory(date) {
+      if (!date) return;
+      const timestamp = date.getTime ? date.getTime() : Date.now();
+      const last = this.history[this.history.length - 1];
+      if (last && last.x === timestamp) {
+        last.y = this.currentValuation;
+        return;
+      }
+      this.history.push({ x: timestamp, y: this.currentValuation });
+    }
+
+    accumulateFinancials(dtDays, currentDate) {
+      const dtYears = dtDays / 365;
+      const rev = this.revenue * dtYears;
+      const prof = this.profit * dtYears;
+      this.currentYearRevenue += rev;
+      this.currentYearProfit += prof;
+      console.log(`[VC Debug] Accumulating: Rev=${rev.toFixed(2)}, Prof=${prof.toFixed(2)}, Date=${currentDate.toISOString().split('T')[0]}`);
+      this.accumulateQuarter(rev, prof, currentDate);
+      this.ageDays += dtDays;
+      this.applyRunwayFlow(dtDays);
+
+      const year = currentDate.getUTCFullYear();
+      if (year > this.lastYearRecorded) {
+        this.financialHistory.push({
+          year: this.lastYearRecorded,
+          revenue: this.currentYearRevenue,
+          profit: this.currentYearProfit,
+          marketCap: this.currentValuation,
+          cash: Math.max(this.cash, 0),
+          debt: 0,
+          dividend: 0,
+          ps: this.currentYearRevenue > 0 ? this.currentValuation / this.currentYearRevenue : 0,
+          pe: this.currentYearProfit > 0 ? this.currentValuation / this.currentYearProfit : 0
+        });
+        if (this.financialHistory.length > 12) {
+          this.financialHistory.shift();
+        }
+        this.currentYearRevenue = 0;
+        this.currentYearProfit = 0;
+        this.lastYearRecorded = year;
       }
     }
-    if (this.postGateMode) {
-      if (dtYears > 0) {
-        this.advancePostGateRevenue(dtYears);
+
+    progressCompanyClock(dtDays, currentDate) {
+      const dtYears = dtDays / DAYS_PER_YEAR;
+      if (Array.isArray(this.products) && this.products.length > 0) {
+        for (const product of this.products) {
+          product.advance(dtDays, Math.random, this);
+        }
       }
-      this.syncPostGateMultiple(currentDate);
-      this.profit = this.revenue * this.postGateMargin;
-      this.lastFairValue = Math.max(1, this.revenue * this.currentMultiple);
-    } else if (dtYears > 0) {
-      this.advancePreGateRevenue(dtYears, dtDays, currentDate);
-    }
-    this.marketCap = this.currentValuation;
-  }
-
-  advancePreGateRevenue(dtYears, dtDays, currentDate) {
-    if (this.strategy && typeof this.strategy.advancePreGate === 'function') {
-      this.strategy.advancePreGate(dtYears, dtDays, currentDate);
-      return;
-    }
-    advanceHypergrowthPreGate(this, dtYears);
-  }
-
-
-  advancePostGateRevenue(dtYears) {
-    if (this.hypergrowthActive) {
-      const annualFactor = Math.pow(this.hypergrowthTotalMultiplier, 1 / Math.max(this.hypergrowthWindowYears, 0.25));
-      const growthFactor = Math.pow(annualFactor, dtYears);
-      this.revenue *= growthFactor;
-      this.hypergrowthElapsedYears += dtYears;
-      if (this.hypergrowthElapsedYears >= this.hypergrowthWindowYears || this.revenue >= this.hypergrowthTargetRevenue) {
-        this.revenue = Math.min(this.revenue, this.hypergrowthTargetRevenue || this.revenue);
-        this.hypergrowthActive = false;
-        this.hypergrowthEndDate = this.postGateStartDate ? new Date(this.postGateStartDate.getTime() + this.hypergrowthWindowYears * YEAR_MS) : null;
+      if (this.postGateMode) {
+        if (dtYears > 0) {
+          this.advancePostGateRevenue(dtYears);
+        }
+        this.syncPostGateMultiple(currentDate);
+        this.profit = this.revenue * this.postGateMargin;
+        this.lastFairValue = Math.max(1, this.revenue * this.currentMultiple);
+      } else if (dtYears > 0) {
+        this.advancePreGateRevenue(dtYears, dtDays, currentDate);
       }
-    } else {
-      const yearsSinceHyper = Math.max(0, this.hypergrowthElapsedYears - this.hypergrowthWindowYears);
-      const baseRate = this.longRunGrowthRate;
-      const decay = Math.exp(-this.longRunGrowthDecay * yearsSinceHyper);
-      const effectiveRate = Math.max(this.longRunGrowthFloor, baseRate * decay);
-      const growthFactor = Math.pow(1 + effectiveRate, dtYears);
-      this.revenue *= growthFactor;
+      this.marketCap = this.currentValuation;
     }
-    if (this.revenue > this.longRunRevenueCeiling) {
-      this.revenue = this.longRunRevenueCeiling;
-    }
-  }
 
-  getHardTechPipelineStats() {
-    const stats = {
-      totalStages: 0,
-      completedStages: 0,
-      commercialCount: 0,
-      commercialValue: 0,
-      activeCost: 0,
-      failedStage: false
-    };
-    if (!Array.isArray(this.products)) {
+    advancePreGateRevenue(dtYears, dtDays, currentDate) {
+      if (this.strategy && typeof this.strategy.advancePreGate === 'function') {
+        this.strategy.advancePreGate(dtYears, dtDays, currentDate);
+        return;
+      }
+      advanceHypergrowthPreGate(this, dtYears);
+    }
+
+
+    advancePostGateRevenue(dtYears) {
+      if (this.hypergrowthActive) {
+        const annualFactor = Math.pow(this.hypergrowthTotalMultiplier, 1 / Math.max(this.hypergrowthWindowYears, 0.25));
+        const growthFactor = Math.pow(annualFactor, dtYears);
+        this.revenue *= growthFactor;
+        this.hypergrowthElapsedYears += dtYears;
+        if (this.hypergrowthElapsedYears >= this.hypergrowthWindowYears || this.revenue >= this.hypergrowthTargetRevenue) {
+          this.revenue = Math.min(this.revenue, this.hypergrowthTargetRevenue || this.revenue);
+          this.hypergrowthActive = false;
+          this.hypergrowthEndDate = this.postGateStartDate ? new Date(this.postGateStartDate.getTime() + this.hypergrowthWindowYears * YEAR_MS) : null;
+        }
+      } else {
+        const yearsSinceHyper = Math.max(0, this.hypergrowthElapsedYears - this.hypergrowthWindowYears);
+        const baseRate = this.longRunGrowthRate;
+        const decay = Math.exp(-this.longRunGrowthDecay * yearsSinceHyper);
+        const effectiveRate = Math.max(this.longRunGrowthFloor, baseRate * decay);
+        const growthFactor = Math.pow(1 + effectiveRate, dtYears);
+        this.revenue *= growthFactor;
+      }
+      if (this.revenue > this.longRunRevenueCeiling) {
+        this.revenue = this.longRunRevenueCeiling;
+      }
+    }
+
+    getHardTechPipelineStats() {
+      const stats = {
+        totalStages: 0,
+        completedStages: 0,
+        commercialCount: 0,
+        commercialValue: 0,
+        activeCost: 0,
+        failedStage: false
+      };
+      if (!Array.isArray(this.products)) {
+        return stats;
+      }
+      this.products.forEach(product => {
+        let activeStageCost = 0;
+        product.stages.forEach(stage => {
+          stats.totalStages += 1;
+          if (stage.completed && stage.succeeded) {
+            stats.completedStages += 1;
+          }
+          if (stage.completed && !stage.succeeded) {
+            stats.failedStage = true;
+          }
+          if (!stage.completed && activeStageCost === 0) {
+            const canStart = !stage.depends_on || product.stages.some(s => s.id === stage.depends_on && s.completed && s.succeeded);
+            if (canStart) {
+              activeStageCost = stage.cost || 0;
+            }
+          }
+        });
+        stats.activeCost += activeStageCost;
+        if (product.isCommercialised && product.isCommercialised()) {
+          stats.commercialCount += 1;
+          stats.commercialValue += product.fullVal || 0;
+        }
+      });
+      stats.progress = stats.totalStages > 0 ? stats.completedStages / stats.totalStages : 0;
       return stats;
     }
-    this.products.forEach(product => {
-      let activeStageCost = 0;
-      product.stages.forEach(stage => {
-        stats.totalStages += 1;
-        if (stage.completed && stage.succeeded) {
-          stats.completedStages += 1;
-        }
-        if (stage.completed && !stage.succeeded) {
-          stats.failedStage = true;
-        }
-        if (!stage.completed && activeStageCost === 0) {
-          const canStart = !stage.depends_on || product.stages.some(s => s.id === stage.depends_on && s.completed && s.succeeded);
-          if (canStart) {
-            activeStageCost = stage.cost || 0;
+
+    getNextHardTechStage() {
+      if (!Array.isArray(this.products)) return null;
+      for (const product of this.products) {
+        for (const stage of product.stages) {
+          if (!stage.completed) {
+            return stage;
+          }
+          if (stage.completed && !stage.succeeded) {
+            return null;
           }
         }
+      }
+      return null;
+    }
+
+    getLastCompletedHardTechStage() {
+      if (!Array.isArray(this.products)) return null;
+      let last = null;
+      this.products.forEach(product => {
+        product.stages.forEach(stage => {
+          if (stage.completed && stage.succeeded) {
+            last = stage;
+          }
+        });
       });
-      stats.activeCost += activeStageCost;
-      if (product.isCommercialised && product.isCommercialised()) {
-        stats.commercialCount += 1;
-        stats.commercialValue += product.fullVal || 0;
+      return last;
+    }
+
+    handleHardTechFailure(currentDate) {
+      const refund = this.pendingCommitment || 0;
+      if (refund > 0) {
+        this.pendingCommitment = 0;
       }
-    });
-    stats.progress = stats.totalStages > 0 ? stats.completedStages / stats.totalStages : 0;
-    return stats;
-  }
-
-  getNextHardTechStage() {
-    if (!Array.isArray(this.products)) return null;
-    for (const product of this.products) {
-      for (const stage of product.stages) {
-        if (!stage.completed) {
-          return stage;
-        }
-        if (stage.completed && !stage.succeeded) {
-          return null;
-        }
-      }
-    }
-    return null;
-  }
-
-  getLastCompletedHardTechStage() {
-    if (!Array.isArray(this.products)) return null;
-    let last = null;
-    this.products.forEach(product => {
-      product.stages.forEach(stage => {
-        if (stage.completed && stage.succeeded) {
-          last = stage;
-        }
-      });
-    });
-    return last;
-  }
-
-  handleHardTechFailure(currentDate) {
-    const refund = this.pendingCommitment || 0;
-    if (refund > 0) {
-      this.pendingCommitment = 0;
-    }
-    this.playerEquity = 0;
-    this.currentValuation = 0;
-    this.status = 'failed';
-    this.lastEventNote = 'Pipeline failure collapsed the program.';
-    this.stageChanged = true;
-    this.currentRound = null;
-    this.hasPipelineUpdate = true;
-    this.pendingHardTechFailure = {
-      type: 'venture_failed',
-      companyId: this.id,
-      name: this.name,
-      valuation: this.currentValuation,
-      revenue: this.revenue,
-      profit: this.profit,
-      refund
-    };
-  }
-
-  applyRunwayFlow(dtDays) {
-    if (!isFinite(dtDays) || dtDays <= 0) return;
-    const dtYears = dtDays / DAYS_PER_YEAR;
-    const netIncome = this.profit * dtYears;
-    if (isFinite(netIncome)) {
-      this.cash += netIncome;
-    }
-    const burnPerDay = Math.max(0, -this.profit) / DAYS_PER_YEAR;
-    this.cashBurnPerDay = burnPerDay;
-    this.cachedRunwayDays = burnPerDay > 0 ? this.cash / burnPerDay : Infinity;
-    if (this.cash < 0) {
-      this.cash = 0;
-    }
-    this.daysSinceLastRaise += dtDays;
-  }
-
-  shouldStartNextRound() {
-    if (!this.strategy) return false;
-    return this.strategy.shouldStartNextRound();
-  }
-
-  calculateRoundHealth() {
-    if (!this.strategy) return 1;
-    return this.strategy.calculateRoundHealth(this.currentStage);
-  }
-
-  syncPostGateMultiple(currentDate) {
-    const nowMs = currentDate ? currentDate.getTime() : Date.now();
-    const baseMs = this.postGateStartDate ? this.postGateStartDate.getTime() : nowMs;
-    const years = Math.max(0, (nowMs - baseMs) / YEAR_MS);
-    const range = this.postGateInitialMultiple - this.postGateBaselineMultiple;
-    let decayShare = this.postGateMultipleDecayYears > 0 ? Math.min(1, years / this.postGateMultipleDecayYears) : 1;
-    if (this.hypergrowthActive) {
-      decayShare *= 0.25;
-    }
-    const nextMultiple = this.postGateInitialMultiple - range * decayShare;
-    this.currentMultiple = Math.max(this.postGateBaselineMultiple, nextMultiple);
-  }
-
-  enterPostGateMode(currentDate) {
-    this.postGateMode = true;
-    this.postGatePending = false;
-    this.hypergrowthActive = true;
-    this.hypergrowthElapsedYears = 0;
-    this.postGateStartDate = currentDate ? new Date(currentDate) : new Date();
-    const baselineMultiple = this.postGateInitialMultiple;
-    let baselineRevenue = this.revenue;
-    if (!baselineRevenue || baselineRevenue <= 0) {
-      baselineRevenue = Math.max(this.currentValuation / Math.max(baselineMultiple, 1), 1_000_000);
-    }
-    this.revenue = Math.max(1, baselineRevenue);
-    const target = this.revenue * this.hypergrowthTotalMultiplier;
-    this.hypergrowthTargetRevenue = Math.min(this.longRunRevenueCeiling, target);
-    if (this.hypergrowthTargetRevenue < this.revenue) {
-      this.hypergrowthTargetRevenue = this.revenue;
-      this.hypergrowthActive = false;
-    }
-    this.profit = this.revenue * this.postGateMargin;
-    this.currentMultiple = baselineMultiple;
-    this.lastFairValue = Math.max(1, this.revenue * this.currentMultiple);
-  }
-
-  generateRound(currentDate) {
-    const stage = this.currentStage;
-    if (!stage || stage.id === 'ipo') {
+      this.playerEquity = 0;
+      this.currentValuation = 0;
+      this.status = 'failed';
+      this.lastEventNote = 'Pipeline failure collapsed the program.';
+      this.stageChanged = true;
       this.currentRound = null;
-      return;
-    }
-    const raiseRange = Array.isArray(stage.raiseFraction) && stage.raiseFraction.length >= 2
-      ? stage.raiseFraction
-      : [0.15, 0.3];
-    const raiseFraction = between(raiseRange[0], raiseRange[1]);
-    const baseFairValue = this.computeFairValue(true);
-    const prevValuation = Math.max(1, this.currentValuation || this.lastFairValue || 1);
-    const multiplierRange = Array.isArray(stage.preMoneyMultiplier) && stage.preMoneyMultiplier.length >= 2
-      ? stage.preMoneyMultiplier
-      : [1.05, 1.25];
-    const minFairValue = prevValuation * multiplierRange[0];
-    const maxFairValue = prevValuation * multiplierRange[1];
-    const fairValue = clampValue(baseFairValue, minFairValue, maxFairValue);
-    const preMoney = fairValue;
-    const raiseAmount = Math.max(500_000, fairValue * raiseFraction);
-    const postMoney = preMoney + raiseAmount;
-    const monthsRange = Array.isArray(stage.monthsToNextRound) && stage.monthsToNextRound.length >= 2
-      ? stage.monthsToNextRound
-      : [12, 18];
-    let runwayMonths = between(monthsRange[0], monthsRange[1]);
-    let durationDays = stage.durationDays
-      ? Math.max(30, stage.durationDays)
-      : Math.max(60, Math.round(Math.max(2, runwayMonths * 0.35) * 30)) * 3;
-    let pipelineStageName = null;
-
-    let nextRound = {
-      stageId: stage.id,
-      stageLabel: stage.label,
-      preMoney,
-      raiseAmount,
-      postMoney,
-      equityOffered: raiseAmount / postMoney,
-      successProb: typeof stage.successProb === 'number' ? stage.successProb : 0.85,
-      durationDays,
-      runwayMonths,
-      playerCommitted: false,
-      openedOn: new Date(currentDate || new Date()),
-      fairValue: fairValue,
-      pipelineStage: pipelineStageName,
-      stageReadyToResolve: false
-    };
-    if (this.strategy) {
-      nextRound = this.strategy.configureRound(stage, nextRound);
-    }
-    if (!nextRound) {
-      this.currentRound = null;
-      return;
-    }
-    this.currentRound = nextRound;
-    this.daysSinceRound = 0;
-    this.status = 'raising';
-  }
-
-  getStatusLabel() {
-    if (this.status === 'failed') return 'Failed';
-    if (this.status === 'ipo') return 'Exited (IPO)';
-    if (this.status === 'ipo_pending') return 'IPO Ready';
-    if (this.status === 'exited') return 'Exited';
-    return 'Raising';
-  }
-
-  getPlayerValuation() {
-    if (this.status === 'failed' || this.status === 'exited') return 0;
-    const equityValue = this.playerEquity ? this.playerEquity * this.currentValuation : 0;
-    return equityValue > 0 ? equityValue : 0;
-  }
-
-  leadRound() {
-    if (!this.currentRound || this.status !== 'raising') {
-      return { success: false, reason: 'Not currently raising.' };
-    }
-    if (this.currentRound.playerCommitted) {
-      return { success: false, reason: 'You already led this round.' };
-    }
-    this.currentRound.playerCommitted = true;
-    this.currentRound.playerCommitAmount = this.currentRound.raiseAmount;
-    this.pendingCommitment = (this.pendingCommitment || 0) + this.currentRound.raiseAmount;
-    return {
-      success: true,
-      raiseAmount: this.currentRound.raiseAmount,
-      equityOffered: this.currentRound.equityOffered,
-      stageLabel: this.currentRound.stageLabel
-    };
-  }
-
-  advance(dtDays, currentDate) {
-    if (!this.isPrivatePhase) return [];
-    if (this.status === 'failed' || this.status === 'exited') return [];
-    this.stageChanged = false;
-    this.progressCompanyClock(dtDays, currentDate);
-    if (this.pendingHardTechFailure) {
-      const failureEvent = this.pendingHardTechFailure;
-      this.pendingHardTechFailure = null;
-      return [failureEvent];
-    }
-    this.accumulateFinancials(dtDays, currentDate);
-    this.recordHistory(currentDate);
-    if (!this.currentRound && this.shouldStartNextRound()) {
-      this.generateRound(currentDate);
-    }
-    if (!this.currentRound) return [];
-
-    this.daysSinceRound += dtDays;
-    const events = [];
-
-    const stage = this.currentStage;
-    if (!this.strategy || !this.strategy.shouldResolveRound(stage)) {
-      return events;
-    }
-
-    const closingRound = this.currentRound;
-    const healthScore = this.calculateRoundHealth();
-    const baseProb = stage && stage.successProb ? stage.successProb : 0;
-    const performanceFactor = healthScore >= 0.65
-      ? 1
-      : clampValue(0.25 + 1.15 * healthScore, 0.2, 1);
-    let successChance = clampValue(baseProb * performanceFactor, 0.01, 0.995);
-    const autoBackersInterested = healthScore >= 0.4;
-    if (!closingRound.playerCommitted && !autoBackersInterested) {
-      successChance = 0;
-    }
-    const roundFailuresEnabled = false;
-    let success;
-    if (!roundFailuresEnabled) {
-      success = true;
-    } else if (closingRound.playerCommitted && !autoBackersInterested) {
-      success = true; // only the player kept this round alive
-    } else {
-      success = Math.random() < successChance;
-    }
-    const stageWasGate = stage && stage.id === this.gateStageId;
-
-    const preMoney = closingRound.fairValue ?? this.computeFairValue(false);
-    const raiseAmount = closingRound.raiseAmount;
-    const postMoney = preMoney + raiseAmount;
-    const equityOffered = closingRound.equityOffered;
-    const dilutedEquity = this.playerEquity * (preMoney / postMoney);
-
-    if (!success && roundFailuresEnabled) {
-      const refundAmount = closingRound.playerCommitted ? (closingRound.playerCommitAmount || 0) : 0;
-      if (refundAmount > 0) {
-        this.pendingCommitment = Math.max(0, this.pendingCommitment - refundAmount);
-      }
-      const failEvent = {
+      this.hasPipelineUpdate = true;
+      this.pendingHardTechFailure = {
+        type: 'venture_failed',
         companyId: this.id,
         name: this.name,
         valuation: this.currentValuation,
         revenue: this.revenue,
         profit: this.profit,
-        refund: refundAmount
+        refund
       };
+    }
 
-      this.consecutiveFails = (this.consecutiveFails || 0) + 1;
-      const collapse = this.consecutiveFails >= this.maxFailuresBeforeCollapse;
+    applyRunwayFlow(dtDays) {
+      if (!isFinite(dtDays) || dtDays <= 0) return;
+      const dtYears = dtDays / DAYS_PER_YEAR;
+      const netIncome = this.profit * dtYears;
+      if (isFinite(netIncome)) {
+        this.cash += netIncome;
+      }
+      const burnPerDay = Math.max(0, -this.profit) / DAYS_PER_YEAR;
+      this.cashBurnPerDay = burnPerDay;
+      this.cachedRunwayDays = burnPerDay > 0 ? this.cash / burnPerDay : Infinity;
+      if (this.cash < 0) {
+        this.cash = 0;
+      }
+      this.daysSinceLastRaise += dtDays;
+    }
 
-      if (collapse) {
-        this.playerEquity = 0;
-        this.currentValuation = 0;
-        this.status = 'failed';
-        this.lastEventNote = `${closingRound.stageLabel} round collapsed twice. Operations halted.`;
+    shouldStartNextRound() {
+      if (!this.strategy) return false;
+      return this.strategy.shouldStartNextRound();
+    }
+
+    calculateRoundHealth() {
+      if (!this.strategy) return 1;
+      return this.strategy.calculateRoundHealth(this.currentStage);
+    }
+
+    syncPostGateMultiple(currentDate) {
+      const nowMs = currentDate ? currentDate.getTime() : Date.now();
+      const baseMs = this.postGateStartDate ? this.postGateStartDate.getTime() : nowMs;
+      const years = Math.max(0, (nowMs - baseMs) / YEAR_MS);
+      const range = this.postGateInitialMultiple - this.postGateBaselineMultiple;
+      let decayShare = this.postGateMultipleDecayYears > 0 ? Math.min(1, years / this.postGateMultipleDecayYears) : 1;
+      if (this.hypergrowthActive) {
+        decayShare *= 0.25;
+      }
+      const nextMultiple = this.postGateInitialMultiple - range * decayShare;
+      this.currentMultiple = Math.max(this.postGateBaselineMultiple, nextMultiple);
+    }
+
+    enterPostGateMode(currentDate) {
+      this.postGateMode = true;
+      this.postGatePending = false;
+      this.hypergrowthActive = true;
+      this.hypergrowthElapsedYears = 0;
+      this.postGateStartDate = currentDate ? new Date(currentDate) : new Date();
+      const baselineMultiple = this.postGateInitialMultiple;
+      let baselineRevenue = this.revenue;
+      if (!baselineRevenue || baselineRevenue <= 0) {
+        baselineRevenue = Math.max(this.currentValuation / Math.max(baselineMultiple, 1), 1_000_000);
+      }
+      this.revenue = Math.max(1, baselineRevenue);
+      const target = this.revenue * this.hypergrowthTotalMultiplier;
+      this.hypergrowthTargetRevenue = Math.min(this.longRunRevenueCeiling, target);
+      if (this.hypergrowthTargetRevenue < this.revenue) {
+        this.hypergrowthTargetRevenue = this.revenue;
+        this.hypergrowthActive = false;
+      }
+      this.profit = this.revenue * this.postGateMargin;
+      this.currentMultiple = baselineMultiple;
+      this.lastFairValue = Math.max(1, this.revenue * this.currentMultiple);
+    }
+
+    generateRound(currentDate) {
+      const stage = this.currentStage;
+      if (!stage || stage.id === 'ipo') {
         this.currentRound = null;
-        this.stageChanged = true;
-        this.playerInvested = 0;
+        return;
+      }
+      const raiseRange = Array.isArray(stage.raiseFraction) && stage.raiseFraction.length >= 2
+        ? stage.raiseFraction
+        : [0.15, 0.3];
+      const raiseFraction = between(raiseRange[0], raiseRange[1]);
+      const baseFairValue = this.computeFairValue(true);
+      const prevValuation = Math.max(1, this.currentValuation || this.lastFairValue || 1);
+      const multiplierRange = Array.isArray(stage.preMoneyMultiplier) && stage.preMoneyMultiplier.length >= 2
+        ? stage.preMoneyMultiplier
+        : [1.05, 1.25];
+      const minFairValue = prevValuation * multiplierRange[0];
+      const maxFairValue = prevValuation * multiplierRange[1];
+      const fairValue = clampValue(baseFairValue, minFairValue, maxFairValue);
+      const preMoney = fairValue;
+      const raiseAmount = Math.max(500_000, fairValue * raiseFraction);
+      const postMoney = preMoney + raiseAmount;
+      const monthsRange = Array.isArray(stage.monthsToNextRound) && stage.monthsToNextRound.length >= 2
+        ? stage.monthsToNextRound
+        : [12, 18];
+      let runwayMonths = between(monthsRange[0], monthsRange[1]);
+      let durationDays = stage.durationDays
+        ? Math.max(30, stage.durationDays)
+        : Math.max(60, Math.round(Math.max(2, runwayMonths * 0.35) * 30)) * 3;
+      let pipelineStageName = null;
+
+      let nextRound = {
+        stageId: stage.id,
+        stageLabel: stage.label,
+        preMoney,
+        raiseAmount,
+        postMoney,
+        equityOffered: raiseAmount / postMoney,
+        successProb: typeof stage.successProb === 'number' ? stage.successProb : 0.85,
+        durationDays,
+        runwayMonths,
+        playerCommitted: false,
+        openedOn: new Date(currentDate || new Date()),
+        fairValue: fairValue,
+        pipelineStage: pipelineStageName,
+        stageReadyToResolve: false
+      };
+      if (this.strategy) {
+        nextRound = this.strategy.configureRound(stage, nextRound);
+      }
+      if (!nextRound) {
+        this.currentRound = null;
+        return;
+      }
+      this.currentRound = nextRound;
+      this.daysSinceRound = 0;
+      this.status = 'raising';
+    }
+
+    getStatusLabel() {
+      if (this.status === 'failed') return 'Failed';
+      if (this.status === 'ipo') return 'Exited (IPO)';
+      if (this.status === 'ipo_pending') return 'IPO Ready';
+      if (this.status === 'exited') return 'Exited';
+      return 'Raising';
+    }
+
+    getPlayerValuation() {
+      if (this.status === 'failed' || this.status === 'exited') return 0;
+      const equityValue = this.playerEquity ? this.playerEquity * this.currentValuation : 0;
+      return equityValue > 0 ? equityValue : 0;
+    }
+
+    leadRound() {
+      if (!this.currentRound || this.status !== 'raising') {
+        return { success: false, reason: 'Not currently raising.' };
+      }
+      if (this.currentRound.playerCommitted) {
+        return { success: false, reason: 'You already led this round.' };
+      }
+      this.currentRound.playerCommitted = true;
+      this.currentRound.playerCommitAmount = this.currentRound.raiseAmount;
+      this.pendingCommitment = (this.pendingCommitment || 0) + this.currentRound.raiseAmount;
+      return {
+        success: true,
+        raiseAmount: this.currentRound.raiseAmount,
+        equityOffered: this.currentRound.equityOffered,
+        stageLabel: this.currentRound.stageLabel
+      };
+    }
+
+    advance(dtDays, currentDate) {
+      if (!this.isPrivatePhase) return [];
+      if (this.status === 'failed' || this.status === 'exited') return [];
+      this.stageChanged = false;
+      this.progressCompanyClock(dtDays, currentDate);
+      if (this.pendingHardTechFailure) {
+        const failureEvent = this.pendingHardTechFailure;
+        this.pendingHardTechFailure = null;
+        return [failureEvent];
+      }
+      this.accumulateFinancials(dtDays, currentDate);
+      this.recordHistory(currentDate);
+      if (!this.currentRound && this.shouldStartNextRound()) {
+        this.generateRound(currentDate);
+      }
+      if (!this.currentRound) return [];
+
+      this.daysSinceRound += dtDays;
+      const events = [];
+
+      const stage = this.currentStage;
+      if (!this.strategy || !this.strategy.shouldResolveRound(stage)) {
+        return events;
+      }
+
+      const closingRound = this.currentRound;
+      const healthScore = this.calculateRoundHealth();
+      const baseProb = stage && stage.successProb ? stage.successProb : 0;
+      const performanceFactor = healthScore >= 0.65
+        ? 1
+        : clampValue(0.25 + 1.15 * healthScore, 0.2, 1);
+      let successChance = clampValue(baseProb * performanceFactor, 0.01, 0.995);
+      const autoBackersInterested = healthScore >= 0.4;
+      if (!closingRound.playerCommitted && !autoBackersInterested) {
+        successChance = 0;
+      }
+      const roundFailuresEnabled = false;
+      let success;
+      if (!roundFailuresEnabled) {
+        success = true;
+      } else if (closingRound.playerCommitted && !autoBackersInterested) {
+        success = true; // only the player kept this round alive
+      } else {
+        success = Math.random() < successChance;
+      }
+      const stageWasGate = stage && stage.id === this.gateStageId;
+
+      const preMoney = closingRound.fairValue ?? this.computeFairValue(false);
+      const raiseAmount = closingRound.raiseAmount;
+      const postMoney = preMoney + raiseAmount;
+      const equityOffered = closingRound.equityOffered;
+      const dilutedEquity = this.playerEquity * (preMoney / postMoney);
+
+      if (!success && roundFailuresEnabled) {
+        const refundAmount = closingRound.playerCommitted ? (closingRound.playerCommitAmount || 0) : 0;
+        if (refundAmount > 0) {
+          this.pendingCommitment = Math.max(0, this.pendingCommitment - refundAmount);
+        }
+        const failEvent = {
+          companyId: this.id,
+          name: this.name,
+          valuation: this.currentValuation,
+          revenue: this.revenue,
+          profit: this.profit,
+          refund: refundAmount
+        };
+
+        this.consecutiveFails = (this.consecutiveFails || 0) + 1;
+        const collapse = this.consecutiveFails >= this.maxFailuresBeforeCollapse;
+
+        if (collapse) {
+          this.playerEquity = 0;
+          this.currentValuation = 0;
+          this.status = 'failed';
+          this.lastEventNote = `${closingRound.stageLabel} round collapsed twice. Operations halted.`;
+          this.currentRound = null;
+          this.stageChanged = true;
+          this.playerInvested = 0;
+          this.pendingCommitment = 0;
+          this.updateFinancialsFromValuation();
+          this.recordHistory(currentDate);
+          this.postGateMode = false;
+          this.postGatePending = false;
+          this.hypergrowthActive = false;
+          failEvent.type = 'venture_failed';
+          events.push(failEvent);
+          return events;
+        }
+
+        const haircut = this.binarySuccess ? between(0.35, 0.45) : between(0.5, 0.65);
+        this.currentValuation = Math.max(1, preMoney * haircut);
+        this.lastEventNote = `${closingRound.stageLabel} round slipped; valuation reset to $${Math.round(this.currentValuation).toLocaleString()}.`;
         this.pendingCommitment = 0;
+        this.currentRound = null;
+        this.stageChanged = false;
         this.updateFinancialsFromValuation();
         this.recordHistory(currentDate);
-        this.postGateMode = false;
-        this.postGatePending = false;
-        this.hypergrowthActive = false;
-        failEvent.type = 'venture_failed';
+        this.generateRound(currentDate);
+        failEvent.type = 'venture_round_failed';
         events.push(failEvent);
         return events;
       }
 
-      const haircut = this.binarySuccess ? between(0.35,0.45) : between(0.5,0.65);
-      this.currentValuation = Math.max(1, preMoney * haircut);
-      this.lastEventNote = `${closingRound.stageLabel} round slipped; valuation reset to $${Math.round(this.currentValuation).toLocaleString()}.`;
-      this.pendingCommitment = 0;
-      this.currentRound = null;
-      this.stageChanged = false;
+      this.consecutiveFails = 0;
+      let updatedEquity = dilutedEquity;
+      if (closingRound.playerCommitted) {
+        updatedEquity += equityOffered;
+        this.playerInvested += this.pendingCommitment || 0;
+        this.pendingCommitment = 0;
+      }
+      this.playerEquity = updatedEquity;
+      this.currentValuation = postMoney;
       this.updateFinancialsFromValuation();
       this.recordHistory(currentDate);
+
+      const runwayMonths = closingRound.runwayMonths || between(stage.monthsToNextRound[0], stage.monthsToNextRound[1]);
+      const runwayDays = Math.max(120, Math.round(runwayMonths * 30));
+      this.cash += raiseAmount;
+      this.runwayTargetDays = runwayDays;
+      this.daysSinceLastRaise = 0;
+      this.raiseTriggerCash = Math.max(raiseAmount * 0.35, this.cashBurnPerDay * 90, 250_000);
+      this.lastRoundRevenue = this.revenue;
+      this.lastRoundMargin = this.revenue > 0 ? this.profit / Math.max(this.revenue, 1) : -1;
+      this.currentRound = null;
+
+      if (stageWasGate && success) {
+        this.gateCleared = true;
+        this.postGatePending = true;
+      } else if (this.postGatePending && success) {
+        this.enterPostGateMode(currentDate);
+        this.recordHistory(currentDate);
+      }
+
+      const reachedTarget = this.stageIndex >= this.targetStageIndex || stage.id === 'pre_ipo' || stage.id === 'ipo';
+      if (reachedTarget) {
+        this.stageIndex = Math.max(0, this.roundDefinitions.length - 1);
+        this.status = 'ipo_pending';
+        const finalValuation = this.currentValuation;
+        this.lastEventNote = `IPO set at $${finalValuation.toLocaleString()}.`;
+        this.stageChanged = true;
+        events.push({
+          type: 'venture_ipo',
+          companyId: this.id,
+          name: this.name,
+          valuation: finalValuation,
+          playerEquity: this.playerEquity,
+          revenue: this.revenue,
+          profit: this.profit,
+          companyRef: this
+        });
+        return events;
+      }
+
+      const previousStageLabel = closingRound.stageLabel;
+      this.stageIndex = Math.min(this.stageIndex + 1, Math.max(0, this.roundDefinitions.length - 1));
+      const displayValuation = this.currentValuation;
+      const cashNote = Math.round(raiseAmount).toLocaleString();
+      this.stageChanged = true;
       this.generateRound(currentDate);
-      failEvent.type = 'venture_round_failed';
-      events.push(failEvent);
+      const nextStageLabel = this.currentStage ? this.currentStage.label : 'Next round';
+      this.lastEventNote = `${previousStageLabel} round closed; +$${cashNote} cash, valuation now $${displayValuation.toLocaleString()}. Next: ${nextStageLabel}.`;
       return events;
     }
 
-    this.consecutiveFails = 0;
-    let updatedEquity = dilutedEquity;
-    if (closingRound.playerCommitted) {
-      updatedEquity += equityOffered;
-      this.playerInvested += this.pendingCommitment || 0;
-      this.pendingCommitment = 0;
-    }
-    this.playerEquity = updatedEquity;
-    this.currentValuation = postMoney;
-    this.updateFinancialsFromValuation();
-    this.recordHistory(currentDate);
-
-    const runwayMonths = closingRound.runwayMonths || between(stage.monthsToNextRound[0], stage.monthsToNextRound[1]);
-    const runwayDays = Math.max(120, Math.round(runwayMonths * 30));
-    this.cash += raiseAmount;
-    this.runwayTargetDays = runwayDays;
-    this.daysSinceLastRaise = 0;
-    this.raiseTriggerCash = Math.max(raiseAmount * 0.35, this.cashBurnPerDay * 90, 250_000);
-    this.lastRoundRevenue = this.revenue;
-    this.lastRoundMargin = this.revenue > 0 ? this.profit / Math.max(this.revenue, 1) : -1;
-    this.currentRound = null;
-
-    if (stageWasGate && success) {
-      this.gateCleared = true;
-      this.postGatePending = true;
-    } else if (this.postGatePending && success) {
-      this.enterPostGateMode(currentDate);
-      this.recordHistory(currentDate);
-    }
-
-    const reachedTarget = this.stageIndex >= this.targetStageIndex || stage.id === 'pre_ipo' || stage.id === 'ipo';
-    if (reachedTarget) {
-      this.stageIndex = Math.max(0, this.roundDefinitions.length - 1);
-      this.status = 'ipo_pending';
-      const finalValuation = this.currentValuation;
-      this.lastEventNote = `IPO set at $${finalValuation.toLocaleString()}.`;
-      this.stageChanged = true;
-      events.push({
-        type: 'venture_ipo',
-        companyId: this.id,
+    getSummary() {
+      return {
+        id: this.id,
         name: this.name,
-        valuation: finalValuation,
-        playerEquity: this.playerEquity,
+        sector: this.sector,
+        valuation: this.currentValuation,
+        stageLabel: this.currentStage ? this.currentStage.label : 'N/A',
+        status: this.getStatusLabel(),
+        playerEquityPercent: this.playerEquity * 100,
+        pendingCommitment: this.pendingCommitment || 0,
+        lastEventNote: this.lastEventNote,
         revenue: this.revenue,
         profit: this.profit,
-        companyRef: this
+        playerCommitted: !!(this.currentRound && this.currentRound.playerCommitted),
+        cash: this.cash,
+        runwayDays: isFinite(this.cachedRunwayDays) ? this.cachedRunwayDays : null
+      };
+    }
+
+    getDetail() {
+      const round = this.currentRound;
+      const stage = this.currentStage;
+      const daysRemaining = round ? Math.max(0, round.durationDays - this.daysSinceRound) : 0;
+      return {
+        id: this.id,
+        name: this.name,
+        sector: this.sector,
+        description: this.description,
+        valuation: this.currentValuation,
+        stageLabel: stage ? stage.label : 'N/A',
+        status: this.getStatusLabel(),
+        playerEquity: this.playerEquity,
+        playerEquityPercent: this.playerEquity * 100,
+        playerInvested: this.playerInvested,
+        pendingCommitment: this.pendingCommitment || 0,
+        lastEventNote: this.lastEventNote,
+        revenue: this.revenue,
+        profit: this.profit,
+        cash: this.cash,
+        runwayDays: isFinite(this.cachedRunwayDays) ? this.cachedRunwayDays : null,
+        history: this.history.slice(),
+        financialHistory: this.financialHistory.slice(),
+        quarterHistory: this.quarterHistory ? this.quarterHistory.slice() : [],
+        products: this.products.map(product => ({
+          label: product.label,
+          fullVal: product.fullVal,
+          stages: product.stages.map(stage => ({
+            id: stage.id,
+            name: stage.name,
+            duration_days: stage.duration_days,
+            success_prob: stage.success_prob,
+            depends_on: stage.depends_on,
+            completed: stage.completed,
+            succeeded: stage.succeeded,
+            commercialises_revenue: !!stage.commercialises_revenue
+          }))
+        })),
+        round: round ? {
+          stageLabel: round.stageLabel,
+          raiseAmount: round.raiseAmount,
+          preMoney: round.preMoney,
+          postMoney: round.postMoney,
+          equityOffered: round.equityOffered,
+          successProb: round.successProb,
+          daysRemaining,
+          playerCommitted: round.playerCommitted,
+          playerCommitAmount: round.playerCommitAmount || 0
+        } : null
+      };
+    }
+
+    finalizeIPO() {
+      this.status = 'ipo';
+      this.playerEquity = 0;
+      this.pendingCommitment = 0;
+      this.currentRound = null;
+      this.exited = true;
+      this.lastEventNote = 'Exited via IPO.';
+    }
+
+    promoteToPublic(macroEnv, ipoDate) {
+      const effectiveDate = ipoDate ? new Date(ipoDate) : new Date();
+      this.setPhase('public', { ipoDate: effectiveDate.toISOString() });
+      this.status = 'ipo';
+      this.macroEnv = macroEnv || this.macroEnv;
+      this.ipoDate = effectiveDate;
+      this.showDividendColumn = true;
+      this.currentRound = null;
+      this.pendingCommitment = 0;
+      this.postGateMode = false;
+      this.postGatePending = false;
+      this.hasPipelineUpdate = true;
+      this.lastEventNote = `IPO completed at $${Math.round(this.currentValuation).toLocaleString()}.`;
+      this.bankrupt = false;
+      this.marketCap = this.currentValuation;
+      this.displayCap = this.currentValuation;
+
+      const stage = this.getStageFinancials();
+      const ps = stage && stage.ps ? stage.ps : 6;
+      const macroFactor = this.macroEnv ? this.macroEnv.getValue(this.sector) : 1;
+      const revenueSnapshot = Math.max(1, this.revenue || this.currentValuation / Math.max(ps, 1));
+      const denom = Math.max(1e-3, macroFactor * Math.max(this.micro || 1, 0.05) * Math.max(this.revMult || 1, 0.05));
+      const normalizedBase = (revenueSnapshot + (this.flatRev || 0)) / denom;
+      this.baseRevenue = Math.max(1, normalizedBase);
+
+      if (this.marginCurve && isFinite(this.lastRoundMargin)) {
+        const startMargin = this.marginCurve.s;
+        const endMargin = this.marginCurve.t;
+        const span = endMargin - startMargin;
+        const targetMargin = Math.max(Math.min(this.lastRoundMargin, Math.max(startMargin, endMargin)), Math.min(startMargin, endMargin));
+        if (Math.abs(span) > 1e-4) {
+          const ratio = Math.max(0, Math.min(1, (targetMargin - startMargin) / span));
+          const targetAgeDays = ratio * this.marginCurve.y * 365;
+          if (targetAgeDays > this.ageDays) {
+            this.ageDays = targetAgeDays;
+          }
+        } else if (targetMargin > startMargin) {
+          this.ageDays = Math.max(this.ageDays, this.marginCurve.y * 365);
+        }
+      }
+
+      if (!this.history || this.history.length === 0) {
+        this.recordHistory(effectiveDate);
+      }
+    }
+
+  }
+
+  class VentureSimulation {
+    constructor(configs, startDate) {
+      this.companies = (configs || []).map(cfg => new VentureCompany({
+        id: cfg.id,
+        name: cfg.name,
+        sector: cfg.sector,
+        description: cfg.description,
+        valuation_usd: cfg.valuation_usd,
+        funding_round: cfg.funding_round,
+        ipo_stage: cfg.ipo_stage,
+        binary_success: cfg.binary_success,
+        gate_stage: cfg.gate_stage,
+        hypergrowth_window_years: cfg.hypergrowth_window_years,
+        hypergrowth_total_multiplier: cfg.hypergrowth_total_multiplier,
+        long_run_revenue_ceiling_usd: cfg.long_run_revenue_ceiling_usd,
+        long_run_growth_rate: cfg.long_run_growth_rate,
+        long_run_growth_floor: cfg.long_run_growth_floor,
+        long_run_growth_decay: cfg.long_run_growth_decay,
+        post_gate_initial_multiple: cfg.post_gate_initial_multiple,
+        post_gate_baseline_multiple: cfg.post_gate_baseline_multiple,
+        post_gate_multiple_decay_years: cfg.post_gate_multiple_decay_years,
+        post_gate_margin: cfg.post_gate_margin,
+        max_failures_before_collapse: cfg.max_failures_before_collapse,
+        base_business: cfg.base_business,
+        finance: cfg.finance,
+        costs: cfg.costs,
+        archetype: cfg.archetype,
+        pipeline: Array.isArray(cfg.pipeline) ? cfg.pipeline : [],
+        events: Array.isArray(cfg.events) ? cfg.events : []
+      }, startDate));
+      this.lastTick = startDate ? new Date(startDate) : new Date('1990-01-01T00:00:00Z');
+      this.stageUpdateFlag = false;
+    }
+
+    getCompanyById(id) {
+      return this.companies.find(c => c.id === id);
+    }
+
+    tick(currentDate) {
+      if (!currentDate) return [];
+      if (!(currentDate instanceof Date)) currentDate = new Date(currentDate);
+      const dtDays = Math.max(0, (currentDate - this.lastTick) / VC_DAY_MS);
+      this.lastTick = new Date(currentDate);
+      if (dtDays <= 0) return [];
+      const events = [];
+      this.companies.forEach(company => {
+        const companyEvents = company.advance(dtDays, currentDate);
+        if (company.stageChanged) {
+          this.stageUpdateFlag = true;
+          company.stageChanged = false;
+        }
+        if (companyEvents && companyEvents.length) {
+          events.push(...companyEvents);
+        }
       });
       return events;
     }
 
-    const previousStageLabel = closingRound.stageLabel;
-    this.stageIndex = Math.min(this.stageIndex + 1, Math.max(0, this.roundDefinitions.length - 1));
-    const displayValuation = this.currentValuation;
-    const cashNote = Math.round(raiseAmount).toLocaleString();
-    this.stageChanged = true;
-    this.generateRound(currentDate);
-    const nextStageLabel = this.currentStage ? this.currentStage.label : 'Next round';
-    this.lastEventNote = `${previousStageLabel} round closed; +$${cashNote} cash, valuation now $${displayValuation.toLocaleString()}. Next: ${nextStageLabel}.`;
-    return events;
-  }
+    consumeStageUpdates() {
+      const flag = this.stageUpdateFlag;
+      this.stageUpdateFlag = false;
+      return flag;
+    }
 
-  getSummary() {
-    return {
-      id: this.id,
-      name: this.name,
-      sector: this.sector,
-      valuation: this.currentValuation,
-      stageLabel: this.currentStage ? this.currentStage.label : 'N/A',
-      status: this.getStatusLabel(),
-      playerEquityPercent: this.playerEquity * 100,
-      pendingCommitment: this.pendingCommitment || 0,
-      lastEventNote: this.lastEventNote,
-      revenue: this.revenue,
-      profit: this.profit,
-      playerCommitted: !!(this.currentRound && this.currentRound.playerCommitted),
-      cash: this.cash,
-      runwayDays: isFinite(this.cachedRunwayDays) ? this.cachedRunwayDays : null
-    };
-  }
-
-  getDetail() {
-    const round = this.currentRound;
-    const stage = this.currentStage;
-    const daysRemaining = round ? Math.max(0, round.durationDays - this.daysSinceRound) : 0;
-    return {
-      id: this.id,
-      name: this.name,
-      sector: this.sector,
-      description: this.description,
-      valuation: this.currentValuation,
-      stageLabel: stage ? stage.label : 'N/A',
-      status: this.getStatusLabel(),
-      playerEquity: this.playerEquity,
-      playerEquityPercent: this.playerEquity * 100,
-      playerInvested: this.playerInvested,
-      pendingCommitment: this.pendingCommitment || 0,
-      lastEventNote: this.lastEventNote,
-      revenue: this.revenue,
-      profit: this.profit,
-      cash: this.cash,
-      runwayDays: isFinite(this.cachedRunwayDays) ? this.cachedRunwayDays : null,
-      history: this.history.slice(),
-      financialHistory: this.financialHistory.slice(),
-      products: this.products.map(product => ({
-        label: product.label,
-        fullVal: product.fullVal,
-        stages: product.stages.map(stage => ({
-          id: stage.id,
-          name: stage.name,
-          duration_days: stage.duration_days,
-          success_prob: stage.success_prob,
-          depends_on: stage.depends_on,
-          completed: stage.completed,
-          succeeded: stage.succeeded,
-          commercialises_revenue: !!stage.commercialises_revenue
-        }))
-      })),
-      round: round ? {
-        stageLabel: round.stageLabel,
-        raiseAmount: round.raiseAmount,
-        preMoney: round.preMoney,
-        postMoney: round.postMoney,
-        equityOffered: round.equityOffered,
-        successProb: round.successProb,
-        daysRemaining,
-        playerCommitted: round.playerCommitted,
-        playerCommitAmount: round.playerCommitAmount || 0
-      } : null
-    };
-  }
-
-  finalizeIPO() {
-    this.status = 'ipo';
-    this.playerEquity = 0;
-    this.pendingCommitment = 0;
-    this.currentRound = null;
-    this.exited = true;
-    this.lastEventNote = 'Exited via IPO.';
-  }
-
-  promoteToPublic(macroEnv, ipoDate) {
-    const effectiveDate = ipoDate ? new Date(ipoDate) : new Date();
-    this.setPhase('public', { ipoDate: effectiveDate.toISOString() });
-    this.status = 'ipo';
-    this.macroEnv = macroEnv || this.macroEnv;
-    this.ipoDate = effectiveDate;
-    this.showDividendColumn = true;
-    this.currentRound = null;
-    this.pendingCommitment = 0;
-    this.postGateMode = false;
-    this.postGatePending = false;
-    this.hasPipelineUpdate = true;
-    this.lastEventNote = `IPO completed at $${Math.round(this.currentValuation).toLocaleString()}.`;
-    this.bankrupt = false;
-    this.marketCap = this.currentValuation;
-    this.displayCap = this.currentValuation;
-
-    const stage = this.getStageFinancials();
-    const ps = stage && stage.ps ? stage.ps : 6;
-    const macroFactor = this.macroEnv ? this.macroEnv.getValue(this.sector) : 1;
-    const revenueSnapshot = Math.max(1, this.revenue || this.currentValuation / Math.max(ps, 1));
-    const denom = Math.max(1e-3, macroFactor * Math.max(this.micro || 1, 0.05) * Math.max(this.revMult || 1, 0.05));
-    const normalizedBase = (revenueSnapshot + (this.flatRev || 0)) / denom;
-    this.baseRevenue = Math.max(1, normalizedBase);
-
-    if (this.marginCurve && isFinite(this.lastRoundMargin)) {
-      const startMargin = this.marginCurve.s;
-      const endMargin = this.marginCurve.t;
-      const span = endMargin - startMargin;
-      const targetMargin = Math.max(Math.min(this.lastRoundMargin, Math.max(startMargin, endMargin)), Math.min(startMargin, endMargin));
-      if (Math.abs(span) > 1e-4) {
-        const ratio = Math.max(0, Math.min(1, (targetMargin - startMargin) / span));
-        const targetAgeDays = ratio * this.marginCurve.y * 365;
-        if (targetAgeDays > this.ageDays) {
-          this.ageDays = targetAgeDays;
-        }
-      } else if (targetMargin > startMargin) {
-        this.ageDays = Math.max(this.ageDays, this.marginCurve.y * 365);
+    leadRound(companyId) {
+      const company = this.getCompanyById(companyId);
+      if (!company) {
+        return { success: false, reason: 'Company not found.' };
       }
+      return company.leadRound();
     }
 
-    if (!this.history || this.history.length === 0) {
-      this.recordHistory(effectiveDate);
+    getCompanySummaries() {
+      return this.companies
+        .filter(company => !company.exited)
+        .map(company => company.getSummary());
     }
-  }
 
-}
+    getCompanyDetail(companyId) {
+      const company = this.getCompanyById(companyId);
+      return company ? company.getDetail() : null;
+    }
 
-class VentureSimulation {
-  constructor(configs, startDate) {
-    this.companies = (configs || []).map(cfg => new VentureCompany({
-      id: cfg.id,
-      name: cfg.name,
-      sector: cfg.sector,
-      description: cfg.description,
-      valuation_usd: cfg.valuation_usd,
-      funding_round: cfg.funding_round,
-      ipo_stage: cfg.ipo_stage,
-      binary_success: cfg.binary_success,
-      gate_stage: cfg.gate_stage,
-      hypergrowth_window_years: cfg.hypergrowth_window_years,
-      hypergrowth_total_multiplier: cfg.hypergrowth_total_multiplier,
-      long_run_revenue_ceiling_usd: cfg.long_run_revenue_ceiling_usd,
-      long_run_growth_rate: cfg.long_run_growth_rate,
-      long_run_growth_floor: cfg.long_run_growth_floor,
-      long_run_growth_decay: cfg.long_run_growth_decay,
-      post_gate_initial_multiple: cfg.post_gate_initial_multiple,
-      post_gate_baseline_multiple: cfg.post_gate_baseline_multiple,
-      post_gate_multiple_decay_years: cfg.post_gate_multiple_decay_years,
-      post_gate_margin: cfg.post_gate_margin,
-      max_failures_before_collapse: cfg.max_failures_before_collapse,
-      base_business: cfg.base_business,
-      finance: cfg.finance,
-      costs: cfg.costs,
-      archetype: cfg.archetype,
-      pipeline: Array.isArray(cfg.pipeline) ? cfg.pipeline : [],
-      events: Array.isArray(cfg.events) ? cfg.events : []
-    }, startDate));
-    this.lastTick = startDate ? new Date(startDate) : new Date('1990-01-01T00:00:00Z');
-    this.stageUpdateFlag = false;
-  }
-
-  getCompanyById(id) {
-    return this.companies.find(c => c.id === id);
-  }
-
-  tick(currentDate) {
-    if (!currentDate) return [];
-    if (!(currentDate instanceof Date)) currentDate = new Date(currentDate);
-    const dtDays = Math.max(0, (currentDate - this.lastTick) / VC_DAY_MS);
-    this.lastTick = new Date(currentDate);
-    if (dtDays <= 0) return [];
-    const events = [];
-    this.companies.forEach(company => {
-      const companyEvents = company.advance(dtDays, currentDate);
-      if (company.stageChanged) {
-        this.stageUpdateFlag = true;
-        company.stageChanged = false;
+    extractCompany(companyId) {
+      const index = this.companies.findIndex(c => c.id === companyId);
+      if (index >= 0) {
+        const [company] = this.companies.splice(index, 1);
+        return company;
       }
-      if (companyEvents && companyEvents.length) {
-        events.push(...companyEvents);
+      return null;
+    }
+
+    getPlayerHoldingsValue() {
+      return this.companies.reduce((sum, company) => sum + company.getPlayerValuation(), 0);
+    }
+
+    getPendingCommitments() {
+      return this.companies.reduce((sum, company) => sum + (company.pendingCommitment || 0), 0);
+    }
+
+    finalizeIPO(companyId) {
+      const company = this.extractCompany(companyId);
+      if (company) {
+        company.finalizeIPO();
+        return company;
       }
-    });
-    return events;
-  }
-
-  consumeStageUpdates() {
-    const flag = this.stageUpdateFlag;
-    this.stageUpdateFlag = false;
-    return flag;
-  }
-
-  leadRound(companyId) {
-    const company = this.getCompanyById(companyId);
-    if (!company) {
-      return { success: false, reason: 'Company not found.' };
+      return null;
     }
-    return company.leadRound();
   }
-
-  getCompanySummaries() {
-    return this.companies
-      .filter(company => !company.exited)
-      .map(company => company.getSummary());
-  }
-
-  getCompanyDetail(companyId) {
-    const company = this.getCompanyById(companyId);
-    return company ? company.getDetail() : null;
-  }
-
-  extractCompany(companyId) {
-    const index = this.companies.findIndex(c => c.id === companyId);
-    if (index >= 0) {
-      const [company] = this.companies.splice(index, 1);
-      return company;
-    }
-    return null;
-  }
-
-  getPlayerHoldingsValue() {
-    return this.companies.reduce((sum, company) => sum + company.getPlayerValuation(), 0);
-  }
-
-  getPendingCommitments() {
-    return this.companies.reduce((sum, company) => sum + (company.pendingCommitment || 0), 0);
-  }
-
-  finalizeIPO(companyId) {
-    const company = this.extractCompany(companyId);
-    if (company) {
-      company.finalizeIPO();
-      return company;
-    }
-    return null;
-  }
-}
 
   const VentureEngineModule = {
     VentureCompany,
@@ -1050,5 +1055,5 @@ class VentureSimulation {
   global.VentureSimulation = VentureSimulation;
   global.VC_STAGE_CONFIG = VC_STAGE_CONFIG;
 })(typeof globalThis !== 'undefined'
-    ? globalThis
-    : (typeof window !== 'undefined' ? window : this));
+  ? globalThis
+  : (typeof window !== 'undefined' ? window : this));

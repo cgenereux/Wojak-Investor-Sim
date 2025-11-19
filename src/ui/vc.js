@@ -31,6 +31,8 @@ let vcFormatLargeNumber = (value) => {
 };
 let vcFormatCurrency = (value) => vcFormatLargeNumber(value || 0);
 let ventureCompanyDetailChart = null;
+let ventureFinancialBarChart = null;
+let currentVcChartRange = 80;
 
 function ensureVentureReady() {
     if (typeof ensureVentureSimulation === 'function') {
@@ -42,6 +44,10 @@ function destroyVentureChart() {
     if (ventureCompanyDetailChart) {
         ventureCompanyDetailChart.destroy();
         ventureCompanyDetailChart = null;
+    }
+    if (ventureFinancialBarChart) {
+        ventureFinancialBarChart.destroy();
+        ventureFinancialBarChart = null;
     }
 }
 
@@ -188,6 +194,22 @@ function updateVentureDetail(companyId) {
     const detail = getVentureCompanyDetail(companyId);
     if (!detail) return;
 
+    // Polyfill getYoySeries if missing (since detail is a POJO from getDetail)
+    if (!detail.getYoySeries && window.CompanyModule && window.CompanyModule.BaseCompany) {
+        detail.getYoySeries = function (limit) {
+            return window.CompanyModule.BaseCompany.prototype.getYoySeries.call(this, limit);
+        };
+    } else if (!detail.getYoySeries) {
+        console.warn('[VC Debug] Cannot polyfill getYoySeries: CompanyModule or BaseCompany missing', window.CompanyModule);
+    }
+
+    // console.log('[VC Debug] Detail object:', detail.name);
+    // if (detail.quarterHistory && detail.quarterHistory.length > 0) {
+    //     console.log('[VC Debug] Last Quarter:', JSON.stringify(detail.quarterHistory[detail.quarterHistory.length - 1]));
+    // } else {
+    //     console.log('[VC Debug] quarterHistory is empty');
+    // }
+
     vcDetailNameEl.textContent = detail.name;
     vcDetailSectorEl.textContent = detail.sector || 'Sector unavailable';
     vcDetailFundingEl.textContent = `Stage: ${detail.stageLabel}`;
@@ -211,14 +233,37 @@ function updateVentureDetail(companyId) {
     const pendingText = pendingCapital > 0 ? ` | Pending: ${vcFormatCurrency(pendingCapital)}` : '';
     vcDetailInvestedEl.textContent = `Total Invested: ${vcFormatCurrency(detail.playerInvested || 0)}${pendingText}`;
     vcDetailLastEventEl.textContent = detail.lastEventNote || '';
+
     if (vcFinancialHistoryContainer) {
-        vcFinancialHistoryContainer.innerHTML = getFinancialTableHTML(detail.financialHistory);
+        // Ensure structure exists: Chart Container + Table Container
+        let chartContainer = document.getElementById('vcChartContainerWrapper');
+        let tableContainer = document.getElementById('vcTableContainerWrapper');
+
+        if (!chartContainer) {
+            vcFinancialHistoryContainer.innerHTML = `
+                <div id="vcChartContainerWrapper" class="financial-yoy-chart" style="height: 200px; margin-bottom: 20px;">
+                    <canvas id="vcFinancialBarChart"></canvas>
+                </div>
+                <div id="vcTableContainerWrapper"></div>
+            `;
+            chartContainer = document.getElementById('vcChartContainerWrapper');
+            tableContainer = document.getElementById('vcTableContainerWrapper');
+        }
+
+        // Update Table
+        tableContainer.innerHTML = getFinancialTableHTML(detail.financialHistory);
+
+        // Update Chart (will handle its own update vs create logic)
+        renderVentureFinancialChart(detail);
     }
     if (vcPipelineContainer) {
         if (typeof window.getPipelineHTML === 'function') {
-            vcPipelineContainer.innerHTML = window.getPipelineHTML(detail);
+            const html = window.getPipelineHTML(detail);
+            vcPipelineContainer.innerHTML = html;
+            vcPipelineContainer.style.display = html ? 'block' : 'none';
         } else {
-            vcPipelineContainer.innerHTML = '<h3 class="investment-title">Product Pipeline</h3><div class="no-pipeline">Pipeline view unavailable.</div>';
+            vcPipelineContainer.innerHTML = '';
+            vcPipelineContainer.style.display = 'none';
         }
     }
 
@@ -269,22 +314,22 @@ function updateVentureDetail(companyId) {
 
     destroyVentureChart();
     if (vcDetailChartCtx) {
-    let history = (detail.history && detail.history.length > 0)
-        ? detail.history.slice()
-        : [{ x: Date.now(), y: valuation }];
-    history.sort((a, b) => a.x - b.x);
-    if (history.length === 1) {
-        const dayMs = 24 * 60 * 60 * 1000;
-        history.unshift({ x: history[0].x - dayMs, y: history[0].y });
-    }
-    const suggestedMin = valuation > 0 ? valuation * 0.8 : 0;
-    const suggestedMax = valuation > 0 ? valuation * 1.2 : 1;
-    ventureCompanyDetailChart = new Chart(vcDetailChartCtx, {
-        type: 'line',
-        data: {
-            datasets: [{
-                label: 'Valuation',
-                data: history.map(point => ({ x: point.x, y: point.y })),
+        let history = (detail.history && detail.history.length > 0)
+            ? detail.history.slice()
+            : [{ x: Date.now(), y: valuation }];
+        history.sort((a, b) => a.x - b.x);
+        if (history.length === 1) {
+            const dayMs = 24 * 60 * 60 * 1000;
+            history.unshift({ x: history[0].x - dayMs, y: history[0].y });
+        }
+        const suggestedMin = valuation > 0 ? valuation * 0.8 : 0;
+        const suggestedMax = valuation > 0 ? valuation * 1.2 : 1;
+        ventureCompanyDetailChart = new Chart(vcDetailChartCtx, {
+            type: 'line',
+            data: {
+                datasets: [{
+                    label: 'Valuation',
+                    data: history.map(point => ({ x: point.x, y: point.y })),
                     borderColor: '#3b82f6',
                     backgroundColor: 'rgba(59, 130, 246, 0.15)',
                     borderWidth: 2,
@@ -319,6 +364,7 @@ function getFinancialTableHTML(history) {
     if (!history || history.length === 0) {
         return '<p>No annual data available yet</p>';
     }
+
     const rows = history.slice().reverse().map(entry => {
         const revenue = vcFormatCurrency(entry.revenue || 0);
         const profit = vcFormatCurrency(entry.profit || 0);
@@ -407,6 +453,227 @@ function ensureVCInit() {
         initVC();
     } else {
         setTimeout(initVC, 500);
+    }
+}
+
+function renderVentureFinancialChart(company) {
+    const canvas = document.getElementById('vcFinancialBarChart');
+    if (!canvas || !company) return;
+
+    // Inject controls if needed
+    let controlsWrapper = document.getElementById('vcChartControls');
+    if (!controlsWrapper) {
+        // Find the chart container's parent or sibling to insert controls
+        // The chart is inside #vcChartContainerWrapper
+        const chartParent = canvas.parentElement;
+        if (chartParent) {
+            controlsWrapper = document.createElement('div');
+            controlsWrapper.id = 'vcChartControls';
+            controlsWrapper.style.display = 'flex';
+            controlsWrapper.style.justifyContent = 'flex-end';
+            controlsWrapper.style.marginBottom = '5px';
+            controlsWrapper.style.gap = '5px';
+            controlsWrapper.style.position = 'absolute';
+            controlsWrapper.style.top = '0';
+            controlsWrapper.style.right = '0';
+
+            // Make chart parent relative so we can position controls
+            chartParent.style.position = 'relative';
+
+            const ranges = [
+                { label: '5Y', value: 20 },
+                { label: '10Y', value: 40 },
+                { label: '20Y', value: 80 },
+                { label: 'Max', value: 0 }
+            ];
+
+            ranges.forEach(range => {
+                const btn = document.createElement('button');
+                btn.textContent = range.label;
+                btn.className = 'chart-range-btn';
+                btn.dataset.value = range.value;
+                btn.style.padding = '2px 8px';
+                btn.style.fontSize = '12px';
+                btn.style.cursor = 'pointer';
+                btn.style.border = '1px solid #ccc';
+                btn.style.borderRadius = '4px';
+                btn.style.backgroundColor = currentVcChartRange === range.value ? '#e0e0e0' : '#fff';
+
+                btn.onclick = () => {
+                    currentVcChartRange = range.value;
+                    renderVentureFinancialChart(company);
+                };
+                controlsWrapper.appendChild(btn);
+            });
+
+            chartParent.appendChild(controlsWrapper);
+        }
+    } else {
+        controlsWrapper.querySelectorAll('.chart-range-btn').forEach(b => {
+            b.style.backgroundColor = parseInt(b.dataset.value) === currentVcChartRange ? '#e0e0e0' : '#fff';
+        });
+    }
+
+    // Use getYoySeries if available (inherited from BaseCompany), otherwise fallback or empty
+    const yoySeries = typeof company.getYoySeries === 'function'
+        ? company.getYoySeries(currentVcChartRange)
+        : [];
+    // if (yoySeries && yoySeries.length > 0) {
+    //     console.log('[VC Debug] Last YoY Point:', JSON.stringify(yoySeries[yoySeries.length - 1]));
+    // }
+
+    if (!yoySeries || yoySeries.length === 0) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.font = '14px Inter';
+        ctx.fillStyle = '#888';
+        ctx.textAlign = 'center';
+        ctx.fillText('Waiting for financial data...', canvas.width / 2, canvas.height / 2);
+        return;
+    }
+
+    const labels = yoySeries.map(item => {
+        if (item.label) return item.label;
+        return `${item.year} Q${item.quarter}`;
+    });
+    const revenueData = yoySeries.map(item => item.revenue);
+    const profitData = yoySeries.map(item => item.profit);
+    const profitColors = profitData.map(value => value >= 0 ? '#6de38a' : '#ff5b5b');
+
+    // Pad with empty data if few points to prevent "beeg spacing"
+    const minPoints = 20;
+    if (yoySeries.length < minPoints) {
+        const missing = minPoints - yoySeries.length;
+        for (let i = 0; i < missing; i++) {
+            labels.unshift('');
+            revenueData.unshift(null);
+            profitData.unshift(null);
+            profitColors.unshift('rgba(0,0,0,0)');
+        }
+    }
+
+    // console.log('[VC Debug] Rendering Chart with:', { labels, revenueData, profitData });
+
+    try {
+        if (typeof Chart === 'undefined') {
+            throw new Error('Chart.js is not loaded');
+        }
+
+        // If chart exists and canvas is same, update it
+        if (ventureFinancialBarChart) {
+            if (ventureFinancialBarChart.canvas !== canvas) {
+                ventureFinancialBarChart.destroy();
+                ventureFinancialBarChart = null;
+            } else {
+                ventureFinancialBarChart.data.labels = labels;
+                ventureFinancialBarChart.data.datasets[0].data = revenueData;
+                ventureFinancialBarChart.data.datasets[1].data = profitData;
+                ventureFinancialBarChart.data.datasets[1].backgroundColor = profitColors;
+                ventureFinancialBarChart.update('none');
+                return;
+            }
+        }
+
+        ventureFinancialBarChart = new Chart(canvas, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'Revenue',
+                        data: revenueData,
+                        backgroundColor: '#635bff',
+                        borderRadius: 4,
+                        categoryPercentage: 0.8,
+                        barPercentage: 0.9,
+                        grouped: false,
+                        order: 1,
+                        maxBarThickness: 50,
+                        skipNull: true
+                    },
+                    {
+                        label: 'Profit (Trailing 12 Months)',
+                        data: profitData,
+                        backgroundColor: profitColors,
+                        borderRadius: 4,
+                        categoryPercentage: 0.8,
+                        barPercentage: 0.9,
+                        grouped: false,
+                        order: 0,
+                        maxBarThickness: 50,
+                        skipNull: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: { duration: 0 },
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: { display: true, position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: context => {
+                                let label = context.dataset.label || '';
+                                if (label) label += ': ';
+                                if (context.parsed.y !== null && context.parsed.y !== undefined) {
+                                    label += vcFormatCurrency(context.parsed.y);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false }
+                    },
+                    y: {
+                        grid: { color: 'rgba(148, 163, 184, 0.25)' },
+                        ticks: {
+                            callback: value => vcFormatLargeNumber(value)
+                        }
+                    }
+                }
+            }
+        });
+        // console.log('[VC Debug] Chart created successfully');
+    } catch (err) {
+        console.error('[VC Debug] Chart creation failed:', err);
+    }
+}
+
+function initVC() {
+    if (backToVcListBtn) {
+        backToVcListBtn.addEventListener('click', hideVentureCompanyDetail);
+    }
+    if (vcLeadRoundBtn) {
+        vcLeadRoundBtn.addEventListener('click', () => {
+            if (!currentVentureCompanyId || typeof leadVentureRound !== 'function') return;
+            const result = leadVentureRound(currentVentureCompanyId);
+            refreshVentureDetailView();
+            if (!vcLeadRoundNoteEl) return;
+            if (!result.success) {
+                vcLeadRoundNoteEl.textContent = result.reason || 'Unable to lead this round right now.';
+                vcLeadRoundNoteEl.classList.add('negative');
+                vcLeadRoundNoteEl.classList.remove('positive');
+            } else {
+                const equityPct = (result.equityOffered || 0) * 100;
+                vcLeadRoundNoteEl.textContent = `Successfully led the round! Acquired ${equityPct.toFixed(1)}% equity.`;
+                vcLeadRoundNoteEl.classList.add('positive');
+                vcLeadRoundNoteEl.classList.remove('negative');
+            }
+        });
+    }
+}
+
+function ensureVCInit() {
+    if (typeof initVC === 'function') {
+        initVC();
     }
 }
 

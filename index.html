@@ -1,20 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wojak Investor Sim</title>
-    
+
     <!-- Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/js-confetti@latest/dist/js-confetti.browser.js"></script>
 
     <!-- CSS and JS -->
     <link rel="stylesheet" href="styles/style.css">
     <link rel="stylesheet" href="styles/vc.css">
-    <link rel="shortcut icon" type="image/png" href="wojaks/wojak.png" id="faviconLink"/>
+    <link rel="shortcut icon" type="image/png" href="wojaks/wojak.png" id="faviconLink" />
 </head>
+
 <body>
     <div class="container">
         <!-- Main View -->
@@ -50,7 +53,8 @@
                 <button id="bankBtn">Bank</button>
                 <div class="tooltip-container">
                     <button id="vcBtn" disabled>Venture Capital</button>
-                    <span class="tooltip-text">Access to venture investments requires a net worth of at least $5,000,000.</span>
+                    <span class="tooltip-text">Access to venture investments requires a net worth of at least
+                        $5,000,000.</span>
                 </div>
             </div>
 
@@ -114,7 +118,8 @@
             <div class="investment-panel invest-panel">
                 <h3 class="investment-title">Invest</h3>
                 <div class="investment-stats-row">
-                    <div class="stake-label">Your Stake: <span id="playerStakeDisplay" class="stat-value">$0.00</span></div>
+                    <div class="stake-label">Your Stake: <span id="playerStakeDisplay" class="stat-value">$0.00</span>
+                    </div>
                     <div class="cash-label">Your Cash: <span id="playerCashDisplay" class="stat-value"></span></div>
                 </div>
                 <div class="investment-actions">
@@ -260,4 +265,5 @@
     <script src="src/ui/dashboardRenderers.js"></script>
     <script src="src/ui/main.js" defer></script>
 </body>
+
 </html>

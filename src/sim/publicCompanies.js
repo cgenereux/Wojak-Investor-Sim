@@ -16,9 +16,10 @@
   } = shared;
 
   const QUARTER_DAYS = 365 / 4;
+  const MAX_QUARTER_HISTORY = 100;
 
   class BaseCompany {
-    constructor (cfg, macroEnv, gameStartYear = 1990, ipoDate = new Date(gameStartYear, 0, 1)) {
+    constructor(cfg, macroEnv, gameStartYear = 1990, ipoDate = new Date(gameStartYear, 0, 1)) {
       this.id = cfg.id;
       this.name = (cfg.static && cfg.static.name) || 'Company';
       this.sector = (cfg.static && cfg.static.sector) || 'General';
@@ -34,7 +35,12 @@
       this.currentYearProfit = 0;
       this.lastYearEnd = 0;
       this.newAnnualData = false;
+      this.newQuarterlyData = false;
       this.bankrupt = false;
+      this.quarterHistory = [];
+      this.currentQuarterRevenue = 0;
+      this.currentQuarterProfit = 0;
+      this.currentQuarterMeta = null;
 
       this.cash = 0;
       this.debt = 0;
@@ -44,22 +50,26 @@
       this.showDividendColumn = false;
     }
 
-    accumulateYear (revenueIncrement, profitIncrement) {
+    accumulateYear(revenueIncrement, profitIncrement, gameDate) {
       this.currentYearRevenue += revenueIncrement;
       this.currentYearProfit += profitIncrement;
+      this.accumulateQuarter(revenueIncrement, profitIncrement, gameDate);
     }
 
-    maybeRecordAnnual (dividend = 0) {
+    maybeRecordAnnual(dividend = 0) {
       const curYear = Math.floor(this.ageDays / 365);
       const lastYear = Math.floor(this.lastYearEnd / 365);
       if (curYear > lastYear && this.ageDays >= 365) {
-        const ps = this.currentYearRevenue > 0 ? this.marketCap / this.currentYearRevenue : 0;
-        const pe = this.currentYearProfit > 0 ? this.marketCap / this.currentYearProfit : 0;
         const yearStamp = this.ipoDate.getFullYear() + lastYear;
+        const totals = this.sumQuarterTotalsForYear(yearStamp);
+        const annualRevenue = totals.quarters > 0 ? totals.revenue : this.currentYearRevenue;
+        const annualProfit = totals.quarters > 0 ? totals.profit : this.currentYearProfit;
+        const ps = annualRevenue > 0 ? this.marketCap / annualRevenue : 0;
+        const pe = annualProfit > 0 ? this.marketCap / annualProfit : 0;
         this.financialHistory.push({
           year: yearStamp,
-          revenue: this.currentYearRevenue,
-          profit: this.currentYearProfit,
+          revenue: annualRevenue,
+          profit: annualProfit,
           marketCap: this.marketCap,
           cash: this.cash,
           debt: this.debt,
@@ -78,7 +88,79 @@
       return false;
     }
 
-    recordHistoryPoint (gameDate, value = this.marketCap) {
+    accumulateQuarter(revenueIncrement = 0, profitIncrement = 0, gameDate = null) {
+      const meta = this.getQuarterMeta(gameDate);
+      const sameQuarter = this.currentQuarterMeta &&
+        this.currentQuarterMeta.year === meta.year &&
+        this.currentQuarterMeta.quarter === meta.quarter;
+      if (!sameQuarter) {
+        this.finalizeQuarter(meta);
+      }
+      this.currentQuarterRevenue += revenueIncrement;
+      this.currentQuarterProfit += profitIncrement;
+    }
+
+    finalizeQuarter(nextMeta = null) {
+      if (this.currentQuarterMeta) {
+        const hasRevenue = Math.abs(this.currentQuarterRevenue) > 1e-6;
+        const hasProfit = Math.abs(this.currentQuarterProfit) > 1e-6;
+        if (hasRevenue || hasProfit) {
+          this.quarterHistory.push({
+            year: this.currentQuarterMeta.year,
+            quarter: this.currentQuarterMeta.quarter,
+            revenue: this.currentQuarterRevenue,
+            profit: this.currentQuarterProfit
+          });
+          this.newQuarterlyData = true;
+          if (this.quarterHistory.length > MAX_QUARTER_HISTORY) {
+            this.quarterHistory.shift();
+          }
+        }
+      }
+      this.currentQuarterMeta = nextMeta
+        ? { year: nextMeta.year, quarter: nextMeta.quarter }
+        : null;
+      this.currentQuarterRevenue = 0;
+      this.currentQuarterProfit = 0;
+    }
+
+    getQuarterMeta(dateLike) {
+      let dateObj = null;
+      if (dateLike instanceof Date) {
+        dateObj = dateLike;
+      } else if (typeof dateLike === 'number' || typeof dateLike === 'string') {
+        const maybeDate = new Date(dateLike);
+        if (!isNaN(maybeDate.getTime())) {
+          dateObj = maybeDate;
+        }
+      }
+      if (!dateObj) {
+        if (this.currentQuarterMeta) {
+          return { ...this.currentQuarterMeta };
+        }
+        dateObj = this.ipoDate ? new Date(this.ipoDate) : new Date();
+      }
+      return {
+        year: dateObj.getFullYear(),
+        quarter: Math.floor(dateObj.getMonth() / 3) + 1
+      };
+    }
+
+    sumQuarterTotalsForYear(year) {
+      if (typeof year !== 'number') {
+        return { revenue: 0, profit: 0, quarters: 0 };
+      }
+      return this.quarterHistory.reduce((acc, entry) => {
+        if (entry.year === year) {
+          acc.revenue += entry.revenue;
+          acc.profit += entry.profit;
+          acc.quarters += 1;
+        }
+        return acc;
+      }, { revenue: 0, profit: 0, quarters: 0 });
+    }
+
+    recordHistoryPoint(gameDate, value = this.marketCap) {
       const stamp = gameDate.getTime();
       const last = this.history[this.history.length - 1];
       if (!last || last.x !== stamp) {
@@ -88,19 +170,63 @@
       }
     }
 
-    markBankrupt (gameDate) {
+    markBankrupt(gameDate) {
       this.marketCap = 0;
       this.displayCap = 0;
       this.bankrupt = true;
       this.recordHistoryPoint(gameDate, 0);
     }
 
-    getFinancialTable () {
+    getFinancialTable() {
       if (this.financialHistory.length === 0) return null;
       return this.financialHistory.slice().reverse();
     }
 
-    getFinancialTableHTML () {
+    getYoySeries(limit = 8) {
+      if (!Array.isArray(this.quarterHistory) || this.quarterHistory.length === 0) return [];
+      const ordered = this.quarterHistory.slice().sort((a, b) => {
+        if (a.year === b.year) return a.quarter - b.quarter;
+        return a.year - b.year;
+      });
+
+      const series = [];
+      // Calculate TTM (or partial TTM) for every available quarter
+      for (let i = 0; i < ordered.length; i++) {
+        let revenue = 0;
+        let profit = 0;
+        // Sum up to 4 quarters ending at i (partial sum if < 4 available)
+        const start = Math.max(0, i - 3);
+        let count = 0;
+        for (let j = start; j <= i; j++) {
+          revenue += ordered[j].revenue;
+          profit += ordered[j].profit;
+          count++;
+        }
+
+        // Extrapolate if less than 4 quarters (Annualized Run Rate)
+        if (count > 0 && count < 4) {
+          const multiplier = 4 / count;
+          revenue *= multiplier;
+          profit *= multiplier;
+        }
+
+        const curr = ordered[i];
+        series.push({
+          year: curr.year,
+          quarter: curr.quarter,
+          label: `${curr.year} Q${curr.quarter}`,
+          revenue,
+          profit
+        });
+      }
+
+      if (limit > 0 && series.length > limit) {
+        return series.slice(series.length - limit);
+      }
+      return series;
+    }
+
+    getFinancialTableHTML() {
       const data = this.getFinancialTable();
       if (!data || data.length === 0) return '<p>No annual data available yet</p>';
       const fmtMoney = (v) => {
@@ -136,34 +262,34 @@
   }
 
   class PhaseCompany extends BaseCompany {
-    constructor (cfg, macroEnv, gameStartYear = 1990, ipoDate = new Date(gameStartYear, 0, 1), initialPhase = 'public') {
+    constructor(cfg, macroEnv, gameStartYear = 1990, ipoDate = new Date(gameStartYear, 0, 1), initialPhase = 'public') {
       super(cfg, macroEnv, gameStartYear, ipoDate);
       this.phase = initialPhase;
       this.phaseMetadata = {};
     }
 
-    setPhase (nextPhase, extras = {}) {
+    setPhase(nextPhase, extras = {}) {
       this.phase = nextPhase || this.phase;
       if (extras && typeof extras === 'object') {
         this.phaseMetadata = Object.assign({}, this.phaseMetadata, extras);
       }
     }
 
-    getPhase () {
+    getPhase() {
       return this.phase;
     }
 
-    get isPrivatePhase () {
+    get isPrivatePhase() {
       return this.phase === 'private';
     }
 
-    get isPublicPhase () {
+    get isPublicPhase() {
       return this.phase === 'public';
     }
   }
 
   class Company extends PhaseCompany {
-    constructor (cfg, macroEnv, gameStartYear = 1990, ipoDate = new Date(gameStartYear, 0, 1)) {
+    constructor(cfg, macroEnv, gameStartYear = 1990, ipoDate = new Date(gameStartYear, 0, 1)) {
       super(cfg, macroEnv, gameStartYear, ipoDate, 'public');
       this.showDividendColumn = true;
 
@@ -230,7 +356,7 @@
       }
     }
 
-    step (dtDays, gameDate) {
+    step(dtDays, gameDate) {
       if (this.bankrupt) return;
 
       this.ageDays += dtDays;
@@ -343,7 +469,7 @@
       this.marketCap = candidateCap;
       this.displayCap = this.marketCap;
 
-      this.accumulateYear(revenueThisTick, netIncome);
+      this.accumulateYear(revenueThisTick, netIncome, gameDate);
 
       let plannedDividend = 0;
       if (this.debt <= 0 && Array.isArray(this.financialHistory) && this.financialHistory.length >= 3) {
@@ -370,7 +496,7 @@
       this.recordHistoryPoint(gameDate);
     }
 
-    processPendingDividends (gameDate) {
+    processPendingDividends(gameDate) {
       if (this.pendingDividendRemaining <= 0 || this.dividendInstallmentsLeft <= 0) {
         if (this.pendingDividendRemaining <= 0) {
           this.pendingDividendRemaining = 0;
@@ -400,13 +526,13 @@
       }
     }
 
-    recordDividendEvent (amount, gameDate) {
+    recordDividendEvent(amount, gameDate) {
       if (amount <= 0) return;
       if (!this.dividendEvents) this.dividendEvents = [];
       this.dividendEvents.push({ amount, timestamp: gameDate ? gameDate.getTime() : Date.now() });
     }
 
-    drainDividendEvents () {
+    drainDividendEvents() {
       if (!this.dividendEvents || this.dividendEvents.length === 0) return [];
       const events = this.dividendEvents.slice();
       this.dividendEvents.length = 0;
@@ -415,7 +541,7 @@
   }
 
   class HypergrowthCompany extends BaseCompany {
-    constructor (cfg, macroEnv, gameStartYear = 1990, ipoDate = new Date(gameStartYear, 0, 1)) {
+    constructor(cfg, macroEnv, gameStartYear = 1990, ipoDate = new Date(gameStartYear, 0, 1)) {
       super(cfg, macroEnv, gameStartYear, ipoDate);
       if (!cfg.static || !cfg.static.name) this.name = 'Hypergrowth Co';
       if (!cfg.static || !cfg.static.sector) this.sector = 'Web';
@@ -446,7 +572,7 @@
       this.slowExpense = null;
     }
 
-    step (dtDays, gameDate) {
+    step(dtDays, gameDate) {
       if (this.bankrupt) return;
       const dtYears = dtDays / 365;
       this.ageDays += dtDays;
@@ -537,7 +663,7 @@
       this.marketCap = Math.max(intrinsicValue, this.cash - this.debt);
       this.displayCap = this.marketCap;
 
-      this.accumulateYear(revenueThisTick, netIncome);
+      this.accumulateYear(revenueThisTick, netIncome, gameDate);
       this.maybeRecordAnnual(0);
       this.recordHistoryPoint(gameDate);
     }
@@ -550,5 +676,5 @@
     HypergrowthCompany
   };
 })(typeof globalThis !== 'undefined'
-    ? globalThis
-    : (typeof window !== 'undefined' ? window : this));
+  ? globalThis
+  : (typeof window !== 'undefined' ? window : this));

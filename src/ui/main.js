@@ -61,7 +61,7 @@ if (!dashboardModule) {
 }
 const { renderCompanies: renderCompaniesUI, renderPortfolio: renderPortfolioUI } = dashboardModule;
 
-window.triggerMacroEvent = function(eventId) {
+window.triggerMacroEvent = function (eventId) {
     if (!sim || typeof sim.triggerMacroEvent !== 'function') {
         console.warn('Simulation not ready; cannot trigger macro event.');
         return null;
@@ -96,8 +96,8 @@ let isMillionaire = false;
 let isBillionaire = false;
 let isTrillionaire = false;
 const jsConfetti = new JSConfetti();
-let currentSpeed = 1; 
-let wasAutoPaused = false; 
+let currentSpeed = 1;
+let wasAutoPaused = false;
 let isGameReady = false;
 let currentSort = 'ipoQueue';
 let currentFilter = 'all';
@@ -131,13 +131,13 @@ if (wojakImage) {
 // --- Banking State ---
 let totalBorrowed = 0;
 let lastInterestDate = new Date(currentDate);
-const ANNUAL_INTEREST_RATE = 0.07; 
+const ANNUAL_INTEREST_RATE = 0.07;
 
 // --- Global Game Constants ---
 const GAME_END_YEAR = 2050;
 
 let sim;
-let companies = []; 
+let companies = [];
 let ventureSim;
 let ventureCompanies = [];
 const companyRenderState = {
@@ -194,7 +194,8 @@ async function loadCompaniesData() {
 }
 
 // --- Chart Objects ---
-let netWorthChart, companyDetailChart;
+let netWorthChart, companyDetailChart, financialYoyChart;
+let currentChartRange = 80; // Default to Max (20 years * 4 quarters)
 
 // --- Formatting ---
 const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
@@ -223,16 +224,16 @@ function updateDisplay() {
     const pendingCommitments = ventureSim ? ventureSim.getPendingCommitments() : 0;
     const equityValue = publicAssets + privateAssets + pendingCommitments;
     const totalAssets = cash + equityValue;
-    
+
     netWorthDisplay.textContent = currencyFormatter.format(netWorth);
     netWorthDisplay.style.color = netWorth >= 0 ? '#00c742' : '#dc3545';
     currentDateDisplay.textContent = formatDate(currentDate);
-    
+
     // Update the single display line
     const displayCash = Math.max(0, cash);
     const commitmentsLabel = pendingCommitments > 0 ? ` | VC Commitments: ${currencyFormatter.format(pendingCommitments)}` : '';
     subFinancialDisplay.textContent = `Equities: ${currencyFormatter.format(publicAssets + privateAssets)}${commitmentsLabel} | Cash: ${currencyFormatter.format(displayCash)} | Liabilities: ${currencyFormatter.format(totalBorrowed)}`;
-    
+
     if (netWorth < 0 && totalBorrowed > 0) {
         endGame("bankrupt");
     }
@@ -317,34 +318,34 @@ function updateNetWorth() {
     }
 
     if (netWorth >= 1000000 && !isMillionaire) {
-        isMillionaire = true; 
+        isMillionaire = true;
         if (wojakManager) {
             wojakManager.setBaseImage('wojaks/suit-wojak.png', true);
         }
         jsConfetti.addConfetti({ emojis: ['💰', '💵'], confettiNumber: 150, emojiSize: 30, });
     }
-    if (netWorth >=  1000000000  && !isBillionaire) {
+    if (netWorth >= 1000000000 && !isBillionaire) {
         isBillionaire = true;
         if (wojakManager) {
             wojakManager.setBaseImage('wojaks/red-suit-wojak.png', true);
         }
-        jsConfetti.addConfetti({ emojis: ['💎','📀'], confettiNumber: 40, emojiSize: 40, });
+        jsConfetti.addConfetti({ emojis: ['💎', '📀'], confettiNumber: 40, emojiSize: 40, });
     }
     if (netWorth >= 1000000000000 && !isTrillionaire) {
         isTrillionaire = true;
         if (wojakManager) {
             wojakManager.setBaseImage('wojaks/purple-suit-wojak.png', true);
         }
-        jsConfetti.addConfetti({ emojis: ['🌌','🥇','🔮'], confettiNumber: 100, emojiSize: 30, });
-        setTimeout(() => { jsConfetti.addConfetti({ emojis: ['🌌','🥇','🔮'], confettiNumber: 100, emojiSize: 30, }); }, 1000); 
-        setTimeout(() => { jsConfetti.addConfetti({ emojis: ['🌌','🥇','🔮'], confettiNumber: 100, emojiSize: 30, }); }, 2000); 
+        jsConfetti.addConfetti({ emojis: ['🌌', '🥇', '🔮'], confettiNumber: 100, emojiSize: 30, });
+        setTimeout(() => { jsConfetti.addConfetti({ emojis: ['🌌', '🥇', '🔮'], confettiNumber: 100, emojiSize: 30, }); }, 1000);
+        setTimeout(() => { jsConfetti.addConfetti({ emojis: ['🌌', '🥇', '🔮'], confettiNumber: 100, emojiSize: 30, }); }, 2000);
     }
 
     if (netWorth >= 5000000) {
         vcBtn.disabled = false;
         vcBtn.parentElement.classList.remove('disabled');
         ensureVentureSimulation();
-        
+
     } else {
         vcBtn.disabled = true;
         vcBtn.parentElement.classList.add('disabled');
@@ -511,7 +512,7 @@ function hideBankingModal() { bankingModal.classList.remove('active'); bankingAm
 function endGame(reason) {
     pauseGame();
     let message = "";
-    if (reason === "bankrupt") { message = "GAME OVER! You went bankrupt!"; } 
+    if (reason === "bankrupt") { message = "GAME OVER! You went bankrupt!"; }
     else if (reason === "timeline_end") { message = `Game Over! You reached ${GAME_END_YEAR}.`; }
     alert(`${message}\nFinal Net Worth: ${currencyFormatter.format(netWorth)}`);
     if (confirm("Play again?")) { location.reload(); }
@@ -522,7 +523,7 @@ function gameLoop() {
 
     if (currentDate.getFullYear() >= GAME_END_YEAR) { endGame("timeline_end"); return; }
     currentDate.setDate(currentDate.getDate() + sim.dtDays);
-    
+
     const companiesBefore = sim.companies.length;
     sim.tick(currentDate);
     const companiesAfter = sim.companies.length;
@@ -581,10 +582,11 @@ function gameLoop() {
     } else {
         renderCompanies(); // Otherwise, re-render (throttled) to keep ordering accurate
     }
-    
-    if (activeCompanyDetail && activeCompanyDetail.newAnnualData) {
-        document.getElementById('financialHistoryContainer').innerHTML = activeCompanyDetail.getFinancialTableHTML();
+
+    if (activeCompanyDetail && (activeCompanyDetail.newAnnualData || activeCompanyDetail.newQuarterlyData)) {
+        renderCompanyFinancialHistory(activeCompanyDetail);
         activeCompanyDetail.newAnnualData = false;
+        activeCompanyDetail.newQuarterlyData = false;
     }
 
     chargeInterest();
@@ -593,13 +595,13 @@ function gameLoop() {
     renderPortfolio();
     netWorthChart.update();
     if (companyDetailChart) companyDetailChart.update();
-    
+
     if (activeCompanyDetail) {
         updateInvestmentPanelStats(activeCompanyDetail);
-        
+
         if (activeCompanyDetail.hasPipelineUpdate) {
             updatePipelineDisplay(activeCompanyDetail);
-            activeCompanyDetail.hasPipelineUpdate = false; 
+            activeCompanyDetail.hasPipelineUpdate = false;
         }
     }
 }
@@ -614,7 +616,7 @@ function buy(companyName, amount) {
     cash -= amount;
     const unitsToBuy = amount / company.marketCap;
     let holding = portfolio.find(h => h.companyName === companyName);
-    if (holding) { holding.unitsOwned += unitsToBuy; } 
+    if (holding) { holding.unitsOwned += unitsToBuy; }
     else { portfolio.push({ companyName: companyName, unitsOwned: unitsToBuy }); }
     updateNetWorth(); updateDisplay(); renderPortfolio(); updateInvestmentPanel(company);
 }
@@ -679,6 +681,210 @@ function leadVentureRound(companyId) {
     };
 }
 
+function destroyFinancialYoyChart() {
+    if (financialYoyChart) {
+        financialYoyChart.destroy();
+        financialYoyChart = null;
+    }
+}
+
+function renderCompanyFinancialHistory(company) {
+    const container = document.getElementById('financialHistoryContainer');
+    if (!container || !company) return;
+    company.newAnnualData = false;
+    company.newQuarterlyData = false;
+
+    // Ensure structure exists
+    let chartWrapper = container.querySelector('.financial-yoy-chart');
+    let tableWrapper = container.querySelector('.financial-table-wrapper');
+
+    if (!chartWrapper) {
+        container.innerHTML = ''; // Clear any old content if structure is missing
+        chartWrapper = document.createElement('div');
+        chartWrapper.className = 'financial-yoy-chart';
+        chartWrapper.style.height = '200px';
+        chartWrapper.style.marginBottom = '20px';
+        const canvas = document.createElement('canvas');
+        canvas.id = 'financialYoyChart';
+        chartWrapper.appendChild(canvas);
+        container.appendChild(chartWrapper);
+    }
+
+    if (!tableWrapper) {
+        tableWrapper = document.createElement('div');
+        tableWrapper.className = 'financial-table-wrapper';
+        container.appendChild(tableWrapper);
+    }
+
+    // Ensure controls exist
+    let controlsWrapper = container.querySelector('.chart-controls');
+    if (!controlsWrapper) {
+        controlsWrapper = document.createElement('div');
+        controlsWrapper.className = 'chart-controls';
+        controlsWrapper.style.display = 'flex';
+        controlsWrapper.style.justifyContent = 'flex-end';
+        controlsWrapper.style.marginBottom = '5px';
+        controlsWrapper.style.gap = '5px';
+
+        const ranges = [
+            { label: '5Y', value: 20 },
+            { label: '10Y', value: 40 },
+            { label: '20Y', value: 80 },
+            { label: 'Max', value: 0 }
+        ];
+
+        ranges.forEach(range => {
+            const btn = document.createElement('button');
+            btn.textContent = range.label;
+            btn.className = 'chart-range-btn';
+            btn.dataset.value = range.value;
+            btn.style.padding = '2px 8px';
+            btn.style.fontSize = '12px';
+            btn.style.cursor = 'pointer';
+            btn.style.border = '1px solid #ccc';
+            btn.style.borderRadius = '4px';
+            btn.style.backgroundColor = currentChartRange === range.value ? '#e0e0e0' : '#fff';
+
+            btn.onclick = () => {
+                currentChartRange = range.value;
+                // Update active state
+                controlsWrapper.querySelectorAll('.chart-range-btn').forEach(b => {
+                    b.style.backgroundColor = parseInt(b.dataset.value) === currentChartRange ? '#e0e0e0' : '#fff';
+                });
+                renderCompanyFinancialHistory(company);
+            };
+            controlsWrapper.appendChild(btn);
+        });
+
+        // Insert before chart wrapper
+        container.insertBefore(controlsWrapper, chartWrapper);
+    } else {
+        // Update active state just in case
+        controlsWrapper.querySelectorAll('.chart-range-btn').forEach(b => {
+            b.style.backgroundColor = parseInt(b.dataset.value) === currentChartRange ? '#e0e0e0' : '#fff';
+        });
+    }
+
+    const yoySeries = typeof company.getYoySeries === 'function'
+        ? company.getYoySeries(currentChartRange)
+        : [];
+
+    if (yoySeries.length === 0) {
+        if (financialYoyChart) {
+            financialYoyChart.destroy();
+            financialYoyChart = null;
+        }
+        chartWrapper.innerHTML = '<div class="financial-yoy-chart empty">Waiting for financial data...</div>';
+    } else {
+        // Ensure canvas exists if we came from empty state
+        let canvas = chartWrapper.querySelector('canvas');
+        if (!canvas) {
+            chartWrapper.innerHTML = '';
+            canvas = document.createElement('canvas');
+            canvas.id = 'financialYoyChart';
+            chartWrapper.appendChild(canvas);
+        }
+
+        const labels = yoySeries.map(item => {
+            if (item.label) return item.label;
+            if (typeof item.quarter === 'number') return `${item.year} Q${item.quarter}`;
+            return item.year;
+        });
+        const revenueData = yoySeries.map(item => item.revenue);
+        const profitData = yoySeries.map(item => item.profit);
+        const profitColors = profitData.map(value => value >= 0 ? '#6de38a' : '#ff5b5b');
+
+        // Pad with empty data if few points to prevent "beeg spacing"
+        const minPoints = 20;
+        if (labels.length < minPoints) {
+            const missing = minPoints - labels.length;
+            for (let i = 0; i < missing; i++) {
+                labels.push('');
+                revenueData.push(null);
+                profitData.push(null);
+                profitColors.push(null);
+            }
+        }
+
+        if (financialYoyChart) {
+            financialYoyChart.data.labels = labels;
+            financialYoyChart.data.datasets[0].data = revenueData;
+            financialYoyChart.data.datasets[1].data = profitData;
+            financialYoyChart.data.datasets[1].backgroundColor = profitColors;
+
+            // Ensure options are updated for interaction mode
+            financialYoyChart.options.interaction = {
+                mode: 'index',
+                intersect: false,
+            };
+            financialYoyChart.update();
+        } else {
+            financialYoyChart = new Chart(canvas.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Revenue',
+                            data: revenueData,
+                            backgroundColor: '#635bff',
+                            borderRadius: 4,
+                            categoryPercentage: 0.8,
+                            barPercentage: 0.9,
+                            grouped: false,
+                            order: 1,
+                            maxBarThickness: 50
+                        },
+                        {
+                            label: 'Profit (Trailing 12 Months)',
+                            data: profitData,
+                            backgroundColor: profitColors,
+                            borderRadius: 4,
+                            categoryPercentage: 0.8,
+                            barPercentage: 0.9,
+                            grouped: false,
+                            order: 0,
+                            maxBarThickness: 50
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 0 },
+                    scales: {
+                        x: {
+                            grid: { display: false }
+                        },
+                        y: {
+                            grid: { color: 'rgba(148, 163, 184, 0.25)' },
+                            ticks: {
+                                callback: value => formatLargeNumber(value)
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: true, position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: context => {
+                                    const val = context.parsed.y ?? context.parsed;
+                                    return `${context.dataset.label}: ${formatLargeNumber(val)}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    // Only update table HTML if it changed to avoid minor layout thrashing, 
+    // though innerHTML replace is usually fine if height is stable.
+    // For now, just replacing it is safer than diffing.
+    tableWrapper.innerHTML = company.getFinancialTableHTML();
+}
+
 function updateInvestmentPanelStats(company) {
     playerCashDisplay.textContent = currencyFormatter.format(cash);
     const holding = portfolio.find(h => h.companyName === company.name);
@@ -708,10 +914,11 @@ function showCompanyDetail(company) {
     const ctx = document.getElementById('companyDetailChart').getContext('2d');
     if (companyDetailChart) { companyDetailChart.destroy(); }
     companyDetailChart = new Chart(ctx, {
-        type: 'line', data: { datasets: [{ label: 'Market Cap', data: company.history, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderWidth: 2, pointRadius: 0, tension: 0.1, fill: true }]},
+        type: 'line', data: { datasets: [{ label: 'Market Cap', data: company.history, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderWidth: 2, pointRadius: 0, tension: 0.1, fill: true }] },
         options: { responsive: true, maintainAspectRatio: false, animation: { duration: 0 }, plugins: { legend: { display: false } }, scales: { x: { type: 'time', time: { unit: 'year' } }, y: { ticks: { callback: value => formatLargeNumber(value) } } } }
     });
-    document.getElementById('financialHistoryContainer').innerHTML = company.getFinancialTableHTML();
+    document.getElementById('financialHistoryContainer').innerHTML = '';
+    renderCompanyFinancialHistory(company);
     updatePipelineDisplay(company); // Draw pipeline on view
 }
 
@@ -719,19 +926,20 @@ function hideCompanyDetail() {
     activeCompanyDetail = null;
     bodyEl.classList.remove('detail-active');
     if (companyDetailChart) { companyDetailChart.destroy(); companyDetailChart = null; }
+    destroyFinancialYoyChart();
 }
 
 function pauseGame() {
-    if (isPaused) return; 
+    if (isPaused) return;
     isPaused = true;
     clearInterval(gameInterval);
     togglePauseBtn.textContent = 'Resume';
 }
 
 function resumeGame() {
-    if (!isPaused) return; 
+    if (!isPaused) return;
     isPaused = false;
-    wasAutoPaused = false; 
+    wasAutoPaused = false;
     setGameSpeed(currentSpeed);
     togglePauseBtn.textContent = 'Pause';
 }
@@ -787,7 +995,7 @@ sellMaxBtn.addEventListener('click', () => {
     }
 });
 
-togglePauseBtn.addEventListener('click', () => { 
+togglePauseBtn.addEventListener('click', () => {
     if (isPaused) {
         resumeGame();
     } else {
@@ -897,7 +1105,7 @@ async function init() {
     renderCompanies(true); // Initial full render
     renderPortfolio();
     updateDisplay();
-    
+
     isGameReady = true;
     setGameSpeed(currentSpeed);
     initVC();
@@ -919,7 +1127,7 @@ document.addEventListener('visibilitychange', () => {
     if (document.hidden && !isPaused) {
         wasAutoPaused = true;
         pauseGame();
-    } 
+    }
     if (!document.hidden && wasAutoPaused) {
         resumeGame();
     }
