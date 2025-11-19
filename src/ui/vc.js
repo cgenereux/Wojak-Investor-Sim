@@ -40,12 +40,13 @@ function ensureVentureReady() {
     }
 }
 
-function destroyVentureChart() {
-    if (ventureCompanyDetailChart) {
+function destroyVentureChart(options = { valuation: true, financial: true }) {
+    const { valuation, financial } = options || {};
+    if (valuation && ventureCompanyDetailChart) {
         ventureCompanyDetailChart.destroy();
         ventureCompanyDetailChart = null;
     }
-    if (ventureFinancialBarChart) {
+    if (financial && ventureFinancialBarChart) {
         ventureFinancialBarChart.destroy();
         ventureFinancialBarChart = null;
     }
@@ -235,19 +236,39 @@ function updateVentureDetail(companyId) {
     vcDetailLastEventEl.textContent = detail.lastEventNote || '';
 
     if (vcFinancialHistoryContainer) {
-        // Ensure structure exists: Chart Container + Table Container
+        // Ensure structure exists: Controls + Chart Container + Table Container
         let chartContainer = document.getElementById('vcChartContainerWrapper');
         let tableContainer = document.getElementById('vcTableContainerWrapper');
+        let controlsWrapper = document.getElementById('vcChartControls');
 
         if (!chartContainer) {
-            vcFinancialHistoryContainer.innerHTML = `
-                <div id="vcChartContainerWrapper" class="financial-yoy-chart" style="height: 200px; margin-bottom: 20px;">
-                    <canvas id="vcFinancialBarChart"></canvas>
-                </div>
-                <div id="vcTableContainerWrapper"></div>
-            `;
-            chartContainer = document.getElementById('vcChartContainerWrapper');
-            tableContainer = document.getElementById('vcTableContainerWrapper');
+            vcFinancialHistoryContainer.innerHTML = '';
+
+            controlsWrapper = document.createElement('div');
+            controlsWrapper.id = 'vcChartControls';
+            controlsWrapper.className = 'chart-controls';
+            controlsWrapper.style.display = 'flex';
+            controlsWrapper.style.justifyContent = 'flex-end';
+            controlsWrapper.style.marginBottom = '5px';
+            controlsWrapper.style.gap = '5px';
+            vcFinancialHistoryContainer.appendChild(controlsWrapper);
+
+            chartContainer = document.createElement('div');
+            chartContainer.id = 'vcChartContainerWrapper';
+            chartContainer.className = 'financial-yoy-chart';
+            chartContainer.style.height = '200px';
+            chartContainer.style.marginBottom = '20px';
+            const canvas = document.createElement('canvas');
+            canvas.id = 'vcFinancialBarChart';
+            canvas.style.display = 'block';
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+            chartContainer.appendChild(canvas);
+            vcFinancialHistoryContainer.appendChild(chartContainer);
+
+            tableContainer = document.createElement('div');
+            tableContainer.id = 'vcTableContainerWrapper';
+            vcFinancialHistoryContainer.appendChild(tableContainer);
         }
 
         // Update Table
@@ -312,7 +333,7 @@ function updateVentureDetail(companyId) {
         }
     }
 
-    destroyVentureChart();
+    destroyVentureChart({ valuation: true, financial: false });
     if (vcDetailChartCtx) {
         let history = (detail.history && detail.history.length > 0)
             ? detail.history.slice()
@@ -460,57 +481,48 @@ function renderVentureFinancialChart(company) {
     const canvas = document.getElementById('vcFinancialBarChart');
     if (!canvas || !company) return;
 
-    // Inject controls if needed
+    // Inject controls if needed (match public chart styling)
     let controlsWrapper = document.getElementById('vcChartControls');
-    if (!controlsWrapper) {
-        // Find the chart container's parent or sibling to insert controls
-        // The chart is inside #vcChartContainerWrapper
-        const chartParent = canvas.parentElement;
-        if (chartParent) {
-            controlsWrapper = document.createElement('div');
-            controlsWrapper.id = 'vcChartControls';
-            controlsWrapper.style.display = 'flex';
-            controlsWrapper.style.justifyContent = 'flex-end';
-            controlsWrapper.style.marginBottom = '5px';
-            controlsWrapper.style.gap = '5px';
-            controlsWrapper.style.position = 'absolute';
-            controlsWrapper.style.top = '0';
-            controlsWrapper.style.right = '0';
+    const controlsHost = vcFinancialHistoryContainer || canvas.parentElement;
+    if (!controlsWrapper && controlsHost) {
+        controlsWrapper = document.createElement('div');
+        controlsWrapper.id = 'vcChartControls';
+        controlsWrapper.className = 'chart-controls';
+        controlsWrapper.style.display = 'flex';
+        controlsWrapper.style.justifyContent = 'flex-end';
+        controlsWrapper.style.marginBottom = '5px';
+        controlsWrapper.style.gap = '5px';
+        controlsHost.insertBefore(controlsWrapper, controlsHost.firstChild);
+    }
+    if (controlsWrapper && !controlsWrapper.dataset.bound) {
+        const ranges = [
+            { label: '5Y', value: 20 },
+            { label: '10Y', value: 40 },
+            { label: '20Y', value: 80 },
+            { label: 'Max', value: 0 }
+        ];
+        ranges.forEach(range => {
+            const btn = document.createElement('button');
+            btn.textContent = range.label;
+            btn.className = 'chart-range-btn';
+            btn.dataset.value = range.value;
+            btn.style.padding = '2px 8px';
+            btn.style.fontSize = '12px';
+            btn.style.cursor = 'pointer';
+            btn.style.border = '1px solid #ccc';
+            btn.style.borderRadius = '4px';
+            btn.style.backgroundColor = currentVcChartRange === range.value ? '#e0e0e0' : '#fff';
 
-            // Make chart parent relative so we can position controls
-            chartParent.style.position = 'relative';
-
-            const ranges = [
-                { label: '5Y', value: 20 },
-                { label: '10Y', value: 40 },
-                { label: '20Y', value: 80 },
-                { label: 'Max', value: 0 }
-            ];
-
-            ranges.forEach(range => {
-                const btn = document.createElement('button');
-                btn.textContent = range.label;
-                btn.className = 'chart-range-btn';
-                btn.dataset.value = range.value;
-                btn.style.padding = '2px 8px';
-                btn.style.fontSize = '12px';
-                btn.style.cursor = 'pointer';
-                btn.style.border = '1px solid #ccc';
-                btn.style.borderRadius = '4px';
-                btn.style.backgroundColor = currentVcChartRange === range.value ? '#e0e0e0' : '#fff';
-
-                btn.onclick = () => {
-                    currentVcChartRange = range.value;
-                    renderVentureFinancialChart(company);
-                };
-                controlsWrapper.appendChild(btn);
-            });
-
-            chartParent.appendChild(controlsWrapper);
-        }
-    } else {
+            btn.onclick = () => {
+                currentVcChartRange = range.value;
+                renderVentureFinancialChart(company);
+            };
+            controlsWrapper.appendChild(btn);
+        });
+        controlsWrapper.dataset.bound = 'true';
+    } else if (controlsWrapper) {
         controlsWrapper.querySelectorAll('.chart-range-btn').forEach(b => {
-            b.style.backgroundColor = parseInt(b.dataset.value) === currentVcChartRange ? '#e0e0e0' : '#fff';
+            b.style.backgroundColor = parseInt(b.dataset.value, 10) === currentVcChartRange ? '#e0e0e0' : '#fff';
         });
     }
 
@@ -542,13 +554,13 @@ function renderVentureFinancialChart(company) {
 
     // Pad with empty data if few points to prevent "beeg spacing"
     const minPoints = 20;
-    if (yoySeries.length < minPoints) {
-        const missing = minPoints - yoySeries.length;
+    if (labels.length < minPoints) {
+        const missing = minPoints - labels.length;
         for (let i = 0; i < missing; i++) {
-            labels.unshift('');
-            revenueData.unshift(null);
-            profitData.unshift(null);
-            profitColors.unshift('rgba(0,0,0,0)');
+            labels.push('');
+            revenueData.push(null);
+            profitData.push(null);
+            profitColors.push(null);
         }
     }
 
@@ -557,6 +569,14 @@ function renderVentureFinancialChart(company) {
     try {
         if (typeof Chart === 'undefined') {
             throw new Error('Chart.js is not loaded');
+        }
+
+        // Debug canvas dimensions
+        // console.log(`[VC Debug] Canvas Dimensions: ${canvas.width}x${canvas.height}, Client: ${canvas.clientWidth}x${canvas.clientHeight}`);
+
+        if (canvas.clientHeight === 0) {
+            console.warn('[VC Debug] Canvas has 0 height! Forcing resize.');
+            canvas.style.height = '200px';
         }
 
         // If chart exists and canvas is same, update it
