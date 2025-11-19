@@ -199,12 +199,12 @@ let currentChartRange = 80; // Default to Max (20 years * 4 quarters)
 
 // --- Formatting ---
 const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
-function formatLargeNumber(num) {
+function formatLargeNumber(num, precision = 2) {
     const absNum = Math.abs(num);
     const sign = num < 0 ? '-' : '';
-    if (absNum >= 1e12) return `${sign}$${(absNum / 1e12).toFixed(2)}T`;
-    if (absNum >= 1e9) return `${sign}$${(absNum / 1e9).toFixed(2)}B`;
-    if (absNum >= 1e6) return `${sign}$${(absNum / 1e6).toFixed(2)}M`;
+    if (absNum >= 1e12) return `${sign}$${(absNum / 1e12).toFixed(precision)}T`;
+    if (absNum >= 1e9) return `${sign}$${(absNum / 1e9).toFixed(precision)}B`;
+    if (absNum >= 1e6) return `${sign}$${(absNum / 1e6).toFixed(precision)}M`;
     if (absNum >= 1e3) return `${sign}$${(absNum / 1e3).toFixed(1)}K`;
     return currencyFormatter.format(num);
 }
@@ -681,6 +681,72 @@ function leadVentureRound(companyId) {
     };
 }
 
+function getCompanyTooltipHandler(context) {
+    // Tooltip Element
+    let tooltipEl = document.getElementById('chartjs-tooltip-company');
+
+    // Create element on first render
+    if (!tooltipEl) {
+        tooltipEl = document.createElement('div');
+        tooltipEl.id = 'chartjs-tooltip-company';
+        tooltipEl.style.opacity = 1;
+        tooltipEl.style.pointerEvents = 'none';
+        tooltipEl.style.position = 'absolute';
+        tooltipEl.style.transform = 'translate(-50%, 0)';
+        tooltipEl.style.transition = 'all .1s ease';
+        tooltipEl.style.backgroundColor = '#ffffff';
+        tooltipEl.style.borderRadius = '6px';
+        tooltipEl.style.color = '#1e293b';
+        tooltipEl.style.padding = '8px';
+        tooltipEl.style.fontFamily = 'Inter, sans-serif';
+        tooltipEl.style.fontSize = '14px';
+        tooltipEl.style.whiteSpace = 'nowrap';
+        tooltipEl.style.zIndex = '100';
+        tooltipEl.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+        document.body.appendChild(tooltipEl);
+    }
+
+    // Hide if no tooltip
+    const tooltipModel = context.tooltip;
+    if (tooltipModel.opacity === 0) {
+        tooltipEl.style.opacity = 0;
+        return;
+    }
+
+    // Set Text
+    if (tooltipModel.body) {
+        const date = new Date(context.chart.data.datasets[0].data[tooltipModel.dataPoints[0].dataIndex].x);
+        const dateStr = date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+        const rawValue = tooltipModel.dataPoints[0].raw.y;
+        const valueStr = formatLargeNumber(rawValue);
+
+        const innerHtml = `
+            <div style="margin-bottom: 4px; color: #1e293b; display: flex; align-items: center; gap: 4px;">
+                <span style="font-weight: 600;">Date:</span>
+                <span>${dateStr}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 4px;">
+                <span style="color: #1e293b; font-weight: 600;">Market Cap:</span>
+                <span style="color: #3b82f6;">${valueStr}</span>
+            </div>
+        `;
+
+        tooltipEl.innerHTML = innerHtml;
+    }
+
+    const position = context.chart.canvas.getBoundingClientRect();
+    const bodyFont = Chart.defaults.font;
+
+    // Display, position, and set styles for font
+    tooltipEl.style.opacity = 1;
+    tooltipEl.style.position = 'absolute';
+    tooltipEl.style.left = position.left + window.pageXOffset + tooltipModel.caretX + 'px';
+    tooltipEl.style.top = position.top + window.pageYOffset + tooltipModel.caretY + 'px';
+    tooltipEl.style.font = bodyFont.string;
+    tooltipEl.style.padding = tooltipModel.padding + 'px ' + tooltipModel.padding + 'px';
+    tooltipEl.style.pointerEvents = 'none';
+}
+
 function destroyFinancialYoyChart() {
     if (financialYoyChart) {
         financialYoyChart.destroy();
@@ -888,12 +954,19 @@ function renderCompanyFinancialHistory(company) {
                     plugins: {
                         legend: { display: true, position: 'top', reverse: true },
                         tooltip: {
+                            filter: (tooltipItem) => {
+                                const val = tooltipItem.parsed.y;
+                                return val !== null && val !== undefined && !isNaN(val);
+                            },
                             callbacks: {
                                 label: context => {
                                     const val = context.parsed.y ?? context.parsed;
-                                    return `${context.dataset.label}: ${currencyFormatter.format(val)}`;
+                                    if (val === null || val === undefined || isNaN(val)) return null;
+                                    const label = context.dataset.label.replace(' (Trailing 12 Months)', '');
+                                    return `${label}: ${formatLargeNumber(val, 2)}`;
                                 }
-                            }
+                            },
+                            itemSort: (a, b) => a.datasetIndex - b.datasetIndex
                         }
                     }
                 }
@@ -963,22 +1036,10 @@ function showCompanyDetail(company) {
             plugins: {
                 legend: { display: false },
                 tooltip: {
-                    callbacks: {
-                        title: context => {
-                            const date = new Date(context[0].parsed.x);
-                            return `Date: ${date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}`;
-                        },
-                        label: function (context) {
-                            let label = context.dataset.label || '';
-                            if (label) {
-                                label += ': ';
-                            }
-                            if (context.parsed.y !== null) {
-                                label += currencyFormatter.format(context.parsed.y);
-                            }
-                            return label;
-                        }
-                    }
+                    enabled: false,
+                    external: getCompanyTooltipHandler,
+                    mode: 'index',
+                    intersect: false,
                 }
             },
             scales: {
