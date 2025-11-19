@@ -5,7 +5,8 @@ const currentDateDisplay = document.getElementById('currentDateDisplay');
 const companiesGrid = document.getElementById('companiesGrid');
 
 const togglePauseBtn = document.getElementById('togglePauseBtn');
-const speedBtns = { half: document.getElementById('halfSpeedBtn'), normal: document.getElementById('normalSpeedBtn'), double: document.getElementById('doubleSpeedBtn'), quad: document.getElementById('quadSpeedBtn'), octo: document.getElementById('octoSpeedBtn') };
+const speedSlider = document.getElementById('speedSlider');
+const speedThumbLabel = document.getElementById('speedThumbLabel');
 const backBtn = document.getElementById('back-btn');
 const portfolioList = document.getElementById('portfolioList');
 const emptyPortfolioMsg = document.getElementById('emptyPortfolioMsg');
@@ -104,6 +105,7 @@ let currentSort = 'ipoQueue';
 let currentFilter = 'all';
 const DRIP_STORAGE_KEY = 'wojak_drip_enabled';
 let dripEnabled = false;
+const SPEED_STEPS = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8];
 try {
     const stored = localStorage.getItem(DRIP_STORAGE_KEY);
     if (stored === 'true') dripEnabled = true;
@@ -170,7 +172,7 @@ async function loadCompaniesData() {
         ventureCompanies = await ventureCompaniesResponse.json();
         const macroEvents = macroEventsResponse.ok ? await macroEventsResponse.json() : [];
         if (!Array.isArray(ventureCompanies)) ventureCompanies = [];
-        let filteredCompanies = rawCompanies.filter(cfg => !cfg.experimental);
+        let filteredCompanies = []; // temporarily ignore legacy companies
         const presetHardTechCompanies = await generateHardTechPresetCompanies(3);
         if (Array.isArray(presetHardTechCompanies)) {
             filteredCompanies.push(...presetHardTechCompanies);
@@ -1076,22 +1078,30 @@ function resumeGame() {
     if (!isPaused) return;
     isPaused = false;
     wasAutoPaused = false;
-    setGameSpeed(currentSpeed);
+    const targetSpeed = currentSpeed > 0 ? currentSpeed : 1;
+    setGameSpeed(targetSpeed);
     togglePauseBtn.textContent = 'Pause';
 }
 
 function setGameSpeed(speed) {
-    currentSpeed = speed;
-    if (!isPaused) {
+    const clampedSpeed = Math.max(0, speed);
+    const wasPaused = isPaused;
+    currentSpeed = clampedSpeed;
+    if (clampedSpeed <= 0) {
         clearInterval(gameInterval);
-        gameInterval = setInterval(gameLoop, 400 / speed);
+        isPaused = true;
+        togglePauseBtn.textContent = 'Resume';
+    } else {
+        clearInterval(gameInterval);
+        gameInterval = setInterval(gameLoop, 400 / clampedSpeed);
+        isPaused = false;
+        if (wasPaused) togglePauseBtn.textContent = 'Pause';
     }
-    Object.values(speedBtns).forEach(btn => btn.classList.remove('speed-active'));
-    if (speed === 0.5) speedBtns.half.classList.add('speed-active');
-    if (speed === 1) speedBtns.normal.classList.add('speed-active');
-    if (speed === 2) speedBtns.double.classList.add('speed-active');
-    if (speed === 4) speedBtns.quad.classList.add('speed-active');
-    if (speed === 8) speedBtns.octo.classList.add('speed-active');
+    if (speedSlider) {
+        const idx = SPEED_STEPS.findIndex(step => step === clampedSpeed);
+        speedSlider.value = idx >= 0 ? idx : 2;
+    }
+    updateSpeedThumbLabel();
 }
 
 // --- Event Listeners ---
@@ -1140,11 +1150,37 @@ togglePauseBtn.addEventListener('click', () => {
     }
 });
 
-speedBtns.half.addEventListener('click', () => setGameSpeed(0.5));
-speedBtns.normal.addEventListener('click', () => setGameSpeed(1));
-speedBtns.double.addEventListener('click', () => setGameSpeed(2));
-speedBtns.quad.addEventListener('click', () => setGameSpeed(4));
-speedBtns.octo.addEventListener('click', () => setGameSpeed(8));
+if (speedSlider) {
+    speedSlider.addEventListener('input', (event) => {
+        const idx = Number(event.target.value) || 0;
+        const clampedIdx = Math.max(0, Math.min(SPEED_STEPS.length - 1, idx));
+        const nextSpeed = SPEED_STEPS[clampedIdx] ?? 1;
+        setGameSpeed(nextSpeed);
+    });
+    if (typeof speedSlider.value === 'string') {
+        const initialIdx = SPEED_STEPS.indexOf(currentSpeed);
+        speedSlider.value = `${initialIdx >= 0 ? initialIdx : 2}`;
+    }
+    updateSpeedThumbLabel();
+}
+
+function updateSpeedThumbLabel() {
+    if (!speedSlider || !speedThumbLabel) return;
+    const idx = SPEED_STEPS.indexOf(currentSpeed);
+    const sliderMin = Number(speedSlider.min) || 0;
+    const sliderMax = Number(speedSlider.max) || Math.max(SPEED_STEPS.length - 1, 1);
+    const val = idx >= 0 ? idx : 1;
+    const ratio = (val - sliderMin) / Math.max(1, sliderMax - sliderMin);
+    const trackWidth = speedSlider.clientWidth || 0;
+  const thumbWidth = 16; // approximate thumb width
+  const pos = ratio * Math.max(0, trackWidth - thumbWidth) + thumbWidth / 2;
+  speedThumbLabel.style.left = `${pos}px`;
+  speedThumbLabel.textContent = currentSpeed <= 0 ? 'Paused' : `${currentSpeed}x Speed`;
+}
+
+window.addEventListener('resize', () => {
+    updateSpeedThumbLabel();
+});
 
 
 

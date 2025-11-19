@@ -15,7 +15,8 @@
     <!-- CSS and JS -->
     <link rel="stylesheet" href="styles/style.css">
     <link rel="stylesheet" href="styles/vc.css">
-    <link rel="shortcut icon" type="image/png" href="wojaks/wojak.png" id="faviconLink" />
+    <link rel="icon" type="image/png" href="./wojaks/wojak.png" id="faviconLink" />
+    <link rel="shortcut icon" type="image/png" href="./wojaks/wojak.png" />
 </head>
 
 <body>
@@ -45,11 +46,13 @@
             </div>
             <div class="controls">
                 <button id="togglePauseBtn">Pause</button>
-                <button class="speed-btn" id="halfSpeedBtn">0.5x</button>
-                <button class="speed-btn" id="normalSpeedBtn">1x</button>
-                <button class="speed-btn" id="doubleSpeedBtn">2x</button>
-                <button class="speed-btn" id="quadSpeedBtn">4x</button>
-                <button class="speed-btn" id="octoSpeedBtn">8x</button>
+                <div class="speed-slider-wrap">
+                    <label for="speedSlider">Time</label>
+                    <div class="speed-slider-row">
+                        <input type="range" id="speedSlider" min="0" max="16" step="1" value="2" />
+                        <span id="speedThumbLabel">1x</span>
+                    </div>
+                </div>
                 <button id="bankBtn">Bank</button>
                 <div class="tooltip-container">
                     <button id="vcBtn" disabled>Venture Capital</button>

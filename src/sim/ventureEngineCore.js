@@ -187,6 +187,7 @@
       this.playerInvested = 0;
       this.pendingCommitment = 0;
       this.cash = Number(config.starting_cash_usd ?? 0);
+      this.debt = Number(config.starting_debt_usd ?? 0);
       this.raiseTriggerCash = 0;
       this.cashBurnPerDay = 0;
       this.runwayTargetDays = 180;
@@ -332,7 +333,7 @@
           profit: this.currentYearProfit,
           marketCap: this.currentValuation,
           cash: Math.max(this.cash, 0),
-          debt: 0,
+          debt: Math.max(this.debt, 0),
           dividend: 0,
           ps: this.currentYearRevenue > 0 ? this.currentValuation / this.currentYearRevenue : 0,
           pe: this.currentYearProfit > 0 ? this.currentValuation / this.currentYearProfit : 0
@@ -492,15 +493,23 @@
     applyRunwayFlow(dtDays) {
       if (!isFinite(dtDays) || dtDays <= 0) return;
       const dtYears = dtDays / DAYS_PER_YEAR;
-      const netIncome = this.profit * dtYears;
-      if (isFinite(netIncome)) {
-        this.cash += netIncome;
-      }
-      const burnPerDay = Math.max(0, -this.profit) / DAYS_PER_YEAR;
+      const profit = Number.isFinite(this.profit) ? this.profit : 0;
+      const netIncome = profit * dtYears;
+      const currentCash = Number.isFinite(this.cash) ? this.cash : 0;
+      this.cash = currentCash + netIncome;
+      if (!Number.isFinite(this.cash)) this.cash = 0;
+      const burnPerDay = Math.max(0, -profit) / DAYS_PER_YEAR;
       this.cashBurnPerDay = burnPerDay;
       this.cachedRunwayDays = burnPerDay > 0 ? this.cash / burnPerDay : Infinity;
       if (this.cash < 0) {
+        const overdraft = -this.cash;
+        if (!Number.isFinite(this.debt)) this.debt = 0;
+        this.debt += overdraft;
         this.cash = 0;
+      } else if (this.debt > 0 && this.cash > 0) {
+        const repayment = Math.min(this.debt, this.cash);
+        this.debt -= repayment;
+        this.cash -= repayment;
       }
       this.daysSinceLastRaise += dtDays;
     }
@@ -806,6 +815,8 @@
     }
 
     getSummary() {
+      const cash = Number.isFinite(this.cash) ? this.cash : 0;
+      const debt = Number.isFinite(this.debt) ? this.debt : 0;
       return {
         id: this.id,
         name: this.name,
@@ -818,13 +829,16 @@
         lastEventNote: this.lastEventNote,
         revenue: this.revenue,
         profit: this.profit,
+        debt,
         playerCommitted: !!(this.currentRound && this.currentRound.playerCommitted),
-        cash: this.cash,
+        cash,
         runwayDays: isFinite(this.cachedRunwayDays) ? this.cachedRunwayDays : null
       };
     }
 
     getDetail() {
+      const cash = Number.isFinite(this.cash) ? this.cash : 0;
+      const debt = Number.isFinite(this.debt) ? this.debt : 0;
       const round = this.currentRound;
       const stage = this.currentStage;
       const daysRemaining = round ? Math.max(0, round.durationDays - this.daysSinceRound) : 0;
@@ -843,7 +857,8 @@
         lastEventNote: this.lastEventNote,
         revenue: this.revenue,
         profit: this.profit,
-        cash: this.cash,
+        debt: debt,
+        cash: cash,
         runwayDays: isFinite(this.cachedRunwayDays) ? this.cachedRunwayDays : null,
         history: this.history.slice(),
         financialHistory: this.financialHistory.slice(),
