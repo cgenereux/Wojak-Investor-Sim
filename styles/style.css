@@ -144,7 +144,7 @@ body.detail-active #detail-view {
 }
 
 input:checked+.slider {
-    background-color: #3b82f6;
+    background-color: #00c742;
 }
 
 input:checked+.slider:before {

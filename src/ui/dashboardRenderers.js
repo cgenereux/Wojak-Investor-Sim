@@ -46,6 +46,14 @@
       });
     }
 
+    // Always push bankrupt companies to the bottom regardless of sort mode
+    filtered.sort((a, b) => {
+      const aBankrupt = a && a.bankrupt ? 1 : 0;
+      const bBankrupt = b && b.bankrupt ? 1 : 0;
+      if (aBankrupt === bBankrupt) return 0;
+      return aBankrupt - bBankrupt;
+    });
+
     companiesGrid.innerHTML = filtered.map(company => {
       const boxClass = company.bankrupt ? 'company-box bankrupt' : 'company-box';
       const capLabel = company.bankrupt ? 'Cap: Bankrupt' : `Cap: ${formatLargeNumber(company.displayCap)}`;
