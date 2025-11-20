@@ -45,9 +45,9 @@ async function buildMatch(seed = Date.now()) {
   const rngFn = () => rng.random();
   const presetOpts = { rng: rngFn, baseDir: path.join(__dirname, '..') };
   const pubs = [];
-  pubs.push(...await Presets.generateHardTechPresetCompanies(1, presetOpts));
-  pubs.push(...await Presets.generateSteadyMegacorpCompanies(1, presetOpts));
-  pubs.push(...await Presets.generateProductRotatorCompanies(1, presetOpts));
+  pubs.push(...await Presets.generateHardTechPresetCompanies(3, presetOpts));
+  pubs.push(...await Presets.generateSteadyMegacorpCompanies(2, presetOpts));
+  pubs.push(...await Presets.generateProductRotatorCompanies(2, presetOpts));
   const ventures = [
     ...(await Presets.generateHypergrowthPresetCompanies(presetOpts)),
     ...Presets.generateBinaryHardTechCompanies(1, presetOpts)
@@ -77,21 +77,31 @@ function startTickLoop(session) {
     const current = session.sim.lastTick || new Date('1990-01-01T00:00:00Z');
     const next = new Date(current.getTime() + session.sim.dtDays * MS_PER_DAY);
     const dtDays = Math.max(0, (next.getTime() - current.getTime()) / MS_PER_DAY);
+    // console.log(`[Server Debug] Tick: dtDays=${dtDays}, current=${current.toISOString()}, next=${next.toISOString()}`);
     session.sim.tick(next);
     const events = session.ventureSim ? session.ventureSim.tick(next) : [];
+    // if (session.ventureSim && session.ventureSim.companies.length > 0) {
+    //    console.log(`[Server Debug] VC[0] Val: ${session.ventureSim.companies[0].currentValuation}, Rev: ${session.ventureSim.companies[0].revenue}`);
+    // }
     const ventureEvents = sanitizeVentureEvents(events);
     accrueInterest(session, dtDays);
     const dividendEvents = distributeDividends(session);
     const payload = {
       type: 'tick',
       lastTick: session.sim.lastTick ? session.sim.lastTick.toISOString() : null,
-      companies: session.sim.companies.map(c => ({
-        id: c.id,
-        name: c.name || c.id,
-        sector: c.sector || 'Unknown',
-        marketCap: Number.isFinite(c.marketCap) ? c.marketCap : 0
-      })),
+      companies: session.sim.companies.map(c => {
+        if (typeof c.toSnapshot === 'function') {
+          // Send minimal history in ticks to save bandwidth, but enough for live updates
+          return c.toSnapshot({ historyLimit: 1, quarterLimit: 2 });
+        }
+        return {
+          id: c.id,
+          marketCap: c.marketCap,
+          history: c.history ? c.history.slice(-1) : []
+        };
+      }),
       ventureEvents,
+      venture: session.ventureSim ? session.ventureSim.getTickSnapshot() : null,
       dividendEvents,
       players: Array.from(session.players.values()).map(p => serializePlayer(p, session.sim))
     };
@@ -264,16 +274,10 @@ function sanitizeVentureEvents(events) {
 }
 
 function buildSnapshot(session) {
-  const simState = session.sim.exportState({ detail: false });
-  if (Array.isArray(simState.companies)) {
-    simState.companies = simState.companies.map(c => ({
-      id: c.id,
-      name: c.name || c.id,
-      sector: c.sector || 'Unknown',
-      marketCap: Number.isFinite(c.marketCap) ? c.marketCap : 0
-    }));
-  }
+  const simState = session.sim.exportState({ detail: false, historyLimit: 1000, quarterLimit: 100 });
+  // simState.companies is already formatted by exportState -> toSnapshot
   return {
+    type: 'snapshot',
     seed: session.seed,
     lastTick: session.sim.lastTick ? session.sim.lastTick.toISOString() : null,
     sim: simState,
@@ -369,6 +373,14 @@ function handleCommand(session, player, msg) {
     const enabled = !!msg.enabled;
     player.dripEnabled = enabled;
     return { ok: true, type: 'set_drip', enabled };
+  }
+  if (type === 'debug_set_cash') {
+    const amount = msg.amount;
+    if (!Number.isFinite(amount)) {
+      return { ok: false, error: 'bad_amount' };
+    }
+    player.cash = amount;
+    return { ok: true, type: 'debug_set_cash', amount };
   }
   if (type === 'ping') {
     return { ok: true, type: 'pong', ts: Date.now() };

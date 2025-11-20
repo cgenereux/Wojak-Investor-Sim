@@ -738,17 +738,17 @@
       const tail = (arr, n) => Array.isArray(arr) ? arr.slice(Math.max(0, arr.length - n)) : [];
       const productSnapshot = Array.isArray(this.products)
         ? this.products.map(p => ({
-            id: p.id,
-            label: p.label,
-            fullVal: p.fullVal,
-            stages: Array.isArray(p.stages) ? p.stages.map(s => ({
-              id: s.id,
-              completed: !!s.completed,
-              succeeded: !!s.succeeded,
-              elapsed: s.elapsed || 0,
-              tries: s.tries || 0
-            })) : []
-          }))
+          id: p.id,
+          label: p.label,
+          fullVal: p.fullVal,
+          stages: Array.isArray(p.stages) ? p.stages.map(s => ({
+            id: s.id,
+            completed: !!s.completed,
+            succeeded: !!s.succeeded,
+            elapsed: s.elapsed || 0,
+            tries: s.tries || 0
+          })) : []
+        }))
         : [];
       return {
         id: this.id,
@@ -763,6 +763,7 @@
         revenueYearToDate: this.currentYearRevenue,
         profitYearToDate: this.currentYearProfit,
         quarterHistory: tail(this.quarterHistory, quarterLimit),
+        financialHistory: tail(this.financialHistory, historyLimit),
         history: tail(this.history, historyLimit),
         products: productSnapshot,
         fromVenture: this.fromVenture || false,

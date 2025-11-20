@@ -377,6 +377,10 @@ function handleServerMessage(msg) {
         }
         updateNetWorth();
         updateDisplay();
+        renderPortfolio();
+        if (activeCompanyDetail) {
+            updateInvestmentPanel(activeCompanyDetail);
+        }
         if (netWorthChart) netWorthChart.update();
         return;
     }
@@ -396,8 +400,11 @@ function hydrateFromSnapshot(snapshot) {
     companies = (snapshot.sim.companies || []).map(c => ({
         id: c.id,
         name: c.name,
+        sector: c.sector,
         marketCap: c.marketCap || 0,
-        history: c.history || []
+        history: c.history || [],
+        quarterHistory: c.quarterHistory || [],
+        financialHistory: c.financialHistory || []
     }));
     serverPlayer = snapshot.player || null;
     if (snapshot.lastTick) {
@@ -413,6 +420,71 @@ function hydrateFromSnapshot(snapshot) {
         updateNetWorthSeriesFromPlayers(ts, latestServerPlayers);
         refreshNetWorthChartDatasets();
     }
+    if (snapshot.venture && snapshot.venture.companies) {
+        ventureCompanies = snapshot.venture.companies;
+        // Re-initialize ventureSim with server data
+        if (typeof VentureSimulation !== 'undefined') {
+            const ventureOpts = matchRngFn ? { rng: matchRngFn, seed: matchSeed } : {};
+            ventureSim = new VentureSimulation(ventureCompanies, currentDate, ventureOpts);
+
+            // CRITICAL FIX: Restore state from snapshot
+            // The constructor resets companies to initial state. We must overwrite with snapshot data.
+            if (ventureSim.companies && Array.isArray(ventureSim.companies)) {
+                ventureSim.companies.forEach(comp => {
+                    const snap = ventureCompanies.find(c => c.id === comp.id);
+                    if (snap) {
+                        Object.assign(comp, snap);
+                        // Ensure history is restored if available
+                        if (snap.history) comp.history = snap.history.slice();
+                        if (snap.financialHistory) comp.financialHistory = snap.financialHistory.slice();
+                    }
+                });
+            }
+
+            window.ventureSim = ventureSim;
+        }
+    }
+
+    // Refresh active detail view if open
+    if (activeCompanyDetail) {
+        const updated = companies.find(c => c.id === activeCompanyDetail.id || c.name === activeCompanyDetail.name);
+        if (updated) {
+            showCompanyDetail(updated);
+        } else {
+            hideCompanyDetail();
+        }
+    }
+}
+
+function mergeFinancialData(existing, update) {
+    let changed = false;
+    if (update.quarterHistory && Array.isArray(update.quarterHistory)) {
+        if (!existing.quarterHistory) existing.quarterHistory = [];
+        update.quarterHistory.forEach(item => {
+            const idx = existing.quarterHistory.findIndex(q => q.year === item.year && q.quarter === item.quarter);
+            if (idx >= 0) {
+                existing.quarterHistory[idx] = item;
+            } else {
+                existing.quarterHistory.push(item);
+                changed = true;
+            }
+        });
+        existing.quarterHistory.sort((a, b) => (a.year - b.year) || (a.quarter - b.quarter));
+    }
+    if (update.financialHistory && Array.isArray(update.financialHistory)) {
+        if (!existing.financialHistory) existing.financialHistory = [];
+        update.financialHistory.forEach(item => {
+            const idx = existing.financialHistory.findIndex(f => f.year === item.year);
+            if (idx >= 0) {
+                existing.financialHistory[idx] = item;
+            } else {
+                existing.financialHistory.push(item);
+                changed = true;
+            }
+        });
+        existing.financialHistory.sort((a, b) => a.year - b.year);
+    }
+    return changed;
 }
 
 function applyTick(tick) {
@@ -433,6 +505,11 @@ function applyTick(tick) {
             if (Array.isArray(existing.history)) {
                 existing.history.push({ x: tickTs, y: update.marketCap });
             }
+            const financialChanged = mergeFinancialData(existing, update);
+            if (financialChanged) {
+                existing.newAnnualData = true;
+                existing.newQuarterlyData = true;
+            }
         }
     });
     if (Array.isArray(tick.players) && tick.players.length) {
@@ -452,7 +529,85 @@ function applyTick(tick) {
     } else if (netWorthChart) {
         netWorthChart.update();
     }
-    if (companyDetailChart) companyDetailChart.update();
+
+    // Fix: Update active company detail chart live
+    if (activeCompanyDetail) {
+        const updated = companies.find(c => c.id === activeCompanyDetail.id || c.name === activeCompanyDetail.name);
+        if (updated) {
+            // Update reference but don't full re-render to avoid flickering inputs
+            activeCompanyDetail = updated;
+            updateInvestmentPanelStats(updated);
+
+            // Update chart data
+            if (companyDetailChart && Array.isArray(updated.history)) {
+                const history = [...updated.history].filter(p => p && Number.isFinite(p.y) && typeof p.x !== 'undefined').sort((a, b) => (a.x || 0) - (b.x || 0));
+                companyDetailChart.data.datasets[0].data = history;
+                companyDetailChart.update('none'); // 'none' mode for performance
+            }
+        }
+    } else {
+        if (companyDetailChart) companyDetailChart.update();
+    }
+
+    // Handle Venture Updates
+    if (tick.venture && tick.venture.companies) {
+        // Merge venture updates
+        tick.venture.companies.forEach(vUpdate => {
+            // Update the config array (for re-init if needed)
+            const existingConfig = ventureCompanies.find(v => v.id === vUpdate.id);
+            if (existingConfig) {
+                Object.assign(existingConfig, vUpdate);
+            } else {
+                ventureCompanies.push(vUpdate);
+            }
+
+            // Update the live simulation instance if it exists
+            if (ventureSim) {
+                const instance = ventureSim.getCompanyById(vUpdate.id);
+                if (instance) {
+                    Object.assign(instance, vUpdate);
+
+                    // Manually update history for the chart
+                    if (tick.lastTick) {
+                        const tickTs = new Date(tick.lastTick).getTime();
+                        if (!instance.history) instance.history = [];
+                        const lastHist = instance.history[instance.history.length - 1];
+                        // Only add if time has advanced
+                        if (!lastHist || lastHist.x < tickTs) {
+                            instance.history.push({ x: tickTs, y: instance.currentValuation });
+                        }
+                    }
+
+                    // Merge financial history
+                    if (vUpdate.financialHistory && Array.isArray(vUpdate.financialHistory)) {
+                        if (!instance.financialHistory) instance.financialHistory = [];
+                        vUpdate.financialHistory.forEach(item => {
+                            const idx = instance.financialHistory.findIndex(f => f.year === item.year);
+                            if (idx >= 0) {
+                                instance.financialHistory[idx] = item;
+                            } else {
+                                instance.financialHistory.push(item);
+                            }
+                        });
+                        instance.financialHistory.sort((a, b) => a.year - b.year);
+                    }
+                }
+            }
+        });
+
+        // Update ventureSim global time
+        if (ventureSim && tick.lastTick) {
+            ventureSim.lastTick = new Date(tick.lastTick);
+        }
+
+        // Refresh VC UI if active
+        if (document.body.classList.contains('vc-active') && typeof refreshVentureCompaniesList === 'function') {
+            refreshVentureCompaniesList();
+        }
+        if (document.body.classList.contains('vc-detail-active') && typeof refreshVentureDetailView === 'function') {
+            refreshVentureDetailView();
+        }
+    }
 }
 
 function applyTicks(ticks) {
@@ -1093,7 +1248,19 @@ function gameLoop() {
     updateDisplay();
     renderPortfolio();
     netWorthChart.update();
-    if (companyDetailChart) companyDetailChart.update();
+
+    if (activeCompanyDetail && companyDetailChart) {
+        // Update chart data for single-player live view
+        if (Array.isArray(activeCompanyDetail.history)) {
+            const history = [...activeCompanyDetail.history].filter(p => p && Number.isFinite(p.y) && typeof p.x !== 'undefined').sort((a, b) => (a.x || 0) - (b.x || 0));
+            companyDetailChart.data.datasets[0].data = history;
+            companyDetailChart.update('none');
+        } else {
+            companyDetailChart.update();
+        }
+    } else if (companyDetailChart) {
+        companyDetailChart.update();
+    }
 
     if (activeCompanyDetail) {
         updateInvestmentPanelStats(activeCompanyDetail);
@@ -1355,9 +1522,7 @@ function renderCompanyFinancialHistory(company) {
         });
     }
 
-    const yoySeries = typeof company.getYoySeries === 'function'
-        ? company.getYoySeries(currentChartRange)
-        : [];
+    const yoySeries = getCompanyYoySeries(company, currentChartRange);
 
     if (yoySeries.length === 0) {
         if (financialYoyChart) {
@@ -1483,9 +1648,92 @@ function renderCompanyFinancialHistory(company) {
 
     const tableHtml = typeof company.getFinancialTableHTML === 'function'
         ? company.getFinancialTableHTML()
-        : '<div class="financial-placeholder">Financial details unavailable.</div>';
+        : getCompanyFinancialTableHTML(company);
     tableWrapper.innerHTML = tableHtml;
+
+
+
+
+    // Helper functions for financial data (Client-side implementation)
+    function getCompanyYoySeries(company, limit = 8) {
+        if (!Array.isArray(company.quarterHistory) || company.quarterHistory.length === 0) return [];
+        const ordered = company.quarterHistory.slice().sort((a, b) => {
+            if (a.year === b.year) return a.quarter - b.quarter;
+            return a.year - b.year;
+        });
+
+        const series = [];
+        for (let i = 0; i < ordered.length; i++) {
+            let revenue = 0;
+            let profit = 0;
+            const start = Math.max(0, i - 3);
+            let count = 0;
+            for (let j = start; j <= i; j++) {
+                revenue += ordered[j].revenue;
+                profit += ordered[j].profit;
+                count++;
+            }
+
+            if (count > 0 && count < 4) {
+                const multiplier = 4 / count;
+                revenue *= multiplier;
+                profit *= multiplier;
+            }
+
+            const curr = ordered[i];
+            series.push({
+                year: curr.year,
+                quarter: curr.quarter,
+                label: `${curr.year} Q${curr.quarter}`,
+                revenue,
+                profit
+            });
+        }
+
+        if (limit > 0 && series.length > limit) {
+            return series.slice(series.length - limit);
+        }
+        return series;
+    }
+
 }
+
+function getCompanyFinancialTableHTML(company) {
+    const data = company.financialHistory ? company.financialHistory.slice().reverse() : [];
+    if (!data || data.length === 0) return '<p>No annual data available yet</p>';
+
+    const fmtMoney = (v) => {
+        const absV = Math.abs(v);
+        let formatted;
+        if (absV >= 1e12) formatted = `$${(absV / 1e12).toFixed(1)}T`;
+        else if (absV >= 1e9) formatted = `$${(absV / 1e9).toFixed(1)}B`;
+        else if (absV >= 1e6) formatted = `$${(absV / 1e6).toFixed(1)}M`;
+        else if (absV >= 1e3) formatted = `$${(absV / 1e3).toFixed(1)}K`;
+        else formatted = `$${absV.toFixed(0)}`;
+        return v < 0 ? `-${formatted}` : formatted;
+    };
+    const fmtRat = (v) => (v === 0 || !isFinite(v)) ? 'N/A' : `${v.toFixed(1)}x`;
+    const fmtYield = (dividend, marketCap) => {
+        if (!marketCap || marketCap <= 0) return 'N/A';
+        const yieldPct = 100 * dividend / marketCap;
+        return `${yieldPct.toFixed(2)}%`;
+    };
+
+    const includeDividend = company.showDividendColumn !== false; // Default to true if undefined
+    let html = `<div class="financial-table"><table><thead><tr><th>Year</th><th>Revenue</th><th>Profit</th><th>Cash</th><th>Debt</th>`;
+    if (includeDividend) html += `<th>Dividend Yield</th>`;
+    html += `<th>P/S</th><th>P/E</th></tr></thead><tbody>`;
+    data.forEach(r => {
+        html += `<tr><td>${r.year}</td><td>${fmtMoney(r.revenue)}</td><td>${fmtMoney(r.profit)}</td><td>${fmtMoney(r.cash || 0)}</td><td>${fmtMoney(r.debt || 0)}</td>`;
+        if (includeDividend) {
+            html += `<td>${fmtYield(r.dividend || 0, r.marketCap)}</td>`;
+        }
+        html += `<td>${fmtRat(r.ps)}</td><td>${fmtRat(r.pe)}</td></tr>`;
+    });
+    html += `</tbody></table></div>`;
+    return html;
+}
+
 
 function updateInvestmentPanelStats(company) {
     const displayCash = isServerAuthoritative && serverPlayer ? serverPlayer.cash : cash;
@@ -1673,10 +1921,10 @@ function updateSpeedThumbLabel() {
     const val = idx >= 0 ? idx : 1;
     const ratio = (val - sliderMin) / Math.max(1, sliderMax - sliderMin);
     const trackWidth = speedSlider.clientWidth || 0;
-  const thumbWidth = 16; // approximate thumb width
-  const pos = ratio * Math.max(0, trackWidth - thumbWidth) + thumbWidth / 2;
-  speedThumbLabel.style.left = `${pos}px`;
-  speedThumbLabel.textContent = currentSpeed <= 0 ? 'Paused' : `${currentSpeed}x Speed`;
+    const thumbWidth = 16; // approximate thumb width
+    const pos = ratio * Math.max(0, trackWidth - thumbWidth) + thumbWidth / 2;
+    speedThumbLabel.style.left = `${pos}px`;
+    speedThumbLabel.textContent = currentSpeed <= 0 ? 'Paused' : `${currentSpeed}x Speed`;
 }
 
 window.addEventListener('resize', () => {
@@ -1786,18 +2034,30 @@ window.getVentureCompanySummaries = () => ventureSim ? ventureSim.getCompanySumm
 window.ensureVentureSimulation = ensureVentureSimulation;
 
 setMillionaireBtn.addEventListener('click', () => {
+    if (isServerAuthoritative) {
+        sendCommand({ type: 'debug_set_cash', amount: 1000000 });
+        return;
+    }
     cash = 1000000;
     updateNetWorth();
     updateDisplay();
 });
 
 setBillionaireBtn.addEventListener('click', () => {
+    if (isServerAuthoritative) {
+        sendCommand({ type: 'debug_set_cash', amount: 1000000000 });
+        return;
+    }
     cash = 1000000000;
     updateNetWorth();
     updateDisplay();
 });
 
 setTrillionaireBtn.addEventListener('click', () => {
+    if (isServerAuthoritative) {
+        sendCommand({ type: 'debug_set_cash', amount: 1000000000000 });
+        return;
+    }
     cash = 1000000000000;
     updateNetWorth();
     updateDisplay();

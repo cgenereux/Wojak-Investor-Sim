@@ -354,7 +354,7 @@
       const dtYears = dtDays / DAYS_PER_YEAR;
       if (Array.isArray(this.products) && this.products.length > 0) {
         for (const product of this.products) {
-        product.advance(dtDays, random, this);
+          product.advance(dtDays, random, this);
         }
       }
       if (this.postGateMode) {
@@ -837,7 +837,9 @@
         debt,
         playerCommitted: !!(this.currentRound && this.currentRound.playerCommitted),
         cash,
-        runwayDays: isFinite(this.cachedRunwayDays) ? this.cachedRunwayDays : null
+        runwayDays: isFinite(this.cachedRunwayDays) ? this.cachedRunwayDays : null,
+        daysSinceRound: this.daysSinceRound,
+        daysSinceLastRaise: this.daysSinceLastRaise
       };
     }
 
@@ -951,6 +953,32 @@
       }
     }
 
+    getTickSnapshot() {
+      const cash = Number.isFinite(this.cash) ? this.cash : 0;
+      const debt = Number.isFinite(this.debt) ? this.debt : 0;
+      // Include last 2 years of financial history for client merging
+      const recentFinancials = this.financialHistory ? this.financialHistory.slice(-2) : [];
+
+      return {
+        id: this.id,
+        name: this.name,
+        valuation: this.currentValuation,
+        stageLabel: this.currentStage ? this.currentStage.label : 'N/A',
+        status: this.getStatusLabel(),
+        playerEquityPercent: this.playerEquity * 100,
+        pendingCommitment: this.pendingCommitment || 0,
+        lastEventNote: this.lastEventNote,
+        revenue: this.revenue,
+        profit: this.profit,
+        debt,
+        playerCommitted: !!(this.currentRound && this.currentRound.playerCommitted),
+        cash,
+        runwayDays: isFinite(this.cachedRunwayDays) ? this.cachedRunwayDays : null,
+        daysSinceRound: this.daysSinceRound,
+        daysSinceLastRaise: this.daysSinceLastRaise,
+        financialHistory: recentFinancials
+      };
+    }
   }
 
   class VentureSimulation {
@@ -967,28 +995,28 @@
           sector: cfg.sector,
           description: cfg.description,
           valuation_usd: cfg.valuation_usd,
-        funding_round: cfg.funding_round,
-        ipo_stage: cfg.ipo_stage,
-        binary_success: cfg.binary_success,
-        gate_stage: cfg.gate_stage,
-        hypergrowth_window_years: cfg.hypergrowth_window_years,
-        hypergrowth_total_multiplier: cfg.hypergrowth_total_multiplier,
-        long_run_revenue_ceiling_usd: cfg.long_run_revenue_ceiling_usd,
-        long_run_growth_rate: cfg.long_run_growth_rate,
-        long_run_growth_floor: cfg.long_run_growth_floor,
-        long_run_growth_decay: cfg.long_run_growth_decay,
-        post_gate_initial_multiple: cfg.post_gate_initial_multiple,
-        post_gate_baseline_multiple: cfg.post_gate_baseline_multiple,
-        post_gate_multiple_decay_years: cfg.post_gate_multiple_decay_years,
-        post_gate_margin: cfg.post_gate_margin,
-        max_failures_before_collapse: cfg.max_failures_before_collapse,
-        base_business: cfg.base_business,
-        finance: cfg.finance,
-        costs: cfg.costs,
-        archetype: cfg.archetype,
-        pipeline: Array.isArray(cfg.pipeline) ? cfg.pipeline : [],
-        events: Array.isArray(cfg.events) ? cfg.events : []
-      }, startDate, this.rngFn));
+          funding_round: cfg.funding_round,
+          ipo_stage: cfg.ipo_stage,
+          binary_success: cfg.binary_success,
+          gate_stage: cfg.gate_stage,
+          hypergrowth_window_years: cfg.hypergrowth_window_years,
+          hypergrowth_total_multiplier: cfg.hypergrowth_total_multiplier,
+          long_run_revenue_ceiling_usd: cfg.long_run_revenue_ceiling_usd,
+          long_run_growth_rate: cfg.long_run_growth_rate,
+          long_run_growth_floor: cfg.long_run_growth_floor,
+          long_run_growth_decay: cfg.long_run_growth_decay,
+          post_gate_initial_multiple: cfg.post_gate_initial_multiple,
+          post_gate_baseline_multiple: cfg.post_gate_baseline_multiple,
+          post_gate_multiple_decay_years: cfg.post_gate_multiple_decay_years,
+          post_gate_margin: cfg.post_gate_margin,
+          max_failures_before_collapse: cfg.max_failures_before_collapse,
+          base_business: cfg.base_business,
+          finance: cfg.finance,
+          costs: cfg.costs,
+          archetype: cfg.archetype,
+          pipeline: Array.isArray(cfg.pipeline) ? cfg.pipeline : [],
+          events: Array.isArray(cfg.events) ? cfg.events : []
+        }, startDate, this.rngFn));
       });
       this.lastTick = startDate ? new Date(startDate) : new Date('1990-01-01T00:00:00Z');
       this.stageUpdateFlag = false;
@@ -1081,6 +1109,14 @@
         companies: detail
           ? this.companies.map(c => c.getDetail())
           : this.companies.map(c => c.getSummary())
+      };
+    }
+
+    getTickSnapshot() {
+      return {
+        seed: this.seed ?? null,
+        lastTick: this.lastTick ? this.lastTick.toISOString() : null,
+        companies: this.companies.map(c => c.getTickSnapshot())
       };
     }
   }
