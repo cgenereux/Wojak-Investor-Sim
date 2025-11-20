@@ -669,9 +669,10 @@ function refreshNetWorthChartDatasets() {
         const datasets = [];
         Array.from(playerNetWorthSeries.entries()).forEach(([id, data], idx) => {
             if (!Array.isArray(data) || data.length === 0) return;
+            const sorted = [...data].sort((a, b) => a.x - b.x);
             datasets.push({
                 label: id,
-                data,
+                data: sorted,
                 borderColor: PLAYER_COLORS[idx % PLAYER_COLORS.length],
                 backgroundColor: 'transparent',
                 borderWidth: 2,
@@ -1515,12 +1516,15 @@ function showCompanyDetail(company) {
     updateInvestmentPanel(company);
     const ctx = document.getElementById('companyDetailChart').getContext('2d');
     if (companyDetailChart) { companyDetailChart.destroy(); }
+    const history = Array.isArray(company.history)
+        ? [...company.history].filter(p => p && Number.isFinite(p.y) && typeof p.x !== 'undefined').sort((a, b) => (a.x || 0) - (b.x || 0))
+        : [];
     companyDetailChart = new Chart(ctx, {
         type: 'line',
         data: {
             datasets: [{
                 label: 'Market Cap',
-                data: company.history,
+                data: history,
                 borderColor: '#3b82f6',
                 backgroundColor: 'rgba(59, 130, 246, 0.1)',
                 borderWidth: 2,

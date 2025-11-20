@@ -35,7 +35,7 @@
     }
 
     if (currentSort === 'marketCapDesc') {
-      filtered.sort((a, b) => b.marketCap - a.marketCap);
+      filtered.sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0));
     } else if (currentSort === 'ipoDateDesc') {
       filtered.sort((a, b) => b.ipoDate.getTime() - a.ipoDate.getTime());
     } else if (currentSort === 'ipoQueue') {
@@ -55,9 +55,10 @@
     });
 
     companiesGrid.innerHTML = filtered.map(company => {
+      const cap = Number.isFinite(company.displayCap) ? company.displayCap : Number.isFinite(company.marketCap) ? company.marketCap : 0;
       const boxClass = company.bankrupt ? 'company-box bankrupt' : 'company-box';
-      const capLabel = company.bankrupt ? 'Cap: Bankrupt' : `Cap: ${formatLargeNumber(company.displayCap)}`;
-      const sectorLabel = company.bankrupt ? 'Status: Bankrupt' : company.sector;
+      const capLabel = company.bankrupt ? 'Cap: Bankrupt' : `Cap: ${formatLargeNumber(cap)}`;
+      const sectorLabel = company.bankrupt ? 'Status: Bankrupt' : (company.sector || 'Unknown');
       return `
         <div class="${boxClass}" data-company-name="${company.name}">
             <div class="company-name">${company.name}</div>

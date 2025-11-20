@@ -85,7 +85,12 @@ function startTickLoop(session) {
     const payload = {
       type: 'tick',
       lastTick: session.sim.lastTick ? session.sim.lastTick.toISOString() : null,
-      companies: session.sim.companies.map(c => ({ id: c.id, name: c.name, marketCap: c.marketCap })),
+      companies: session.sim.companies.map(c => ({
+        id: c.id,
+        name: c.name || c.id,
+        sector: c.sector || 'Unknown',
+        marketCap: Number.isFinite(c.marketCap) ? c.marketCap : 0
+      })),
       ventureEvents,
       dividendEvents,
       players: Array.from(session.players.values()).map(p => serializePlayer(p, session.sim))
@@ -259,10 +264,19 @@ function sanitizeVentureEvents(events) {
 }
 
 function buildSnapshot(session) {
+  const simState = session.sim.exportState({ detail: false });
+  if (Array.isArray(simState.companies)) {
+    simState.companies = simState.companies.map(c => ({
+      id: c.id,
+      name: c.name || c.id,
+      sector: c.sector || 'Unknown',
+      marketCap: Number.isFinite(c.marketCap) ? c.marketCap : 0
+    }));
+  }
   return {
     seed: session.seed,
     lastTick: session.sim.lastTick ? session.sim.lastTick.toISOString() : null,
-    sim: session.sim.exportState({ detail: false }),
+    sim: simState,
     venture: session.ventureSim ? session.ventureSim.exportState({ detail: false }) : null,
     players: Array.from(session.players.values()).map(p => serializePlayer(p, session.sim))
   };
