@@ -110,6 +110,7 @@ Multiplayer stays on hold until the single-player loop, presets, and balance pol
 9. **Era Depth & Product Catalogs (Long Term):** Author many more companies/startups across 1990‑2050 plus deeper product libraries so each era feels distinct and varied.
 10. **Macro Event System:** Introduce headline macro shocks (pandemics, QE waves, financial crises, Bogdanov-style manipulation) that temporarily alter earnings/macro indices across many companies at once to keep late-game runs spicy.
 11. **Malding Wojak Polish:** Track a few outstanding edge cases (post-milestone overrides, deep drawdowns) and tighten the revert logic so avatars always swap back at the right time; fixes are noted but still pending.
+12. currently bankrupt companies stay in your portfolio forever -- should fix 
 
 ---
 
@@ -295,3 +296,7 @@ This is the report on what must change to turn the single-player sim into the sh
 - **Client hydrates only:** Browser stops instantiating sims; it hydrates from snapshot and applies diffs. Buttons emit commands and reconcile on server ack (no authoritative local changes).
 - **VC/public continuity:** Per-player venture commitments and equity tracked server-side; IPO promotion preserves each player’s stake into public holdings.
 - **Testing/ops:** Headless multiplayer tests (multiple fake players) for determinism, divergence checks, and basic metrics (tick latency, disconnects). Prevent match RNG from being consumed by lobby codes (use separate entropy).
+#### Current server prototype
+- WebSockets: `wss://<domain>/ws?session=<id>[&player=<id>]` sends `snapshot` then `tick` messages; accepts commands `{ type: 'buy'|'sell'|'borrow'|'repay', ... }` and returns `command_result` with updated player summary.
+- HTTP: `GET /health`, `GET /session/:id` (creates session on demand). In-memory sessions and players; tick loop every ~500ms. Commands are validated server-side (cash/buy/sell, borrow limit = 5× net worth).
+- Not yet implemented: per-player VC commitments/equity, persistent sessions, reconnect buffering, or client hydration.

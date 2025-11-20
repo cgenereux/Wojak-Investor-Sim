@@ -23,6 +23,16 @@ const app = fastify({ logger: false });
 // Simple in-memory sessions (non-persistent)
 const sessions = new Map();
 
+function createPlayer(id) {
+  return {
+    id,
+    cash: 3000,
+    debt: 0,
+    holdings: {}, // companyId -> units
+    lastCommandTs: Date.now()
+  };
+}
+
 async function buildMatch(seed = Date.now()) {
   const rng = new SeededRandom(seed);
   const rngFn = () => rng.random();
@@ -37,7 +47,16 @@ async function buildMatch(seed = Date.now()) {
   ];
   const sim = new Simulation(pubs, { seed, rng: rngFn, macroEvents: [] });
   const ventureSim = new VentureSimulation(ventures, sim.lastTick, { seed, rng: rngFn });
-  return { seed, sim, ventureSim, rngFn, clients: new Set(), tickHandle: null };
+  return {
+    seed,
+    sim,
+    ventureSim,
+    rngFn,
+    clients: new Set(),
+    clientPlayers: new Map(),
+    players: new Map(),
+    tickHandle: null
+  };
 }
 
 function startTickLoop(session) {
@@ -51,7 +70,8 @@ function startTickLoop(session) {
       type: 'tick',
       lastTick: session.sim.lastTick ? session.sim.lastTick.toISOString() : null,
       companies: session.sim.companies.map(c => ({ id: c.id, name: c.name, marketCap: c.marketCap })),
-      ventureEvents: events || []
+      ventureEvents: events || [],
+      players: Array.from(session.players.values()).map(p => serializePlayer(p, session.sim))
     };
     broadcast(session, payload);
   }, 500);
@@ -85,6 +105,115 @@ app.get('/session/:id', async (req, res) => {
   return { id, seed: session.seed, lastTick: session.sim.lastTick };
 });
 
+function serializePlayer(player, sim) {
+  const holdings = player.holdings || {};
+  const equity = computeEquity(sim, holdings);
+  return {
+    id: player.id,
+    cash: player.cash,
+    debt: player.debt,
+    equity,
+    netWorth: player.cash + equity - player.debt
+  };
+}
+
+function computeEquity(sim, holdings) {
+  let equity = 0;
+  sim.companies.forEach(c => {
+    const units = holdings[c.id] || 0;
+    equity += units * (c.marketCap || 0);
+  });
+  return equity;
+}
+
+function maxBorrowable(sim, player) {
+  const equity = computeEquity(sim, player.holdings || {});
+  const netWorth = player.cash + equity - player.debt;
+  const cap = Math.max(0, netWorth) * 5;
+  return Math.max(0, cap - player.debt);
+}
+
+function handleCommand(session, player, msg) {
+  if (!msg || typeof msg !== 'object') {
+    return { ok: false, error: 'bad_payload' };
+  }
+  const type = msg.type;
+  if (type === 'buy') {
+    const { companyId, amount } = msg;
+    if (!companyId || !Number.isFinite(amount) || amount <= 0) {
+      return { ok: false, error: 'bad_amount' };
+    }
+    const company = session.sim.companies.find(c => c.id === companyId);
+    if (!company || company.marketCap <= 0) {
+      return { ok: false, error: 'unknown_company' };
+    }
+    if (player.cash < amount) {
+      return { ok: false, error: 'insufficient_cash' };
+    }
+    const units = amount / company.marketCap;
+    player.cash -= amount;
+    player.holdings[companyId] = (player.holdings[companyId] || 0) + units;
+    return { ok: true, type: 'buy', companyId, amount, units };
+  }
+  if (type === 'sell') {
+    const { companyId, amount } = msg;
+    if (!companyId || !Number.isFinite(amount) || amount <= 0) {
+      return { ok: false, error: 'bad_amount' };
+    }
+    const company = session.sim.companies.find(c => c.id === companyId);
+    if (!company || company.marketCap <= 0) {
+      return { ok: false, error: 'unknown_company' };
+    }
+    const unitsOwned = player.holdings[companyId] || 0;
+    const currentValue = unitsOwned * company.marketCap;
+    if (unitHostedInvalid(unitsOwned) || currentValue <= 0) {
+      return { ok: false, error: 'no_position' };
+    }
+    if (amount > currentValue) {
+      return { ok: false, error: 'amount_exceeds_position' };
+    }
+    const unitsToSell = amount / company.marketCap;
+    player.holdings[companyId] = Math.max(0, unitsOwned - unitsToSell);
+    if (player.holdings[companyId] < 1e-9) delete player.holdings[companyId];
+    player.cash += amount;
+    return { ok: true, type: 'sell', companyId, amount, units: unitsToSell };
+  }
+  if (type === 'borrow') {
+    const amount = msg.amount;
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return { ok: false, error: 'bad_amount' };
+    }
+    const cap = maxBorrowable(session.sim, player);
+    if (amount > cap) {
+      return { ok: false, error: 'above_limit', cap };
+    }
+    player.cash += amount;
+    player.debt += amount;
+    return { ok: true, type: 'borrow', amount, capRemaining: maxBorrowable(session.sim, player) };
+  }
+  if (type === 'repay') {
+    const amount = msg.amount;
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return { ok: false, error: 'bad_amount' };
+    }
+    const repayable = Math.min(amount, player.cash, player.debt);
+    if (repayable <= 0) {
+      return { ok: false, error: 'nothing_to_repay' };
+    }
+    player.cash -= repayable;
+    player.debt -= repayable;
+    return { ok: true, type: 'repay', amount: repayable, capRemaining: maxBorrowable(session.sim, player) };
+  }
+  if (type === 'ping') {
+    return { ok: true, type: 'pong', ts: Date.now() };
+  }
+  return { ok: false, error: 'unknown_command' };
+}
+
+function unitHostedInvalid(units) {
+  return !Number.isFinite(units) || units <= 0;
+}
+
 const server = app.server;
 const wss = new WebSocket.Server({ noServer: true });
 
@@ -101,30 +230,63 @@ server.on('upgrade', (req, socket, head) => {
 
 wss.on('connection', async (ws, req, url) => {
   const sessionId = url.searchParams.get('session') || 'default';
+  const requestedPlayerId = url.searchParams.get('player') || null;
   let session = sessions.get(sessionId);
   if (!session) {
     session = await buildMatch();
     sessions.set(sessionId, session);
   }
   session.clients.add(ws);
+  const playerId = requestedPlayerId || `p_${Math.floor(Math.random() * 1e9).toString(36)}`;
+  let player = session.players.get(playerId);
+  if (!player) {
+    player = createPlayer(playerId);
+    session.players.set(playerId, player);
+  }
+  session.clientPlayers.set(ws, playerId);
 
   // Send initial snapshot
   ws.send(JSON.stringify({
     type: 'snapshot',
     seed: session.seed,
     sim: session.sim.exportState({ detail: false }),
-    venture: session.ventureSim ? session.ventureSim.exportState({ detail: false }) : null
+    venture: session.ventureSim ? session.ventureSim.exportState({ detail: false }) : null,
+    player: serializePlayer(player, session.sim)
   }));
 
   startTickLoop(session);
 
   ws.on('message', (data) => {
-    // Placeholder for command routing (buy/sell/etc.)
-    console.log('Received command', data.toString());
+    let msg;
+    try {
+      msg = JSON.parse(data.toString());
+    } catch (err) {
+      ws.send(JSON.stringify({ type: 'error', error: 'bad_json' }));
+      return;
+    }
+    const pid = session.clientPlayers.get(ws);
+    if (!pid) {
+      ws.send(JSON.stringify({ type: 'error', error: 'no_player' }));
+      return;
+    }
+    const p = session.players.get(pid);
+    if (!p) {
+      ws.send(JSON.stringify({ type: 'error', error: 'no_player' }));
+      return;
+    }
+    const result = handleCommand(session, p, msg);
+    ws.send(JSON.stringify({
+      type: 'command_result',
+      ok: result.ok,
+      data: result.ok ? result : undefined,
+      error: result.ok ? undefined : result.error,
+      player: serializePlayer(p, session.sim)
+    }));
   });
 
   ws.on('close', () => {
     session.clients.delete(ws);
+    session.clientPlayers.delete(ws);
     if (session.clients.size === 0) {
       stopTickLoop(session);
     }
