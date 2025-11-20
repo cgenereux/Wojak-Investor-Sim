@@ -324,7 +324,6 @@
       const prof = this.profit * dtYears;
       this.currentYearRevenue += rev;
       this.currentYearProfit += prof;
-      console.log(`[VC Debug] Accumulating: Rev=${rev.toFixed(2)}, Prof=${prof.toFixed(2)}, Date=${currentDate.toISOString().split('T')[0]}`);
       this.accumulateQuarter(rev, prof, currentDate);
       this.ageDays += dtDays;
       this.applyRunwayFlow(dtDays);

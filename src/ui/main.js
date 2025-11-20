@@ -166,9 +166,11 @@ let serverTicks = new Set();
 let isServerAuthoritative = false;
 let connectionStatusEl = null;
 let resyncBtn = null;
+let disconnectBtn = null;
 let latestServerPlayers = [];
 let activeSessionId = null;
 let activeBackendUrl = null;
+let manualDisconnect = false;
 
 function initMatchContext(seedOverride = null) {
     if (!matchSeed) {
@@ -217,11 +219,24 @@ function ensureConnectionBanner() {
     resyncButton.style.fontSize = '11px';
     resyncButton.addEventListener('click', () => requestResync('manual'));
 
+    const disconnectButton = document.createElement('button');
+    disconnectButton.textContent = 'Go Offline';
+    disconnectButton.style.background = '#7c2d12';
+    disconnectButton.style.border = '1px solid #b45309';
+    disconnectButton.style.color = '#fef3c7';
+    disconnectButton.style.cursor = 'pointer';
+    disconnectButton.style.borderRadius = '6px';
+    disconnectButton.style.padding = '6px 8px';
+    disconnectButton.style.fontSize = '11px';
+    disconnectButton.addEventListener('click', () => disconnectMultiplayer());
+
     wrapper.appendChild(statusText);
     wrapper.appendChild(resyncButton);
+    wrapper.appendChild(disconnectButton);
     document.body.appendChild(wrapper);
     connectionStatusEl = statusText;
     resyncBtn = resyncButton;
+    disconnectBtn = disconnectButton;
 }
 
 function setConnectionStatus(text, tone = 'info') {
@@ -245,7 +260,31 @@ function requestResync(reason = 'manual') {
     ws.send(JSON.stringify({ type: 'resync', reason }));
 }
 
+function disconnectMultiplayer() {
+    manualDisconnect = true;
+    activeBackendUrl = null;
+    activeSessionId = null;
+    try {
+        localStorage.removeItem(BACKEND_URL_KEY);
+        localStorage.removeItem(SESSION_ID_KEY);
+    } catch (err) {
+        console.warn('Failed clearing multiplayer prefs', err);
+    }
+    if (ws) {
+        try { ws.close(); } catch (err) { /* ignore */ }
+    }
+    isServerAuthoritative = false;
+    setConnectionStatus('Offline', 'warn');
+    setTimeout(() => {
+        window.location.reload();
+    }, 150);
+}
+
 function connectWebSocket() {
+    if (manualDisconnect) {
+        console.warn('Manual disconnect set; skipping WS connect');
+        return;
+    }
     const backendUrl = activeBackendUrl || window.WOJAK_BACKEND_URL || '';
     if (!backendUrl) {
         console.warn('WOJAK_BACKEND_URL not set; skipping WS connect');
@@ -274,10 +313,14 @@ function connectWebSocket() {
         console.log('WS connected');
         setConnectionStatus('Connected', 'ok');
     };
-    ws.onclose = () => {
-        console.warn('WS closed, retrying in 2s');
+    ws.onclose = (evt) => {
+        console.warn('WS closed, retrying in 2s', evt?.code, evt?.reason || '');
         setConnectionStatus('Reconnecting...', 'warn');
-        setTimeout(connectWebSocket, 2000);
+        if (!manualDisconnect) {
+            setTimeout(connectWebSocket, 2000);
+        } else {
+            setConnectionStatus('Disconnected', 'warn');
+        }
     };
     ws.onerror = (err) => {
         console.error('WS error', err);
@@ -1343,10 +1386,10 @@ function renderCompanyFinancialHistory(company) {
         }
     }
 
-    // Only update table HTML if it changed to avoid minor layout thrashing, 
-    // though innerHTML replace is usually fine if height is stable.
-    // For now, just replacing it is safer than diffing.
-    tableWrapper.innerHTML = company.getFinancialTableHTML();
+    const tableHtml = typeof company.getFinancialTableHTML === 'function'
+        ? company.getFinancialTableHTML()
+        : '<div class="financial-placeholder">Financial details unavailable.</div>';
+    tableWrapper.innerHTML = tableHtml;
 }
 
 function updateInvestmentPanelStats(company) {

@@ -79,13 +79,14 @@ function startTickLoop(session) {
     const dtDays = Math.max(0, (next.getTime() - current.getTime()) / MS_PER_DAY);
     session.sim.tick(next);
     const events = session.ventureSim ? session.ventureSim.tick(next) : [];
+    const ventureEvents = sanitizeVentureEvents(events);
     accrueInterest(session, dtDays);
     const dividendEvents = distributeDividends(session);
     const payload = {
       type: 'tick',
       lastTick: session.sim.lastTick ? session.sim.lastTick.toISOString() : null,
       companies: session.sim.companies.map(c => ({ id: c.id, name: c.name, marketCap: c.marketCap })),
-      ventureEvents: events || [],
+      ventureEvents,
       dividendEvents,
       players: Array.from(session.players.values()).map(p => serializePlayer(p, session.sim))
     };
@@ -226,6 +227,35 @@ function distributeDividends(session) {
     });
   });
   return events;
+}
+
+function sanitizeVentureEvents(events) {
+  if (!Array.isArray(events)) return [];
+  return events.map(evt => {
+    if (!evt || typeof evt !== 'object') return null;
+    const {
+      type,
+      companyId,
+      name,
+      valuation,
+      revenue,
+      profit,
+      refund,
+      playerEquity,
+      stageLabel
+    } = evt;
+    return {
+      type,
+      companyId,
+      name,
+      valuation,
+      revenue,
+      profit,
+      refund,
+      playerEquity,
+      stageLabel
+    };
+  }).filter(Boolean);
 }
 
 function buildSnapshot(session) {
