@@ -31,13 +31,6 @@
                         <div class="date" id="currentDateDisplay">1990-01-01</div>
                         <div class="sub-financial-display" id="subFinancialDisplay"></div>
                     </div>
-                    <div class="drip-toggle">
-                        <label class="switch">
-                            <input type="checkbox" id="dripToggle">
-                            <span class="slider round"></span>
-                        </label>
-                        <span class="drip-label">DRIP</span>
-                    </div>
                 </div>
                 <div class="macro-events-bar" id="macroEventsDisplay"></div>
             </div>
@@ -45,7 +38,6 @@
                 <canvas id="netWorthChart"></canvas>
             </div>
             <div class="controls">
-                <button id="togglePauseBtn">Pause</button>
                 <div class="speed-slider-wrap">
                     <label for="speedSlider">Time</label>
                     <div class="speed-slider-row">
@@ -53,11 +45,15 @@
                         <span id="speedThumbLabel">1x</span>
                     </div>
                 </div>
-                <button id="bankBtn">Bank</button>
+                <button id="bankBtn">Banking Services</button>
                 <div class="tooltip-container">
                     <button id="vcBtn" disabled>Venture Capital</button>
                     <span class="tooltip-text">Access to venture investments requires a net worth of at least
                         $5,000,000.</span>
+                </div>
+                <div class="drip-toggle">
+                    <input type="checkbox" id="dripToggle">
+                    <span class="drip-label">Reinvest Dividends</span>
                 </div>
             </div>
 

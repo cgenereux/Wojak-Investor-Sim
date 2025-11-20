@@ -4,7 +4,6 @@ const netWorthDisplay = document.getElementById('netWorthDisplay');
 const currentDateDisplay = document.getElementById('currentDateDisplay');
 const companiesGrid = document.getElementById('companiesGrid');
 
-const togglePauseBtn = document.getElementById('togglePauseBtn');
 const speedSlider = document.getElementById('speedSlider');
 const speedThumbLabel = document.getElementById('speedThumbLabel');
 const backBtn = document.getElementById('back-btn');
@@ -1071,7 +1070,6 @@ function pauseGame() {
     if (isPaused) return;
     isPaused = true;
     clearInterval(gameInterval);
-    togglePauseBtn.textContent = 'Resume';
 }
 
 function resumeGame() {
@@ -1080,7 +1078,6 @@ function resumeGame() {
     wasAutoPaused = false;
     const targetSpeed = currentSpeed > 0 ? currentSpeed : 1;
     setGameSpeed(targetSpeed);
-    togglePauseBtn.textContent = 'Pause';
 }
 
 function setGameSpeed(speed) {
@@ -1090,12 +1087,10 @@ function setGameSpeed(speed) {
     if (clampedSpeed <= 0) {
         clearInterval(gameInterval);
         isPaused = true;
-        togglePauseBtn.textContent = 'Resume';
     } else {
         clearInterval(gameInterval);
         gameInterval = setInterval(gameLoop, 400 / clampedSpeed);
         isPaused = false;
-        if (wasPaused) togglePauseBtn.textContent = 'Pause';
     }
     if (speedSlider) {
         const idx = SPEED_STEPS.findIndex(step => step === clampedSpeed);
@@ -1138,15 +1133,6 @@ sellMaxBtn.addEventListener('click', () => {
         } else {
             alert("You don't own any shares of this company.");
         }
-    }
-});
-
-togglePauseBtn.addEventListener('click', () => {
-    if (isPaused) {
-        resumeGame();
-    } else {
-        wasAutoPaused = false;
-        pauseGame();
     }
 });
 

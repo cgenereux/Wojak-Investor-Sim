@@ -243,3 +243,45 @@ Macro turbulence is now data-driven via `data/macroEvents.json`. Each definition
 - **TTM / YoY charts:** The YoY builder uses TTM (or partial TTM) from `quarterHistory`, so the optional quarterly chart can swap between annual table and quarterly trend without mixing units.
 - **Dividends remain quarterly:** Dividend eligibility still evaluates the last three full years of profit and zero debt, but payouts are scheduled as four quarterly installments with DRIP support unchanged.
 - **UI refresh hooks:** The game loop marks `newQuarterlyData`/`newAnnualData` so the financial panel and pipeline widgets refresh when a quarter closes; no behavior change needed for legacy companies.
+
+---
+
+## 14. Multiplayer Implementation Plan
+This is the report on what must change to turn the single-player sim into the short, self-contained multiplayer race described in §5 (create/join a party of up to three, no long-term saves, race for highest net worth).
+
+### Core Architectural Shifts
+- **Authoritative server loop:** Run `Simulation` (`src/sim/simEngine.js`) and `VentureSimulation` (`src/sim/ventureEngineCore.js`) in a headless Node process that owns the clock, RNG, and state. Browsers become renderers that send commands; no simulation progresses locally.
+- **Deterministic RNG + seeding:** Replace ad-hoc `Math.random()` in `src/sim/*` and `src/presets/presets.js` with an injected, seedable RNG so every client view matches the server, supports replays, and prevents drift.
+- **Data loading outside the browser:** `src/presets/presets.js` fetches JSON files; add a Node path that loads from disk (or embeds data) and expose preset generators as pure functions that accept RNG + data. The browser path can keep fetch; the server path must avoid DOM/fetch assumptions.
+- **Serializable state:** Add snapshot/restore helpers for `Simulation`, `VentureSimulation`, `MacroEventManager`, companies, pipelines, and player inventory so the server can persist sessions (Redis/disk), resync reconnecting clients, and run deterministic replays.
+- **Action protocol:** Define a small command set (buy/sell public, lead VC round, borrow/repay, toggle DRIP, pause/speed vote if allowed). Validate every command on the server before mutating state; resolve conflicts (e.g., two players leading the same round) deterministically.
+
+### Game Logic Changes for Multiple Players
+- **Player model:** Lift player state (cash, debt, DRIP flag, portfolio, VC commitments, net-worth history) into a server-side `Player` object keyed by session + player ID. The globals in `src/ui/main.js` (`cash`, `portfolio`, `totalBorrowed`, `dripEnabled`, etc.) become client mirrors only.
+- **Public market holdings:** Keep one shared set of companies per session (`sim.companies`) but track per-player holdings server-side. Orders should be validated against cash/debt caps (borrow limit stays 5× net worth) and applied on tick boundaries to avoid mid-tick desyncs.
+- **Venture rounds:** `VentureCompany` currently stores single-player fields (`playerEquity`, `playerInvested`, `pendingCommitment`). Convert these to per-player maps (equity, committed cash, last action), update payout and IPO promotion so every player’s stake survives `promoteToPublic`, and ensure round health calculations consider multi-investor scenarios.
+- **Banking:** Move interest accrual and borrow/repay logic to the server tick. Enforce bankruptcy/end-of-session server-side; clients must not be able to spoof debt forgiveness or avoid the net-worth < 0 loss condition.
+- **Macro/events:** Macro events and product rollouts stay headless but must be seeded and triggered server-side. Stream concise diffs (active events, new products) to clients.
+- **Tempo rules:** Choose a single shared speed per session (host-only or vote-based). The `gameLoop`/`setInterval` in `src/ui/main.js` becomes a UI timer that listens to server ticks rather than advancing the sim locally.
+
+### Networking & Session Orchestration
+- **Session CRUD:** Add endpoints to create/join/leave a session (public/private flag, optional passcode, target duration/years, max players). On join, seed the sim + venture rosters once, attach players, and broadcast the authoritative seed and start time.
+- **Live updates:** Use WebSockets (or SSE) for tick updates. Broadcast compact diffs: clock, macro events, company price deltas, venture state changes, player net-worth snapshots, and event logs (dividends, bankruptcies, IPOs, VC outcomes). Periodically send full snapshots for reconciliation.
+- **Commands:** Clients emit commands; server validates (sufficient cash, stage status, borrow limit) and acks with applied results. Include idempotency keys so reconnecting clients can safely retry.
+- **Rejoin/resync:** On reconnect, hydrate the client with the latest snapshot, then apply queued diffs. Keep a short history buffer (e.g., last 200 ticks) so charts can rebuild without re-simulating.
+
+### Client/UI Rework
+- **Render-only client:** Remove local instantiation of `Simulation`/`VentureSimulation` in `src/ui/main.js`. Add `hydrate(state)` + `applyDiff(diff)` layers that set `companies`, `ventureCompanies`, portfolio, and charts from server streams.
+- **New flows:** Add lobby UI (create/join, player list/ready state), in-session HUD (player leaderboard, opponent actions feed, connection status), and end-of-session summary. The “Venture Capital” gating should be per-player and driven by the server.
+- **Input handling:** Wire buy/sell/bank/VC buttons to emit commands; disable buttons while pending; show authoritative results when the server echoes the applied change. Optional optimistic UI must reconcile against server truth.
+- **Chart/data handling:** Charts consume server timestamps/values only; stop deriving values from client math. Add throttling so frequent diffs do not stall the UI.
+
+### Reliability, Security, and Tooling
+- **Validation & anti-cheat:** Never trust client totals. Recompute portfolio valuations server-side using shared prices; reject commands that mutate history or exceed limits. Sign session IDs and consider short-lived auth tokens to prevent lobby spoofing.
+- **Monitoring:** Log command latency, tick duration, dropped connections, and divergence detections. Add a “force resync” control in debug builds to pull a fresh snapshot.
+- **Testing:** Add headless multiplayer tests that spin up the server loop, attach multiple fake players, run 10-year sessions, and assert deterministic outcomes from the same seed. Include property tests for VC promotion paths and bank failure cases under concurrent actions.
+- **Deployment shape:** Serve static assets + a small Node service (Express/Fastify + ws). Keep sessions in-memory with TTL for now; introduce Redis/Postgres if persistence or matchmaking expand.
+
+### Migration Notes
+- Keep single-player as the offline/default path: retain the in-browser loop but gate it behind a mode switch so multiplayer always routes through the authoritative server.
+- Stage the rollout: 1) headless server with a single client for parity, 2) two-client hotseat test, 3) real lobby/join flow, 4) UI/telemetry polish and load testing.
