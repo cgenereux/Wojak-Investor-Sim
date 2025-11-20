@@ -178,6 +178,8 @@ let manualDisconnect = false;
 const playerNetWorthSeries = new Map();
 const PLAYER_COLORS = ['#22c55e', '#3b82f6', '#f97316', '#a855f7', '#06b6d4', '#ef4444', '#0ea5e9', '#10b981'];
 let killSessionBtn = null;
+let resyncButtonEl = null;
+let disconnectButtonEl = null;
 
 function initMatchContext(seedOverride = null) {
     if (!matchSeed) {
@@ -225,6 +227,7 @@ function ensureConnectionBanner() {
     resyncButton.style.padding = '6px 8px';
     resyncButton.style.fontSize = '11px';
     resyncButton.addEventListener('click', () => requestResync('manual'));
+    resyncButtonEl = resyncButton;
 
     const disconnectButton = document.createElement('button');
     disconnectButton.textContent = 'Go Offline';
@@ -236,6 +239,7 @@ function ensureConnectionBanner() {
     disconnectButton.style.padding = '6px 8px';
     disconnectButton.style.fontSize = '11px';
     disconnectButton.addEventListener('click', () => disconnectMultiplayer());
+    disconnectButtonEl = disconnectButton;
 
     const killButton = document.createElement('button');
     killButton.textContent = 'Kill Game';
@@ -257,6 +261,7 @@ function ensureConnectionBanner() {
     resyncBtn = resyncButton;
     disconnectBtn = disconnectButton;
     killSessionBtn = killButton;
+    setBannerButtonsVisible(true);
 }
 
 function setConnectionStatus(text, tone = 'info') {
@@ -269,6 +274,17 @@ function setConnectionStatus(text, tone = 'info') {
     else if (tone === 'warn') bg = '#2a1f0f';
     else if (tone === 'error') bg = '#2a0f12';
     parent.style.background = bg;
+
+    if (resyncButtonEl) resyncButtonEl.style.display = 'inline-flex';
+    if (disconnectButtonEl) disconnectButtonEl.style.display = 'inline-flex';
+    if (killSessionBtn) killSessionBtn.style.display = 'inline-flex';
+}
+
+function setBannerButtonsVisible(show) {
+    const display = show ? 'inline-flex' : 'none';
+    if (resyncButtonEl) resyncButtonEl.style.display = display;
+    if (disconnectButtonEl) disconnectButtonEl.style.display = display;
+    if (killSessionBtn) killSessionBtn.style.display = display;
 }
 
 function requestResync(reason = 'manual') {
@@ -292,12 +308,11 @@ function disconnectMultiplayer() {
     }
     if (ws) {
         try { ws.close(); } catch (err) { /* ignore */ }
+        ws = null;
     }
     isServerAuthoritative = false;
     setConnectionStatus('Offline', 'warn');
-    setTimeout(() => {
-        window.location.reload();
-    }, 150);
+    setBannerButtonsVisible(false);
 }
 
 function killRemoteSession() {
@@ -307,6 +322,8 @@ function killRemoteSession() {
     }
     setConnectionStatus('Killing session...', 'warn');
     sendCommand({ type: 'kill_session' });
+    manualDisconnect = true;
+    setBannerButtonsVisible(false);
 }
 
 function connectWebSocket() {
@@ -341,6 +358,7 @@ function connectWebSocket() {
     ws.onopen = () => {
         console.log('WS connected');
         setConnectionStatus('Connected', 'ok');
+        setBannerButtonsVisible(true);
     };
     ws.onclose = (evt) => {
         console.warn('WS closed, retrying in 2s', evt?.code, evt?.reason || '');
@@ -349,6 +367,7 @@ function connectWebSocket() {
             setTimeout(connectWebSocket, 2000);
         } else {
             setConnectionStatus('Disconnected', 'warn');
+            setBannerButtonsVisible(false);
         }
     };
     ws.onerror = (err) => {
@@ -415,6 +434,7 @@ function handleServerMessage(msg) {
             try { ws.close(); } catch (err) { /* ignore */ }
         }
         setConnectionStatus('Session ended', 'error');
+        setBannerButtonsVisible(false);
         alert(`Game ended (${msg.reason || 'session end'}). Final year: ${msg.year || ''}`);
         setTimeout(() => window.location.reload(), 300);
         return;
@@ -2105,6 +2125,7 @@ function applyBackendAndSession(backend, sessionId) {
     activeSessionId = sessionId || 'default';
     localStorage.setItem(BACKEND_URL_KEY, activeBackendUrl);
     localStorage.setItem(SESSION_ID_KEY, activeSessionId);
+    manualDisconnect = false;
 }
 
 connectMultiplayerBtn.addEventListener('click', () => {
@@ -2188,11 +2209,11 @@ async function init() {
     }
 
     initMatchContext();
-    activeBackendUrl = localStorage.getItem(BACKEND_URL_KEY) || window.WOJAK_BACKEND_URL || DEFAULT_BACKEND_URL || null;
-    activeSessionId = localStorage.getItem(SESSION_ID_KEY) || 'default';
-    if (activeBackendUrl) {
-        connectWebSocket();
-    }
+    activeBackendUrl = null;
+    activeSessionId = null;
+    ensureConnectionBanner();
+    setBannerButtonsVisible(false);
+    setConnectionStatus('Offline', 'warn');
     if (!isServerAuthoritative) {
         sim = await loadCompaniesData();
         if (!sim) { return; }
