@@ -285,3 +285,13 @@ This is the report on what must change to turn the single-player sim into the sh
 ### Migration Notes
 - Keep single-player as the offline/default path: retain the in-browser loop but gate it behind a mode switch so multiplayer always routes through the authoritative server.
 - Stage the rollout: 1) headless server with a single client for parity, 2) two-client hotseat test, 3) real lobby/join flow, 4) UI/telemetry polish and load testing.
+
+### Implementation Checklist (practical steps)
+- **Server scaffold:** Node service that runs `Simulation` + `VentureSimulation` per session with a single seed. Own the clock and expose WebSockets for tick broadcasts and command ingest.
+- **Player state:** Server-side player model (cash, debt, DRIP, portfolio, VC commitments) keyed by session + player ID. Orders mutate only the server state.
+- **Commands:** Define a small schema (buy/sell, lead VC, borrow/repay, toggle DRIP, pause/speed vote). Validate affordability/round status/borrow limits server-side; reject invalid payloads.
+- **Sync protocol:** On join, send a snapshot (use `exportState`/venture export), then stream diffs each tick (prices, macro events, venture updates, player net worth). Support reconnect with snapshot + buffered diffs.
+- **Session orchestration:** Endpoints to create/join/leave (public/private, optional passcode, duration, max players). Decide a single session speed policy (host-set or vote).
+- **Client hydrates only:** Browser stops instantiating sims; it hydrates from snapshot and applies diffs. Buttons emit commands and reconcile on server ack (no authoritative local changes).
+- **VC/public continuity:** Per-player venture commitments and equity tracked server-side; IPO promotion preserves each player’s stake into public holdings.
+- **Testing/ops:** Headless multiplayer tests (multiple fake players) for determinism, divergence checks, and basic metrics (tick latency, disconnects). Prevent match RNG from being consumed by lobby codes (use separate entropy).

@@ -160,10 +160,11 @@
   };
 
   class VentureCompany extends Company {
-    constructor(config, startDate) {
+    constructor(config, startDate, rngFn = random) {
       const start = startDate ? new Date(startDate) : new Date('1990-01-01T00:00:00Z');
       const publicCfg = buildPublicConfigFromVenture(config, start.getUTCFullYear());
       super(publicCfg, DummyMacroEnv, start.getUTCFullYear(), start);
+      this.rng = rngFn || random;
       this.setPhase('private');
       this.showDividendColumn = false;
       this.fromVenture = true;
@@ -958,14 +959,15 @@
       const seed = options.seed ?? Date.now();
       this.rng = options.rng || new SeededRandom(seed);
       this.rngFn = typeof options.rng === 'function' ? options.rng : () => this.rng.random();
+      this.seed = seed;
       this.companies = [];
       withRandomSource(this.rngFn, () => {
         this.companies = (configs || []).map(cfg => new VentureCompany({
-        id: cfg.id,
-        name: cfg.name,
-        sector: cfg.sector,
-        description: cfg.description,
-        valuation_usd: cfg.valuation_usd,
+          id: cfg.id,
+          name: cfg.name,
+          sector: cfg.sector,
+          description: cfg.description,
+          valuation_usd: cfg.valuation_usd,
         funding_round: cfg.funding_round,
         ipo_stage: cfg.ipo_stage,
         binary_success: cfg.binary_success,
@@ -987,7 +989,7 @@
         archetype: cfg.archetype,
         pipeline: Array.isArray(cfg.pipeline) ? cfg.pipeline : [],
         events: Array.isArray(cfg.events) ? cfg.events : []
-      }, startDate));
+      }, startDate, this.rngFn));
       });
       this.lastTick = startDate ? new Date(startDate) : new Date('1990-01-01T00:00:00Z');
       this.stageUpdateFlag = false;
@@ -1070,6 +1072,17 @@
         return company;
       }
       return null;
+    }
+
+    exportState(options = {}) {
+      const detail = options.detail || false;
+      return {
+        seed: this.seed ?? null,
+        lastTick: this.lastTick ? this.lastTick.toISOString() : null,
+        companies: detail
+          ? this.companies.map(c => c.getDetail())
+          : this.companies.map(c => c.getSummary())
+      };
     }
   }
 

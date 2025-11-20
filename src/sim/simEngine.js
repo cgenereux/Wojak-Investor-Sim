@@ -25,6 +25,7 @@ class Simulation {
     const seed = options.seed ?? Date.now();
     this.rng = options.rng || new SeededRandom(seed);
     this.rngFn = typeof options.rng === 'function' ? options.rng : () => this.rng.random();
+    this.seed = seed;
     this.dtDays = dt;
     this.startYear = startYear;
     this.macroEventManager = null;
@@ -83,6 +84,7 @@ class Simulation {
         } else {
           co = new Company(config, this.macroEnv, this.startYear, config.ipoDate);
         }
+        co.rng = this.rngFn;
         if (config.initialHistory) {
           const normalizedHistory = (config.initialHistory.history || []).slice().sort((a, b) => a.x - b.x);
           if (normalizedHistory.length === 1) {
@@ -134,6 +136,30 @@ class Simulation {
   triggerMacroEvent(eventId) {
     if (!this.macroEventManager) return null;
     return this.macroEventManager.forceTrigger(eventId, this.lastTick || new Date());
+  }
+
+  exportState(options = {}) {
+    const detail = options.detail || false;
+    const includeCompanies = options.includeCompanies !== false;
+    const state = {
+      seed: this.seed ?? null,
+      startYear: this.startYear,
+      dtDays: this.dtDays,
+      lastTick: this.lastTick ? this.lastTick.toISOString() : null,
+      macroEvents: this.getActiveMacroEvents()
+    };
+    if (includeCompanies) {
+      state.companies = this.companies.map(c => {
+        if (detail && typeof c.getDetail === 'function') {
+          return c.getDetail();
+        }
+        if (typeof c.toSnapshot === 'function') {
+          return c.toSnapshot();
+        }
+        return { id: c.id, name: c.name, marketCap: c.marketCap };
+      });
+    }
+    return state;
   }
 }
 

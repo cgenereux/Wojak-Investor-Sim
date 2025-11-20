@@ -524,6 +524,7 @@
       const sm = sectorMicro[this.sector] || sectorMicro.DEFAULT;
       this.micro_mu = sm.mu;
       this.micro_sig = sm.sigma;
+      this.rng = cfg.rng || random;
 
       this.multFreeze = null;
       this.rdOpex = 0;
@@ -577,7 +578,7 @@
         this.multFreeze = this.multCurve.value(ageYears, mNowTmp);
       }
 
-      const epsMicro = Random.gaussian();
+      const epsMicro = Random.gaussian(this.rng || random);
       const vol = this.micro_sig * this.volMult;
       this.micro += (this.micro_mu + this.micro_k * (1 - this.micro)) * dtYears
         + vol * Math.sqrt(dtYears) * epsMicro;
@@ -639,7 +640,7 @@
       const adjustedFairValue = fairValue * valuationMultiplier;
 
       this.structBias = 1 + (this.structBias - 1) * Math.exp(-this.biasLambda * dtYears);
-      const epsCyc = Random.gaussian();
+      const epsCyc = Random.gaussian(this.rng || random);
       this.cyclical += this.cyc_k * (1 - this.cyclical) * dtYears
         + this.cyc_sig * Math.sqrt(dtYears) * epsCyc;
       this.cyclical = Math.max(0.2, Math.min(5, this.cyclical));
@@ -730,6 +731,44 @@
       this.dividendEvents.length = 0;
       return events;
     }
+
+    toSnapshot(options = {}) {
+      const historyLimit = options.historyLimit ?? 10;
+      const quarterLimit = options.quarterLimit ?? 8;
+      const tail = (arr, n) => Array.isArray(arr) ? arr.slice(Math.max(0, arr.length - n)) : [];
+      const productSnapshot = Array.isArray(this.products)
+        ? this.products.map(p => ({
+            id: p.id,
+            label: p.label,
+            fullVal: p.fullVal,
+            stages: Array.isArray(p.stages) ? p.stages.map(s => ({
+              id: s.id,
+              completed: !!s.completed,
+              succeeded: !!s.succeeded,
+              elapsed: s.elapsed || 0,
+              tries: s.tries || 0
+            })) : []
+          }))
+        : [];
+      return {
+        id: this.id,
+        name: this.name,
+        sector: this.sector,
+        ageDays: this.ageDays,
+        startYear: this.startYear,
+        ipoDate: this.ipoDate ? this.ipoDate.toISOString() : null,
+        marketCap: this.marketCap,
+        cash: this.cash,
+        debt: this.debt,
+        revenueYearToDate: this.currentYearRevenue,
+        profitYearToDate: this.currentYearProfit,
+        quarterHistory: tail(this.quarterHistory, quarterLimit),
+        history: tail(this.history, historyLimit),
+        products: productSnapshot,
+        fromVenture: this.fromVenture || false,
+        phase: this.phase || 'public'
+      };
+    }
   }
 
   class HypergrowthCompany extends BaseCompany {
@@ -797,12 +836,12 @@
       }
       this.growthTarget = Math.max(-0.8, Math.min(3.0, this.growthTarget));
 
-      this.structBias += Random.gaussian() * 0.005;
+      this.structBias += Random.gaussian(this.rng || random) * 0.005;
       this.structBias = Math.max(0.6, Math.min(1.6, this.structBias));
-      this.sentiment += Random.gaussian() * 0.025;
+      this.sentiment += Random.gaussian(this.rng || random) * 0.025;
       this.sentiment = Math.max(0.5, Math.min(1.8, this.sentiment));
 
-      const noise = Random.gaussian() * 0.08;
+      const noise = Random.gaussian(this.rng || random) * 0.08;
       const effectiveGrowth = Math.max(-0.8, this.growthTarget + noise);
       const growthFactor = Math.pow(1 + effectiveGrowth, dtYears);
       this.arr = Math.max(100000, this.arr * growthFactor);

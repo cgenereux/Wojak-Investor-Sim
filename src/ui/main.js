@@ -145,9 +145,24 @@ let sim;
 let companies = [];
 let ventureSim;
 let ventureCompanies = [];
+
+// Per-match context (seed + rng + refs) to keep public/venture in sync.
 let matchSeed = null;
 let matchRng = null;
 let matchRngFn = null;
+
+function initMatchContext(seedOverride = null) {
+    if (!matchSeed) {
+        const urlSeed = new URL(window.location.href).searchParams.get('seed');
+        matchSeed = seedOverride ?? (urlSeed ? Number(urlSeed) : Number(Date.now()));
+    }
+    if (!matchRng && SeededRandom) {
+        matchRng = new SeededRandom(matchSeed);
+        matchRngFn = () => matchRng.random();
+    } else if (!matchRngFn) {
+        matchRngFn = Math.random;
+    }
+}
 const companyRenderState = {
     lastRenderTs: 0,
     minInterval: 500,
@@ -165,15 +180,7 @@ function ensureVentureSimulation(force = false) {
 
 async function loadCompaniesData() {
     try {
-        if (!matchSeed) {
-            matchSeed = Number(Date.now());
-        }
-        if (!matchRng && SeededRandom) {
-            matchRng = new SeededRandom(matchSeed);
-            matchRngFn = () => matchRng.random();
-        } else if (!matchRngFn) {
-            matchRngFn = Math.random;
-        }
+        initMatchContext();
         const [companiesResponse, ventureCompaniesResponse, macroEventsResponse] = await Promise.all([
             fetch('data/legacy-companies/companies.json'),
             fetch('data/legacy-companies/venture_companies.json'),
@@ -1293,6 +1300,7 @@ async function init() {
         sortCompaniesSelect.value = currentSort;
     }
 
+    initMatchContext();
     sim = await loadCompaniesData();
     if (!sim) { return; }
     companies = sim.companies;
