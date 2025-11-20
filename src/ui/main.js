@@ -150,6 +150,10 @@ let ventureCompanies = [];
 let matchSeed = null;
 let matchRng = null;
 let matchRngFn = null;
+let ws;
+let serverPlayer = null;
+let serverTicks = new Set();
+let isServerAuthoritative = false;
 
 function initMatchContext(seedOverride = null) {
     if (!matchSeed) {
@@ -162,6 +166,120 @@ function initMatchContext(seedOverride = null) {
     } else if (!matchRngFn) {
         matchRngFn = Math.random;
     }
+}
+
+function connectWebSocket() {
+    const backendUrl = window.WOJAK_BACKEND_URL || '';
+    if (!backendUrl) {
+        console.warn('WOJAK_BACKEND_URL not set; skipping WS connect');
+        return;
+    }
+    isServerAuthoritative = true;
+    const session = 'default';
+    const playerId = localStorage.getItem('wojak_player_id') || `p_${Math.floor(Math.random() * 1e9).toString(36)}`;
+    localStorage.setItem('wojak_player_id', playerId);
+    const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws?session=${encodeURIComponent(session)}&player=${encodeURIComponent(playerId)}`;
+    try {
+        ws = new WebSocket(wsUrl);
+    } catch (err) {
+        console.error('WS connect failed:', err);
+        return;
+    }
+    ws.onopen = () => {
+        console.log('WS connected');
+    };
+    ws.onclose = () => {
+        console.warn('WS closed, retrying in 2s');
+        setTimeout(connectWebSocket, 2000);
+    };
+    ws.onerror = (err) => {
+        console.error('WS error', err);
+    };
+    ws.onmessage = (event) => {
+        try {
+            const msg = JSON.parse(event.data);
+            handleServerMessage(msg);
+        } catch (err) {
+            console.error('Bad WS message', err);
+        }
+    };
+}
+
+function handleServerMessage(msg) {
+    if (!msg || typeof msg !== 'object') return;
+    if (msg.type === 'snapshot') {
+        hydrateFromSnapshot(msg);
+        applyTicks(msg.ticks || []);
+        return;
+    }
+    if (msg.type === 'tick') {
+        applyTick(msg);
+        return;
+    }
+    if (msg.type === 'command_result') {
+        if (!msg.ok) {
+            console.warn('Command failed', msg.error);
+        }
+        if (msg.player) {
+            updatePlayerFromServer(msg.player);
+        }
+        return;
+    }
+    if (msg.type === 'error') {
+        console.warn('Server error', msg.error);
+    }
+}
+
+function hydrateFromSnapshot(snapshot) {
+    if (!snapshot || !snapshot.sim) return;
+    companies = (snapshot.sim.companies || []).map(c => ({
+        id: c.id,
+        name: c.name,
+        marketCap: c.marketCap || 0,
+        history: c.history || []
+    }));
+    serverPlayer = snapshot.player || null;
+    renderCompanies(true);
+    updateDisplay();
+}
+
+function applyTick(tick) {
+    if (!tick || !Array.isArray(tick.companies)) return;
+    if (tick.seq && serverTicks.has(tick.seq)) return;
+    if (tick.seq) serverTicks.add(tick.seq);
+    tick.companies.forEach(update => {
+        const existing = companies.find(c => c.id === update.id);
+        if (existing) {
+            existing.marketCap = update.marketCap;
+            if (Array.isArray(existing.history)) {
+                existing.history.push({ x: Date.now(), y: update.marketCap });
+            }
+        }
+    });
+    if (Array.isArray(tick.players) && tick.players.length) {
+        const me = tick.players.find(p => serverPlayer && p.id === serverPlayer.id) || tick.players[0];
+        if (me) updatePlayerFromServer(me);
+    }
+    renderCompanies();
+    updateDisplay();
+}
+
+function applyTicks(ticks) {
+    if (!Array.isArray(ticks)) return;
+    ticks.forEach(applyTick);
+}
+
+function updatePlayerFromServer(playerSummary) {
+    serverPlayer = playerSummary;
+    // Hook up to UI (leaderboard/status) later
+}
+
+function sendCommand(cmd) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        console.warn('WS not ready; command skipped', cmd);
+        return;
+    }
+    ws.send(JSON.stringify(cmd));
 }
 const companyRenderState = {
     lastRenderTs: 0,
@@ -254,16 +372,25 @@ function updateDisplay() {
     const privateAssets = ventureSim ? ventureSim.getPlayerHoldingsValue() : 0;
     const pendingCommitments = ventureSim ? ventureSim.getPendingCommitments() : 0;
     const equityValue = publicAssets + privateAssets + pendingCommitments;
-    const totalAssets = cash + equityValue;
+    const localTotalAssets = cash + equityValue;
 
-    netWorthDisplay.textContent = currencyFormatter.format(netWorth);
-    netWorthDisplay.style.color = netWorth >= 0 ? '#00c742' : '#dc3545';
+    const displayNetWorth = serverPlayer && typeof serverPlayer.netWorth === 'number'
+        ? serverPlayer.netWorth
+        : netWorth;
+    const displayCash = serverPlayer && typeof serverPlayer.cash === 'number'
+        ? serverPlayer.cash
+        : Math.max(0, cash);
+    const displayDebt = serverPlayer && typeof serverPlayer.debt === 'number'
+        ? serverPlayer.debt
+        : totalBorrowed;
+
+    netWorthDisplay.textContent = currencyFormatter.format(displayNetWorth);
+    netWorthDisplay.style.color = displayNetWorth >= 0 ? '#00c742' : '#dc3545';
     currentDateDisplay.textContent = formatDate(currentDate);
 
     // Update the single display line
-    const displayCash = Math.max(0, cash);
     const commitmentsLabel = pendingCommitments > 0 ? ` | VC Commitments: ${currencyFormatter.format(pendingCommitments)}` : '';
-    subFinancialDisplay.textContent = `Equities: ${currencyFormatter.format(publicAssets + privateAssets)}${commitmentsLabel} | Cash: ${currencyFormatter.format(displayCash)} | Liabilities: ${currencyFormatter.format(totalBorrowed)}`;
+    subFinancialDisplay.textContent = `Equities: ${currencyFormatter.format(publicAssets + privateAssets)}${commitmentsLabel} | Cash: ${currencyFormatter.format(displayCash)} | Liabilities: ${currencyFormatter.format(displayDebt)}`;
 
     if (netWorth < 0 && totalBorrowed > 0) {
         endGame("bankrupt");
@@ -272,6 +399,7 @@ function updateDisplay() {
 }
 
 function renderCompanies(force = false) {
+    if (isServerAuthoritative && companies.length === 0) return;
     renderCompaniesUI({
         companies,
         companiesGrid,
@@ -323,13 +451,17 @@ function parseUserAmount(input) {
 
 // --- Game Logic ---
 function updateNetWorth() {
-    let totalHoldingsValue = portfolio.reduce((sum, holding) => {
-        const company = companies.find(c => c.name === holding.companyName);
-        return sum + (company ? company.marketCap * holding.unitsOwned : 0);
-    }, 0);
-    const ventureHoldingsValue = ventureSim ? ventureSim.getPlayerHoldingsValue() : 0;
-    const pendingCommitments = ventureSim ? ventureSim.getPendingCommitments() : 0;
-    netWorth = cash + totalHoldingsValue + ventureHoldingsValue + pendingCommitments - totalBorrowed;
+    if (serverPlayer && isServerAuthoritative) {
+        netWorth = serverPlayer.netWorth || netWorth;
+    } else {
+        let totalHoldingsValue = portfolio.reduce((sum, holding) => {
+            const company = companies.find(c => c.name === holding.companyName);
+            return sum + (company ? company.marketCap * holding.unitsOwned : 0);
+        }, 0);
+        const ventureHoldingsValue = ventureSim ? ventureSim.getPlayerHoldingsValue() : 0;
+        const pendingCommitments = ventureSim ? ventureSim.getPendingCommitments() : 0;
+        netWorth = cash + totalHoldingsValue + ventureHoldingsValue + pendingCommitments - totalBorrowed;
+    }
     netWorthHistory.push({ x: currentDate.getTime(), y: netWorth });
     if (netWorthHistory.length > 2000) netWorthHistory.shift();
 
@@ -499,6 +631,10 @@ function getMaxBorrowing() {
 function borrow(amount) {
     amount = parseUserAmount(amount);
     if (isNaN(amount) || amount <= 0) { alert("Please enter a valid amount to borrow."); return; }
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        sendCommand({ type: 'borrow', amount });
+        return;
+    }
     const maxBorrowing = getMaxBorrowing();
     if (amount > maxBorrowing) { alert(`You can only borrow up to ${currencyFormatter.format(maxBorrowing)}.`); return; }
     totalBorrowed += amount;
@@ -510,6 +646,10 @@ function borrow(amount) {
 function repay(amount) {
     amount = parseUserAmount(amount);
     if (isNaN(amount) || amount <= 0) { alert("Please enter a valid amount to repay."); return; }
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        sendCommand({ type: 'repay', amount });
+        return;
+    }
     if (amount > totalBorrowed) { alert(`You only owe ${currencyFormatter.format(totalBorrowed)}.`); return; }
     if (amount > cash) { alert("You don't have enough cash to repay this amount."); return; }
     totalBorrowed -= amount;
@@ -642,6 +782,10 @@ function buy(companyName, amount) {
     if (isNaN(amount) || amount <= 0) { alert("Invalid amount."); return; }
     const company = companies.find(c => c.name === companyName);
     if (!company) return;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        sendCommand({ type: 'buy', companyId: company.id, amount });
+        return;
+    }
     if (amount > cash) { alert("Insufficient cash for this purchase."); return; }
     if (company.marketCap < 0.0001) { alert("This company's valuation is too low to purchase right now."); return; }
     cash -= amount;
@@ -658,6 +802,10 @@ function sell(companyName, amount) {
     const company = companies.find(c => c.name === companyName);
     const holding = portfolio.find(h => h.companyName === companyName);
     if (!company || !holding) { alert("You don't own this stock."); return; }
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        sendCommand({ type: 'sell', companyId: company.id, amount });
+        return;
+    }
     const currentValue = company.marketCap * holding.unitsOwned;
     if (amount > currentValue) { alert("You cannot sell more than you own."); return; }
     cash += amount;
@@ -1301,9 +1449,12 @@ async function init() {
     }
 
     initMatchContext();
-    sim = await loadCompaniesData();
-    if (!sim) { return; }
-    companies = sim.companies;
+    connectWebSocket();
+    if (!isServerAuthoritative) {
+        sim = await loadCompaniesData();
+        if (!sim) { return; }
+        companies = sim.companies;
+    }
 
     companies = sim.companies;
 

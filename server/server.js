@@ -29,6 +29,8 @@ function createPlayer(id) {
     cash: 3000,
     debt: 0,
     holdings: {}, // companyId -> units
+    ventureHoldings: {}, // ventureId -> equity percent
+    ventureCommitments: {}, // ventureId -> committed cash
     lastCommandTs: Date.now()
   };
 }
@@ -55,7 +57,11 @@ async function buildMatch(seed = Date.now()) {
     clients: new Set(),
     clientPlayers: new Map(),
     players: new Map(),
-    tickHandle: null
+    tickHandle: null,
+    tickSeq: 0,
+    tickBuffer: [],
+    maxTicksCached: 50,
+    lastSnapshot: null
   };
 }
 
@@ -73,7 +79,7 @@ function startTickLoop(session) {
       ventureEvents: events || [],
       players: Array.from(session.players.values()).map(p => serializePlayer(p, session.sim))
     };
-    broadcast(session, payload);
+    cacheAndBroadcast(session, payload);
   }, 500);
 }
 
@@ -91,6 +97,16 @@ function broadcast(session, message) {
       ws.send(payload);
     }
   });
+}
+
+function cacheAndBroadcast(session, tick) {
+  session.tickSeq += 1;
+  const enriched = { ...tick, seq: session.tickSeq };
+  session.tickBuffer.push(enriched);
+  if (session.tickBuffer.length > session.maxTicksCached) {
+    session.tickBuffer.shift();
+  }
+  broadcast(session, enriched);
 }
 
 app.get('/health', async () => ({ ok: true }));
@@ -133,11 +149,28 @@ function maxBorrowable(sim, player) {
   return Math.max(0, cap - player.debt);
 }
 
+function buildSnapshot(session) {
+  return {
+    seed: session.seed,
+    sim: session.sim.exportState({ detail: false }),
+    venture: session.ventureSim ? session.ventureSim.exportState({ detail: false }) : null,
+    players: Array.from(session.players.values()).map(p => serializePlayer(p, session.sim))
+  };
+}
+
 function handleCommand(session, player, msg) {
   if (!msg || typeof msg !== 'object') {
     return { ok: false, error: 'bad_payload' };
   }
   const type = msg.type;
+  if (type === 'resync') {
+    return {
+      ok: true,
+      type: 'resync',
+      snapshot: buildSnapshot(session),
+      ticks: session.tickBuffer.slice()
+    };
+  }
   if (type === 'buy') {
     const { companyId, amount } = msg;
     if (!companyId || !Number.isFinite(amount) || amount <= 0) {
@@ -248,10 +281,9 @@ wss.on('connection', async (ws, req, url) => {
   // Send initial snapshot
   ws.send(JSON.stringify({
     type: 'snapshot',
-    seed: session.seed,
-    sim: session.sim.exportState({ detail: false }),
-    venture: session.ventureSim ? session.ventureSim.exportState({ detail: false }) : null,
-    player: serializePlayer(player, session.sim)
+    ...buildSnapshot(session),
+    player: serializePlayer(player, session.sim),
+    ticks: session.tickBuffer.slice()
   }));
 
   startTickLoop(session);
