@@ -6,6 +6,7 @@
 
   const {
     Random,
+    random,
     between,
     MarginCurve,
     MultipleCurve,
@@ -28,7 +29,7 @@
   const pickWeightedRandom = (items) => {
     if (!Array.isArray(items) || items.length === 0) return null;
     const total = items.reduce((sum, item) => sum + (item.weight || 1), 0);
-    let roll = Math.random() * total;
+    let roll = random() * total;
     for (const item of items) {
       roll -= (item.weight || 1);
       if (roll <= 0) return item;
@@ -53,6 +54,7 @@
       this.plan = this.normalizePlan(plan);
       this.spawnQueue = [];
       this.initialized = false;
+      this.idCounter = 0;
     }
 
     normalizePlan(plan) {
@@ -121,7 +123,7 @@
       const template = this.pickNextTemplate();
       if (!template) return false;
       this.ensureCapacityForNew();
-      const suffix = `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+      const suffix = `${this.idCounter++}_${Math.floor(random() * 1000000)}`;
       const clone = cloneProductTemplate(template, suffix);
       const product = new Product(clone);
       const replacementYears = sampleRange(this.plan.replacementYears, 8, 12);
@@ -567,7 +569,7 @@
       let successThisTick = false;
       for (const p of this.products) {
         const vBefore = p.unlockedValue();
-        p.advance(dtDays, Math.random, this);
+        p.advance(dtDays, random, this);
         if (p.unlockedValue() > vBefore) successThisTick = true;
       }
       if (successThisTick && this.multFreeze === null) {
@@ -718,7 +720,8 @@
     recordDividendEvent(amount, gameDate) {
       if (amount <= 0) return;
       if (!this.dividendEvents) this.dividendEvents = [];
-      this.dividendEvents.push({ amount, timestamp: gameDate ? gameDate.getTime() : Date.now() });
+      const ts = gameDate ? gameDate.getTime() : 0;
+      this.dividendEvents.push({ amount, timestamp: ts });
     }
 
     drainDividendEvents() {
@@ -768,12 +771,12 @@
 
       const decayFactor = Math.pow(this.growthDecay, dtYears);
       this.growthTarget = Math.max(this.growthFloor, this.growthTarget * decayFactor);
-      if (Math.random() < 0.05 * dtYears) {
+      if (random() < 0.05 * dtYears) {
         this.growthTarget *= between(0.45, 0.75);
-      } else if (Math.random() < 0.02 * dtYears) {
+      } else if (random() < 0.02 * dtYears) {
         this.growthTarget *= between(1.15, 1.35);
       }
-      if (!this.inflection.triggered && Math.random() < 0.10 * dtYears) {
+      if (!this.inflection.triggered && random() < 0.10 * dtYears) {
         this.inflection = {
           triggered: true,
           elapsed: 0,

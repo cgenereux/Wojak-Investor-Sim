@@ -1,6 +1,8 @@
 (function (global) {
-  const between = (lo, hi) => lo + Math.random() * (hi - lo);
-  const clampValue = (value, min, max) => Math.max(min, Math.min(max, value));
+  const shared = global.SimShared || {};
+  const rng = typeof shared.random === 'function' ? shared.random : Math.random;
+  const between = shared.between || ((lo, hi) => lo + rng() * (hi - lo));
+  const clampValue = shared.clampValue || ((value, min, max) => Math.max(min, Math.min(max, value)));
 
   function computeHypergrowthFairValue(company, applyNoise = true) {
     const fin = company.getStageFinancials();

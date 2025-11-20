@@ -51,6 +51,9 @@ if (!pipelineModule) {
 }
 const { getPipelineHTML, updatePipelineDisplay } = pipelineModule;
 
+const simShared = window.SimShared || {};
+const SeededRandom = simShared.SeededRandom || null;
+
 const wojakFactory = window.WojakManagerFactory;
 if (!wojakFactory) {
     throw new Error('Wojak manager module failed to load. Ensure wojakManager.js is included before main.js.');
@@ -142,6 +145,9 @@ let sim;
 let companies = [];
 let ventureSim;
 let ventureCompanies = [];
+let matchSeed = null;
+let matchRng = null;
+let matchRngFn = null;
 const companyRenderState = {
     lastRenderTs: 0,
     minInterval: 500,
@@ -151,13 +157,23 @@ const companyRenderState = {
 
 function ensureVentureSimulation(force = false) {
     if ((force || !ventureSim) && typeof VentureSimulation !== 'undefined' && ventureCompanies.length > 0) {
-        ventureSim = new VentureSimulation(ventureCompanies, currentDate);
+        const ventureOpts = matchRngFn ? { rng: matchRngFn, seed: matchSeed } : {};
+        ventureSim = new VentureSimulation(ventureCompanies, currentDate, ventureOpts);
         window.ventureSim = ventureSim;
     }
 }
 
 async function loadCompaniesData() {
     try {
+        if (!matchSeed) {
+            matchSeed = Number(Date.now());
+        }
+        if (!matchRng && SeededRandom) {
+            matchRng = new SeededRandom(matchSeed);
+            matchRngFn = () => matchRng.random();
+        } else if (!matchRngFn) {
+            matchRngFn = Math.random;
+        }
         const [companiesResponse, ventureCompaniesResponse, macroEventsResponse] = await Promise.all([
             fetch('data/legacy-companies/companies.json'),
             fetch('data/legacy-companies/venture_companies.json'),
@@ -172,26 +188,28 @@ async function loadCompaniesData() {
         const macroEvents = macroEventsResponse.ok ? await macroEventsResponse.json() : [];
         if (!Array.isArray(ventureCompanies)) ventureCompanies = [];
         let filteredCompanies = []; // temporarily ignore legacy companies
-        const presetHardTechCompanies = await generateHardTechPresetCompanies(3);
+        const presetOptions = matchRngFn ? { rng: matchRngFn } : {};
+        const presetHardTechCompanies = await generateHardTechPresetCompanies(3, presetOptions);
         if (Array.isArray(presetHardTechCompanies)) {
             filteredCompanies.push(...presetHardTechCompanies);
         }
-        const presetMegacorpCompanies = await generateSteadyMegacorpCompanies(2);
+        const presetMegacorpCompanies = await generateSteadyMegacorpCompanies(2, presetOptions);
         if (Array.isArray(presetMegacorpCompanies)) {
             filteredCompanies.push(...presetMegacorpCompanies);
         }
-        const productRotatorCompanies = await generateProductRotatorCompanies(2);
+        const productRotatorCompanies = await generateProductRotatorCompanies(2, presetOptions);
         if (Array.isArray(productRotatorCompanies)) {
             filteredCompanies.push(...productRotatorCompanies);
         }
-        const presetVentureCompanies = await generateHypergrowthPresetCompanies();
+        const presetVentureCompanies = await generateHypergrowthPresetCompanies(presetOptions);
         if (Array.isArray(presetVentureCompanies)) {
             ventureCompanies.push(...presetVentureCompanies);
         }
-        const hardTechCompanies = generateBinaryHardTechCompanies(1);
+        const hardTechCompanies = generateBinaryHardTechCompanies(1, presetOptions);
         ventureCompanies.push(...hardTechCompanies);
         ensureVentureSimulation(true);
-        return new Simulation(filteredCompanies, { macroEvents });
+        const simOptions = matchRngFn ? { macroEvents, seed: matchSeed, rng: matchRngFn } : { macroEvents };
+        return new Simulation(filteredCompanies, simOptions);
     } catch (error) {
         console.error("Could not load data:", error);
         alert("Failed to load game data. Please ensure JSON files are in the same directory and a local server is running.");

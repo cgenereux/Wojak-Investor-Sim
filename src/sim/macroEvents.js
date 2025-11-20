@@ -1,5 +1,7 @@
 (function (global) {
-  const randBetween = (min, max) => Math.random() * (max - min) + min;
+  const shared = global.SimShared || {};
+  const getRng = () => (typeof shared.random === 'function' ? shared.random : Math.random);
+  const randBetween = (min, max, rngFn = getRng()) => rngFn() * (max - min) + min;
   const randIntBetween = (min, max) => Math.floor(randBetween(min, max + 1));
   const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -30,8 +32,9 @@
     createInstance(def = {}, options = {}) {
       const chance = typeof def.chance === 'number' ? def.chance : 1;
       const force = !!options.force;
-      if (!force && Math.random() > chance) return null;
-      const id = def.id || `macro_event_${Math.random().toString(36).slice(2)}`;
+      const rngFn = getRng();
+      if (!force && rngFn() > chance) return null;
+      const id = def.id || `macro_event_${Math.floor(rngFn() * 1e9).toString(36)}`;
       const label = def.label || 'Macro Event';
       const description = def.description || def.notes || '';
       const startRange = Array.isArray(def.start_year_range) && def.start_year_range.length === 2

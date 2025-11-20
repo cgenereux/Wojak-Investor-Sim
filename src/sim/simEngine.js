@@ -6,7 +6,7 @@
   if (!shared.MacroEnvironment || !companyModule.Company) {
     throw new Error('SimShared and CompanyModule must load before simEngine.js');
   }
-  const { MacroEnvironment, between, SIM_DAY_MS } = shared;
+  const { MacroEnvironment, between, SIM_DAY_MS, SeededRandom, withRandomSource } = shared;
   const { Company, HypergrowthCompany } = companyModule;
   const { VentureSimulation } = ventureModule;
   const { MacroEventManager } = macroModule;
@@ -22,23 +22,32 @@ class Simulation {
     const startYear = options.startYear ?? 1990;
     const dt = options.dt ?? 14;
     const macroEvents = Array.isArray(options.macroEvents) ? options.macroEvents : [];
+    const seed = options.seed ?? Date.now();
+    this.rng = options.rng || new SeededRandom(seed);
+    this.rngFn = typeof options.rng === 'function' ? options.rng : () => this.rng.random();
     this.dtDays = dt;
     this.startYear = startYear;
-    this.macroEventManager = new MacroEventManager(macroEvents, this.startYear);
-
-    // build a set of sectors we will need macros for
-    const sectorSet = new Set(cfg.map(c => c.static.sector));
-    this.macroEnv = new MacroEnvironment(sectorSet, this.macroEventManager);
-
-    this.companyConfigs = cfg.map(c => ({ ...c, isLive: false, ipoDate: null }));
+    this.macroEventManager = null;
+    this.companyConfigs = [];
     this.companies = [];
     this.lastTick = new Date(startYear, 0, 1);
 
-    this.tick(new Date(this.lastTick));
+    withRandomSource(this.rngFn, () => {
+      this.macroEventManager = new MacroEventManager(macroEvents, this.startYear);
+      // build a set of sectors we will need macros for
+      const sectorSet = new Set(cfg.map(c => c.static.sector));
+      this.macroEnv = new MacroEnvironment(sectorSet, this.macroEventManager);
+      this.companyConfigs = cfg.map(c => ({ ...c, isLive: false, ipoDate: null }));
+      this.tick(new Date(this.lastTick));
+    });
   }
 
   tick(gameDate) {
     if (!gameDate) return;
+    return withRandomSource(this.rngFn, () => this._tickInternal(gameDate));
+  }
+
+  _tickInternal(gameDate) {
     const tickDate = gameDate instanceof Date ? new Date(gameDate) : new Date(gameDate);
     this.lastTick = tickDate;
     const dtYears = this.dtDays / 365;

@@ -7,7 +7,10 @@
   }
   const {
     between,
-    clampValue
+    clampValue,
+    random,
+    withRandomSource,
+    SeededRandom
   } = shared;
   const { Company } = companyModule;
   const {
@@ -305,7 +308,7 @@
 
     recordHistory(date) {
       if (!date) return;
-      const timestamp = date.getTime ? date.getTime() : Date.now();
+      const timestamp = date && date.getTime ? date.getTime() : 0;
       const last = this.history[this.history.length - 1];
       if (last && last.x === timestamp) {
         last.y = this.currentValuation;
@@ -351,7 +354,7 @@
       const dtYears = dtDays / DAYS_PER_YEAR;
       if (Array.isArray(this.products) && this.products.length > 0) {
         for (const product of this.products) {
-          product.advance(dtDays, Math.random, this);
+        product.advance(dtDays, random, this);
         }
       }
       if (this.postGateMode) {
@@ -525,7 +528,9 @@
     }
 
     syncPostGateMultiple(currentDate) {
-      const nowMs = currentDate ? currentDate.getTime() : Date.now();
+      const nowMs = currentDate
+        ? currentDate.getTime()
+        : (this.postGateStartDate ? this.postGateStartDate.getTime() : 0);
       const baseMs = this.postGateStartDate ? this.postGateStartDate.getTime() : nowMs;
       const years = Math.max(0, (nowMs - baseMs) / YEAR_MS);
       const range = this.postGateInitialMultiple - this.postGateBaselineMultiple;
@@ -601,7 +606,7 @@
         durationDays,
         runwayMonths,
         playerCommitted: false,
-        openedOn: new Date(currentDate || new Date()),
+        openedOn: new Date(currentDate || this.startDate || new Date('1990-01-01T00:00:00Z')),
         fairValue: fairValue,
         pipelineStage: pipelineStageName,
         stageReadyToResolve: false
@@ -693,7 +698,7 @@
       } else if (closingRound.playerCommitted && !autoBackersInterested) {
         success = true; // only the player kept this round alive
       } else {
-        success = Math.random() < successChance;
+        success = random() < successChance;
       }
       const stageWasGate = stage && stage.id === this.gateStageId;
 
@@ -949,8 +954,13 @@
   }
 
   class VentureSimulation {
-    constructor(configs, startDate) {
-      this.companies = (configs || []).map(cfg => new VentureCompany({
+    constructor(configs, startDate, options = {}) {
+      const seed = options.seed ?? Date.now();
+      this.rng = options.rng || new SeededRandom(seed);
+      this.rngFn = typeof options.rng === 'function' ? options.rng : () => this.rng.random();
+      this.companies = [];
+      withRandomSource(this.rngFn, () => {
+        this.companies = (configs || []).map(cfg => new VentureCompany({
         id: cfg.id,
         name: cfg.name,
         sector: cfg.sector,
@@ -978,6 +988,7 @@
         pipeline: Array.isArray(cfg.pipeline) ? cfg.pipeline : [],
         events: Array.isArray(cfg.events) ? cfg.events : []
       }, startDate));
+      });
       this.lastTick = startDate ? new Date(startDate) : new Date('1990-01-01T00:00:00Z');
       this.stageUpdateFlag = false;
     }
@@ -987,6 +998,10 @@
     }
 
     tick(currentDate) {
+      return withRandomSource(this.rngFn, () => this._tickInternal(currentDate));
+    }
+
+    _tickInternal(currentDate) {
       if (!currentDate) return [];
       if (!(currentDate instanceof Date)) currentDate = new Date(currentDate);
       const dtDays = Math.max(0, (currentDate - this.lastTick) / VC_DAY_MS);

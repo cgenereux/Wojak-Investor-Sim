@@ -1,18 +1,74 @@
 (function (global) {
+  // Simple deterministic PRNG (mulberry32) for seeded runs; defaults to Math.random if not set.
+  const createDeterministicRng = (seed = Date.now()) => {
+    let a = (typeof seed === 'number' ? seed : Math.abs(hashString(seed.toString()))) >>> 0;
+    return function next () {
+      a |= 0;
+      a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  };
+
+  const hashString = (str) => {
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < str.length; i++) {
+      h = Math.imul(h ^ str.charCodeAt(i), 16777619);
+    }
+    return h >>> 0;
+  };
+
+  let randomSource = Math.random;
+  const setRandomSource = (fn) => {
+    randomSource = typeof fn === 'function' ? fn : Math.random;
+  };
+  const withRandomSource = (fnOrSource, fnMaybe) => {
+    const hasFn = typeof fnMaybe === 'function';
+    const rng = hasFn ? fnOrSource : fnMaybe;
+    const fn = hasFn ? fnMaybe : fnOrSource;
+    if (typeof fn !== 'function') return undefined;
+    const prev = randomSource;
+    if (typeof rng === 'function') {
+      randomSource = rng;
+    }
+    try {
+      return fn();
+    } finally {
+      randomSource = prev;
+    }
+  };
+  const random = () => randomSource();
+
   const SIM_DAY_MS = 24 * 60 * 60 * 1000;
 
   class Random {
-    static gaussian () {
+    static gaussian (rngFn = random) {
       let u = 0;
       let v = 0;
-      while (!u) u = Math.random();
-      while (!v) v = Math.random();
+      while (!u) u = rngFn();
+      while (!v) v = rngFn();
+      return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+    }
+  }
+
+  class SeededRandom {
+    constructor (seed = Date.now()) {
+      this.seed = seed;
+      this.prng = createDeterministicRng(seed);
+    }
+    random () { return this.prng(); }
+    gaussian () {
+      let u = 0;
+      let v = 0;
+      while (!u) u = this.random();
+      while (!v) v = this.random();
       return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
     }
   }
 
   const lerp = (a, b, t) => a + (b - a) * Math.max(0, Math.min(1, t));
-  const between = (lo, hi) => lo + Math.random() * (hi - lo);
+  const between = (lo, hi, rngFn = random) => lo + rngFn() * (hi - lo);
   const clampValue = (value, min, max) => Math.max(min, Math.min(max, value));
 
   class MarginCurve {
@@ -229,6 +285,11 @@
   }
 
   global.SimShared = {
+    SeededRandom,
+    createDeterministicRng,
+    setRandomSource,
+    withRandomSource,
+    random,
     Random,
     SIM_DAY_MS,
     lerp,
