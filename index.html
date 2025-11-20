@@ -57,11 +57,18 @@
                     <span class="tooltip-text">Access to venture investments requires a net worth of at least
                         $5,000,000.</span>
                 </div>
-
                 <div class="drip-toggle">
                     <input type="checkbox" id="dripToggle">
                     <span class="drip-label">Reinvest Dividends</span>
                 </div>
+            </div>
+
+            <div id="connectedPlayers" style="display:none; margin: 12px 0; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc;">
+                <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <h3 style="margin:0; font-size: 16px;">Connected Players</h3>
+                    <span id="connectedPlayersSession" style="font-size: 12px; color: #475569;"></span>
+                </div>
+                <div id="playerLeaderboard"></div>
             </div>
 
             <div class="debug-controls">
@@ -74,7 +81,6 @@
                 <div class="portfolio-header">
                     <h2 class="section-title">My Portfolio</h2>
                 </div>
-                <div id="playerLeaderboard" class="portfolio-list" style="display:none; margin-bottom: 10px;"></div>
                 <div id="portfolioList" class="portfolio-list">
                     <p id="emptyPortfolioMsg">You haven't invested in any companies yet.</p>
                 </div>

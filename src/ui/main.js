@@ -32,6 +32,8 @@ const mpBackendInput = document.getElementById('mpBackendInput');
 const mpSessionInput = document.getElementById('mpSessionInput');
 const connectMultiplayerBtn = document.getElementById('connectMultiplayerBtn');
 const playerLeaderboardEl = document.getElementById('playerLeaderboard');
+const connectedPlayersEl = document.getElementById('connectedPlayers');
+const connectedPlayersSessionEl = document.getElementById('connectedPlayersSession');
 
 const DEFAULT_WOJAK_SRC = 'wojaks/wojak.png';
 const MALDING_WOJAK_SRC = 'wojaks/malding-wojak.png';
@@ -171,6 +173,8 @@ let latestServerPlayers = [];
 let activeSessionId = null;
 let activeBackendUrl = null;
 let manualDisconnect = false;
+const playerNetWorthSeries = new Map();
+const PLAYER_COLORS = ['#22c55e', '#3b82f6', '#f97316', '#a855f7', '#06b6d4', '#ef4444', '#0ea5e9', '#10b981'];
 
 function initMatchContext(seedOverride = null) {
     if (!matchSeed) {
@@ -387,6 +391,7 @@ function hydrateFromSnapshot(snapshot) {
         netWorthHistory.length = 0;
         serverTicks = new Set();
         latestServerPlayers = snapshot.players || [];
+        playerNetWorthSeries.clear();
     }
     companies = (snapshot.sim.companies || []).map(c => ({
         id: c.id,
@@ -403,6 +408,11 @@ function hydrateFromSnapshot(snapshot) {
     renderCompanies(true);
     updateDisplay();
     if (netWorthChart) netWorthChart.update();
+    if (isServerAuthoritative) {
+        const ts = snapshot.lastTick ? new Date(snapshot.lastTick).getTime() : Date.now();
+        updateNetWorthSeriesFromPlayers(ts, latestServerPlayers);
+        refreshNetWorthChartDatasets();
+    }
 }
 
 function applyTick(tick) {
@@ -430,11 +440,18 @@ function applyTick(tick) {
         if (me) updatePlayerFromServer(me);
         latestServerPlayers = tick.players;
         renderPlayerLeaderboard(tick.players);
+        if (isServerAuthoritative) {
+            updateNetWorthSeriesFromPlayers(tickTs, tick.players);
+        }
     }
     updateNetWorth();
     renderCompanies();
     updateDisplay();
-    if (netWorthChart) netWorthChart.update();
+    if (isServerAuthoritative) {
+        refreshNetWorthChartDatasets();
+    } else if (netWorthChart) {
+        netWorthChart.update();
+    }
     if (companyDetailChart) companyDetailChart.update();
 }
 
@@ -624,10 +641,84 @@ function renderPortfolio() {
     });
 }
 
+function updateNetWorthSeriesFromPlayers(ts, players) {
+    if (!isServerAuthoritative || !Array.isArray(players)) return;
+    players.forEach(p => {
+        const id = p.id || 'player';
+        const nw = Number.isFinite(p.netWorth) ? p.netWorth : null;
+        if (nw === null) return;
+        if (!playerNetWorthSeries.has(id)) {
+            playerNetWorthSeries.set(id, []);
+        }
+        const series = playerNetWorthSeries.get(id);
+        const last = series[series.length - 1];
+        if (last && last.x === ts) {
+            last.y = nw;
+        } else {
+            series.push({ x: ts, y: nw });
+        }
+        if (series.length > 1000) {
+            series.splice(0, series.length - 800);
+        }
+    });
+}
+
+function refreshNetWorthChartDatasets() {
+    if (!netWorthChart) return;
+    if (isServerAuthoritative) {
+        const datasets = [];
+        Array.from(playerNetWorthSeries.entries()).forEach(([id, data], idx) => {
+            if (!Array.isArray(data) || data.length === 0) return;
+            datasets.push({
+                label: id,
+                data,
+                borderColor: PLAYER_COLORS[idx % PLAYER_COLORS.length],
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                fill: false,
+                tension: 0.25,
+                cubicInterpolationMode: 'monotone'
+            });
+        });
+        if (datasets.length === 0) {
+            datasets.push({
+                label: 'Net Worth',
+                data: netWorthHistory,
+                borderColor: '#00c742',
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                pointRadius: 0,
+                tension: 0.25,
+                fill: false,
+                cubicInterpolationMode: 'monotone'
+            });
+        }
+        netWorthChart.data.datasets = datasets;
+        netWorthChart.update();
+    } else {
+        netWorthChart.data.datasets = [{
+            label: 'Net Worth',
+            data: netWorthHistory,
+            borderColor: '#00c742',
+            backgroundColor: 'rgba(0, 199, 66, 0.1)',
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHoverBackgroundColor: '#00c742',
+            pointHoverBorderWidth: 0,
+            pointHoverRadius: 6,
+            tension: 0.4,
+            fill: true
+        }];
+        netWorthChart.update();
+    }
+}
+
 function renderPlayerLeaderboard(players = []) {
-    if (!playerLeaderboardEl) return;
+    if (!playerLeaderboardEl || !connectedPlayersEl) return;
     if (!isServerAuthoritative || !Array.isArray(players) || players.length === 0) {
-        playerLeaderboardEl.style.display = 'none';
+        connectedPlayersEl.style.display = 'none';
         playerLeaderboardEl.innerHTML = '';
         return;
     }
@@ -645,7 +736,10 @@ function renderPlayerLeaderboard(players = []) {
         `;
     }).join('');
     playerLeaderboardEl.innerHTML = rows;
-    playerLeaderboardEl.style.display = 'block';
+    connectedPlayersEl.style.display = 'block';
+    if (connectedPlayersSessionEl && activeSessionId) {
+        connectedPlayersSessionEl.textContent = `Session: ${activeSessionId}`;
+    }
 }
 
 function updateMacroEventsDisplay() {
@@ -1778,10 +1872,17 @@ async function init() {
         }
 
         // Set Text
-        if (tooltipModel.body) {
-            const date = new Date(context.chart.data.datasets[0].data[tooltipModel.dataPoints[0].dataIndex].x);
+        if (tooltipModel.body && tooltipModel.dataPoints && tooltipModel.dataPoints.length > 0) {
+            const dp = tooltipModel.dataPoints[0];
+            const ds = context.chart.data.datasets?.[dp.datasetIndex];
+            const point = ds && Array.isArray(ds.data) ? ds.data[dp.dataIndex] : null;
+            if (!point || typeof point.x === 'undefined') {
+                tooltipEl.style.opacity = 0;
+                return;
+            }
+            const date = new Date(point.x);
             const dateStr = date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-            const rawValue = tooltipModel.dataPoints[0].raw.y;
+            const rawValue = dp.raw?.y ?? dp.parsed?.y ?? dp.raw ?? dp.parsed;
             const valueStr = currencyFormatter.format(rawValue);
 
             const innerHtml = `
@@ -1844,6 +1945,9 @@ async function init() {
             }
         }
     });
+    if (isServerAuthoritative) {
+        refreshNetWorthChartDatasets();
+    }
 
     renderCompanies(true); // Initial full render
     renderPortfolio();
