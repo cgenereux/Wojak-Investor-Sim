@@ -1001,8 +1001,8 @@
       const cash = Number.isFinite(this.cash) ? this.cash : 0;
       const debt = Number.isFinite(this.debt) ? this.debt : 0;
       // Include last 2 years of financial history for client merging
-      const recentFinancials = this.financialHistory ? this.financialHistory.slice(-2) : [];
-      const recentHistory = this.history ? this.history.slice(-200) : [];
+      const recentFinancials = this.financialHistory ? this.financialHistory.slice(-12) : [];
+      const recentHistory = this.history ? this.history.slice(-400) : [];
       const round = this.currentRound;
 
       return {
@@ -1023,6 +1023,7 @@
         daysSinceRound: this.daysSinceRound,
         daysSinceLastRaise: this.daysSinceLastRaise,
         financialHistory: recentFinancials,
+        quarterHistory: this.quarterHistory ? this.quarterHistory.slice(-40) : [],
         playerEquityById: { ...(this.playerEquityMap || {}) },
         history: recentHistory,
         currentRound: round

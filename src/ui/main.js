@@ -30,6 +30,7 @@ const multiplayerModal = document.getElementById('multiplayerModal');
 const closeMultiplayerBtn = document.getElementById('closeMultiplayerBtn');
 const mpBackendInput = document.getElementById('mpBackendInput');
 const mpSessionInput = document.getElementById('mpSessionInput');
+const createPartyBtn = document.getElementById('createPartyBtn');
 const connectMultiplayerBtn = document.getElementById('connectMultiplayerBtn');
 const playerLeaderboardEl = document.getElementById('playerLeaderboard');
 const connectedPlayersEl = document.getElementById('connectedPlayers');
@@ -119,6 +120,7 @@ let dripEnabled = false;
 const SPEED_STEPS = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8];
 const SESSION_ID_KEY = 'wojak_session_id';
 const BACKEND_URL_KEY = 'wojak_backend_url';
+const DEFAULT_BACKEND_URL = 'https://intelligent-perception-production-2498.up.railway.app';
 try {
     const stored = localStorage.getItem(DRIP_STORAGE_KEY);
     if (stored === 'true') dripEnabled = true;
@@ -175,6 +177,7 @@ let activeBackendUrl = null;
 let manualDisconnect = false;
 const playerNetWorthSeries = new Map();
 const PLAYER_COLORS = ['#22c55e', '#3b82f6', '#f97316', '#a855f7', '#06b6d4', '#ef4444', '#0ea5e9', '#10b981'];
+let killSessionBtn = null;
 
 function initMatchContext(seedOverride = null) {
     if (!matchSeed) {
@@ -234,13 +237,26 @@ function ensureConnectionBanner() {
     disconnectButton.style.fontSize = '11px';
     disconnectButton.addEventListener('click', () => disconnectMultiplayer());
 
+    const killButton = document.createElement('button');
+    killButton.textContent = 'Kill Game';
+    killButton.style.background = '#991b1b';
+    killButton.style.border = '1px solid #f87171';
+    killButton.style.color = '#fee2e2';
+    killButton.style.cursor = 'pointer';
+    killButton.style.borderRadius = '6px';
+    killButton.style.padding = '6px 8px';
+    killButton.style.fontSize = '11px';
+    killButton.addEventListener('click', () => killRemoteSession());
+
     wrapper.appendChild(statusText);
     wrapper.appendChild(resyncButton);
+    wrapper.appendChild(killButton);
     wrapper.appendChild(disconnectButton);
     document.body.appendChild(wrapper);
     connectionStatusEl = statusText;
     resyncBtn = resyncButton;
     disconnectBtn = disconnectButton;
+    killSessionBtn = killButton;
 }
 
 function setConnectionStatus(text, tone = 'info') {
@@ -284,12 +300,21 @@ function disconnectMultiplayer() {
     }, 150);
 }
 
+function killRemoteSession() {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        setConnectionStatus('Kill failed (disconnected)', 'error');
+        return;
+    }
+    setConnectionStatus('Killing session...', 'warn');
+    sendCommand({ type: 'kill_session' });
+}
+
 function connectWebSocket() {
     if (manualDisconnect) {
         console.warn('Manual disconnect set; skipping WS connect');
         return;
     }
-    const backendUrl = activeBackendUrl || window.WOJAK_BACKEND_URL || '';
+    const backendUrl = activeBackendUrl || window.WOJAK_BACKEND_URL || DEFAULT_BACKEND_URL || '';
     if (!backendUrl) {
         console.warn('WOJAK_BACKEND_URL not set; skipping WS connect');
         return;
@@ -382,6 +407,16 @@ function handleServerMessage(msg) {
             updateInvestmentPanel(activeCompanyDetail);
         }
         if (netWorthChart) netWorthChart.update();
+        return;
+    }
+    if (msg.type === 'end') {
+        manualDisconnect = true;
+        if (ws) {
+            try { ws.close(); } catch (err) { /* ignore */ }
+        }
+        setConnectionStatus('Session ended', 'error');
+        alert(`Game ended (${msg.reason || 'session end'}). Final year: ${msg.year || ''}`);
+        setTimeout(() => window.location.reload(), 300);
         return;
     }
     if (msg.type === 'error') {
@@ -2056,20 +2091,40 @@ closeMultiplayerBtn.addEventListener('click', hideMultiplayerModal);
 multiplayerModal.addEventListener('click', (event) => {
     if (event.target === multiplayerModal) hideMultiplayerModal();
 });
-connectMultiplayerBtn.addEventListener('click', () => {
-    const backend = mpBackendInput ? mpBackendInput.value.trim() : '';
-    const sessionId = mpSessionInput ? mpSessionInput.value.trim() : 'default';
-    if (!backend) {
-        alert('Please enter a backend URL.');
-        return;
+const PARTY_CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+function generatePartyCode() {
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+        code += PARTY_CODE_CHARS.charAt(Math.floor(Math.random() * PARTY_CODE_CHARS.length));
     }
-    activeBackendUrl = backend;
+    return code;
+}
+
+function applyBackendAndSession(backend, sessionId) {
+    activeBackendUrl = backend || DEFAULT_BACKEND_URL;
     activeSessionId = sessionId || 'default';
     localStorage.setItem(BACKEND_URL_KEY, activeBackendUrl);
     localStorage.setItem(SESSION_ID_KEY, activeSessionId);
+}
+
+connectMultiplayerBtn.addEventListener('click', () => {
+    const backend = mpBackendInput ? mpBackendInput.value.trim() || DEFAULT_BACKEND_URL : DEFAULT_BACKEND_URL;
+    const sessionId = mpSessionInput ? mpSessionInput.value.trim() : 'default';
+    applyBackendAndSession(backend, sessionId || 'default');
     hideMultiplayerModal();
     connectWebSocket();
 });
+
+if (createPartyBtn) {
+    createPartyBtn.addEventListener('click', () => {
+        const backend = DEFAULT_BACKEND_URL;
+        const code = generatePartyCode();
+        if (mpSessionInput) mpSessionInput.value = code;
+        applyBackendAndSession(backend, code);
+        hideMultiplayerModal();
+        connectWebSocket();
+    });
+}
 
 window.leadVentureRound = leadVentureRound;
 window.getVentureCompanyDetail = (companyId) => ventureSim ? ventureSim.getCompanyDetail(companyId) : null;
@@ -2110,10 +2165,11 @@ function showMultiplayerModal() {
     if (!multiplayerModal) return;
     multiplayerModal.classList.add('active');
     if (mpBackendInput) {
-        mpBackendInput.value = activeBackendUrl || window.WOJAK_BACKEND_URL || localStorage.getItem(BACKEND_URL_KEY) || '';
+        mpBackendInput.value = activeBackendUrl || window.WOJAK_BACKEND_URL || localStorage.getItem(BACKEND_URL_KEY) || DEFAULT_BACKEND_URL || '';
+        mpBackendInput.setAttribute('readonly', 'readonly');
     }
     if (mpSessionInput) {
-        mpSessionInput.value = activeSessionId || localStorage.getItem(SESSION_ID_KEY) || 'default';
+        mpSessionInput.value = activeSessionId || localStorage.getItem(SESSION_ID_KEY) || generatePartyCode();
     }
 }
 
@@ -2132,7 +2188,7 @@ async function init() {
     }
 
     initMatchContext();
-    activeBackendUrl = localStorage.getItem(BACKEND_URL_KEY) || window.WOJAK_BACKEND_URL || null;
+    activeBackendUrl = localStorage.getItem(BACKEND_URL_KEY) || window.WOJAK_BACKEND_URL || DEFAULT_BACKEND_URL || null;
     activeSessionId = localStorage.getItem(SESSION_ID_KEY) || 'default';
     if (activeBackendUrl) {
         connectWebSocket();

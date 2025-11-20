@@ -273,7 +273,7 @@
     <div id="multiplayerModal" class="banking-modal">
         <div class="banking-panel">
             <div class="banking-header">
-                <h2 class="banking-title">Multiplayer</h2>
+                <h2 class="banking-title">Play With<br>Friends</h2>
                 <div class="multiplayer-wojaks">
                     <img src="wojaks/grug.png" alt="Grug" class="multiplayer-wojak-icon">
                     <img src="wojaks/zoomer.png" alt="Zoomer" class="multiplayer-wojak-icon">
@@ -283,20 +283,20 @@
             </div>
             <div class="banking-controls">
                 <div class="banking-input-group">
-                    <div class="input-label">Backend URL</div>
-                    <input type="text" id="mpBackendInput" placeholder="http://localhost:4000">
+                    <div class="input-label">Backend</div>
+                    <input type="text" id="mpBackendInput" placeholder="Backend" readonly>
                 </div>
                 <div class="banking-input-group">
-                    <div class="input-label">Session ID</div>
-                    <input type="text" id="mpSessionInput" placeholder="default">
+                    <div class="input-label">Party Code</div>
+                    <input type="text" id="mpSessionInput" placeholder="Share this code with friends">
                 </div>
                 <div class="banking-button-grid">
-                    <button id="connectMultiplayerBtn" class="borrow-btn">Connect</button>
+                    <button id="createPartyBtn" class="borrow-btn">Create Party</button>
+                    <button id="connectMultiplayerBtn" class="borrow-btn">Join Party</button>
                 </div>
             </div>
             <div class="banking-info">
-                <strong>Note:</strong> Sessions are created on-demand. Share the session ID with friends to play
-                together.
+                <strong>Note:</strong> We’ll host for you. Hit “Create Party” to get a code, or paste a friend’s code to join.
             </div>
         </div>
     </div>

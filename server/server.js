@@ -21,6 +21,7 @@ const macroEvents = require('../data/macroEvents.json');
 const PORT = process.env.PORT || 4000;
 const ANNUAL_INTEREST_RATE = 0.07;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const GAME_END_YEAR = 2050;
 
 const app = fastify({ logger: false });
 
@@ -65,6 +66,7 @@ async function buildMatch(seed = Date.now()) {
     clients: new Set(),
     clientPlayers: new Map(),
     players: new Map(),
+    ended: false,
     tickHandle: null,
     tickSeq: 0,
     tickBuffer: [],
@@ -74,10 +76,22 @@ async function buildMatch(seed = Date.now()) {
 }
 
 function startTickLoop(session) {
-  if (session.tickHandle) return;
+  if (session.tickHandle || session.ended) return;
   session.tickHandle = setInterval(() => {
+    if (session.ended) {
+      stopTickLoop(session);
+      return;
+    }
+    const currentYear = session.sim.lastTick ? session.sim.lastTick.getUTCFullYear() : 1990;
+    if (currentYear >= GAME_END_YEAR) {
+      endSession(session);
+      return;
+    }
     const current = session.sim.lastTick || new Date('1990-01-01T00:00:00Z');
     const next = new Date(current.getTime() + session.sim.dtDays * MS_PER_DAY);
+    if (next.getUTCFullYear() > GAME_END_YEAR) {
+      next.setUTCFullYear(GAME_END_YEAR, 0, 1);
+    }
     const dtDays = Math.max(0, (next.getTime() - current.getTime()) / MS_PER_DAY);
     // console.log(`[Server Debug] Tick: dtDays=${dtDays}, current=${current.toISOString()}, next=${next.toISOString()}`);
     session.sim.tick(next);
@@ -109,6 +123,10 @@ function startTickLoop(session) {
       players: Array.from(session.players.values()).map(p => serializePlayer(p, session.sim))
     };
     cacheAndBroadcast(session, payload);
+    const newYear = session.sim.lastTick ? session.sim.lastTick.getUTCFullYear() : currentYear;
+    if (newYear >= GAME_END_YEAR) {
+      endSession(session);
+    }
   }, 500);
 }
 
@@ -136,6 +154,18 @@ function cacheAndBroadcast(session, tick) {
     session.tickBuffer.shift();
   }
   broadcast(session, enriched);
+}
+
+function endSession(session, reason = 'timeline_end') {
+  if (session.ended) return;
+  session.ended = true;
+  stopTickLoop(session);
+  broadcast(session, {
+    type: 'end',
+    reason,
+    year: GAME_END_YEAR,
+    lastTick: session.sim.lastTick ? session.sim.lastTick.toISOString() : null
+  });
 }
 
 app.get('/health', async () => ({ ok: true }));
@@ -468,6 +498,9 @@ function handleCommand(session, player, msg) {
     if (!company) {
       return { ok: false, error: 'unknown_company' };
     }
+    if (!company.currentRound && typeof company.generateRound === 'function') {
+      company.generateRound(session.sim.lastTick || new Date());
+    }
     const currentRound = company.currentRound;
     const raiseAmount = currentRound ? currentRound.raiseAmount : null;
     if (!currentRound || company.status !== 'raising') {
@@ -502,6 +535,10 @@ function handleCommand(session, player, msg) {
     }
     player.cash = amount;
     return { ok: true, type: 'debug_set_cash', amount };
+  }
+  if (type === 'kill_session') {
+    endSession(session, 'manual_kill');
+    return { ok: true, type: 'kill_session' };
   }
   if (type === 'ping') {
     return { ok: true, type: 'pong', ts: Date.now() };

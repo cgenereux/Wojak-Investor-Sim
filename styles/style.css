@@ -1103,9 +1103,26 @@ button.speed-active:hover {
     min-height: 180px;
 }
 
+#multiplayerModal .banking-title {
+    font-size: 32px;
+    margin-left: 1%;
+}
+
+#multiplayerModal .banking-button-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+#mpBackendInput[readonly] {
+    background: #f8fafc;
+    color: #475569;
+    cursor: not-allowed;
+}
+
 .multiplayer-wojaks {
     position: absolute;
-    left: 57%;
+    left: 57.5%;
     top: 53%;
     transform: translate(-50%, -50%);
     display: flex;
