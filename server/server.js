@@ -129,7 +129,10 @@ function serializePlayer(player, sim) {
     cash: player.cash,
     debt: player.debt,
     equity,
-    netWorth: player.cash + equity - player.debt
+    netWorth: player.cash + equity - player.debt,
+    holdings,
+    ventureHoldings: player.ventureHoldings || {},
+    ventureCommitments: player.ventureCommitments || {}
   };
 }
 
@@ -152,6 +155,7 @@ function maxBorrowable(sim, player) {
 function buildSnapshot(session) {
   return {
     seed: session.seed,
+    lastTick: session.sim.lastTick ? session.sim.lastTick.toISOString() : null,
     sim: session.sim.exportState({ detail: false }),
     venture: session.ventureSim ? session.ventureSim.exportState({ detail: false }) : null,
     players: Array.from(session.players.values()).map(p => serializePlayer(p, session.sim))

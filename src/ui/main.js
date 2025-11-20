@@ -239,6 +239,10 @@ function hydrateFromSnapshot(snapshot) {
         history: c.history || []
     }));
     serverPlayer = snapshot.player || null;
+    if (snapshot.lastTick) {
+        currentDate = new Date(snapshot.lastTick);
+    }
+    syncPortfolioFromServer();
     renderCompanies(true);
     updateDisplay();
 }
@@ -247,6 +251,9 @@ function applyTick(tick) {
     if (!tick || !Array.isArray(tick.companies)) return;
     if (tick.seq && serverTicks.has(tick.seq)) return;
     if (tick.seq) serverTicks.add(tick.seq);
+    if (tick.lastTick) {
+        currentDate = new Date(tick.lastTick);
+    }
     tick.companies.forEach(update => {
         const existing = companies.find(c => c.id === update.id);
         if (existing) {
@@ -271,7 +278,20 @@ function applyTicks(ticks) {
 
 function updatePlayerFromServer(playerSummary) {
     serverPlayer = playerSummary;
-    // Hook up to UI (leaderboard/status) later
+    syncPortfolioFromServer();
+}
+
+function syncPortfolioFromServer() {
+    if (!serverPlayer || !serverPlayer.holdings) return;
+    const nextPortfolio = [];
+    Object.entries(serverPlayer.holdings).forEach(([companyId, units]) => {
+        if (!units || units <= 0) return;
+        const company = companies.find(c => c.id === companyId);
+        if (!company) return;
+        nextPortfolio.push({ companyName: company.name, unitsOwned: units });
+    });
+    portfolio = nextPortfolio;
+    renderPortfolio();
 }
 
 function sendCommand(cmd) {
@@ -690,6 +710,7 @@ function endGame(reason) {
 }
 
 function gameLoop() {
+    if (isServerAuthoritative) return;
     if (!isGameReady) return;
 
     if (currentDate.getFullYear() >= GAME_END_YEAR) { endGame("timeline_end"); return; }
