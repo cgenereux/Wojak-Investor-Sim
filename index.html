@@ -31,6 +31,12 @@
                         <div class="date" id="currentDateDisplay">1990-01-01</div>
                         <div class="sub-financial-display" id="subFinancialDisplay"></div>
                     </div>
+                    <div class="header-controls">
+                        <div class="tooltip-container">
+                            <button id="multiplayerBtn">Play Multiplayer</button>
+                            <span class="tooltip-text">Join a shared session to compete with friends.</span>
+                        </div>
+                    </div>
                 </div>
                 <div class="macro-events-bar" id="macroEventsDisplay"></div>
             </div>
@@ -51,6 +57,7 @@
                     <span class="tooltip-text">Access to venture investments requires a net worth of at least
                         $5,000,000.</span>
                 </div>
+
                 <div class="drip-toggle">
                     <input type="checkbox" id="dripToggle">
                     <span class="drip-label">Reinvest Dividends</span>
@@ -67,6 +74,7 @@
                 <div class="portfolio-header">
                     <h2 class="section-title">My Portfolio</h2>
                 </div>
+                <div id="playerLeaderboard" class="portfolio-list" style="display:none; margin-bottom: 10px;"></div>
                 <div id="portfolioList" class="portfolio-list">
                     <p id="emptyPortfolioMsg">You haven't invested in any companies yet.</p>
                 </div>
@@ -251,6 +259,32 @@
             <div class="banking-info">
                 <strong>Tip:</strong> You can borrow up to 5x your net worth. Interest is charged from your cash
                 balance. You only go bankrupt if your net worth goes negative.
+            </div>
+        </div>
+    </div>
+    <!-- Multiplayer Modal -->
+    <div id="multiplayerModal" class="banking-modal">
+        <div class="banking-panel">
+            <div class="banking-header">
+                <h2 class="banking-title">Multiplayer</h2>
+                <button class="close-btn" id="closeMultiplayerBtn">×</button>
+            </div>
+            <div class="banking-controls">
+                <div class="banking-input-group">
+                    <div class="input-label">Backend URL</div>
+                    <input type="text" id="mpBackendInput" placeholder="http://localhost:4000">
+                </div>
+                <div class="banking-input-group">
+                    <div class="input-label">Session ID</div>
+                    <input type="text" id="mpSessionInput" placeholder="default">
+                </div>
+                <div class="banking-button-grid">
+                    <button id="connectMultiplayerBtn" class="borrow-btn">Connect</button>
+                </div>
+            </div>
+            <div class="banking-info">
+                <strong>Note:</strong> Sessions are created on-demand. Share the session ID with friends to play
+                together.
             </div>
         </div>
     </div>

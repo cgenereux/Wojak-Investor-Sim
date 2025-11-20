@@ -25,6 +25,13 @@ const vcBtn = document.getElementById('vcBtn');
 const vcView = document.getElementById('vc-view');
 const backToMainBtn = document.getElementById('back-to-main-btn');
 const dripToggle = document.getElementById('dripToggle');
+const multiplayerBtn = document.getElementById('multiplayerBtn');
+const multiplayerModal = document.getElementById('multiplayerModal');
+const closeMultiplayerBtn = document.getElementById('closeMultiplayerBtn');
+const mpBackendInput = document.getElementById('mpBackendInput');
+const mpSessionInput = document.getElementById('mpSessionInput');
+const connectMultiplayerBtn = document.getElementById('connectMultiplayerBtn');
+const playerLeaderboardEl = document.getElementById('playerLeaderboard');
 
 const DEFAULT_WOJAK_SRC = 'wojaks/wojak.png';
 const MALDING_WOJAK_SRC = 'wojaks/malding-wojak.png';
@@ -108,6 +115,8 @@ let currentFilter = 'all';
 const DRIP_STORAGE_KEY = 'wojak_drip_enabled';
 let dripEnabled = false;
 const SPEED_STEPS = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8];
+const SESSION_ID_KEY = 'wojak_session_id';
+const BACKEND_URL_KEY = 'wojak_backend_url';
 try {
     const stored = localStorage.getItem(DRIP_STORAGE_KEY);
     if (stored === 'true') dripEnabled = true;
@@ -152,8 +161,14 @@ let matchRng = null;
 let matchRngFn = null;
 let ws;
 let serverPlayer = null;
+let clientPlayerId = null;
 let serverTicks = new Set();
 let isServerAuthoritative = false;
+let connectionStatusEl = null;
+let resyncBtn = null;
+let latestServerPlayers = [];
+let activeSessionId = null;
+let activeBackendUrl = null;
 
 function initMatchContext(seedOverride = null) {
     if (!matchSeed) {
@@ -168,32 +183,105 @@ function initMatchContext(seedOverride = null) {
     }
 }
 
+function ensureConnectionBanner() {
+    if (connectionStatusEl) return;
+    const wrapper = document.createElement('div');
+    wrapper.id = 'connectionStatusBanner';
+    wrapper.style.position = 'fixed';
+    wrapper.style.top = '12px';
+    wrapper.style.right = '12px';
+    wrapper.style.zIndex = '999';
+    wrapper.style.display = 'flex';
+    wrapper.style.alignItems = 'center';
+    wrapper.style.gap = '8px';
+    wrapper.style.padding = '8px 10px';
+    wrapper.style.borderRadius = '8px';
+    wrapper.style.background = '#0f172a';
+    wrapper.style.color = '#e2e8f0';
+    wrapper.style.boxShadow = '0 6px 18px rgba(0,0,0,0.18)';
+
+    const statusText = document.createElement('span');
+    statusText.id = 'connectionStatusText';
+    statusText.textContent = 'Connecting...';
+    statusText.style.fontSize = '12px';
+    statusText.style.fontWeight = '600';
+
+    const resyncButton = document.createElement('button');
+    resyncButton.textContent = 'Force Resync';
+    resyncButton.style.background = '#1e293b';
+    resyncButton.style.border = '1px solid #334155';
+    resyncButton.style.color = '#e2e8f0';
+    resyncButton.style.cursor = 'pointer';
+    resyncButton.style.borderRadius = '6px';
+    resyncButton.style.padding = '6px 8px';
+    resyncButton.style.fontSize = '11px';
+    resyncButton.addEventListener('click', () => requestResync('manual'));
+
+    wrapper.appendChild(statusText);
+    wrapper.appendChild(resyncButton);
+    document.body.appendChild(wrapper);
+    connectionStatusEl = statusText;
+    resyncBtn = resyncButton;
+}
+
+function setConnectionStatus(text, tone = 'info') {
+    if (!connectionStatusEl) return;
+    connectionStatusEl.textContent = text;
+    const parent = connectionStatusEl.parentElement;
+    if (!parent) return;
+    let bg = '#0f172a';
+    if (tone === 'ok') bg = '#0f2a17';
+    else if (tone === 'warn') bg = '#2a1f0f';
+    else if (tone === 'error') bg = '#2a0f12';
+    parent.style.background = bg;
+}
+
+function requestResync(reason = 'manual') {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        setConnectionStatus('Resync unavailable (disconnected)', 'warn');
+        return;
+    }
+    setConnectionStatus('Resyncing...', 'warn');
+    ws.send(JSON.stringify({ type: 'resync', reason }));
+}
+
 function connectWebSocket() {
-    const backendUrl = window.WOJAK_BACKEND_URL || '';
+    const backendUrl = activeBackendUrl || window.WOJAK_BACKEND_URL || '';
     if (!backendUrl) {
         console.warn('WOJAK_BACKEND_URL not set; skipping WS connect');
         return;
     }
+    const session = activeSessionId || localStorage.getItem(SESSION_ID_KEY) || 'default';
+    activeSessionId = session;
     isServerAuthoritative = true;
-    const session = 'default';
+    ensureConnectionBanner();
+    setConnectionStatus('Connecting...', 'warn');
     const playerId = localStorage.getItem('wojak_player_id') || `p_${Math.floor(Math.random() * 1e9).toString(36)}`;
     localStorage.setItem('wojak_player_id', playerId);
+    clientPlayerId = playerId;
     const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws?session=${encodeURIComponent(session)}&player=${encodeURIComponent(playerId)}`;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close();
+    }
     try {
         ws = new WebSocket(wsUrl);
     } catch (err) {
         console.error('WS connect failed:', err);
+        setConnectionStatus('WS connect failed', 'error');
         return;
     }
     ws.onopen = () => {
         console.log('WS connected');
+        setConnectionStatus('Connected', 'ok');
     };
     ws.onclose = () => {
         console.warn('WS closed, retrying in 2s');
+        setConnectionStatus('Reconnecting...', 'warn');
         setTimeout(connectWebSocket, 2000);
     };
     ws.onerror = (err) => {
         console.error('WS error', err);
+        setConnectionStatus('Connection error', 'error');
     };
     ws.onmessage = (event) => {
         try {
@@ -210,19 +298,39 @@ function handleServerMessage(msg) {
     if (msg.type === 'snapshot') {
         hydrateFromSnapshot(msg);
         applyTicks(msg.ticks || []);
+        setConnectionStatus('Synced', 'ok');
+        return;
+    }
+    if (msg.type === 'resync') {
+        if (msg.snapshot) {
+            hydrateFromSnapshot({ ...msg.snapshot, player: msg.player, ticks: msg.ticks });
+            applyTicks(msg.ticks || []);
+        }
+        setConnectionStatus('Resynced', 'ok');
         return;
     }
     if (msg.type === 'tick') {
         applyTick(msg);
+        setConnectionStatus('Live', 'ok');
         return;
     }
     if (msg.type === 'command_result') {
         if (!msg.ok) {
             console.warn('Command failed', msg.error);
         }
+        if (msg.ok && msg.data && msg.data.type === 'resync' && msg.data.snapshot) {
+            hydrateFromSnapshot({ ...msg.data.snapshot, player: msg.player });
+            applyTicks(msg.data.ticks || []);
+            setConnectionStatus('Resynced', 'ok');
+            if (netWorthChart) netWorthChart.update();
+            return;
+        }
         if (msg.player) {
             updatePlayerFromServer(msg.player);
         }
+        updateNetWorth();
+        updateDisplay();
+        if (netWorthChart) netWorthChart.update();
         return;
     }
     if (msg.type === 'error') {
@@ -232,6 +340,11 @@ function handleServerMessage(msg) {
 
 function hydrateFromSnapshot(snapshot) {
     if (!snapshot || !snapshot.sim) return;
+    if (isServerAuthoritative) {
+        netWorthHistory.length = 0;
+        serverTicks = new Set();
+        latestServerPlayers = snapshot.players || [];
+    }
     companies = (snapshot.sim.companies || []).map(c => ({
         id: c.id,
         name: c.name,
@@ -243,32 +356,43 @@ function hydrateFromSnapshot(snapshot) {
         currentDate = new Date(snapshot.lastTick);
     }
     syncPortfolioFromServer();
+    updateNetWorth();
     renderCompanies(true);
     updateDisplay();
+    if (netWorthChart) netWorthChart.update();
 }
 
 function applyTick(tick) {
     if (!tick || !Array.isArray(tick.companies)) return;
     if (tick.seq && serverTicks.has(tick.seq)) return;
-    if (tick.seq) serverTicks.add(tick.seq);
-    if (tick.lastTick) {
-        currentDate = new Date(tick.lastTick);
+    if (tick.seq) {
+        serverTicks.add(tick.seq);
+        if (serverTicks.size > 500) {
+            serverTicks = new Set(Array.from(serverTicks).slice(-250));
+        }
     }
+    const tickTs = tick.lastTick ? new Date(tick.lastTick).getTime() : Date.now();
+    currentDate = new Date(tickTs);
     tick.companies.forEach(update => {
         const existing = companies.find(c => c.id === update.id);
         if (existing) {
             existing.marketCap = update.marketCap;
             if (Array.isArray(existing.history)) {
-                existing.history.push({ x: Date.now(), y: update.marketCap });
+                existing.history.push({ x: tickTs, y: update.marketCap });
             }
         }
     });
     if (Array.isArray(tick.players) && tick.players.length) {
-        const me = tick.players.find(p => serverPlayer && p.id === serverPlayer.id) || tick.players[0];
+        const me = tick.players.find(p => (serverPlayer && p.id === serverPlayer.id) || (clientPlayerId && p.id === clientPlayerId)) || tick.players[0];
         if (me) updatePlayerFromServer(me);
+        latestServerPlayers = tick.players;
+        renderPlayerLeaderboard(tick.players);
     }
+    updateNetWorth();
     renderCompanies();
     updateDisplay();
+    if (netWorthChart) netWorthChart.update();
+    if (companyDetailChart) companyDetailChart.update();
 }
 
 function applyTicks(ticks) {
@@ -278,7 +402,22 @@ function applyTicks(ticks) {
 
 function updatePlayerFromServer(playerSummary) {
     serverPlayer = playerSummary;
+    if (isServerAuthoritative && serverPlayer) {
+        if (typeof serverPlayer.cash === 'number') {
+            cash = serverPlayer.cash;
+        }
+        if (typeof serverPlayer.debt === 'number') {
+            totalBorrowed = serverPlayer.debt;
+        }
+        dripEnabled = !!serverPlayer.dripEnabled;
+        if (dripToggle) {
+            dripToggle.checked = dripEnabled;
+        }
+    }
     syncPortfolioFromServer();
+    if (latestServerPlayers && latestServerPlayers.length) {
+        renderPlayerLeaderboard(latestServerPlayers);
+    }
 }
 
 function syncPortfolioFromServer() {
@@ -440,6 +579,30 @@ function renderPortfolio() {
         emptyPortfolioMsg,
         currencyFormatter
     });
+}
+
+function renderPlayerLeaderboard(players = []) {
+    if (!playerLeaderboardEl) return;
+    if (!isServerAuthoritative || !Array.isArray(players) || players.length === 0) {
+        playerLeaderboardEl.style.display = 'none';
+        playerLeaderboardEl.innerHTML = '';
+        return;
+    }
+    const sorted = [...players].sort((a, b) => (b.netWorth || 0) - (a.netWorth || 0));
+    const rows = sorted.map(p => {
+        const net = currencyFormatter.format(p.netWorth || 0);
+        const cashStr = currencyFormatter.format(p.cash || 0);
+        return `
+          <div class="portfolio-item" data-portfolio-type="public" data-portfolio-key="player-${p.id}">
+              <div class="company-name">${p.id}</div>
+              <div class="portfolio-info">
+                  Net Worth: <span class="portfolio-value">${net}</span> | Cash: <span class="portfolio-value">${cashStr}</span>
+              </div>
+          </div>
+        `;
+    }).join('');
+    playerLeaderboardEl.innerHTML = rows;
+    playerLeaderboardEl.style.display = 'block';
 }
 
 function updateMacroEventsDisplay() {
@@ -644,8 +807,9 @@ function handleVentureEvents(events) {
 }
 
 function getMaxBorrowing() {
-    // netWorth is already cash + portfolio - totalBorrowed
-    return Math.max(0, netWorth * 5 - totalBorrowed);
+    const debt = isServerAuthoritative && serverPlayer ? serverPlayer.debt : totalBorrowed;
+    const netWorthVal = isServerAuthoritative && serverPlayer ? serverPlayer.netWorth : netWorth;
+    return Math.max(0, netWorthVal * 5 - debt);
 }
 
 function borrow(amount) {
@@ -680,9 +844,11 @@ function repay(amount) {
 
 function updateBankingDisplay() {
     const maxBorrowing = getMaxBorrowing();
-    bankingCashDisplay.textContent = currencyFormatter.format(cash);
-    bankingCashDisplay.className = `stat-value ${cash >= 0 ? 'positive' : 'negative'}`;
-    let totalAssets = cash;
+    const displayCash = isServerAuthoritative && serverPlayer ? serverPlayer.cash : cash;
+    const displayDebt = isServerAuthoritative && serverPlayer ? serverPlayer.debt : totalBorrowed;
+    bankingCashDisplay.textContent = currencyFormatter.format(displayCash);
+    bankingCashDisplay.className = `stat-value ${displayCash >= 0 ? 'positive' : 'negative'}`;
+    let totalAssets = displayCash;
     portfolio.forEach(holding => {
         const company = companies.find(c => c.name === holding.companyName);
         if (company) { totalAssets += company.marketCap * holding.unitsOwned; }
@@ -690,10 +856,13 @@ function updateBankingDisplay() {
     const privateAssets = ventureSim ? ventureSim.getPlayerHoldingsValue() : 0;
     const pendingCommitments = ventureSim ? ventureSim.getPendingCommitments() : 0;
     totalAssets += privateAssets + pendingCommitments;
+    if (isServerAuthoritative && serverPlayer) {
+        totalAssets = serverPlayer.netWorth + serverPlayer.debt;
+    }
     bankingNetWorthDisplay.textContent = currencyFormatter.format(totalAssets);
     bankingNetWorthDisplay.className = `stat-value positive`;
-    currentDebtDisplay.textContent = currencyFormatter.format(totalBorrowed);
-    currentDebtDisplay.className = `stat-value ${totalBorrowed > 0 ? 'negative' : 'positive'}`;
+    currentDebtDisplay.textContent = currencyFormatter.format(displayDebt);
+    currentDebtDisplay.className = `stat-value ${displayDebt > 0 ? 'negative' : 'positive'}`;
     maxBorrowDisplay.textContent = currencyFormatter.format(maxBorrowing);
 }
 
@@ -1181,7 +1350,8 @@ function renderCompanyFinancialHistory(company) {
 }
 
 function updateInvestmentPanelStats(company) {
-    playerCashDisplay.textContent = currencyFormatter.format(cash);
+    const displayCash = isServerAuthoritative && serverPlayer ? serverPlayer.cash : cash;
+    playerCashDisplay.textContent = currencyFormatter.format(displayCash);
     const holding = portfolio.find(h => h.companyName === company.name);
     let stakeValue = 0;
     if (holding) { stakeValue = company.marketCap * holding.unitsOwned; }
@@ -1278,6 +1448,15 @@ function setGameSpeed(speed) {
     const clampedSpeed = Math.max(0, speed);
     const wasPaused = isPaused;
     currentSpeed = clampedSpeed;
+    if (isServerAuthoritative) {
+        if (gameInterval) {
+            clearInterval(gameInterval);
+            gameInterval = null;
+        }
+        isPaused = clampedSpeed <= 0;
+        updateSpeedThumbLabel();
+        return;
+    }
     if (clampedSpeed <= 0) {
         clearInterval(gameInterval);
         isPaused = true;
@@ -1310,7 +1489,8 @@ buyMaxBtn.addEventListener('click', () => {
     if (activeCompanyDetail) {
         const company = activeCompanyDetail;
         if (company.marketCap > 0.0001) {
-            buy(company.name, cash);
+            const availableCash = (isServerAuthoritative && serverPlayer) ? serverPlayer.cash : cash;
+            buy(company.name, availableCash);
         } else {
             alert("This company's valuation is too low to purchase right now.");
         }
@@ -1403,7 +1583,9 @@ maxBorrowBtn.addEventListener('click', () => {
 
 // Max Repay Logic
 maxRepayBtn.addEventListener('click', () => {
-    const amount = Math.min(totalBorrowed, cash);
+    const debt = isServerAuthoritative && serverPlayer ? serverPlayer.debt : totalBorrowed;
+    const availableCash = isServerAuthoritative && serverPlayer ? serverPlayer.cash : cash;
+    const amount = Math.min(debt, availableCash);
     if (amount > 0) {
         repay(amount);
     } else {
@@ -1437,6 +1619,26 @@ backToMainBtn.addEventListener('click', () => {
     bodyEl.classList.remove('vc-detail-active');
 });
 
+multiplayerBtn.addEventListener('click', showMultiplayerModal);
+closeMultiplayerBtn.addEventListener('click', hideMultiplayerModal);
+multiplayerModal.addEventListener('click', (event) => {
+    if (event.target === multiplayerModal) hideMultiplayerModal();
+});
+connectMultiplayerBtn.addEventListener('click', () => {
+    const backend = mpBackendInput ? mpBackendInput.value.trim() : '';
+    const sessionId = mpSessionInput ? mpSessionInput.value.trim() : 'default';
+    if (!backend) {
+        alert('Please enter a backend URL.');
+        return;
+    }
+    activeBackendUrl = backend;
+    activeSessionId = sessionId || 'default';
+    localStorage.setItem(BACKEND_URL_KEY, activeBackendUrl);
+    localStorage.setItem(SESSION_ID_KEY, activeSessionId);
+    hideMultiplayerModal();
+    connectWebSocket();
+});
+
 window.leadVentureRound = leadVentureRound;
 window.getVentureCompanyDetail = (companyId) => ventureSim ? ventureSim.getCompanyDetail(companyId) : null;
 window.getVentureCompanySummaries = () => ventureSim ? ventureSim.getCompanySummaries() : [];
@@ -1460,6 +1662,22 @@ setTrillionaireBtn.addEventListener('click', () => {
     updateDisplay();
 });
 
+function showMultiplayerModal() {
+    if (!multiplayerModal) return;
+    multiplayerModal.classList.add('active');
+    if (mpBackendInput) {
+        mpBackendInput.value = activeBackendUrl || window.WOJAK_BACKEND_URL || localStorage.getItem(BACKEND_URL_KEY) || '';
+    }
+    if (mpSessionInput) {
+        mpSessionInput.value = activeSessionId || localStorage.getItem(SESSION_ID_KEY) || 'default';
+    }
+}
+
+function hideMultiplayerModal() {
+    if (!multiplayerModal) return;
+    multiplayerModal.classList.remove('active');
+}
+
 // --- Initialization ---
 async function init() {
     const sortCompaniesSelect = document.getElementById('sortCompanies');
@@ -1470,14 +1688,19 @@ async function init() {
     }
 
     initMatchContext();
-    connectWebSocket();
+    activeBackendUrl = localStorage.getItem(BACKEND_URL_KEY) || window.WOJAK_BACKEND_URL || null;
+    activeSessionId = localStorage.getItem(SESSION_ID_KEY) || 'default';
+    if (activeBackendUrl) {
+        connectWebSocket();
+    }
     if (!isServerAuthoritative) {
         sim = await loadCompaniesData();
         if (!sim) { return; }
-        companies = sim.companies;
     }
 
-    companies = sim.companies;
+    if (sim && sim.companies) {
+        companies = sim.companies;
+    }
 
     const getNetWorthTooltipHandler = (context) => {
         // Tooltip Element
@@ -1615,6 +1838,9 @@ if (dripToggle) {
     dripToggle.checked = dripEnabled;
     dripToggle.addEventListener('change', () => {
         dripEnabled = dripToggle.checked;
+        if (ws && ws.readyState === WebSocket.OPEN && isServerAuthoritative) {
+            sendCommand({ type: 'set_drip', enabled: dripEnabled });
+        }
         try {
             localStorage.setItem(DRIP_STORAGE_KEY, dripEnabled);
         } catch (err) {

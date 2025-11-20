@@ -1078,3 +1078,15 @@ button.speed-active:hover {
     padding: 6px;
     z-index: 100;
 }
+
+/* Header Controls */
+.header-controls {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+}
+
+.header-controls button {
+    padding: 8px 16px;
+    font-size: 14px;
+}

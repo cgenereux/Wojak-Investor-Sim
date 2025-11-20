@@ -17,6 +17,8 @@ const { VentureSimulation } = global.VentureEngineModule || {};
 const Presets = global.PresetGenerators || {};
 
 const PORT = process.env.PORT || 4000;
+const ANNUAL_INTEREST_RATE = 0.07;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 const app = fastify({ logger: false });
 
@@ -28,9 +30,12 @@ function createPlayer(id) {
     id,
     cash: 3000,
     debt: 0,
+    dripEnabled: false,
     holdings: {}, // companyId -> units
     ventureHoldings: {}, // ventureId -> equity percent
     ventureCommitments: {}, // ventureId -> committed cash
+    ventureCashInvested: {}, // ventureId -> total invested cash
+    lastInterestTs: null,
     lastCommandTs: Date.now()
   };
 }
@@ -49,6 +54,7 @@ async function buildMatch(seed = Date.now()) {
   ];
   const sim = new Simulation(pubs, { seed, rng: rngFn, macroEvents: [] });
   const ventureSim = new VentureSimulation(ventures, sim.lastTick, { seed, rng: rngFn });
+  sim._ventureSim = ventureSim;
   return {
     seed,
     sim,
@@ -69,14 +75,18 @@ function startTickLoop(session) {
   if (session.tickHandle) return;
   session.tickHandle = setInterval(() => {
     const current = session.sim.lastTick || new Date('1990-01-01T00:00:00Z');
-    const next = new Date(current.getTime() + session.sim.dtDays * 24 * 60 * 60 * 1000);
+    const next = new Date(current.getTime() + session.sim.dtDays * MS_PER_DAY);
+    const dtDays = Math.max(0, (next.getTime() - current.getTime()) / MS_PER_DAY);
     session.sim.tick(next);
     const events = session.ventureSim ? session.ventureSim.tick(next) : [];
+    accrueInterest(session, dtDays);
+    const dividendEvents = distributeDividends(session);
     const payload = {
       type: 'tick',
       lastTick: session.sim.lastTick ? session.sim.lastTick.toISOString() : null,
       companies: session.sim.companies.map(c => ({ id: c.id, name: c.name, marketCap: c.marketCap })),
       ventureEvents: events || [],
+      dividendEvents,
       players: Array.from(session.players.values()).map(p => serializePlayer(p, session.sim))
     };
     cacheAndBroadcast(session, payload);
@@ -124,15 +134,21 @@ app.get('/session/:id', async (req, res) => {
 function serializePlayer(player, sim) {
   const holdings = player.holdings || {};
   const equity = computeEquity(sim, holdings);
+  const netWorth = player.cash + equity - player.debt;
+  const bankrupt = netWorth < 0 && player.debt > 0;
+  player.bankrupt = bankrupt;
   return {
     id: player.id,
     cash: player.cash,
     debt: player.debt,
     equity,
-    netWorth: player.cash + equity - player.debt,
+    netWorth,
     holdings,
+    dripEnabled: !!player.dripEnabled,
+    bankrupt,
     ventureHoldings: player.ventureHoldings || {},
-    ventureCommitments: player.ventureCommitments || {}
+    ventureCommitments: player.ventureCommitments || {},
+    ventureCashInvested: player.ventureCashInvested || {}
   };
 }
 
@@ -145,11 +161,71 @@ function computeEquity(sim, holdings) {
   return equity;
 }
 
+function computeVentureEquity(ventureSim, ventureHoldings) {
+  let value = 0;
+  if (!ventureSim || !ventureSim.companies) return value;
+  ventureSim.companies.forEach(vc => {
+    const pct = ventureHoldings[vc.id] || 0;
+    if (pct > 0 && vc.currentValuation) {
+      value += pct * vc.currentValuation;
+    }
+  });
+  return value;
+}
+
 function maxBorrowable(sim, player) {
   const equity = computeEquity(sim, player.holdings || {});
-  const netWorth = player.cash + equity - player.debt;
+  const ventureValue = computeVentureEquity(sim._ventureSim, player.ventureHoldings || {});
+  const netWorth = player.cash + equity + ventureValue - player.debt;
   const cap = Math.max(0, netWorth) * 5;
   return Math.max(0, cap - player.debt);
+}
+
+function accrueInterest(session, dtDays) {
+  if (!Number.isFinite(dtDays) || dtDays <= 0) return;
+  session.players.forEach(player => {
+    if (!player || player.debt <= 0) return;
+    const interest = player.debt * ANNUAL_INTEREST_RATE * (dtDays / 365);
+    if (interest <= 0) return;
+    player.debt += interest;
+    player.cash -= interest;
+    player.lastInterestTs = session.sim.lastTick ? session.sim.lastTick.toISOString() : new Date().toISOString();
+  });
+}
+
+function distributeDividends(session) {
+  const events = [];
+  const dividendMap = new Map();
+  session.sim.companies.forEach(company => {
+    if (!company || typeof company.drainDividendEvents !== 'function') return;
+    const divs = company.drainDividendEvents();
+    if (divs && divs.length) {
+      dividendMap.set(company.id, { company, divs });
+    }
+  });
+  if (dividendMap.size === 0) return events;
+  session.players.forEach(player => {
+    Object.entries(player.holdings || {}).forEach(([companyId, units]) => {
+      const entry = dividendMap.get(companyId);
+      if (!entry || !units || units <= 0) return;
+      entry.divs.forEach(div => {
+        const payout = units * div.amount;
+        if (!Number.isFinite(payout) || payout <= 0) return;
+        if (player.dripEnabled) {
+          const marketCap = entry.company.marketCap || 0;
+          if (marketCap > 0) {
+            const extraUnits = payout / marketCap;
+            player.holdings[companyId] = (player.holdings[companyId] || 0) + extraUnits;
+            events.push({ playerId: player.id, companyId, payout, reinvested: true });
+          }
+        } else {
+          player.cash += payout;
+          events.push({ playerId: player.id, companyId, payout, reinvested: false });
+        }
+      });
+    });
+  });
+  return events;
 }
 
 function buildSnapshot(session) {
@@ -163,6 +239,9 @@ function buildSnapshot(session) {
 }
 
 function handleCommand(session, player, msg) {
+  if (player.bankrupt) {
+    return { ok: false, error: 'bankrupt' };
+  }
   if (!msg || typeof msg !== 'object') {
     return { ok: false, error: 'bad_payload' };
   }
@@ -172,6 +251,7 @@ function handleCommand(session, player, msg) {
       ok: true,
       type: 'resync',
       snapshot: buildSnapshot(session),
+      player: serializePlayer(player, session.sim),
       ticks: session.tickBuffer.slice()
     };
   }
@@ -240,6 +320,11 @@ function handleCommand(session, player, msg) {
     player.cash -= repayable;
     player.debt -= repayable;
     return { ok: true, type: 'repay', amount: repayable, capRemaining: maxBorrowable(session.sim, player) };
+  }
+  if (type === 'set_drip') {
+    const enabled = !!msg.enabled;
+    player.dripEnabled = enabled;
+    return { ok: true, type: 'set_drip', enabled };
   }
   if (type === 'ping') {
     return { ok: true, type: 'pong', ts: Date.now() };
