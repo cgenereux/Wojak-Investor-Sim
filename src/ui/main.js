@@ -391,6 +391,15 @@ function handleServerMessage(msg) {
 
 function hydrateFromSnapshot(snapshot) {
     if (!snapshot || !snapshot.sim) return;
+    if (snapshot.seed && snapshot.seed !== matchSeed) {
+        matchSeed = snapshot.seed;
+        if (SeededRandom) {
+            matchRng = new SeededRandom(matchSeed);
+            matchRngFn = () => matchRng.random();
+        } else {
+            matchRngFn = Math.random;
+        }
+    }
     if (isServerAuthoritative) {
         netWorthHistory.length = 0;
         serverTicks = new Set();
@@ -434,6 +443,10 @@ function hydrateFromSnapshot(snapshot) {
                     const snap = ventureCompanies.find(c => c.id === comp.id);
                     if (snap) {
                         Object.assign(comp, snap);
+                        // Fix mapping: Server sends 'valuation', internal prop is 'currentValuation'
+                        if (typeof snap.valuation === 'number') {
+                            comp.currentValuation = snap.valuation;
+                        }
                         // Ensure history is restored if available
                         if (snap.history) comp.history = snap.history.slice();
                         if (snap.financialHistory) comp.financialHistory = snap.financialHistory.slice();
@@ -498,6 +511,9 @@ function applyTick(tick) {
     }
     const tickTs = tick.lastTick ? new Date(tick.lastTick).getTime() : Date.now();
     currentDate = new Date(tickTs);
+    if (Array.isArray(tick.ventureEvents) && tick.ventureEvents.length > 0) {
+        handleVentureEvents(tick.ventureEvents);
+    }
     tick.companies.forEach(update => {
         const existing = companies.find(c => c.id === update.id);
         if (existing) {
@@ -566,6 +582,10 @@ function applyTick(tick) {
                 const instance = ventureSim.getCompanyById(vUpdate.id);
                 if (instance) {
                     Object.assign(instance, vUpdate);
+                    // Fix mapping: Server sends 'valuation', internal prop is 'currentValuation'
+                    if (typeof vUpdate.valuation === 'number') {
+                        instance.currentValuation = vUpdate.valuation;
+                    }
 
                     // Manually update history for the chart
                     if (tick.lastTick) {
@@ -591,9 +611,20 @@ function applyTick(tick) {
                         });
                         instance.financialHistory.sort((a, b) => a.year - b.year);
                     }
+
+                    if (vUpdate.currentRound) {
+                        instance.currentRound = { ...vUpdate.currentRound };
+                    }
                 }
             }
         });
+
+        // Drop ventures that have exited/failed on the server
+        const incomingIds = new Set(tick.venture.companies.map(v => v.id));
+        ventureCompanies = ventureCompanies.filter(v => incomingIds.has(v.id));
+        if (ventureSim && Array.isArray(ventureSim.companies)) {
+            ventureSim.companies = ventureSim.companies.filter(c => incomingIds.has(c.id));
+        }
 
         // Update ventureSim global time
         if (ventureSim && tick.lastTick) {
@@ -743,8 +774,12 @@ function updateDisplay() {
             publicAssets += value;
         }
     });
-    const privateAssets = ventureSim ? ventureSim.getPlayerHoldingsValue() : 0;
-    const pendingCommitments = ventureSim ? ventureSim.getPendingCommitments() : 0;
+    const privateAssets = (isServerAuthoritative && serverPlayer && typeof serverPlayer.ventureEquity === 'number')
+        ? serverPlayer.ventureEquity
+        : (ventureSim ? ventureSim.getPlayerHoldingsValue() : 0);
+    const pendingCommitments = (isServerAuthoritative && serverPlayer && typeof serverPlayer.ventureCommitmentsValue === 'number')
+        ? serverPlayer.ventureCommitmentsValue
+        : (ventureSim ? ventureSim.getPendingCommitments() : 0);
     const equityValue = publicAssets + privateAssets + pendingCommitments;
     const localTotalAssets = cash + equityValue;
 
@@ -1146,8 +1181,12 @@ function updateBankingDisplay() {
         const company = companies.find(c => c.name === holding.companyName);
         if (company) { totalAssets += company.marketCap * holding.unitsOwned; }
     });
-    const privateAssets = ventureSim ? ventureSim.getPlayerHoldingsValue() : 0;
-    const pendingCommitments = ventureSim ? ventureSim.getPendingCommitments() : 0;
+    const privateAssets = (isServerAuthoritative && serverPlayer && typeof serverPlayer.ventureEquity === 'number')
+        ? serverPlayer.ventureEquity
+        : (ventureSim ? ventureSim.getPlayerHoldingsValue() : 0);
+    const pendingCommitments = (isServerAuthoritative && serverPlayer && typeof serverPlayer.ventureCommitmentsValue === 'number')
+        ? serverPlayer.ventureCommitmentsValue
+        : (ventureSim ? ventureSim.getPendingCommitments() : 0);
     totalAssets += privateAssets + pendingCommitments;
     if (isServerAuthoritative && serverPlayer) {
         totalAssets = serverPlayer.netWorth + serverPlayer.debt;
@@ -1314,6 +1353,10 @@ function sell(companyName, amount) {
 
 function leadVentureRound(companyId) {
     ensureVentureSimulation();
+    if (ws && ws.readyState === WebSocket.OPEN && isServerAuthoritative) {
+        sendCommand({ type: 'vc_lead', companyId });
+        return { success: true, remote: true };
+    }
     if (!ventureSim) {
         return { success: false, reason: 'Venture market unavailable.' };
     }

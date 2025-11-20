@@ -1026,7 +1026,9 @@ button.speed-active:hover {
 
 .company-box.bankrupt .company-name {
     color: #d32f2f;
-}#chartjs-tooltip {
+}
+
+#chartjs-tooltip {
     opacity: 1;
     position: absolute;
     background: rgba(0, 0, 0, 0.8);
@@ -1064,6 +1066,7 @@ button.speed-active:hover {
     font-weight: 800;
     color: #fff;
 }
+
 .chartjs-tooltip {
     opacity: 1;
     position: absolute;
@@ -1089,4 +1092,30 @@ button.speed-active:hover {
 .header-controls button {
     padding: 8px 16px;
     font-size: 14px;
+}
+
+/* Multiplayer Modal Adjustments */
+#multiplayerModal .banking-panel {
+    max-width: 750px;
+}
+
+#multiplayerModal .banking-header {
+    min-height: 180px;
+}
+
+.multiplayer-wojaks {
+    position: absolute;
+    left: 57%;
+    top: 53%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    gap: 20px;
+    pointer-events: none;
+}
+
+.multiplayer-wojak-icon {
+    height: 136px;
+    width: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.15));
 }

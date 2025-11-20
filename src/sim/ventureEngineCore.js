@@ -188,6 +188,7 @@
       this.status = 'raising';
       this.daysSinceRound = 0;
       this.playerEquity = 0;
+      this.playerEquityMap = {};
       this.playerInvested = 0;
       this.pendingCommitment = 0;
       this.cash = Number(config.starting_cash_usd ?? 0);
@@ -203,6 +204,7 @@
       this.currentRound = null;
       this.ipoReady = false;
       this.exited = false;
+      this.lastCommitPlayerId = null;
       this.revenue = 0;
       this.profit = 0;
       this.history = [];
@@ -637,7 +639,7 @@
       return equityValue > 0 ? equityValue : 0;
     }
 
-    leadRound() {
+    leadRound(playerId = null) {
       if (!this.currentRound || this.status !== 'raising') {
         return { success: false, reason: 'Not currently raising.' };
       }
@@ -646,6 +648,8 @@
       }
       this.currentRound.playerCommitted = true;
       this.currentRound.playerCommitAmount = this.currentRound.raiseAmount;
+      this.currentRound.commitPlayerId = playerId || null;
+      this.lastCommitPlayerId = playerId || this.lastCommitPlayerId || null;
       this.pendingCommitment = (this.pendingCommitment || 0) + this.currentRound.raiseAmount;
       return {
         success: true,
@@ -719,7 +723,8 @@
           valuation: this.currentValuation,
           revenue: this.revenue,
           profit: this.profit,
-          refund: refundAmount
+          refund: refundAmount,
+          playerId: closingRound.commitPlayerId || this.lastCommitPlayerId || null
         };
 
         this.consecutiveFails = (this.consecutiveFails || 0) + 1;
@@ -727,6 +732,7 @@
 
         if (collapse) {
           this.playerEquity = 0;
+          this.playerEquityMap = {};
           this.currentValuation = 0;
           this.status = 'failed';
           this.lastEventNote = `${closingRound.stageLabel} round collapsed twice. Operations halted.`;
@@ -759,13 +765,45 @@
       }
 
       this.consecutiveFails = 0;
+      const dilutionFactor = preMoney > 0 ? (preMoney / postMoney) : 1;
+      if (this.playerEquityMap) {
+        Object.keys(this.playerEquityMap).forEach(pid => {
+          this.playerEquityMap[pid] = (this.playerEquityMap[pid] || 0) * dilutionFactor;
+        });
+      }
+
       let updatedEquity = dilutedEquity;
+      const committedAmount = closingRound.playerCommitAmount || raiseAmount;
       if (closingRound.playerCommitted) {
+        const recipientId = closingRound.commitPlayerId || this.lastCommitPlayerId || null;
+        if (recipientId) {
+          this.playerEquityMap[recipientId] = (this.playerEquityMap[recipientId] || 0) + equityOffered;
+        }
         updatedEquity += equityOffered;
         this.playerInvested += this.pendingCommitment || 0;
         this.pendingCommitment = 0;
       }
-      this.playerEquity = updatedEquity;
+      const totalEquityFromMap = this.playerEquityMap
+        ? Object.values(this.playerEquityMap).reduce((sum, v) => sum + (Number.isFinite(v) ? v : 0), 0)
+        : updatedEquity;
+      this.playerEquity = Number.isFinite(totalEquityFromMap) && totalEquityFromMap > 0 ? totalEquityFromMap : updatedEquity;
+
+      if (closingRound.playerCommitted && closingRound.commitPlayerId) {
+        events.push({
+          type: 'venture_round_closed',
+          companyId: this.id,
+          name: this.name,
+          valuation: this.currentValuation,
+          revenue: this.revenue,
+          profit: this.profit,
+          equityGranted: equityOffered,
+          playerEquity: this.playerEquityMap ? this.playerEquityMap[closingRound.commitPlayerId] : this.playerEquity,
+          playerId: closingRound.commitPlayerId,
+          invested: committedAmount,
+          stageLabel: closingRound.stageLabel
+        });
+      }
+
       this.currentValuation = postMoney;
       this.updateFinancialsFromValuation();
       this.recordHistory(currentDate);
@@ -801,6 +839,8 @@
           name: this.name,
           valuation: finalValuation,
           playerEquity: this.playerEquity,
+          playerEquityById: { ...(this.playerEquityMap || {}) },
+          playerId: this.lastCommitPlayerId || null,
           revenue: this.revenue,
           profit: this.profit,
           companyRef: this
@@ -839,7 +879,8 @@
         cash,
         runwayDays: isFinite(this.cachedRunwayDays) ? this.cachedRunwayDays : null,
         daysSinceRound: this.daysSinceRound,
-        daysSinceLastRaise: this.daysSinceLastRaise
+        daysSinceLastRaise: this.daysSinceLastRaise,
+        playerEquityById: { ...(this.playerEquityMap || {}) }
       };
     }
 
@@ -870,6 +911,7 @@
         history: this.history.slice(),
         financialHistory: this.financialHistory.slice(),
         quarterHistory: this.quarterHistory ? this.quarterHistory.slice() : [],
+        playerEquityById: { ...(this.playerEquityMap || {}) },
         products: this.products.map(product => ({
           label: product.label,
           fullVal: product.fullVal,
@@ -901,6 +943,7 @@
     finalizeIPO() {
       this.status = 'ipo';
       this.playerEquity = 0;
+      this.playerEquityMap = {};
       this.pendingCommitment = 0;
       this.currentRound = null;
       this.exited = true;
@@ -916,6 +959,7 @@
       this.showDividendColumn = true;
       this.currentRound = null;
       this.pendingCommitment = 0;
+      this.playerEquityMap = this.playerEquityMap || {};
       this.postGateMode = false;
       this.postGatePending = false;
       this.hasPipelineUpdate = true;
@@ -958,6 +1002,8 @@
       const debt = Number.isFinite(this.debt) ? this.debt : 0;
       // Include last 2 years of financial history for client merging
       const recentFinancials = this.financialHistory ? this.financialHistory.slice(-2) : [];
+      const recentHistory = this.history ? this.history.slice(-200) : [];
+      const round = this.currentRound;
 
       return {
         id: this.id,
@@ -976,7 +1022,22 @@
         runwayDays: isFinite(this.cachedRunwayDays) ? this.cachedRunwayDays : null,
         daysSinceRound: this.daysSinceRound,
         daysSinceLastRaise: this.daysSinceLastRaise,
-        financialHistory: recentFinancials
+        financialHistory: recentFinancials,
+        playerEquityById: { ...(this.playerEquityMap || {}) },
+        history: recentHistory,
+        currentRound: round
+          ? {
+            stageLabel: round.stageLabel,
+            raiseAmount: round.raiseAmount,
+            preMoney: round.preMoney,
+            postMoney: round.postMoney,
+            equityOffered: round.equityOffered,
+            successProb: round.successProb,
+            daysRemaining: Math.max(0, round.durationDays - (this.daysSinceRound || 0)),
+            playerCommitted: !!round.playerCommitted,
+            playerCommitAmount: round.playerCommitAmount || 0
+          }
+          : null
       };
     }
   }
@@ -1056,12 +1117,12 @@
       return flag;
     }
 
-    leadRound(companyId) {
+    leadRound(companyId, playerId = null) {
       const company = this.getCompanyById(companyId);
       if (!company) {
         return { success: false, reason: 'Company not found.' };
       }
-      return company.leadRound();
+      return company.leadRound(playerId);
     }
 
     getCompanySummaries() {

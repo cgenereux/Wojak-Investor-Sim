@@ -16,6 +16,8 @@ const { Simulation } = global;
 const { VentureSimulation } = global.VentureEngineModule || {};
 const Presets = global.PresetGenerators || {};
 
+const macroEvents = require('../data/macroEvents.json');
+
 const PORT = process.env.PORT || 4000;
 const ANNUAL_INTEREST_RATE = 0.07;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -52,7 +54,7 @@ async function buildMatch(seed = Date.now()) {
     ...(await Presets.generateHypergrowthPresetCompanies(presetOpts)),
     ...Presets.generateBinaryHardTechCompanies(1, presetOpts)
   ];
-  const sim = new Simulation(pubs, { seed, rng: rngFn, macroEvents: [] });
+  const sim = new Simulation(pubs, { seed, rng: rngFn, macroEvents: macroEvents || [] });
   const ventureSim = new VentureSimulation(ventures, sim.lastTick, { seed, rng: rngFn });
   sim._ventureSim = ventureSim;
   return {
@@ -79,11 +81,12 @@ function startTickLoop(session) {
     const dtDays = Math.max(0, (next.getTime() - current.getTime()) / MS_PER_DAY);
     // console.log(`[Server Debug] Tick: dtDays=${dtDays}, current=${current.toISOString()}, next=${next.toISOString()}`);
     session.sim.tick(next);
-    const events = session.ventureSim ? session.ventureSim.tick(next) : [];
+    const ventureEventsRaw = session.ventureSim ? session.ventureSim.tick(next) : [];
+    handleVentureEventsSession(session, ventureEventsRaw);
     // if (session.ventureSim && session.ventureSim.companies.length > 0) {
     //    console.log(`[Server Debug] VC[0] Val: ${session.ventureSim.companies[0].currentValuation}, Rev: ${session.ventureSim.companies[0].revenue}`);
     // }
-    const ventureEvents = sanitizeVentureEvents(events);
+    const ventureEvents = sanitizeVentureEvents(ventureEventsRaw);
     accrueInterest(session, dtDays);
     const dividendEvents = distributeDividends(session);
     const payload = {
@@ -150,7 +153,9 @@ app.get('/session/:id', async (req, res) => {
 function serializePlayer(player, sim) {
   const holdings = player.holdings || {};
   const equity = computeEquity(sim, holdings);
-  const netWorth = player.cash + equity - player.debt;
+  const ventureValue = computeVentureEquity(sim._ventureSim, player.ventureHoldings || {});
+  const commitments = computeVentureCommitments(player.ventureCommitments || {});
+  const netWorth = player.cash + equity + ventureValue + commitments - player.debt;
   const bankrupt = netWorth < 0 && player.debt > 0;
   player.bankrupt = bankrupt;
   return {
@@ -158,6 +163,8 @@ function serializePlayer(player, sim) {
     cash: player.cash,
     debt: player.debt,
     equity,
+    ventureEquity: ventureValue,
+    ventureCommitmentsValue: commitments,
     netWorth,
     holdings,
     dripEnabled: !!player.dripEnabled,
@@ -189,10 +196,19 @@ function computeVentureEquity(ventureSim, ventureHoldings) {
   return value;
 }
 
+function computeVentureCommitments(commitments) {
+  let total = 0;
+  Object.values(commitments || {}).forEach(v => {
+    if (Number.isFinite(v)) total += v;
+  });
+  return total;
+}
+
 function maxBorrowable(sim, player) {
   const equity = computeEquity(sim, player.holdings || {});
   const ventureValue = computeVentureEquity(sim._ventureSim, player.ventureHoldings || {});
-  const netWorth = player.cash + equity + ventureValue - player.debt;
+  const commitments = computeVentureCommitments(player.ventureCommitments || {});
+  const netWorth = player.cash + equity + ventureValue + commitments - player.debt;
   const cap = Math.max(0, netWorth) * 5;
   return Math.max(0, cap - player.debt);
 }
@@ -268,9 +284,78 @@ function sanitizeVentureEvents(events) {
       profit,
       refund,
       playerEquity,
-      stageLabel
+      stageLabel,
+      playerId: evt.playerId || evt.commitPlayerId || evt.leadPlayerId || null,
+      equityOffered: evt.equityOffered || evt.equityGranted || null,
+      invested: evt.invested || evt.playerCommitAmount || null
     };
   }).filter(Boolean);
+}
+
+function handleVentureEventsSession(session, events) {
+  if (!Array.isArray(events) || events.length === 0) return;
+  events.forEach(evt => {
+    if (!evt || typeof evt !== 'object') return;
+    const playerId = evt.playerId || evt.commitPlayerId || evt.leadPlayerId || null;
+    const company = session.ventureSim ? session.ventureSim.getCompanyById(evt.companyId) : null;
+    if (company && company.playerEquityMap) {
+      session.players.forEach(p => {
+        const pct = company.playerEquityMap[p.id] || 0;
+        if (pct > 0) {
+          p.ventureHoldings[evt.companyId] = pct;
+        } else if (p.ventureHoldings && p.ventureHoldings[evt.companyId]) {
+          delete p.ventureHoldings[evt.companyId];
+        }
+      });
+    }
+    if (evt.type === 'venture_round_closed') {
+      const player = playerId ? session.players.get(playerId) : null;
+      if (player && evt.companyId) {
+        const invested = Number(evt.invested) || 0;
+        if (invested > 0) {
+          player.ventureCashInvested[evt.companyId] = (player.ventureCashInvested[evt.companyId] || 0) + invested;
+          player.ventureCommitments[evt.companyId] = Math.max(0, (player.ventureCommitments[evt.companyId] || 0) - invested);
+          if (player.ventureCommitments[evt.companyId] < 1e-9) delete player.ventureCommitments[evt.companyId];
+        }
+      }
+      return;
+    }
+    if (evt.type === 'venture_round_failed') {
+      const player = playerId ? session.players.get(playerId) : null;
+      if (player && evt.companyId) {
+        const refund = Number(evt.refund) || 0;
+        if (refund > 0) player.cash += refund;
+        delete player.ventureCommitments[evt.companyId];
+      }
+      return;
+    }
+    if (evt.type === 'venture_failed') {
+      session.players.forEach(p => {
+        if (p.ventureHoldings && p.ventureHoldings[evt.companyId]) delete p.ventureHoldings[evt.companyId];
+        if (p.ventureCommitments && p.ventureCommitments[evt.companyId]) delete p.ventureCommitments[evt.companyId];
+      });
+      return;
+    }
+    if (evt.type === 'venture_ipo') {
+      let ventureCompany = evt.companyRef || null;
+      if (!ventureCompany && session.ventureSim) {
+        ventureCompany = session.ventureSim.extractCompany(evt.companyId) || session.ventureSim.getCompanyById(evt.companyId);
+      }
+      if (ventureCompany && typeof session.sim.adoptVentureCompany === 'function') {
+        session.sim.adoptVentureCompany(ventureCompany, session.sim.lastTick);
+        // Transfer ownership to public holdings
+        session.players.forEach(p => {
+          const pct = p.ventureHoldings ? (p.ventureHoldings[evt.companyId] || 0) : 0;
+          if (pct > 0) {
+            p.holdings[ventureCompany.id] = (p.holdings[ventureCompany.id] || 0) + pct;
+            delete p.ventureHoldings[evt.companyId];
+            delete p.ventureCommitments[evt.companyId];
+          }
+        });
+      }
+      return;
+    }
+  });
 }
 
 function buildSnapshot(session) {
@@ -281,7 +366,7 @@ function buildSnapshot(session) {
     seed: session.seed,
     lastTick: session.sim.lastTick ? session.sim.lastTick.toISOString() : null,
     sim: simState,
-    venture: session.ventureSim ? session.ventureSim.exportState({ detail: false }) : null,
+    venture: session.ventureSim ? session.ventureSim.exportState({ detail: true }) : null,
     players: Array.from(session.players.values()).map(p => serializePlayer(p, session.sim))
   };
 }
@@ -373,6 +458,42 @@ function handleCommand(session, player, msg) {
     const enabled = !!msg.enabled;
     player.dripEnabled = enabled;
     return { ok: true, type: 'set_drip', enabled };
+  }
+  if (type === 'vc_lead') {
+    const companyId = msg.companyId;
+    if (!companyId || !session.ventureSim) {
+      return { ok: false, error: 'unknown_company' };
+    }
+    const company = session.ventureSim.getCompanyById(companyId);
+    if (!company) {
+      return { ok: false, error: 'unknown_company' };
+    }
+    const currentRound = company.currentRound;
+    const raiseAmount = currentRound ? currentRound.raiseAmount : null;
+    if (!currentRound || company.status !== 'raising') {
+      return { ok: false, error: 'not_raising' };
+    }
+    if (!Number.isFinite(raiseAmount) || raiseAmount <= 0) {
+      return { ok: false, error: 'bad_round' };
+    }
+    if (player.cash < raiseAmount) {
+      return { ok: false, error: 'insufficient_cash' };
+    }
+    const leadResult = session.ventureSim.leadRound(companyId, player.id);
+    if (!leadResult?.success) {
+      return { ok: false, error: leadResult?.reason || 'lead_failed' };
+    }
+    player.cash -= raiseAmount;
+    player.ventureCommitments[companyId] = (player.ventureCommitments[companyId] || 0) + raiseAmount;
+    player.lastCommandTs = Date.now();
+    return {
+      ok: true,
+      type: 'vc_lead',
+      companyId,
+      invested: raiseAmount,
+      equityOffered: leadResult.equityOffered,
+      stageLabel: leadResult.stageLabel
+    };
   }
   if (type === 'debug_set_cash') {
     const amount = msg.amount;
