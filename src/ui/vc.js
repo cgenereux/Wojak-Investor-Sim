@@ -397,18 +397,27 @@ function updateVentureDetail(companyId) {
         }
     }
 
-    destroyVentureChart({ valuation: true, financial: false });
-    if (vcDetailChartCtx) {
-        let history = (detail.history && detail.history.length > 0)
-            ? detail.history.slice()
-            : [{ x: Date.now(), y: valuation }];
-        history.sort((a, b) => a.x - b.x);
-        if (history.length === 1) {
-            const dayMs = 24 * 60 * 60 * 1000;
-            history.unshift({ x: history[0].x - dayMs, y: history[0].y });
-        }
-        const suggestedMin = valuation > 0 ? valuation * 0.8 : 0;
-        const suggestedMax = valuation > 0 ? valuation * 1.2 : 1;
+    // destroyVentureChart({ valuation: true, financial: false }); // Don't destroy blindly!
+
+    let history = (detail.history && detail.history.length > 0)
+        ? detail.history.slice()
+        : [{ x: Date.now(), y: valuation }];
+    history.sort((a, b) => a.x - b.x);
+    if (history.length === 1) {
+        const dayMs = 24 * 60 * 60 * 1000;
+        history.unshift({ x: history[0].x - dayMs, y: history[0].y });
+    }
+    const suggestedMin = valuation > 0 ? valuation * 0.8 : 0;
+    const suggestedMax = valuation > 0 ? valuation * 1.2 : 1;
+
+    if (ventureCompanyDetailChart) {
+        // Update existing chart
+        ventureCompanyDetailChart.data.datasets[0].data = history.map(point => ({ x: point.x, y: point.y }));
+        ventureCompanyDetailChart.options.scales.y.suggestedMin = suggestedMin;
+        ventureCompanyDetailChart.options.scales.y.suggestedMax = suggestedMax;
+        ventureCompanyDetailChart.update('none');
+    } else if (vcDetailChartCtx) {
+        // Create new chart
         ventureCompanyDetailChart = new Chart(vcDetailChartCtx, {
             type: 'line',
             data: {
@@ -605,6 +614,13 @@ function renderVentureFinancialChart(company) {
         });
     }
 
+    // Polyfill getYoySeries if missing (critical for multiplayer plain objects)
+    if (!company.getYoySeries && window.CompanyModule && window.CompanyModule.BaseCompany) {
+        company.getYoySeries = function (limit) {
+            return window.CompanyModule.BaseCompany.prototype.getYoySeries.call(this, limit);
+        };
+    }
+
     // Use getYoySeries if available (inherited from BaseCompany), otherwise fallback or empty
     const yoySeries = typeof company.getYoySeries === 'function'
         ? company.getYoySeries(currentVcChartRange)
@@ -614,6 +630,10 @@ function renderVentureFinancialChart(company) {
     // }
 
     if (!yoySeries || yoySeries.length === 0) {
+        // If we have an existing chart, keep it (don't clear) to avoid flickering
+        if (ventureFinancialBarChart) {
+            return;
+        }
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         // Removed "Waiting for financial data..." text as requested
@@ -638,7 +658,7 @@ function renderVentureFinancialChart(company) {
             labels.push('');
             revenueData.push(null);
             profitData.push(null);
-            profitColors.push(null);
+            profitColors.push('transparent');
         }
     }
 

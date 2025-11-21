@@ -27,6 +27,7 @@ const app = fastify({ logger: false });
 
 // Simple in-memory sessions (non-persistent)
 const sessions = new Map();
+const SESSION_CLEANUP_DELAY_MS = 60_000;
 
 function createPlayer(id) {
   return {
@@ -166,6 +167,19 @@ function endSession(session, reason = 'timeline_end') {
     year: GAME_END_YEAR,
     lastTick: session.sim.lastTick ? session.sim.lastTick.toISOString() : null
   });
+  scheduleSessionCleanup(session);
+}
+
+function scheduleSessionCleanup(session) {
+  if (session.cleanupTimer) return;
+  session.cleanupTimer = setTimeout(() => {
+    for (const [key, value] of sessions.entries()) {
+      if (value === session) {
+        sessions.delete(key);
+        break;
+      }
+    }
+  }, SESSION_CLEANUP_DELAY_MS);
 }
 
 app.get('/health', async () => ({ ok: true }));
@@ -572,6 +586,7 @@ wss.on('connection', async (ws, req, url) => {
     session = await buildMatch();
     sessions.set(sessionId, session);
   }
+  session.id = sessionId;
   session.clients.add(ws);
   const playerId = requestedPlayerId || `p_${Math.floor(Math.random() * 1e9).toString(36)}`;
   let player = session.players.get(playerId);

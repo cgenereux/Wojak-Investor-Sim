@@ -505,6 +505,7 @@ function hydrateFromSnapshot(snapshot) {
                         // Ensure history is restored if available
                         if (snap.history) comp.history = snap.history.slice();
                         if (snap.financialHistory) comp.financialHistory = snap.financialHistory.slice();
+                        if (snap.quarterHistory) comp.quarterHistory = snap.quarterHistory.slice();
                     }
                 });
             }
@@ -531,7 +532,10 @@ function mergeFinancialData(existing, update) {
         update.quarterHistory.forEach(item => {
             const idx = existing.quarterHistory.findIndex(q => q.year === item.year && q.quarter === item.quarter);
             if (idx >= 0) {
+                const prev = existing.quarterHistory[idx];
+                const altered = prev.revenue !== item.revenue || prev.profit !== item.profit;
                 existing.quarterHistory[idx] = item;
+                if (altered) changed = true;
             } else {
                 existing.quarterHistory.push(item);
                 changed = true;
@@ -544,7 +548,10 @@ function mergeFinancialData(existing, update) {
         update.financialHistory.forEach(item => {
             const idx = existing.financialHistory.findIndex(f => f.year === item.year);
             if (idx >= 0) {
+                const prev = existing.financialHistory[idx];
+                const altered = prev.revenue !== item.revenue || prev.profit !== item.profit || prev.cash !== item.cash || prev.debt !== item.debt;
                 existing.financialHistory[idx] = item;
+                if (altered) changed = true;
             } else {
                 existing.financialHistory.push(item);
                 changed = true;
@@ -569,6 +576,7 @@ function applyTick(tick) {
     if (Array.isArray(tick.ventureEvents) && tick.ventureEvents.length > 0) {
         handleVentureEvents(tick.ventureEvents);
     }
+    let activeFinancialChanged = false;
     tick.companies.forEach(update => {
         const existing = companies.find(c => c.id === update.id);
         if (existing) {
@@ -580,7 +588,21 @@ function applyTick(tick) {
             if (financialChanged) {
                 existing.newAnnualData = true;
                 existing.newQuarterlyData = true;
+                if (activeCompanyDetail && (activeCompanyDetail.id === existing.id || activeCompanyDetail.name === existing.name)) {
+                    activeFinancialChanged = true;
+                }
             }
+        } else {
+            // New company arrived from the server; seed basic structures so detail view/charts work.
+            companies.push({
+                id: update.id,
+                name: update.name,
+                sector: update.sector,
+                marketCap: update.marketCap || 0,
+                history: [{ x: tickTs, y: update.marketCap || 0 }],
+                quarterHistory: Array.isArray(update.quarterHistory) ? update.quarterHistory.slice() : [],
+                financialHistory: Array.isArray(update.financialHistory) ? update.financialHistory.slice() : []
+            });
         }
     });
     if (Array.isArray(tick.players) && tick.players.length) {
@@ -601,7 +623,7 @@ function applyTick(tick) {
         netWorthChart.update();
     }
 
-    // Fix: Update active company detail chart live
+    // Fix: Update active company detail chart + financials live
     if (activeCompanyDetail) {
         const updated = companies.find(c => c.id === activeCompanyDetail.id || c.name === activeCompanyDetail.name);
         if (updated) {
@@ -614,6 +636,11 @@ function applyTick(tick) {
                 const history = [...updated.history].filter(p => p && Number.isFinite(p.y) && typeof p.x !== 'undefined').sort((a, b) => (a.x || 0) - (b.x || 0));
                 companyDetailChart.data.datasets[0].data = history;
                 companyDetailChart.update('none'); // 'none' mode for performance
+            }
+            if (activeFinancialChanged) {
+                renderCompanyFinancialHistory(updated);
+                updated.newAnnualData = false;
+                updated.newQuarterlyData = false;
             }
         }
     } else {
@@ -665,6 +692,20 @@ function applyTick(tick) {
                             }
                         });
                         instance.financialHistory.sort((a, b) => a.year - b.year);
+                    }
+
+                    // Merge quarter history (CRITICAL for live chart updates)
+                    if (vUpdate.quarterHistory && Array.isArray(vUpdate.quarterHistory)) {
+                        if (!instance.quarterHistory) instance.quarterHistory = [];
+                        vUpdate.quarterHistory.forEach(item => {
+                            const idx = instance.quarterHistory.findIndex(q => q.year === item.year && q.quarter === item.quarter);
+                            if (idx >= 0) {
+                                instance.quarterHistory[idx] = item;
+                            } else {
+                                instance.quarterHistory.push(item);
+                            }
+                        });
+                        instance.quarterHistory.sort((a, b) => (a.year - b.year) || (a.quarter - b.quarter));
                     }
 
                     if (vUpdate.currentRound) {
@@ -853,8 +894,7 @@ function updateDisplay() {
     currentDateDisplay.textContent = formatDate(currentDate);
 
     // Update the single display line
-    const commitmentsLabel = pendingCommitments > 0 ? ` | VC Commitments: ${currencyFormatter.format(pendingCommitments)}` : '';
-    subFinancialDisplay.textContent = `Equities: ${currencyFormatter.format(publicAssets + privateAssets)}${commitmentsLabel} | Cash: ${currencyFormatter.format(displayCash)} | Liabilities: ${currencyFormatter.format(displayDebt)}`;
+    subFinancialDisplay.textContent = `Equities: ${currencyFormatter.format(publicAssets + privateAssets)} | Cash: ${currencyFormatter.format(displayCash)} | Liabilities: ${currencyFormatter.format(displayDebt)}`;
 
     if (netWorth < 0 && totalBorrowed > 0) {
         endGame("bankrupt");
@@ -1347,8 +1387,12 @@ function gameLoop() {
         // Update chart data for single-player live view
         if (Array.isArray(activeCompanyDetail.history)) {
             const history = [...activeCompanyDetail.history].filter(p => p && Number.isFinite(p.y) && typeof p.x !== 'undefined').sort((a, b) => (a.x || 0) - (b.x || 0));
-            companyDetailChart.data.datasets[0].data = history;
-            companyDetailChart.update('none');
+            // Only update if we have valid history, or if we really want to clear it (e.g. new company)
+            // But to prevent disappearing charts, we skip update if history is empty but we have existing data
+            if (history.length > 0 || !companyDetailChart.data.datasets[0].data.length) {
+                companyDetailChart.data.datasets[0].data = history;
+                companyDetailChart.update('none');
+            }
         } else {
             companyDetailChart.update();
         }
@@ -1623,12 +1667,10 @@ function renderCompanyFinancialHistory(company) {
     const yoySeries = getCompanyYoySeries(company, currentChartRange);
 
     if (yoySeries.length === 0) {
-        if (financialYoyChart) {
-            financialYoyChart.destroy();
-            financialYoyChart = null;
+        // Keep the last rendered chart if we have one; otherwise show a lightweight placeholder.
+        if (!financialYoyChart) {
+            chartWrapper.innerHTML = '<div class="chart-placeholder" style="padding:12px;color:#475569;">Waiting for financial data…</div>';
         }
-        // Removed "Waiting for financial data..." text as requested
-        chartWrapper.innerHTML = '';
     } else {
         // Ensure canvas exists if we came from empty state
         let canvas = chartWrapper.querySelector('canvas');
