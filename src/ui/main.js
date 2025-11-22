@@ -46,6 +46,7 @@ const NAME_PLACEHOLDERS = ['TheGrug850', 'Bloomer4000', 'TheRealWojak'];
 const playerLeaderboardEl = document.getElementById('playerLeaderboard');
 const connectedPlayersEl = document.getElementById('connectedPlayers');
 const connectedPlayersSessionEl = document.getElementById('connectedPlayersSession');
+const mpJoinError = document.getElementById('mpJoinError');
 
 const DEFAULT_WOJAK_SRC = 'wojaks/wojak.png';
 const MALDING_WOJAK_SRC = 'wojaks/malding-wojak.png';
@@ -135,6 +136,7 @@ const SPEED_STEPS = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 
 const SESSION_ID_KEY = 'wojak_session_id';
 const BACKEND_URL_KEY = 'wojak_backend_url';
 const DEFAULT_BACKEND_URL = 'https://wojak-backend.graysand-55f0f3f9.eastus2.azurecontainerapps.io';
+// const DEFAULT_BACKEND_URL = 'http://localhost:4000';
 try {
     const stored = localStorage.getItem(DRIP_STORAGE_KEY);
     if (stored === 'true') dripEnabled = true;
@@ -345,6 +347,13 @@ async function connectWebSocket() {
         }, 15000);
     };
     ws.onclose = (evt) => {
+        if (evt.code === 4004) {
+            if (mpJoinError) mpJoinError.classList.add('visible');
+            manualDisconnect = true;
+            setConnectionStatus('Party not found', 'error');
+            // Don't reset the whole modal, just let them try again
+            return;
+        }
         console.warn('WS closed, retrying in 2s', evt?.code, evt?.reason || '');
         setConnectionStatus('Reconnecting...', 'warn');
         if (wsHeartbeat) { clearInterval(wsHeartbeat); wsHeartbeat = null; }
@@ -378,6 +387,11 @@ function handleServerMessage(msg) {
     if (msg.type === 'players_update') {
         latestServerPlayers = Array.isArray(msg.players) ? msg.players : [];
         renderPlayerLeaderboard(latestServerPlayers);
+        // If we are in join state and have players, show the roster
+        if (multiplayerState === 'join' && mpPlayersListJoin) {
+            const panel = mpPlayersListJoin.closest('.mp-roster-panel');
+            if (panel) panel.style.display = 'block';
+        }
         return;
     }
     if (msg.type === 'snapshot') {
@@ -385,6 +399,11 @@ function handleServerMessage(msg) {
         hydrateFromSnapshot(msg);
         applyTicks(msg.ticks || []);
         setConnectionStatus('Synced', 'ok');
+        // Show roster on snapshot too
+        if (multiplayerState === 'join' && mpPlayersListJoin) {
+            const panel = mpPlayersListJoin.closest('.mp-roster-panel');
+            if (panel) panel.style.display = 'block';
+        }
         return;
     }
     if (msg.type === 'resync') {
@@ -2372,6 +2391,11 @@ function setMultiplayerState(state) {
     if (state === 'join' && mpJoinCodeInput) {
         mpJoinCodeInput.focus();
         mpJoinCodeInput.select();
+        // Hide roster initially until connected
+        if (mpPlayersListJoin) {
+            const panel = mpPlayersListJoin.closest('.mp-roster-panel');
+            if (panel) panel.style.display = 'none';
+        }
     }
 }
 
@@ -2416,6 +2440,7 @@ function resetMultiplayerModal() {
         mpNameInput.value = '';
     }
     if (mpNameError) mpNameError.classList.remove('visible');
+    if (mpJoinError) mpJoinError.classList.remove('visible');
     lastGeneratedPartyCode = '';
     startGameRequested = false;
     startGameSent = false;
@@ -2438,6 +2463,7 @@ function attemptJoinParty() {
         mpJoinCodeInput.focus();
         return;
     }
+    if (mpJoinError) mpJoinError.classList.remove('visible');
     isPartyHostClient = false;
     applyBackendAndSession(DEFAULT_BACKEND_URL, sessionId || 'default');
     connectWebSocket();
@@ -2506,6 +2532,9 @@ if (confirmJoinPartyBtn) {
 if (mpJoinCodeInput) {
     mpJoinCodeInput.addEventListener('keypress', (event) => {
         if (event.key === 'Enter') attemptJoinParty();
+    });
+    mpJoinCodeInput.addEventListener('input', () => {
+        if (mpJoinError) mpJoinError.classList.remove('visible');
     });
 }
 if (mpNameInput) {

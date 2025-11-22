@@ -660,6 +660,10 @@ wss.on('connection', async (ws, req, url) => {
   const role = url.searchParams.get('role') === 'host' ? 'host' : 'guest';
   let session = sessions.get(sessionId);
   if (!session) {
+    if (role === 'guest') {
+      ws.close(4004, 'Session not found');
+      return;
+    }
     session = await buildMatch();
     sessions.set(sessionId, session);
   }
@@ -720,18 +724,18 @@ wss.on('connection', async (ws, req, url) => {
   }
 
   ws.on('message', (data) => {
-  let msg;
-  try {
-    msg = JSON.parse(data.toString());
-  } catch (err) {
-    ws.send(JSON.stringify({ type: 'error', error: 'bad_json' }));
-    return;
-  }
-  const pid = session.clientPlayers.get(ws);
-  if (!pid) {
-    ws.send(JSON.stringify({ type: 'error', error: 'no_player' }));
-    return;
-  }
+    let msg;
+    try {
+      msg = JSON.parse(data.toString());
+    } catch (err) {
+      ws.send(JSON.stringify({ type: 'error', error: 'bad_json' }));
+      return;
+    }
+    const pid = session.clientPlayers.get(ws);
+    if (!pid) {
+      ws.send(JSON.stringify({ type: 'error', error: 'no_player' }));
+      return;
+    }
     const p = session.players.get(pid);
     if (!p) {
       ws.send(JSON.stringify({ type: 'error', error: 'no_player' }));
