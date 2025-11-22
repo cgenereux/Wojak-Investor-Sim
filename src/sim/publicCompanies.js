@@ -235,6 +235,46 @@
       this.showDividendColumn = false;
     }
 
+    syncFromSnapshot(snapshot) {
+      if (!snapshot) return;
+      // Sync basic properties
+      if (typeof snapshot.marketCap === 'number') this.marketCap = snapshot.marketCap;
+      if (typeof snapshot.valuation === 'number') this.currentValuation = snapshot.valuation; // Handle naming diff
+      if (typeof snapshot.cash === 'number') this.cash = snapshot.cash;
+      if (typeof snapshot.debt === 'number') this.debt = snapshot.debt;
+      if (typeof snapshot.revenue === 'number') this.revenue = snapshot.revenue;
+      if (typeof snapshot.profit === 'number') this.profit = snapshot.profit;
+      if (typeof snapshot.displayCap === 'number') {
+        this.displayCap = snapshot.displayCap;
+      } else if (typeof this.marketCap === 'number') {
+        this.displayCap = this.marketCap;
+      }
+
+      // Sync history arrays if provided
+      if (Array.isArray(snapshot.history)) {
+        this.history = snapshot.history.slice();
+      } else if (typeof snapshot.marketCap === 'number' && snapshot.lastTick) {
+        // If no full history but we have a tick, append to history
+        this.recordHistoryPoint(new Date(snapshot.lastTick), snapshot.marketCap);
+      }
+
+      // Sync financial history
+      if (Array.isArray(snapshot.financialHistory)) {
+        this.financialHistory = snapshot.financialHistory.slice();
+        this.financialHistory.sort((a, b) => a.year - b.year);
+      }
+
+      // Sync quarter history (Critical for charts)
+      if (Array.isArray(snapshot.quarterHistory)) {
+        this.quarterHistory = snapshot.quarterHistory.slice();
+        this.quarterHistory.sort((a, b) => (a.year - b.year) || (a.quarter - b.quarter));
+      }
+
+      // Flags for UI updates
+      this.newAnnualData = true;
+      this.newQuarterlyData = true;
+    }
+
     accumulateYear(revenueIncrement, profitIncrement, gameDate) {
       this.currentYearRevenue += revenueIncrement;
       this.currentYearProfit += profitIncrement;

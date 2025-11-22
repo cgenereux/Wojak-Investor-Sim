@@ -37,7 +37,7 @@
     if (currentSort === 'marketCapDesc') {
       filtered.sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0));
     } else if (currentSort === 'ipoDateDesc') {
-      filtered.sort((a, b) => b.ipoDate.getTime() - a.ipoDate.getTime());
+      filtered.sort((x, y) => ((y.ipoDate instanceof Date ? y.ipoDate.getTime() : 0) - (x.ipoDate instanceof Date ? x.ipoDate.getTime() : 0)));
     } else if (currentSort === 'ipoQueue') {
       filtered.sort((a, b) => {
         ensureCompanyQueueIndex(a, state);
@@ -55,7 +55,9 @@
     });
 
     companiesGrid.innerHTML = filtered.map(company => {
-      const cap = Number.isFinite(company.displayCap) ? company.displayCap : Number.isFinite(company.marketCap) ? company.marketCap : 0;
+      const cap = (Number.isFinite(company.displayCap) && company.displayCap > 0)
+        ? company.displayCap
+        : (Number.isFinite(company.marketCap) ? company.marketCap : 0);
       const boxClass = company.bankrupt ? 'company-box bankrupt' : 'company-box';
       const capLabel = company.bankrupt ? 'Cap: Bankrupt' : `Cap: ${formatLargeNumber(cap)}`;
       const sectorLabel = company.bankrupt ? 'Status: Bankrupt' : (company.sector || 'Unknown');
@@ -93,18 +95,20 @@
       ventureSim = null,
       portfolioList,
       emptyPortfolioMsg,
-      currencyFormatter = { format: (value) => `$${value}` }
+      currencyFormatter = { format: (value) => `$${value}` },
+      serverPlayer = null,
+      isServerAuthoritative = false
     } = options;
     if (!portfolioList || !emptyPortfolioMsg) return;
 
     const hasPublicHoldings = portfolio.length > 0;
     const ventureSummaries = ventureSim ? ventureSim.getCompanySummaries() : [];
     const hasPrivateHoldings = ventureSummaries.some(summary => {
-      if (!summary) return false;
+      if (!summary || !ventureSim) return false;
       const detail = ventureSim.getCompanyDetail(summary.id);
       if (!detail) return false;
       return (detail.playerEquity || 0) > 0 || (detail.pendingCommitment || 0) > 0;
-    });
+    }) || (!!serverPlayer && isServerAuthoritative && serverPlayer.ventureCommitments && Object.keys(serverPlayer.ventureCommitments).length > 0);
 
     if (!hasPublicHoldings && !hasPrivateHoldings) {
       portfolioList.innerHTML = '';
@@ -151,15 +155,17 @@
       const hasPending = pendingCommitment > 0;
       if (!hasEquity && !hasPending) return;
       const equityValue = hasEquity ? detail.playerEquity * detail.valuation : 0;
-      const formattedValue = hasEquity ? currencyFormatter.format(equityValue) : '';
+      const pendingValue = !hasEquity && hasPending ? pendingCommitment : 0;
+      const formattedValue = hasEquity ? currencyFormatter.format(equityValue) : (hasPending ? currencyFormatter.format(pendingValue) : '');
       const pendingLabel = hasPending ? `Committed (in flight): ${currencyFormatter.format(pendingCommitment)}` : '';
       const key = `private:${summary.id}`;
       const stakeLabel = hasEquity ? `${detail.playerEquityPercent.toFixed(2)}% stake` : 'Stake pending';
       const stageLabel = detail.stageLabel || summary.stageLabel || 'Private';
+      const valueRowDisplay = (hasEquity || hasPending) ? 'block' : 'none';
       if (existingItems.has(key)) {
         const item = existingItems.get(key);
         const valueRow = item.querySelector('.portfolio-value-row');
-        if (valueRow) valueRow.style.display = hasEquity ? 'block' : 'none';
+        if (valueRow) valueRow.style.display = valueRowDisplay;
         const valueEl = item.querySelector('.portfolio-value');
         if (valueEl) valueEl.textContent = formattedValue;
         const stakeEl = item.querySelector('.portfolio-stake');
@@ -179,7 +185,7 @@
           <div class="portfolio-item" data-portfolio-type="private" data-venture-id="${summary.id}" data-portfolio-key="${key}">
               <div class="company-name">${summary.name} (${stageLabel})</div>
               <div class="portfolio-info">
-                  <div class="portfolio-value-row" style="display:${hasEquity ? 'block' : 'none'}">
+                  <div class="portfolio-value-row" style="display:${valueRowDisplay}">
                       Value: <span class="portfolio-value">${formattedValue}</span>
                   </div>
                   <span class="portfolio-stake">${stakeLabel}</span>
@@ -189,6 +195,28 @@
         `);
       }
     });
+
+    // Server-authoritative fallback: show commitments even if ventureSim is missing them
+    if (isServerAuthoritative && serverPlayer && serverPlayer.ventureCommitments) {
+      Object.entries(serverPlayer.ventureCommitments).forEach(([vcId, amount]) => {
+        if (!amount || amount <= 0) return;
+        const key = `private:${vcId}`;
+        if (existingItems.has(key)) return; // already rendered via ventureSim
+        const label = `Committed (in flight): ${currencyFormatter.format(amount)}`;
+        newPortfolioHtml.push(`
+          <div class="portfolio-item" data-portfolio-type="private" data-venture-id="${vcId}" data-portfolio-key="${key}">
+              <div class="company-name">${vcId} (Private)</div>
+              <div class="portfolio-info">
+                  <div class="portfolio-value-row" style="display:block">
+                      Value: <span class="portfolio-value">${currencyFormatter.format(amount)}</span>
+                  </div>
+                  <span class="portfolio-stake">Stake pending</span>
+                  <span class="portfolio-pending" style="display:block">${label}</span>
+              </div>
+          </div>
+        `);
+      });
+    }
 
     if (newPortfolioHtml.length > 0) {
       portfolioList.insertAdjacentHTML('beforeend', newPortfolioHtml.join(''));

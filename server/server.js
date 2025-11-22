@@ -28,6 +28,9 @@ const app = fastify({ logger: false });
 // Simple in-memory sessions (non-persistent)
 const sessions = new Map();
 const SESSION_CLEANUP_DELAY_MS = 60_000;
+const SESSION_IDLE_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes without player commands
+const SESSION_CLIENT_IDLE_MS = 2 * 60 * 1000; // Kill if no clients for this long
+const SESSION_IDLE_CHECK_MS = 1000; // how often to check client idleness
 
 function createPlayer(id) {
   return {
@@ -72,7 +75,13 @@ async function buildMatch(seed = Date.now()) {
     tickSeq: 0,
     tickBuffer: [],
     maxTicksCached: 50,
-    lastSnapshot: null
+    lastSnapshot: null,
+    idleTimer: null,
+    idleWarned: false,
+    lastActivity: Date.now(),
+    idleGuardTimer: null,
+    clientActivity: new Map(),
+    idleCheckHandle: null
   };
 }
 
@@ -83,6 +92,7 @@ function startTickLoop(session) {
       stopTickLoop(session);
       return;
     }
+    // Client-idle check handled by separate timer; this remains the tick driver.
     const currentYear = session.sim.lastTick ? session.sim.lastTick.getUTCFullYear() : 1990;
     if (currentYear >= GAME_END_YEAR) {
       endSession(session);
@@ -136,6 +146,10 @@ function stopTickLoop(session) {
     clearInterval(session.tickHandle);
     session.tickHandle = null;
   }
+  if (session.idleCheckHandle) {
+    clearInterval(session.idleCheckHandle);
+    session.idleCheckHandle = null;
+  }
 }
 
 function broadcast(session, message) {
@@ -182,6 +196,32 @@ function scheduleSessionCleanup(session) {
   }, SESSION_CLEANUP_DELAY_MS);
 }
 
+function resetIdleTimer(session) {
+  if (session.idleTimer) clearTimeout(session.idleTimer);
+  session.idleWarned = false;
+  session.idleTimer = setTimeout(() => {
+    broadcast(session, {
+      type: 'idle_warning',
+      message: `No player actions for ${SESSION_IDLE_TIMEOUT_MS / 1000}s — closing server.`,
+      idleSeconds: SESSION_IDLE_TIMEOUT_MS / 1000
+    });
+    endSession(session, 'idle_timeout');
+  }, SESSION_IDLE_TIMEOUT_MS);
+}
+
+// Extra guard: end session if the idle timeout elapses without a real command (excluding pings).
+function armIdleGuard(session) {
+  if (session.idleGuardTimer) clearTimeout(session.idleGuardTimer);
+  session.idleGuardTimer = setTimeout(() => {
+    broadcast(session, {
+      type: 'idle_warning',
+      message: `No player actions for ${SESSION_IDLE_TIMEOUT_MS / 1000}s — closing server.`,
+      idleSeconds: SESSION_IDLE_TIMEOUT_MS / 1000
+    });
+    endSession(session, 'idle_timeout');
+  }, SESSION_IDLE_TIMEOUT_MS);
+}
+
 app.get('/health', async () => ({ ok: true }));
 
 app.get('/session/:id', async (req, res) => {
@@ -191,6 +231,9 @@ app.get('/session/:id', async (req, res) => {
     session = await buildMatch();
     sessions.set(id, session);
   }
+  // Track last activity
+  session.lastActivity = Date.now();
+  resetIdleTimer(session);
   return { id, seed: session.seed, lastTick: session.sim.lastTick };
 });
 
@@ -423,6 +466,15 @@ function handleCommand(session, player, msg) {
     return { ok: false, error: 'bad_payload' };
   }
   const type = msg.type;
+  if (type !== 'ping') {
+    session.lastActivity = Date.now();
+    resetIdleTimer(session);
+    armIdleGuard(session);
+    // Track per-player activity for idle detection
+    if (player && player.id) {
+      session.clientActivity.set(player.id, session.lastActivity);
+    }
+  }
   if (type === 'resync') {
     return {
       ok: true,
@@ -586,6 +638,8 @@ wss.on('connection', async (ws, req, url) => {
     session = await buildMatch();
     sessions.set(sessionId, session);
   }
+  session.lastActivity = Date.now();
+  resetIdleTimer(session);
   session.id = sessionId;
   session.clients.add(ws);
   const playerId = requestedPlayerId || `p_${Math.floor(Math.random() * 1e9).toString(36)}`;
@@ -595,6 +649,32 @@ wss.on('connection', async (ws, req, url) => {
     session.players.set(playerId, player);
   }
   session.clientPlayers.set(ws, playerId);
+  armIdleGuard(session);
+  session.clientActivity.set(playerId, Date.now());
+  if (!session.idleCheckHandle) {
+    session.idleCheckHandle = setInterval(() => {
+      if (!session || session.ended) return;
+      const now = Date.now();
+      // If no clients, let the no-client killer handle it
+      if (!session.clients || session.clients.size === 0) return;
+      // If any client has recent activity, keep alive
+      let allIdle = true;
+      session.clientPlayers.forEach((pid) => {
+        const last = session.clientActivity.get(pid) || 0;
+        if (now - last < SESSION_IDLE_TIMEOUT_MS) {
+          allIdle = false;
+        }
+      });
+      if (allIdle) {
+        broadcast(session, {
+          type: 'idle_warning',
+          message: `No player actions for ${SESSION_IDLE_TIMEOUT_MS / 1000}s — closing server.`,
+          idleSeconds: SESSION_IDLE_TIMEOUT_MS / 1000
+        });
+        endSession(session, 'idle_timeout');
+      }
+    }, SESSION_IDLE_CHECK_MS);
+  }
 
   // Send initial snapshot
   ws.send(JSON.stringify({
@@ -607,18 +687,18 @@ wss.on('connection', async (ws, req, url) => {
   startTickLoop(session);
 
   ws.on('message', (data) => {
-    let msg;
-    try {
-      msg = JSON.parse(data.toString());
-    } catch (err) {
-      ws.send(JSON.stringify({ type: 'error', error: 'bad_json' }));
-      return;
-    }
-    const pid = session.clientPlayers.get(ws);
-    if (!pid) {
-      ws.send(JSON.stringify({ type: 'error', error: 'no_player' }));
-      return;
-    }
+  let msg;
+  try {
+    msg = JSON.parse(data.toString());
+  } catch (err) {
+    ws.send(JSON.stringify({ type: 'error', error: 'bad_json' }));
+    return;
+  }
+  const pid = session.clientPlayers.get(ws);
+  if (!pid) {
+    ws.send(JSON.stringify({ type: 'error', error: 'no_player' }));
+    return;
+  }
     const p = session.players.get(pid);
     if (!p) {
       ws.send(JSON.stringify({ type: 'error', error: 'no_player' }));
@@ -639,6 +719,12 @@ wss.on('connection', async (ws, req, url) => {
     session.clientPlayers.delete(ws);
     if (session.clients.size === 0) {
       stopTickLoop(session);
+      // Hard kill session after short grace when no clients remain
+      setTimeout(() => {
+        if (session.clients.size === 0) {
+          endSession(session, 'client_idle');
+        }
+      }, SESSION_CLIENT_IDLE_MS);
     }
   });
 });

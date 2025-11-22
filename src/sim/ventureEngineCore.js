@@ -265,6 +265,41 @@
       this.raiseTriggerCash = Math.max(this.cash * 0.35, 250_000);
       this.lastRoundRevenue = this.revenue;
       this.lastRoundMargin = this.revenue > 0 ? this.profit / Math.max(this.revenue, 1) : -0.5;
+      this.lastRoundMargin = this.revenue > 0 ? this.profit / Math.max(this.revenue, 1) : -0.5;
+    }
+
+    syncFromSnapshot(snapshot) {
+      super.syncFromSnapshot(snapshot); // Sync base properties (revenue, profit, history, etc.)
+
+      if (!snapshot) return;
+
+      // Sync Venture Specifics
+      if (typeof snapshot.valuation === 'number') this.currentValuation = snapshot.valuation;
+      if (snapshot.stageLabel) {
+        // Try to find stage index from label
+        const idx = this.roundDefinitions.findIndex(r => r.label === snapshot.stageLabel || r.id === snapshot.stageLabel);
+        if (idx >= 0) this.stageIndex = idx;
+      }
+      if (snapshot.status) this.status = snapshot.status;
+      if (typeof snapshot.playerEquity === 'number') this.playerEquity = snapshot.playerEquity;
+      if (typeof snapshot.playerEquityPercent === 'number') this.playerEquityPercent = snapshot.playerEquityPercent; // Helper prop often sent
+      if (typeof snapshot.pendingCommitment === 'number') this.pendingCommitment = snapshot.pendingCommitment;
+      if (typeof snapshot.playerInvested === 'number') this.playerInvested = snapshot.playerInvested;
+      if (snapshot.lastEventNote) this.lastEventNote = snapshot.lastEventNote;
+      if (typeof snapshot.runwayDays === 'number') this.cachedRunwayDays = snapshot.runwayDays;
+      if (typeof snapshot.daysSinceRound === 'number') this.daysSinceRound = snapshot.daysSinceRound;
+
+      // Sync Round Info
+      if (snapshot.currentRound) {
+        this.currentRound = { ...snapshot.currentRound };
+      } else {
+        this.currentRound = null;
+      }
+
+      // Sync Player Equity Map if provided
+      if (snapshot.playerEquityById) {
+        this.playerEquityMap = { ...snapshot.playerEquityById };
+      }
     }
 
     get currentStage() {

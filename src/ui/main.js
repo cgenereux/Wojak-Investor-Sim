@@ -75,6 +75,9 @@ if (!dashboardModule) {
 }
 const { renderCompanies: renderCompaniesUI, renderPortfolio: renderPortfolioUI } = dashboardModule;
 
+const ventureModule = window.VentureEngineModule || {};
+const { VentureCompany, VentureSimulation } = ventureModule;
+
 window.triggerMacroEvent = function (eventId) {
     if (!sim || typeof sim.triggerMacroEvent !== 'function') {
         console.warn('Simulation not ready; cannot trigger macro event.');
@@ -154,9 +157,9 @@ const ANNUAL_INTEREST_RATE = 0.07;
 // --- Global Game Constants ---
 const GAME_END_YEAR = 2050;
 
-let sim;
+let sim = null;
 let companies = [];
-let ventureSim;
+let ventureSim = null;
 let ventureCompanies = [];
 
 // Per-match context (seed + rng + refs) to keep public/venture in sync.
@@ -164,10 +167,27 @@ let matchSeed = null;
 let matchRng = null;
 let matchRngFn = null;
 let ws;
+let wsHeartbeat = null;
 let serverPlayer = null;
 let clientPlayerId = null;
 let serverTicks = new Set();
+let lastTickId = 0;
 let isServerAuthoritative = false;
+
+// Fallback MacroEnv for multiplayer hydration if sim isn't ready
+let fallbackMacroEnv = null;
+function getMacroEnv() {
+    if (sim && sim.macroEnv) return sim.macroEnv;
+    if (fallbackMacroEnv) return fallbackMacroEnv;
+    // Create a dummy one if needed
+    if (window.SimShared && window.SimShared.MacroEnvironment && window.MacroEventModule) {
+        const dummyManager = new window.MacroEventModule.MacroEventManager([], 1990);
+        fallbackMacroEnv = new window.SimShared.MacroEnvironment(new Set(), dummyManager);
+        return fallbackMacroEnv;
+    }
+    return null;
+}
+
 let connectionStatusEl = null;
 let resyncBtn = null;
 let disconnectBtn = null;
@@ -310,6 +330,7 @@ function disconnectMultiplayer() {
         try { ws.close(); } catch (err) { /* ignore */ }
         ws = null;
     }
+    if (wsHeartbeat) { clearInterval(wsHeartbeat); wsHeartbeat = null; }
     isServerAuthoritative = false;
     setConnectionStatus('Offline', 'warn');
     setBannerButtonsVisible(false);
@@ -327,6 +348,9 @@ function killRemoteSession() {
 }
 
 function connectWebSocket() {
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+        return; // Already connected/connecting
+    }
     if (manualDisconnect) {
         console.warn('Manual disconnect set; skipping WS connect');
         return;
@@ -359,10 +383,20 @@ function connectWebSocket() {
         console.log('WS connected');
         setConnectionStatus('Connected', 'ok');
         setBannerButtonsVisible(true);
+        if (wsHeartbeat) clearInterval(wsHeartbeat);
+        wsHeartbeat = setInterval(() => {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
+            try {
+                ws.send(JSON.stringify({ type: 'ping', ts: Date.now() }));
+            } catch (err) {
+                /* ignore */
+            }
+        }, 15000);
     };
     ws.onclose = (evt) => {
         console.warn('WS closed, retrying in 2s', evt?.code, evt?.reason || '');
         setConnectionStatus('Reconnecting...', 'warn');
+        if (wsHeartbeat) { clearInterval(wsHeartbeat); wsHeartbeat = null; }
         if (!manualDisconnect) {
             setTimeout(connectWebSocket, 2000);
         } else {
@@ -386,6 +420,10 @@ function connectWebSocket() {
 
 function handleServerMessage(msg) {
     if (!msg || typeof msg !== 'object') return;
+    if (msg.type === 'idle_warning') {
+        alert(msg.message || 'Session idle, closing soon.');
+        return;
+    }
     if (msg.type === 'snapshot') {
         hydrateFromSnapshot(msg);
         applyTicks(msg.ticks || []);
@@ -461,15 +499,56 @@ function hydrateFromSnapshot(snapshot) {
         latestServerPlayers = snapshot.players || [];
         playerNetWorthSeries.clear();
     }
-    companies = (snapshot.sim.companies || []).map(c => ({
-        id: c.id,
-        name: c.name,
-        sector: c.sector,
-        marketCap: c.marketCap || 0,
-        history: c.history || [],
-        quarterHistory: c.quarterHistory || [],
-        financialHistory: c.financialHistory || []
-    }));
+    // Hydrate Companies
+    if (Array.isArray(snapshot.sim.companies)) {
+        companies = snapshot.sim.companies.map(cData => {
+            // Determine type and instantiate
+            let instance;
+            if (cData.fromVenture) {
+                // It's a venture company (or graduated one)
+                // We need to check if it's still in venture simulation or public
+                // For simplicity, if it's in the main companies list, treat as Public Company (or PhaseCompany)
+                // But wait, the snapshot structure might differ.
+                // Standard public companies:
+                instance = new CompanyModule.Company({ id: cData.id, static: { name: cData.name, sector: cData.sector }, base_business: { revenue_process: { initial_revenue_usd: { min: 0, max: 0 } }, margin_curve: {}, multiple_curve: {} } }, getMacroEnv());
+            } else {
+                instance = new CompanyModule.Company({ id: cData.id, static: { name: cData.name, sector: cData.sector }, base_business: { revenue_process: { initial_revenue_usd: { min: 0, max: 0 } }, margin_curve: {}, multiple_curve: {} } }, getMacroEnv());
+            }
+            instance.syncFromSnapshot(cData);
+            return instance;
+        });
+    }
+
+    // Hydrate Venture Simulation
+    if (snapshot.venture && snapshot.venture.companies) {
+        const vcModule = window.VentureEngineModule || {};
+        const VCompanyCtor = vcModule.VentureCompany;
+        if (typeof VentureSimulation !== 'undefined' && typeof VCompanyCtor === 'function') {
+            const startDate = snapshot.lastTick ? new Date(snapshot.lastTick) : new Date('1990-01-01T00:00:00Z');
+            const ventureOpts = matchRngFn ? { rng: matchRngFn, seed: matchSeed } : {};
+            ventureSim = new VentureSimulation([], startDate, ventureOpts);
+
+            if (Array.isArray(snapshot.venture.companies)) {
+                ventureSim.companies = snapshot.venture.companies.map(vData => {
+                    const cfg = {
+                        id: vData.id,
+                        name: vData.name,
+                        sector: vData.sector,
+                        description: vData.description,
+                        valuation_usd: vData.valuation,
+                        funding_round: vData.funding_round || vData.stageLabel || 'seed'
+                    };
+                    const vc = new VCompanyCtor(cfg, startDate, matchRngFn || Math.random);
+                    vc.syncFromSnapshot(vData);
+                    return vc;
+                });
+            }
+        } else {
+            // Fallback: keep plain objects so UI can at least list them
+            ventureSim = { companies: snapshot.venture.companies };
+        }
+    }
+
     serverPlayer = snapshot.player || null;
     if (snapshot.lastTick) {
         currentDate = new Date(snapshot.lastTick);
@@ -578,31 +657,51 @@ function applyTick(tick) {
     }
     let activeFinancialChanged = false;
     tick.companies.forEach(update => {
-        const existing = companies.find(c => c.id === update.id);
+        let existing = companies.find(c => c.id === update.id);
         if (existing) {
-            existing.marketCap = update.marketCap;
-            if (Array.isArray(existing.history)) {
-                existing.history.push({ x: tickTs, y: update.marketCap });
+            const prevHistory = Array.isArray(existing.history) ? existing.history.slice() : [];
+            existing.syncFromSnapshot(update);
+            // Always append the latest market cap to history for live charts
+            if (!Array.isArray(existing.history)) existing.history = [];
+            // Merge prior history we had locally so the chart doesn't collapse to a single point (server sends short tails)
+            if (prevHistory.length) {
+                const merged = [...prevHistory, ...existing.history]
+                    .filter(p => p && typeof p.x !== 'undefined' && Number.isFinite(p.y))
+                    .reduce((acc, p) => {
+                        const key = typeof p.x === 'number' ? p.x : new Date(p.x).getTime();
+                        acc.map.set(key, { x: key, y: p.y });
+                        return acc;
+                    }, { map: new Map() });
+                const mergedArr = Array.from(merged.map.values()).sort((a, b) => (a.x || 0) - (b.x || 0));
+                // Keep a reasonable tail to avoid unbounded growth
+                const cap = 400;
+                existing.history = mergedArr.length > cap ? mergedArr.slice(mergedArr.length - cap) : mergedArr;
             }
-            const financialChanged = mergeFinancialData(existing, update);
-            if (financialChanged) {
-                existing.newAnnualData = true;
-                existing.newQuarterlyData = true;
+            const last = existing.history[existing.history.length - 1];
+            if (!last || last.x < tickTs) {
+                existing.history.push({ x: tickTs, y: update.marketCap });
+            } else {
+                last.y = update.marketCap;
+            }
+            // Fallback display cap if missing
+            if (!Number.isFinite(existing.displayCap) || existing.displayCap <= 0) {
+                existing.displayCap = Number(update.marketCap) || 0;
+            }
+            if (existing.newAnnualData || existing.newQuarterlyData) {
                 if (activeCompanyDetail && (activeCompanyDetail.id === existing.id || activeCompanyDetail.name === existing.name)) {
                     activeFinancialChanged = true;
                 }
             }
         } else {
-            // New company arrived from the server; seed basic structures so detail view/charts work.
-            companies.push({
-                id: update.id,
-                name: update.name,
-                sector: update.sector,
-                marketCap: update.marketCap || 0,
-                history: [{ x: tickTs, y: update.marketCap || 0 }],
-                quarterHistory: Array.isArray(update.quarterHistory) ? update.quarterHistory.slice() : [],
-                financialHistory: Array.isArray(update.financialHistory) ? update.financialHistory.slice() : []
-            });
+            // New company arrived from the server; instantiate properly
+            const newComp = new CompanyModule.Company({ id: update.id, static: { name: update.name, sector: update.sector }, base_business: { revenue_process: { initial_revenue_usd: { min: 0, max: 0 } }, margin_curve: {}, multiple_curve: {} } }, getMacroEnv());
+            newComp.syncFromSnapshot(update);
+            if (!Array.isArray(newComp.history)) newComp.history = [];
+            newComp.history.push({ x: tickTs, y: update.marketCap || 0 });
+            if (!Number.isFinite(newComp.displayCap) || newComp.displayCap <= 0) {
+                newComp.displayCap = Number(update.marketCap) || 0;
+            }
+            companies.push(newComp);
         }
     });
     if (Array.isArray(tick.players) && tick.players.length) {
@@ -663,10 +762,13 @@ function applyTick(tick) {
             if (ventureSim) {
                 const instance = ventureSim.getCompanyById(vUpdate.id);
                 if (instance) {
-                    Object.assign(instance, vUpdate);
-                    // Fix mapping: Server sends 'valuation', internal prop is 'currentValuation'
-                    if (typeof vUpdate.valuation === 'number') {
-                        instance.currentValuation = vUpdate.valuation;
+                    if (typeof instance.syncFromSnapshot === 'function') {
+                        instance.syncFromSnapshot(vUpdate);
+                    } else {
+                        Object.assign(instance, vUpdate);
+                        if (typeof vUpdate.valuation === 'number') {
+                            instance.currentValuation = vUpdate.valuation;
+                        }
                     }
 
                     // Manually update history for the chart
@@ -674,42 +776,9 @@ function applyTick(tick) {
                         const tickTs = new Date(tick.lastTick).getTime();
                         if (!instance.history) instance.history = [];
                         const lastHist = instance.history[instance.history.length - 1];
-                        // Only add if time has advanced
                         if (!lastHist || lastHist.x < tickTs) {
                             instance.history.push({ x: tickTs, y: instance.currentValuation });
                         }
-                    }
-
-                    // Merge financial history
-                    if (vUpdate.financialHistory && Array.isArray(vUpdate.financialHistory)) {
-                        if (!instance.financialHistory) instance.financialHistory = [];
-                        vUpdate.financialHistory.forEach(item => {
-                            const idx = instance.financialHistory.findIndex(f => f.year === item.year);
-                            if (idx >= 0) {
-                                instance.financialHistory[idx] = item;
-                            } else {
-                                instance.financialHistory.push(item);
-                            }
-                        });
-                        instance.financialHistory.sort((a, b) => a.year - b.year);
-                    }
-
-                    // Merge quarter history (CRITICAL for live chart updates)
-                    if (vUpdate.quarterHistory && Array.isArray(vUpdate.quarterHistory)) {
-                        if (!instance.quarterHistory) instance.quarterHistory = [];
-                        vUpdate.quarterHistory.forEach(item => {
-                            const idx = instance.quarterHistory.findIndex(q => q.year === item.year && q.quarter === item.quarter);
-                            if (idx >= 0) {
-                                instance.quarterHistory[idx] = item;
-                            } else {
-                                instance.quarterHistory.push(item);
-                            }
-                        });
-                        instance.quarterHistory.sort((a, b) => (a.year - b.year) || (a.quarter - b.quarter));
-                    }
-
-                    if (vUpdate.currentRound) {
-                        instance.currentRound = { ...vUpdate.currentRound };
                     }
                 }
             }
@@ -922,7 +991,9 @@ function renderPortfolio() {
         ventureSim,
         portfolioList,
         emptyPortfolioMsg,
-        currencyFormatter
+        currencyFormatter,
+        serverPlayer,
+        isServerAuthoritative
     });
 }
 
@@ -1688,7 +1759,11 @@ function renderCompanyFinancialHistory(company) {
         });
         const revenueData = yoySeries.map(item => item.revenue);
         const profitData = yoySeries.map(item => item.profit);
-        const profitColors = profitData.map(value => value >= 0 ? '#6de38a' : '#ff5b5b');
+        const toProfitColor = (value) => {
+            if (value === null || value === undefined || Number.isNaN(value)) return 'rgba(0,0,0,0)';
+            return value >= 0 ? '#6de38a' : '#ff5b5b';
+        };
+        const profitColors = profitData.map(toProfitColor);
 
         // Pad with empty data if few points to prevent "beeg spacing"
         const minPoints = 20;
@@ -1698,7 +1773,7 @@ function renderCompanyFinancialHistory(company) {
                 labels.push('');
                 revenueData.push(null);
                 profitData.push(null);
-                profitColors.push(null);
+                profitColors.push('rgba(0,0,0,0)');
             }
         }
 

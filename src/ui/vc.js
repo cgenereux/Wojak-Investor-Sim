@@ -614,13 +614,6 @@ function renderVentureFinancialChart(company) {
         });
     }
 
-    // Polyfill getYoySeries if missing (critical for multiplayer plain objects)
-    if (!company.getYoySeries && window.CompanyModule && window.CompanyModule.BaseCompany) {
-        company.getYoySeries = function (limit) {
-            return window.CompanyModule.BaseCompany.prototype.getYoySeries.call(this, limit);
-        };
-    }
-
     // Use getYoySeries if available (inherited from BaseCompany), otherwise fallback or empty
     const yoySeries = typeof company.getYoySeries === 'function'
         ? company.getYoySeries(currentVcChartRange)
@@ -648,7 +641,10 @@ function renderVentureFinancialChart(company) {
     });
     const revenueData = yoySeries.map(item => item.revenue);
     const profitData = yoySeries.map(item => item.profit);
-    const profitColors = profitData.map(value => value >= 0 ? '#6de38a' : '#ff5b5b');
+    const profitColors = profitData.map(value => {
+        if (typeof value !== 'number' || !isFinite(value)) return 'transparent';
+        return value >= 0 ? '#6de38a' : '#ff5b5b';
+    });
 
     // Pad with empty data if few points to prevent "beeg spacing"
     const minPoints = 20;
@@ -689,6 +685,8 @@ function renderVentureFinancialChart(company) {
                 ventureFinancialBarChart.data.datasets[0].data = revenueData;
                 ventureFinancialBarChart.data.datasets[1].data = profitData;
                 ventureFinancialBarChart.data.datasets[1].backgroundColor = profitColors;
+                // Explicitly set hoverBackgroundColor to avoid resolution errors
+                ventureFinancialBarChart.data.datasets[1].hoverBackgroundColor = profitColors;
                 ventureFinancialBarChart.update('none');
                 return;
             }
@@ -703,11 +701,12 @@ function renderVentureFinancialChart(company) {
                         label: 'Revenue (Trailing 12 Months)',
                         data: revenueData,
                         backgroundColor: '#635bff',
+                        hoverBackgroundColor: '#5046e5', // Explicit hover color
                         borderRadius: 4,
                         categoryPercentage: 0.8,
                         barPercentage: 0.9,
                         grouped: false,
-                        order: 1,
+                        order: 2,
                         maxBarThickness: 50,
                         skipNull: true
                     },
@@ -715,11 +714,12 @@ function renderVentureFinancialChart(company) {
                         label: 'Profit (Trailing 12 Months)',
                         data: profitData,
                         backgroundColor: profitColors,
+                        hoverBackgroundColor: profitColors, // Explicit hover color array
                         borderRadius: 4,
                         categoryPercentage: 0.8,
                         barPercentage: 0.9,
                         grouped: false,
-                        order: 0,
+                        order: 1,
                         maxBarThickness: 50,
                         skipNull: true
                     }
