@@ -234,96 +234,15 @@ function initMatchContext(seedOverride = null) {
 }
 
 function ensureConnectionBanner() {
-    if (connectionStatusEl) return;
-    const wrapper = document.createElement('div');
-    wrapper.id = 'connectionStatusBanner';
-    wrapper.style.position = 'fixed';
-    wrapper.style.top = '12px';
-    wrapper.style.right = '12px';
-    wrapper.style.zIndex = '999';
-    wrapper.style.display = 'flex';
-    wrapper.style.alignItems = 'center';
-    wrapper.style.gap = '8px';
-    wrapper.style.padding = '8px 10px';
-    wrapper.style.borderRadius = '8px';
-    wrapper.style.background = '#0f172a';
-    wrapper.style.color = '#e2e8f0';
-    wrapper.style.boxShadow = '0 6px 18px rgba(0,0,0,0.18)';
-
-    const statusText = document.createElement('span');
-    statusText.id = 'connectionStatusText';
-    statusText.textContent = 'Connecting...';
-    statusText.style.fontSize = '12px';
-    statusText.style.fontWeight = '600';
-
-    const resyncButton = document.createElement('button');
-    resyncButton.textContent = 'Force Resync';
-    resyncButton.style.background = '#1e293b';
-    resyncButton.style.border = '1px solid #334155';
-    resyncButton.style.color = '#e2e8f0';
-    resyncButton.style.cursor = 'pointer';
-    resyncButton.style.borderRadius = '6px';
-    resyncButton.style.padding = '6px 8px';
-    resyncButton.style.fontSize = '11px';
-    resyncButton.addEventListener('click', () => requestResync('manual'));
-    resyncButtonEl = resyncButton;
-
-    const disconnectButton = document.createElement('button');
-    disconnectButton.textContent = 'Go Offline';
-    disconnectButton.style.background = '#7c2d12';
-    disconnectButton.style.border = '1px solid #b45309';
-    disconnectButton.style.color = '#fef3c7';
-    disconnectButton.style.cursor = 'pointer';
-    disconnectButton.style.borderRadius = '6px';
-    disconnectButton.style.padding = '6px 8px';
-    disconnectButton.style.fontSize = '11px';
-    disconnectButton.addEventListener('click', () => disconnectMultiplayer());
-    disconnectButtonEl = disconnectButton;
-
-    const killButton = document.createElement('button');
-    killButton.textContent = 'Kill Game';
-    killButton.style.background = '#991b1b';
-    killButton.style.border = '1px solid #f87171';
-    killButton.style.color = '#fee2e2';
-    killButton.style.cursor = 'pointer';
-    killButton.style.borderRadius = '6px';
-    killButton.style.padding = '6px 8px';
-    killButton.style.fontSize = '11px';
-    killButton.addEventListener('click', () => killRemoteSession());
-
-    wrapper.appendChild(statusText);
-    wrapper.appendChild(resyncButton);
-    wrapper.appendChild(killButton);
-    wrapper.appendChild(disconnectButton);
-    document.body.appendChild(wrapper);
-    connectionStatusEl = statusText;
-    resyncBtn = resyncButton;
-    disconnectBtn = disconnectButton;
-    killSessionBtn = killButton;
-    setBannerButtonsVisible(true);
+    // Banner removed by user request
 }
 
 function setConnectionStatus(text, tone = 'info') {
-    if (!connectionStatusEl) return;
-    connectionStatusEl.textContent = text;
-    const parent = connectionStatusEl.parentElement;
-    if (!parent) return;
-    let bg = '#0f172a';
-    if (tone === 'ok') bg = '#0f2a17';
-    else if (tone === 'warn') bg = '#2a1f0f';
-    else if (tone === 'error') bg = '#2a0f12';
-    parent.style.background = bg;
-
-    if (resyncButtonEl) resyncButtonEl.style.display = 'inline-flex';
-    if (disconnectButtonEl) disconnectButtonEl.style.display = 'inline-flex';
-    if (killSessionBtn) killSessionBtn.style.display = 'inline-flex';
+    console.log(`[Multiplayer Status] ${text} (${tone})`);
 }
 
 function setBannerButtonsVisible(show) {
-    const display = show ? 'inline-flex' : 'none';
-    if (resyncButtonEl) resyncButtonEl.style.display = display;
-    if (disconnectButtonEl) disconnectButtonEl.style.display = display;
-    if (killSessionBtn) killSessionBtn.style.display = display;
+    // Banner removed
 }
 
 function requestResync(reason = 'manual') {
