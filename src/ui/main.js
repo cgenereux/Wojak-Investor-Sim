@@ -28,6 +28,7 @@ const dripToggle = document.getElementById('dripToggle');
 const multiplayerBtn = document.getElementById('multiplayerBtn');
 const multiplayerModal = document.getElementById('multiplayerModal');
 const closeMultiplayerBtn = document.getElementById('closeMultiplayerBtn');
+const mpNameInput = document.getElementById('mpNameInput');
 const createPartyBtn = document.getElementById('createPartyBtn');
 const joinPartyBtn = document.getElementById('joinPartyBtn');
 const confirmJoinPartyBtn = document.getElementById('confirmJoinPartyBtn');
@@ -35,7 +36,7 @@ const mpJoinCodeInput = document.getElementById('mpJoinCodeInput');
 const mpPartyCodeDisplay = document.getElementById('mpPartyCodeDisplay');
 const copyPartyCodeBtn = document.getElementById('copyPartyCodeBtn');
 const startPartyBtn = document.getElementById('startPartyBtn');
-const multiplayerIdleState = document.getElementById('multiplayerIdleState');
+// const multiplayerIdleState = document.getElementById('multiplayerIdleState'); // Removed from HTML
 const multiplayerJoinState = document.getElementById('multiplayerJoinState');
 const multiplayerCreateState = document.getElementById('multiplayerCreateState');
 const mpPlayersList = document.getElementById('mpPlayersList');
@@ -208,6 +209,7 @@ let startGameRequested = false;
 let startGameSent = false;
 let isPartyHostClient = false;
 let matchStarted = false;
+let cachedPlayerName = '';
 const playerNetWorthSeries = new Map();
 const PLAYER_COLORS = ['#22c55e', '#3b82f6', '#f97316', '#a855f7', '#06b6d4', '#ef4444', '#0ea5e9', '#10b981'];
 let killSessionBtn = null;
@@ -382,8 +384,13 @@ async function connectWebSocket() {
     isServerAuthoritative = true;
     ensureConnectionBanner();
     setConnectionStatus('Connecting...', 'warn');
-    const playerId = localStorage.getItem('wojak_player_id') || `p_${Math.floor(Math.random() * 1e9).toString(36)}`;
-    localStorage.setItem('wojak_player_id', playerId);
+    const storedName = localStorage.getItem('wojak_player_name');
+    if (storedName) ensurePlayerIdentity(storedName);
+    let playerId = localStorage.getItem('wojak_player_id');
+    if (!playerId) {
+        playerId = `p_${Math.floor(Math.random() * 1e9).toString(36)}`;
+        localStorage.setItem('wojak_player_id', playerId);
+    }
     clientPlayerId = playerId;
     const roleParam = isPartyHostClient ? 'host' : 'guest';
     const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws?session=${encodeURIComponent(session)}&player=${encodeURIComponent(playerId)}&role=${roleParam}`;
@@ -2356,9 +2363,43 @@ async function wakeBackend(url) {
     }
 }
 
+function sanitizePlayerName(name) {
+    if (!name) return '';
+    return name.trim().replace(/\s+/g, ' ').slice(0, 40);
+}
+
+function makePlayerIdFromName(name) {
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 24);
+    return slug ? `p_${slug}` : null;
+}
+
+function ensurePlayerIdentity(name) {
+    const cleaned = sanitizePlayerName(name);
+    if (!cleaned) return null;
+    cachedPlayerName = cleaned;
+    localStorage.setItem('wojak_player_name', cleaned);
+    const pid = makePlayerIdFromName(cleaned) || `p_${Math.floor(Math.random() * 1e9).toString(36)}`;
+    localStorage.setItem('wojak_player_id', pid);
+    clientPlayerId = pid;
+    return pid;
+}
+
+function requirePlayerName() {
+    if (!mpNameInput) return 'Player';
+    const name = sanitizePlayerName(mpNameInput.value);
+    if (!name) {
+        mpNameInput.classList.add('input-error');
+        mpNameInput.focus();
+        return null;
+    }
+    mpNameInput.classList.remove('input-error');
+    ensurePlayerIdentity(name);
+    return name;
+}
+
 function setMultiplayerState(state) {
     multiplayerState = state;
-    if (multiplayerIdleState) multiplayerIdleState.classList.toggle('active', state === 'idle');
+    // multiplayerIdleState removed from HTML
     if (multiplayerJoinState) multiplayerJoinState.classList.toggle('active', state === 'join');
     if (multiplayerCreateState) multiplayerCreateState.classList.toggle('active', state === 'create');
     if (state === 'join' && mpJoinCodeInput) {
@@ -2383,6 +2424,10 @@ function renderLobbyPlayers(players = []) {
 function resetMultiplayerModal() {
     if (mpJoinCodeInput) mpJoinCodeInput.value = '';
     if (mpPartyCodeDisplay) mpPartyCodeDisplay.value = '';
+    if (mpNameInput) {
+        mpNameInput.classList.remove('input-error');
+        mpNameInput.value = localStorage.getItem('wojak_player_name') || '';
+    }
     lastGeneratedPartyCode = '';
     startGameRequested = false;
     startGameSent = false;
@@ -2398,6 +2443,8 @@ function resetMultiplayerModal() {
 
 function attemptJoinParty() {
     if (!mpJoinCodeInput) return;
+    const name = requirePlayerName();
+    if (!name) return;
     const sessionId = mpJoinCodeInput.value.trim();
     if (!sessionId) {
         mpJoinCodeInput.focus();
@@ -2409,6 +2456,8 @@ function attemptJoinParty() {
 }
 
 function handleCreateParty() {
+    const name = requirePlayerName();
+    if (!name) return;
     const code = generatePartyCode();
     lastGeneratedPartyCode = code;
     isPartyHostClient = true;
@@ -2441,6 +2490,8 @@ async function handleCopyPartyCode() {
 function handleStartParty() {
     const code = lastGeneratedPartyCode || (mpPartyCodeDisplay ? mpPartyCodeDisplay.value.trim() : '');
     if (!code) return;
+    const name = requirePlayerName();
+    if (!name) return;
     isPartyHostClient = true;
     startGameRequested = true;
     startGameSent = false;
@@ -2468,6 +2519,9 @@ if (mpJoinCodeInput) {
     mpJoinCodeInput.addEventListener('keypress', (event) => {
         if (event.key === 'Enter') attemptJoinParty();
     });
+}
+if (mpNameInput) {
+    mpNameInput.addEventListener('input', () => mpNameInput.classList.remove('input-error'));
 }
 if (createPartyBtn) {
     createPartyBtn.addEventListener('click', handleCreateParty);

@@ -282,12 +282,15 @@
                 <button class="close-btn" id="closeMultiplayerBtn">×</button>
             </div>
             <div class="banking-controls multiplayer-controls">
-                <div class="multiplayer-actions">
-                    <button id="createPartyBtn" class="borrow-btn">Create Party</button>
-                    <button id="joinPartyBtn" class="borrow-btn">Join Party</button>
-                </div>
-                <div id="multiplayerIdleState" class="multiplayer-state active">
-                    <div class="input-label">Pick an option above to play together.</div>
+                <div class="multiplayer-action-row">
+                    <div class="banking-input-group multiplayer-name-inline">
+                        <div class="input-label">Your Name</div>
+                        <input type="text" id="mpNameInput" placeholder="Name required to play with friends">
+                    </div>
+                    <div class="multiplayer-actions">
+                        <button id="createPartyBtn" class="borrow-btn">Create Party</button>
+                        <button id="joinPartyBtn" class="borrow-btn">Join Party</button>
+                    </div>
                 </div>
                 <div id="multiplayerJoinState" class="multiplayer-state">
                     <div class="input-label">Enter a party code</div>
@@ -308,9 +311,6 @@
                     </ul>
                     <button id="startPartyBtn" class="borrow-btn start-game-btn">Start Game</button>
                 </div>
-            </div>
-            <div class="banking-info">
-                <strong>Note:</strong> Hit Create to get a code to share, or Join to enter a friend's code. Hosting is handled for you.
             </div>
         </div>
     </div>
