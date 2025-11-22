@@ -111,6 +111,7 @@ Multiplayer stays on hold until the single-player loop, presets, and balance pol
 10. **Macro Event System:** Introduce headline macro shocks (pandemics, QE waves, financial crises, Bogdanov-style manipulation) that temporarily alter earnings/macro indices across many companies at once to keep late-game runs spicy.
 11. **Malding Wojak Polish:** Track a few outstanding edge cases (post-milestone overrides, deep drawdowns) and tighten the revert logic so avatars always swap back at the right time; fixes are noted but still pending.
 12. currently bankrupt companies stay in your portfolio forever -- should fix 
+13. rn when u hit a $0 nw without leverage u dont go bankrupt -- should fix
 
 ---
 

@@ -400,8 +400,16 @@ async function connectWebSocket() {
     };
     ws.onclose = (evt) => {
         if (evt.code === 4004) {
-            if (mpJoinError) mpJoinError.classList.add('visible');
+            if (mpJoinError) {
+                mpJoinError.textContent = 'Party not found';
+                mpJoinError.classList.add('visible');
+            }
             manualDisconnect = true;
+            isServerAuthoritative = false;
+            activeSessionId = null;
+            try {
+                localStorage.removeItem(SESSION_ID_KEY);
+            } catch (err) { /* ignore */ }
             setConnectionStatus('Party not found', 'error');
             // Don't reset the whole modal, just let them try again
             return;
@@ -2385,6 +2393,11 @@ function generatePartyCode() {
     return code;
 }
 
+function isValidPartyCode(code) {
+    if (!code || typeof code !== 'string') return false;
+    return /^[A-HJKMNPQRSTUVWXYZ2-9]{6}$/.test(code.trim().toUpperCase());
+}
+
 function applyBackendAndSession(backend, sessionId) {
     activeBackendUrl = backend || DEFAULT_BACKEND_URL;
     activeSessionId = sessionId || 'default';
@@ -2501,6 +2514,8 @@ function setMultiplayerState(state) {
             const panel = mpPlayersListJoin.closest('.mp-roster-panel');
             if (panel) panel.style.display = 'none';
         }
+        mpJoinCodeInput.classList.remove('input-error');
+        if (mpJoinError) mpJoinError.classList.remove('visible');
     }
 }
 
@@ -2563,9 +2578,17 @@ function attemptJoinParty() {
     if (!mpJoinCodeInput) return;
     const name = requirePlayerName();
     if (!name) return;
-    const sessionId = mpJoinCodeInput.value.trim();
+    const sessionId = (mpJoinCodeInput.value || '').trim().toUpperCase();
     if (!sessionId) {
         mpJoinCodeInput.focus();
+        return;
+    }
+    if (!isValidPartyCode(sessionId)) {
+        mpJoinCodeInput.classList.add('input-error');
+        if (mpJoinError) {
+            mpJoinError.textContent = 'Invalid party code';
+            mpJoinError.classList.add('visible');
+        }
         return;
     }
     if (mpJoinError) mpJoinError.classList.remove('visible');
