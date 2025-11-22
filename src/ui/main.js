@@ -134,7 +134,7 @@ let dripEnabled = false;
 const SPEED_STEPS = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8];
 const SESSION_ID_KEY = 'wojak_session_id';
 const BACKEND_URL_KEY = 'wojak_backend_url';
-const DEFAULT_BACKEND_URL = 'https://intelligent-perception-production-2498.up.railway.app';
+const DEFAULT_BACKEND_URL = 'https://wojak-backend.graysand-55f0f3f9.eastus2.azurecontainerapps.io';
 try {
     const stored = localStorage.getItem(DRIP_STORAGE_KEY);
     if (stored === 'true') dripEnabled = true;
