@@ -1118,26 +1118,31 @@ button.speed-active:hover {
     display: flex;
     align-items: flex-end;
     gap: 10px;
-    justify-content: space-between;
+    justify-content: flex-start;
+    width: 100%;
 }
 
 .multiplayer-name-inline {
     flex: 0 0 260px;
     max-width: 320px;
+    margin-right: auto;
 }
 
 .multiplayer-name-inline .input-label {
-    text-align: left;
+    text-align: center;
+    color: #22c55e;
+    font-weight: 700;
 }
 
 .multiplayer-name-inline input {
-    text-align: left;
+    text-align: center;
 }
 
 .multiplayer-actions {
     display: flex;
     gap: 10px;
     flex: 0 0 auto;
+    justify-content: flex-end;
 }
 
 .multiplayer-actions button {

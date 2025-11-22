@@ -40,6 +40,7 @@ const startPartyBtn = document.getElementById('startPartyBtn');
 const multiplayerJoinState = document.getElementById('multiplayerJoinState');
 const multiplayerCreateState = document.getElementById('multiplayerCreateState');
 const mpPlayersList = document.getElementById('mpPlayersList');
+const NAME_PLACEHOLDERS = ['TheGrug850', 'Bloomer4000', 'TheRealWojak'];
 const playerLeaderboardEl = document.getElementById('playerLeaderboard');
 const connectedPlayersEl = document.getElementById('connectedPlayers');
 const connectedPlayersSessionEl = document.getElementById('connectedPlayersSession');
@@ -2386,7 +2387,14 @@ function ensurePlayerIdentity(name) {
 
 function requirePlayerName() {
     if (!mpNameInput) return 'Player';
-    const name = sanitizePlayerName(mpNameInput.value);
+    let name = sanitizePlayerName(mpNameInput.value);
+    if (!name && NAME_PLACEHOLDERS.length) {
+        const fallback = sanitizePlayerName(mpNameInput.placeholder || '');
+        if (fallback) {
+            name = fallback;
+            mpNameInput.value = name;
+        }
+    }
     if (!name) {
         mpNameInput.classList.add('input-error');
         mpNameInput.focus();
@@ -2426,7 +2434,9 @@ function resetMultiplayerModal() {
     if (mpPartyCodeDisplay) mpPartyCodeDisplay.value = '';
     if (mpNameInput) {
         mpNameInput.classList.remove('input-error');
-        mpNameInput.value = localStorage.getItem('wojak_player_name') || '';
+        const placeholder = NAME_PLACEHOLDERS[Math.floor(Math.random() * NAME_PLACEHOLDERS.length)] || '';
+        mpNameInput.placeholder = placeholder || 'Bloomer4000';
+        mpNameInput.value = '';
     }
     lastGeneratedPartyCode = '';
     startGameRequested = false;
