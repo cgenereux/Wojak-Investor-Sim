@@ -230,6 +230,19 @@ function armIdleGuard(session) {
   }, SESSION_IDLE_TIMEOUT_MS);
 }
 
+app.register(require('@fastify/http-proxy'), {
+  upstream: 'https://us.i.posthog.com',
+  prefix: '/ingest',
+  rewritePrefix: '/ingest', // Keep /ingest or strip it? PostHog expects /ingest/s/ or /ingest/i/ etc?
+  // The user's example showed stripping it: pathRewrite: { '^/ingest': '' }
+  // Fastify proxy uses `rewritePrefix` to replace the prefix. If we want to strip it, we set it to empty string?
+  // Wait, fastify-http-proxy documentation says:
+  // "rewritePrefix: Rewrite the prefix to the specified string. Default: '' (empty string)."
+  // If we want to forward /ingest/v1/decide to https://us.i.posthog.com/v1/decide, we should strip /ingest.
+  rewritePrefix: '',
+  http2: false
+});
+
 app.get('/health', async () => ({ ok: true }));
 
 app.get('/session/:id', async (req, res) => {

@@ -1,5 +1,7 @@
 {
   "dependencies": {
+    "@fastify/http-proxy": "^11.3.0",
+    "http-proxy-middleware": "^3.0.5",
     "posthog-js": "^1.297.2"
   }
 }
