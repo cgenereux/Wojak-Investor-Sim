@@ -57,6 +57,50 @@ function trackEvent(eventName, props = {}) {
     }
 }
 
+function resetDecadeTracking() {
+    emittedDecadeKeys.clear();
+}
+
+function maybeTrackDecadeNetWorth(dateLike, players = null) {
+    const year = dateLike instanceof Date ? dateLike.getUTCFullYear() : new Date(dateLike).getUTCFullYear();
+    if (!Number.isFinite(year)) return;
+    const decadeYear = Math.floor(year / 10) * 10;
+    if (decadeYear < 2000) return; // start logging from 2000 onward
+    const matchId = activeSessionId || (isServerAuthoritative ? 'multiplayer' : 'singleplayer_local');
+    const key = `${matchId}_${decadeYear}`;
+    if (emittedDecadeKeys.has(key)) return;
+    if (isServerAuthoritative) {
+        const isHostClient = isPartyHostClient || (clientPlayerId && currentHostId && clientPlayerId === currentHostId);
+        if (!isHostClient) return; // avoid duplicate events from every participant
+    }
+    let playerSnapshots = [];
+    if (isServerAuthoritative && Array.isArray(players)) {
+        playerSnapshots = players.map(p => {
+            const netWorthVal = typeof p.netWorth === 'number' ? p.netWorth : (typeof p.net_worth === 'number' ? p.net_worth : null);
+            return {
+                player_id: p?.id || null,
+                player_name: p?.id || null,
+                net_worth: netWorthVal
+            };
+        }).filter(p => p.player_id && Number.isFinite(p.net_worth));
+    } else {
+        const soloNetWorth = netWorth;
+        playerSnapshots = [{
+            player_id: clientPlayerId || 'local_player',
+            player_name: clientPlayerId || 'local_player',
+            net_worth: soloNetWorth
+        }];
+    }
+    if (!playerSnapshots.length) return;
+    trackEvent('decade_net_worth', {
+        decade_year: decadeYear,
+        mode: isServerAuthoritative ? 'multiplayer' : 'singleplayer',
+        match_id: matchId,
+        players: playerSnapshots
+    });
+    emittedDecadeKeys.add(key);
+}
+
 // --- Helper utilities ---
 const PresetGenerators = window.PresetGenerators || {};
 const {
@@ -219,6 +263,7 @@ let lastGeneratedPartyCode = '';
 let startGameRequested = false;
 let startGameSent = false;
 let isPartyHostClient = false;
+let currentHostId = null;
 let matchStarted = false;
 let cachedPlayerName = '';
 let lobbyRefreshTimer = null;
@@ -227,6 +272,7 @@ const PLAYER_COLORS = ['#22c55e', '#3b82f6', '#f97316', '#a855f7', '#06b6d4', '#
 let killSessionBtn = null;
 let resyncButtonEl = null;
 let disconnectButtonEl = null;
+const emittedDecadeKeys = new Set();
 
 function initMatchContext(seedOverride = null) {
     if (!matchSeed) {
@@ -405,6 +451,7 @@ function handleServerMessage(msg) {
         hydrateFromSnapshot(msg);
         applyTicks(msg.ticks || []);
         setConnectionStatus('Synced', 'ok');
+        currentHostId = msg.hostId || currentHostId;
         // Show roster on snapshot too
         if (multiplayerState === 'join' && mpPlayersListJoin) {
             const panel = mpPlayersListJoin.closest('.mp-roster-panel');
@@ -418,6 +465,9 @@ function handleServerMessage(msg) {
             applyTicks(msg.ticks || []);
         }
         setConnectionStatus('Resynced', 'ok');
+        if (msg.hostId) {
+            currentHostId = msg.hostId;
+        }
         return;
     }
     if (msg.type === 'tick') {
@@ -433,12 +483,26 @@ function handleServerMessage(msg) {
         startGameRequested = false;
         startGameSent = false;
         matchStarted = true;
+        currentHostId = msg.hostId || currentHostId;
         if (startPartyBtn) {
             startPartyBtn.disabled = true;
             startPartyBtn.textContent = 'Started';
         }
         hideMultiplayerModal();
-        trackEvent('match_started', { mode: 'multiplayer' });
+        // Host-only to avoid duplicate match_started events
+        const isHostClient = isPartyHostClient || (clientPlayerId && msg.hostId && clientPlayerId === msg.hostId);
+        if (isHostClient) {
+            const playerNames = Array.isArray(latestServerPlayers)
+                ? latestServerPlayers.map(p => p?.id || p?.name).filter(Boolean)
+                : [];
+            trackEvent('match_started', {
+                mode: 'multiplayer',
+                player_count: playerNames.length,
+                player_names: playerNames,
+                match_id: activeSessionId || 'default',
+                host_id: msg.hostId || null
+            });
+        }
         return;
     }
     if (msg.type === 'command_result') {
@@ -497,6 +561,19 @@ function handleServerMessage(msg) {
         return;
     }
     if (msg.type === 'end') {
+        const finalNetWorth = (serverPlayer && typeof serverPlayer.netWorth === 'number') ? serverPlayer.netWorth : netWorth;
+        const playerNames = Array.isArray(latestServerPlayers)
+            ? latestServerPlayers.map(p => p?.id || p?.name).filter(Boolean)
+            : [];
+        trackEvent('match_ended', {
+            mode: 'multiplayer',
+            final_net_worth: finalNetWorth,
+            reason: msg.reason || 'session_end',
+            match_id: activeSessionId || 'default',
+            player_id: clientPlayerId || null,
+            player_count: playerNames.length || null,
+            player_names: playerNames
+        });
         manualDisconnect = true;
         if (ws) {
             try { ws.close(); } catch (err) { /* ignore */ }
@@ -523,6 +600,7 @@ function hydrateFromSnapshot(snapshot) {
             matchRngFn = Math.random;
         }
     }
+    currentHostId = snapshot.hostId || currentHostId;
     if (isServerAuthoritative) {
         netWorthHistory.length = 0;
         serverTicks = new Set();
@@ -752,6 +830,9 @@ function applyTick(tick) {
         if (isServerAuthoritative) {
             updateNetWorthSeriesFromPlayers(tickTs, tick.players);
         }
+    }
+    if (tick.lastTick) {
+        maybeTrackDecadeNetWorth(new Date(tick.lastTick), tick.players || []);
     }
     updateNetWorth();
     renderCompanies();
@@ -1425,10 +1506,16 @@ function endGame(reason) {
     let message = "";
     if (reason === "bankrupt") { message = "GAME OVER! You went bankrupt!"; }
     else if (reason === "timeline_end") { message = `Game Over! You reached ${GAME_END_YEAR}.`; }
+    const finalNetWorth = (isServerAuthoritative && serverPlayer && typeof serverPlayer.netWorth === 'number')
+        ? serverPlayer.netWorth
+        : netWorth;
+    const matchId = activeSessionId || (isServerAuthoritative ? 'multiplayer' : 'singleplayer_local');
     trackEvent('match_ended', {
-        final_net_worth: netWorth,
+        final_net_worth: finalNetWorth,
         reason: reason,
-        mode: isServerAuthoritative ? 'multiplayer' : 'singleplayer'
+        mode: isServerAuthoritative ? 'multiplayer' : 'singleplayer',
+        match_id: matchId,
+        player_id: clientPlayerId || null
     });
     alert(`${message}\nFinal Net Worth: ${currencyFormatter.format(netWorth)}`);
     if (confirm("Play again?")) { location.reload(); }
@@ -1508,6 +1595,7 @@ function gameLoop() {
 
     chargeInterest();
     updateNetWorth();
+    maybeTrackDecadeNetWorth(currentDate);
     updateDisplay();
     renderPortfolio();
     netWorthChart.update();
@@ -2303,6 +2391,8 @@ function applyBackendAndSession(backend, sessionId) {
     localStorage.setItem(BACKEND_URL_KEY, activeBackendUrl);
     localStorage.setItem(SESSION_ID_KEY, activeSessionId);
     manualDisconnect = false;
+    resetDecadeTracking();
+    currentHostId = null;
 }
 
 function sendStartGameIfReady() {
@@ -2365,6 +2455,9 @@ function ensurePlayerIdentity(name) {
     const pid = makePlayerIdFromName(cleaned) || `p_${Math.floor(Math.random() * 1e9).toString(36)}`;
     localStorage.setItem('wojak_player_id', pid);
     clientPlayerId = pid;
+    if (window.posthog) {
+        window.posthog.identify(cleaned);
+    }
     return pid;
 }
 
@@ -2623,15 +2716,20 @@ async function init() {
     }
 
     initMatchContext();
+    resetDecadeTracking();
     activeBackendUrl = null;
-    activeSessionId = null;
+    activeSessionId = isServerAuthoritative ? null : 'singleplayer_local';
     ensureConnectionBanner();
     setBannerButtonsVisible(false);
     setConnectionStatus('Offline', 'warn');
     if (!isServerAuthoritative) {
         sim = await loadCompaniesData();
         if (!sim) { return; }
-        trackEvent('match_started', { mode: 'singleplayer' });
+        trackEvent('match_started', {
+            mode: 'singleplayer',
+            match_id: 'singleplayer_local',
+            player_id: clientPlayerId || null
+        });
     }
 
     if (sim && sim.companies) {
