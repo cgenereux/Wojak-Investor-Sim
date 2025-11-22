@@ -39,7 +39,9 @@ const startPartyBtn = document.getElementById('startPartyBtn');
 // const multiplayerIdleState = document.getElementById('multiplayerIdleState'); // Removed from HTML
 const multiplayerJoinState = document.getElementById('multiplayerJoinState');
 const multiplayerCreateState = document.getElementById('multiplayerCreateState');
-const mpPlayersList = document.getElementById('mpPlayersList');
+const mpPlayersListHost = document.getElementById('mpPlayersListHost');
+const mpPlayersListJoin = document.getElementById('mpPlayersListJoin');
+const mpNameError = document.getElementById('mpNameError');
 const NAME_PLACEHOLDERS = ['TheGrug850', 'Bloomer4000', 'TheRealWojak'];
 const playerLeaderboardEl = document.getElementById('playerLeaderboard');
 const connectedPlayersEl = document.getElementById('connectedPlayers');
@@ -211,6 +213,7 @@ let startGameSent = false;
 let isPartyHostClient = false;
 let matchStarted = false;
 let cachedPlayerName = '';
+let lobbyRefreshTimer = null;
 const playerNetWorthSeries = new Map();
 const PLAYER_COLORS = ['#22c55e', '#3b82f6', '#f97316', '#a855f7', '#06b6d4', '#ef4444', '#0ea5e9', '#10b981'];
 let killSessionBtn = null;
@@ -451,6 +454,11 @@ function handleServerMessage(msg) {
     if (!msg || typeof msg !== 'object') return;
     if (msg.type === 'idle_warning') {
         alert(msg.message || 'Session idle, closing soon.');
+        return;
+    }
+    if (msg.type === 'players_update') {
+        latestServerPlayers = Array.isArray(msg.players) ? msg.players : [];
+        renderPlayerLeaderboard(latestServerPlayers);
         return;
     }
     if (msg.type === 'snapshot') {
@@ -1189,6 +1197,14 @@ function renderPlayerLeaderboard(players = []) {
         connectedPlayersSessionEl.textContent = `Session: ${activeSessionId}`;
     }
     renderLobbyPlayers(players);
+    if (mpNameInput && mpNameInput.value) {
+        if (isNameTaken(mpNameInput.value)) {
+            mpNameInput.classList.add('input-error');
+            setNameErrorVisible(true);
+        } else {
+            setNameErrorVisible(false);
+        }
+    }
 }
 
 function updateMacroEventsDisplay() {
@@ -2369,9 +2385,26 @@ function sanitizePlayerName(name) {
     return name.trim().replace(/\s+/g, ' ').slice(0, 40);
 }
 
+function isNameTaken(name) {
+    if (!name || !Array.isArray(latestServerPlayers)) return false;
+    const target = name.trim();
+    const selfId = (clientPlayerId || '').trim();
+    return latestServerPlayers.some(p => {
+        if (!p || typeof p.id !== 'string') return false;
+        const pid = p.id.trim();
+        if (!pid || pid === selfId) return false;
+        return pid === target;
+    });
+}
+
+function setNameErrorVisible(show) {
+    if (!mpNameError) return;
+    mpNameError.classList.toggle('visible', !!show);
+}
+
 function makePlayerIdFromName(name) {
-    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 24);
-    return slug ? `p_${slug}` : null;
+    const clean = name.trim().slice(0, 40);
+    return clean || null;
 }
 
 function ensurePlayerIdentity(name) {
@@ -2398,9 +2431,16 @@ function requirePlayerName() {
     if (!name) {
         mpNameInput.classList.add('input-error');
         mpNameInput.focus();
+        setNameErrorVisible(false);
+        return null;
+    }
+    if (isNameTaken(name)) {
+        mpNameInput.classList.add('input-error');
+        setNameErrorVisible(true);
         return null;
     }
     mpNameInput.classList.remove('input-error');
+    setNameErrorVisible(false);
     ensurePlayerIdentity(name);
     return name;
 }
@@ -2417,16 +2457,34 @@ function setMultiplayerState(state) {
 }
 
 function renderLobbyPlayers(players = []) {
-    if (!mpPlayersList) return;
-    const shouldRender = isServerAuthoritative && Array.isArray(players) && players.length > 0;
-    if (!shouldRender) {
-        mpPlayersList.innerHTML = '<li class="mp-player-placeholder">Waiting for players...</li>';
-        return;
+    const lists = [mpPlayersListHost, mpPlayersListJoin].filter(Boolean);
+    if (!lists.length) return;
+    const shouldRender = Array.isArray(players) && players.length > 0;
+    const html = shouldRender
+        ? players.map((p) => {
+            const name = p && p.id ? p.id : 'Player';
+            return `<li><span class="mp-player-dot"></span><span class="mp-player-name">${name}</span></li>`;
+        }).join('')
+        : '<li class="mp-player-placeholder">Waiting for players...</li>';
+    lists.forEach(list => { list.innerHTML = html; });
+}
+
+function startLobbyRefresh() {
+    stopLobbyRefresh();
+    renderLobbyPlayers(latestServerPlayers);
+    lobbyRefreshTimer = setInterval(() => {
+        renderLobbyPlayers(latestServerPlayers);
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            sendCommand({ type: 'resync' });
+        }
+    }, 2000);
+}
+
+function stopLobbyRefresh() {
+    if (lobbyRefreshTimer) {
+        clearInterval(lobbyRefreshTimer);
+        lobbyRefreshTimer = null;
     }
-    mpPlayersList.innerHTML = players.map((p) => {
-        const name = p && p.id ? p.id : 'Player';
-        return `<li><span class="mp-player-dot"></span><span class="mp-player-name">${name}</span></li>`;
-    }).join('');
 }
 
 function resetMultiplayerModal() {
@@ -2438,6 +2496,7 @@ function resetMultiplayerModal() {
         mpNameInput.placeholder = placeholder || 'Bloomer4000';
         mpNameInput.value = '';
     }
+    if (mpNameError) mpNameError.classList.remove('visible');
     lastGeneratedPartyCode = '';
     startGameRequested = false;
     startGameSent = false;
@@ -2531,7 +2590,10 @@ if (mpJoinCodeInput) {
     });
 }
 if (mpNameInput) {
-    mpNameInput.addEventListener('input', () => mpNameInput.classList.remove('input-error'));
+    mpNameInput.addEventListener('input', () => {
+        mpNameInput.classList.remove('input-error');
+        setNameErrorVisible(false);
+    });
 }
 if (createPartyBtn) {
     createPartyBtn.addEventListener('click', handleCreateParty);
@@ -2582,11 +2644,12 @@ function showMultiplayerModal() {
     if (!multiplayerModal) return;
     resetMultiplayerModal();
     multiplayerModal.classList.add('active');
-    renderLobbyPlayers(latestServerPlayers);
+    startLobbyRefresh();
 }
 
 function hideMultiplayerModal() {
     if (!multiplayerModal) return;
+    stopLobbyRefresh();
     multiplayerModal.classList.remove('active');
 }
 

@@ -286,6 +286,7 @@
                     <div class="banking-input-group multiplayer-name-inline">
                         <div class="input-label">Display Name</div>
                         <input type="text" id="mpNameInput" placeholder="Bloomer4000">
+                        <div id="mpNameError" class="mp-name-error">Name taken</div>
                     </div>
                     <div class="multiplayer-actions">
                         <button id="createPartyBtn" class="borrow-btn">Create Party</button>
@@ -298,6 +299,12 @@
                         <button id="confirmJoinPartyBtn" class="borrow-btn join-action-btn">Join</button>
                         <input type="text" id="mpJoinCodeInput" placeholder="ABC123">
                     </div>
+                    <div class="mp-roster-panel">
+                        <div class="input-label players-label">Players in this party</div>
+                        <ul id="mpPlayersListJoin" class="mp-player-list">
+                            <li class="mp-player-placeholder">Waiting for players...</li>
+                        </ul>
+                    </div>
                 </div>
                 <div id="multiplayerCreateState" class="multiplayer-state">
                     <div class="input-label">Share this party code</div>
@@ -305,10 +312,12 @@
                         <input type="text" id="mpPartyCodeDisplay" placeholder="------" readonly>
                         <button id="copyPartyCodeBtn" class="copy-code-btn" aria-label="Copy party code">Copy</button>
                     </div>
-                    <div class="input-label players-label">Players in this party</div>
-                    <ul id="mpPlayersList" class="mp-player-list">
-                        <li class="mp-player-placeholder">Waiting for players...</li>
-                    </ul>
+                    <div class="mp-roster-panel">
+                        <div class="input-label players-label">Players in this party</div>
+                        <ul id="mpPlayersListHost" class="mp-player-list">
+                            <li class="mp-player-placeholder">Waiting for players...</li>
+                        </ul>
+                    </div>
                     <button id="startPartyBtn" class="borrow-btn start-game-btn">Start Game</button>
                 </div>
             </div>

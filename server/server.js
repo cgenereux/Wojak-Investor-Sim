@@ -164,6 +164,11 @@ function broadcast(session, message) {
   });
 }
 
+function broadcastPlayers(session) {
+  const players = Array.from(session.players.values()).map(p => serializePlayer(p, session.sim));
+  broadcast(session, { type: 'players_update', players });
+}
+
 function cacheAndBroadcast(session, tick) {
   session.tickSeq += 1;
   const enriched = { ...tick, seq: session.tickSeq };
@@ -707,6 +712,8 @@ wss.on('connection', async (ws, req, url) => {
     player: serializePlayer(player, session.sim),
     ticks: session.tickBuffer.slice()
   }));
+  // Notify everyone of the updated roster
+  broadcastPlayers(session);
 
   if (session.started) {
     startTickLoop(session);
@@ -743,6 +750,12 @@ wss.on('connection', async (ws, req, url) => {
   ws.on('close', () => {
     session.clients.delete(ws);
     session.clientPlayers.delete(ws);
+    // Remove player if no other socket is using this id
+    const stillHasClient = Array.from(session.clientPlayers.values()).includes(playerId);
+    if (!stillHasClient) {
+      session.players.delete(playerId);
+    }
+    broadcastPlayers(session);
     if (session.clients.size === 0) {
       stopTickLoop(session);
       // Hard kill session after short grace when no clients remain

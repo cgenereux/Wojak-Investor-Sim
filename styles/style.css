@@ -1138,6 +1138,18 @@ button.speed-active:hover {
     text-align: center;
 }
 
+.mp-name-error {
+    display: none;
+    color: #ef4444;
+    font-size: 12px;
+    margin-top: 4px;
+    text-align: center;
+}
+
+.mp-name-error.visible {
+    display: block;
+}
+
 .multiplayer-actions {
     display: flex;
     gap: 10px;
@@ -1251,6 +1263,10 @@ button.speed-active:hover {
 .mp-player-name {
     font-weight: 600;
     color: #0f172a;
+}
+
+.mp-roster-panel {
+    margin-top: 6px;
 }
 
 .start-game-btn {
