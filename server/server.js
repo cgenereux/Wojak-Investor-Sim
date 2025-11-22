@@ -25,6 +25,28 @@ const GAME_END_YEAR = 2050;
 
 const app = fastify({ logger: false });
 
+function canonicalizePlayerId(id) {
+  if (!id) return null;
+  const cleaned = id.toString().trim().replace(/\s+/g, ' ').slice(0, 30);
+  return cleaned || null;
+}
+
+function isPlayerIdTaken(session, candidateId) {
+  const canonical = canonicalizePlayerId(candidateId);
+  if (!canonical) return false;
+  const lower = canonical.toLowerCase();
+  const fromPlayers = Array.from(session.players.keys()).some(pid => {
+    const canon = canonicalizePlayerId(pid);
+    return canon && canon.toLowerCase() === lower;
+  });
+  if (fromPlayers) return true;
+  const fromClients = Array.from(session.clientPlayers.values()).some(pid => {
+    const canon = canonicalizePlayerId(pid);
+    return canon && canon.toLowerCase() === lower;
+  });
+  return fromClients;
+}
+
 // Simple in-memory sessions (non-persistent)
 const sessions = new Map();
 const SESSION_CLEANUP_DELAY_MS = 60_000;
@@ -683,8 +705,17 @@ wss.on('connection', async (ws, req, url) => {
   session.lastActivity = Date.now();
   resetIdleTimer(session);
   session.id = sessionId;
+  const rawPlayerId = requestedPlayerId || `p_${Math.floor(Math.random() * 1e9).toString(36)}`;
+  const playerId = canonicalizePlayerId(rawPlayerId);
+  if (!playerId) {
+    try { ws.close(4006, 'invalid_name'); } catch (err) { /* ignore */ }
+    return;
+  }
+  if (isPlayerIdTaken(session, playerId)) {
+    try { ws.close(4005, 'name_taken'); } catch (err) { /* ignore */ }
+    return;
+  }
   session.clients.add(ws);
-  const playerId = requestedPlayerId || `p_${Math.floor(Math.random() * 1e9).toString(36)}`;
   let player = session.players.get(playerId);
   if (!player) {
     player = createPlayer(playerId);

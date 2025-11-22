@@ -43,6 +43,7 @@ const mpPlayersListHost = document.getElementById('mpPlayersListHost');
 const mpPlayersListJoin = document.getElementById('mpPlayersListJoin');
 const mpNameError = document.getElementById('mpNameError');
 const NAME_PLACEHOLDERS = ['TheGrug850', 'Bloomer4000', 'TheRealWojak'];
+const MAX_NAME_LENGTH = 30;
 const playerLeaderboardEl = document.getElementById('playerLeaderboard');
 const connectedPlayersEl = document.getElementById('connectedPlayers');
 const connectedPlayersSessionEl = document.getElementById('connectedPlayersSession');
@@ -412,6 +413,42 @@ async function connectWebSocket() {
             } catch (err) { /* ignore */ }
             setConnectionStatus('Party not found', 'error');
             // Don't reset the whole modal, just let them try again
+            return;
+        }
+        if (evt.code === 4005) {
+            if (mpNameError) {
+                mpNameError.textContent = 'Name taken. Try a different name.';
+                mpNameError.classList.add('visible');
+            }
+            if (mpJoinError) mpJoinError.classList.remove('visible');
+            mpJoinCodeInput && mpJoinCodeInput.classList.remove('input-error');
+            mpNameInput && mpNameInput.classList.add('input-error');
+            if (mpNameInput) {
+                mpNameInput.focus();
+                mpNameInput.select();
+            }
+            manualDisconnect = true; // prevent auto-reconnect loop; user will retry after changing name
+            isServerAuthoritative = false;
+            if (wsHeartbeat) { clearInterval(wsHeartbeat); wsHeartbeat = null; }
+            ws = null;
+            setConnectionStatus('Name taken. Pick another name.', 'error');
+            return;
+        }
+        if (evt.code === 4006) {
+            if (mpNameError) {
+                mpNameError.textContent = `Invalid name (max ${MAX_NAME_LENGTH} chars)`;
+                mpNameError.classList.add('visible');
+            }
+            mpNameInput && mpNameInput.classList.add('input-error');
+            if (mpNameInput) {
+                mpNameInput.focus();
+                mpNameInput.select();
+            }
+            manualDisconnect = true; // prevent auto-reconnect loop; user will retry
+            isServerAuthoritative = false;
+            if (wsHeartbeat) { clearInterval(wsHeartbeat); wsHeartbeat = null; }
+            ws = null;
+            setConnectionStatus('Invalid name', 'error');
             return;
         }
         console.warn('WS closed, retrying in 2s', evt?.code, evt?.reason || '');
@@ -2435,28 +2472,34 @@ async function wakeBackend(url) {
 
 function sanitizePlayerName(name) {
     if (!name) return '';
-    return name.trim().replace(/\s+/g, ' ').slice(0, 40);
+    return name.trim().replace(/\s+/g, ' ').slice(0, MAX_NAME_LENGTH);
 }
 
 function isNameTaken(name) {
     if (!name || !Array.isArray(latestServerPlayers)) return false;
-    const target = name.trim();
-    const selfId = (clientPlayerId || '').trim();
+    const target = sanitizePlayerName(name);
+    if (!target) return false;
+    const selfId = sanitizePlayerName(clientPlayerId || '');
     return latestServerPlayers.some(p => {
         if (!p || typeof p.id !== 'string') return false;
-        const pid = p.id.trim();
+        const pid = sanitizePlayerName(p.id);
         if (!pid || pid === selfId) return false;
         return pid === target;
     });
 }
 
-function setNameErrorVisible(show) {
+function setNameErrorVisible(show, message = '') {
     if (!mpNameError) return;
+    if (show && message) {
+        mpNameError.textContent = message;
+    } else if (!message) {
+        mpNameError.textContent = 'Name taken';
+    }
     mpNameError.classList.toggle('visible', !!show);
 }
 
 function makePlayerIdFromName(name) {
-    const clean = name.trim().slice(0, 40);
+    const clean = sanitizePlayerName(name);
     return clean || null;
 }
 
@@ -2476,7 +2519,13 @@ function ensurePlayerIdentity(name) {
 
 function requirePlayerName() {
     if (!mpNameInput) return 'Player';
-    let name = sanitizePlayerName(mpNameInput.value);
+    const rawTrimmed = (mpNameInput.value || '').trim().replace(/\s+/g, ' ');
+    if (rawTrimmed.length > MAX_NAME_LENGTH) {
+        mpNameInput.classList.add('input-error');
+        setNameErrorVisible(true, `Name too long (max ${MAX_NAME_LENGTH} chars)`);
+        return null;
+    }
+    let name = sanitizePlayerName(rawTrimmed);
     if (!name && NAME_PLACEHOLDERS.length) {
         const fallback = sanitizePlayerName(mpNameInput.placeholder || '');
         if (fallback) {
@@ -2492,7 +2541,7 @@ function requirePlayerName() {
     }
     if (isNameTaken(name)) {
         mpNameInput.classList.add('input-error');
-        setNameErrorVisible(true);
+        setNameErrorVisible(true, 'Name taken');
         return null;
     }
     mpNameInput.classList.remove('input-error');
@@ -2670,6 +2719,7 @@ if (mpNameInput) {
         mpNameInput.classList.remove('input-error');
         setNameErrorVisible(false);
     });
+    try { mpNameInput.setAttribute('maxlength', String(MAX_NAME_LENGTH)); } catch (err) { /* ignore */ }
 }
 if (createPartyBtn) {
     createPartyBtn.addEventListener('click', handleCreateParty);
