@@ -51,6 +51,12 @@ const mpJoinError = document.getElementById('mpJoinError');
 const DEFAULT_WOJAK_SRC = 'wojaks/wojak.png';
 const MALDING_WOJAK_SRC = 'wojaks/malding-wojak.png';
 
+function trackEvent(eventName, props = {}) {
+    if (window.posthog) {
+        window.posthog.capture(eventName, props);
+    }
+}
+
 // --- Helper utilities ---
 const PresetGenerators = window.PresetGenerators || {};
 const {
@@ -432,6 +438,7 @@ function handleServerMessage(msg) {
             startPartyBtn.textContent = 'Started';
         }
         hideMultiplayerModal();
+        trackEvent('match_started', { mode: 'multiplayer' });
         return;
     }
     if (msg.type === 'command_result') {
@@ -1418,6 +1425,11 @@ function endGame(reason) {
     let message = "";
     if (reason === "bankrupt") { message = "GAME OVER! You went bankrupt!"; }
     else if (reason === "timeline_end") { message = `Game Over! You reached ${GAME_END_YEAR}.`; }
+    trackEvent('match_ended', {
+        final_net_worth: netWorth,
+        reason: reason,
+        mode: isServerAuthoritative ? 'multiplayer' : 'singleplayer'
+    });
     alert(`${message}\nFinal Net Worth: ${currencyFormatter.format(netWorth)}`);
     if (confirm("Play again?")) { location.reload(); }
 }
@@ -2619,6 +2631,7 @@ async function init() {
     if (!isServerAuthoritative) {
         sim = await loadCompaniesData();
         if (!sim) { return; }
+        trackEvent('match_started', { mode: 'singleplayer' });
     }
 
     if (sim && sim.companies) {
