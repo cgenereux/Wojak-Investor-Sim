@@ -281,22 +281,36 @@
                 </div>
                 <button class="close-btn" id="closeMultiplayerBtn">×</button>
             </div>
-            <div class="banking-controls">
-                <div class="banking-input-group">
-                    <div class="input-label">Backend</div>
-                    <input type="text" id="mpBackendInput" placeholder="Backend" readonly>
-                </div>
-                <div class="banking-input-group">
-                    <div class="input-label">Party Code</div>
-                    <input type="text" id="mpSessionInput" placeholder="Share this code with friends">
-                </div>
-                <div class="banking-button-grid">
+            <div class="banking-controls multiplayer-controls">
+                <div class="multiplayer-actions">
                     <button id="createPartyBtn" class="borrow-btn">Create Party</button>
-                    <button id="connectMultiplayerBtn" class="borrow-btn">Join Party</button>
+                    <button id="joinPartyBtn" class="borrow-btn">Join Party</button>
+                </div>
+                <div id="multiplayerIdleState" class="multiplayer-state active">
+                    <div class="input-label">Pick an option above to play together.</div>
+                </div>
+                <div id="multiplayerJoinState" class="multiplayer-state">
+                    <div class="input-label">Enter a party code</div>
+                    <div class="mp-join-row">
+                        <button id="confirmJoinPartyBtn" class="borrow-btn join-action-btn">Join</button>
+                        <input type="text" id="mpJoinCodeInput" placeholder="ABC123">
+                    </div>
+                </div>
+                <div id="multiplayerCreateState" class="multiplayer-state">
+                    <div class="input-label">Share this party code</div>
+                    <div class="party-code-row">
+                        <input type="text" id="mpPartyCodeDisplay" placeholder="------" readonly>
+                        <button id="copyPartyCodeBtn" class="copy-code-btn" aria-label="Copy party code">Copy</button>
+                    </div>
+                    <div class="input-label players-label">Players in this party</div>
+                    <ul id="mpPlayersList" class="mp-player-list">
+                        <li class="mp-player-placeholder">Waiting for players...</li>
+                    </ul>
+                    <button id="startPartyBtn" class="borrow-btn start-game-btn">Start Game</button>
                 </div>
             </div>
             <div class="banking-info">
-                <strong>Note:</strong> We’ll host for you. Hit “Create Party” to get a code, or paste a friend’s code to join.
+                <strong>Note:</strong> Hit Create to get a code to share, or Join to enter a friend's code. Hosting is handled for you.
             </div>
         </div>
     </div>

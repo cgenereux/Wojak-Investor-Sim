@@ -1108,16 +1108,123 @@ button.speed-active:hover {
     margin-left: 1%;
 }
 
-#multiplayerModal .banking-button-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+.multiplayer-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.multiplayer-actions {
+    display: flex;
     gap: 10px;
 }
 
-#mpBackendInput[readonly] {
+.multiplayer-actions button {
+    flex: 1 1 0;
+}
+
+.multiplayer-state {
+    display: none;
     background: #f8fafc;
-    color: #475569;
-    cursor: not-allowed;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 14px;
+}
+
+.multiplayer-state.active {
+    display: block;
+}
+
+.mp-join-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.join-action-btn {
+    display: inline-flex;
+    align-items: center;
+    min-width: 90px;
+    justify-content: center;
+}
+
+.mp-join-row input {
+    flex: 1;
+}
+
+.party-code-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#mpPartyCodeDisplay {
+    flex: 1;
+    text-align: center;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    background: #ffffff;
+}
+
+.copy-code-btn {
+    padding: 8px 10px;
+    font-size: 12px;
+    border-radius: 8px;
+    border: 1px solid #cbd5e1;
+    background: #0f172a;
+    color: #ffffff;
+    cursor: pointer;
+    transition: transform 0.05s ease, opacity 0.1s ease;
+}
+
+.copy-code-btn:active {
+    transform: translateY(1px);
+}
+
+.players-label {
+    margin-top: 8px;
+}
+
+.mp-player-list {
+    list-style: none;
+    margin: 6px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.mp-player-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+}
+
+.mp-player-placeholder {
+    color: #64748b;
+    font-style: italic;
+}
+
+.mp-player-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #0f172a;
+}
+
+.mp-player-name {
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.start-game-btn {
+    width: 100%;
+    margin-top: 6px;
 }
 
 .multiplayer-wojaks {

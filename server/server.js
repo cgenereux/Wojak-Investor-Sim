@@ -67,6 +67,9 @@ async function buildMatch(seed = Date.now()) {
     sim,
     ventureSim,
     rngFn,
+    started: false,
+    hostId: null,
+    playerRoles: new Map(),
     clients: new Set(),
     clientPlayers: new Map(),
     players: new Map(),
@@ -86,7 +89,7 @@ async function buildMatch(seed = Date.now()) {
 }
 
 function startTickLoop(session) {
-  if (session.tickHandle || session.ended) return;
+  if (session.tickHandle || session.ended || !session.started) return;
   session.tickHandle = setInterval(() => {
     if (session.ended) {
       stopTickLoop(session);
@@ -451,6 +454,8 @@ function buildSnapshot(session) {
   return {
     type: 'snapshot',
     seed: session.seed,
+    started: session.started,
+    hostId: session.hostId,
     lastTick: session.sim.lastTick ? session.sim.lastTick.toISOString() : null,
     sim: simState,
     venture: session.ventureSim ? session.ventureSim.exportState({ detail: true }) : null,
@@ -483,6 +488,20 @@ function handleCommand(session, player, msg) {
       player: serializePlayer(player, session.sim),
       ticks: session.tickBuffer.slice()
     };
+  }
+  if (type === 'start_game') {
+    if (!session.hostId) {
+      session.hostId = player.id;
+    } else if (session.hostId !== player.id) {
+      return { ok: false, error: 'not_host' };
+    }
+    if (session.started) {
+      return { ok: true, type: 'start_game', alreadyStarted: true };
+    }
+    session.started = true;
+    startTickLoop(session);
+    broadcast(session, { type: 'match_started', hostId: session.hostId || player.id });
+    return { ok: true, type: 'start_game' };
   }
   if (type === 'buy') {
     const { companyId, amount } = msg;
@@ -633,6 +652,7 @@ server.on('upgrade', (req, socket, head) => {
 wss.on('connection', async (ws, req, url) => {
   const sessionId = url.searchParams.get('session') || 'default';
   const requestedPlayerId = url.searchParams.get('player') || null;
+  const role = url.searchParams.get('role') === 'host' ? 'host' : 'guest';
   let session = sessions.get(sessionId);
   if (!session) {
     session = await buildMatch();
@@ -647,6 +667,10 @@ wss.on('connection', async (ws, req, url) => {
   if (!player) {
     player = createPlayer(playerId);
     session.players.set(playerId, player);
+  }
+  session.playerRoles.set(playerId, role);
+  if (!session.hostId && role === 'host') {
+    session.hostId = playerId;
   }
   session.clientPlayers.set(ws, playerId);
   armIdleGuard(session);
@@ -684,7 +708,9 @@ wss.on('connection', async (ws, req, url) => {
     ticks: session.tickBuffer.slice()
   }));
 
-  startTickLoop(session);
+  if (session.started) {
+    startTickLoop(session);
+  }
 
   ws.on('message', (data) => {
   let msg;

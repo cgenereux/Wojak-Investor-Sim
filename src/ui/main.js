@@ -28,10 +28,17 @@ const dripToggle = document.getElementById('dripToggle');
 const multiplayerBtn = document.getElementById('multiplayerBtn');
 const multiplayerModal = document.getElementById('multiplayerModal');
 const closeMultiplayerBtn = document.getElementById('closeMultiplayerBtn');
-const mpBackendInput = document.getElementById('mpBackendInput');
-const mpSessionInput = document.getElementById('mpSessionInput');
 const createPartyBtn = document.getElementById('createPartyBtn');
-const connectMultiplayerBtn = document.getElementById('connectMultiplayerBtn');
+const joinPartyBtn = document.getElementById('joinPartyBtn');
+const confirmJoinPartyBtn = document.getElementById('confirmJoinPartyBtn');
+const mpJoinCodeInput = document.getElementById('mpJoinCodeInput');
+const mpPartyCodeDisplay = document.getElementById('mpPartyCodeDisplay');
+const copyPartyCodeBtn = document.getElementById('copyPartyCodeBtn');
+const startPartyBtn = document.getElementById('startPartyBtn');
+const multiplayerIdleState = document.getElementById('multiplayerIdleState');
+const multiplayerJoinState = document.getElementById('multiplayerJoinState');
+const multiplayerCreateState = document.getElementById('multiplayerCreateState');
+const mpPlayersList = document.getElementById('mpPlayersList');
 const playerLeaderboardEl = document.getElementById('playerLeaderboard');
 const connectedPlayersEl = document.getElementById('connectedPlayers');
 const connectedPlayersSessionEl = document.getElementById('connectedPlayersSession');
@@ -195,6 +202,12 @@ let latestServerPlayers = [];
 let activeSessionId = null;
 let activeBackendUrl = null;
 let manualDisconnect = false;
+let multiplayerState = 'idle';
+let lastGeneratedPartyCode = '';
+let startGameRequested = false;
+let startGameSent = false;
+let isPartyHostClient = false;
+let matchStarted = false;
 const playerNetWorthSeries = new Map();
 const PLAYER_COLORS = ['#22c55e', '#3b82f6', '#f97316', '#a855f7', '#06b6d4', '#ef4444', '#0ea5e9', '#10b981'];
 let killSessionBtn = null;
@@ -318,6 +331,9 @@ function requestResync(reason = 'manual') {
 
 function disconnectMultiplayer() {
     manualDisconnect = true;
+    startGameRequested = false;
+    startGameSent = false;
+    matchStarted = false;
     activeBackendUrl = null;
     activeSessionId = null;
     try {
@@ -347,8 +363,9 @@ function killRemoteSession() {
     setBannerButtonsVisible(false);
 }
 
-function connectWebSocket() {
+async function connectWebSocket() {
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+        sendStartGameIfReady();
         return; // Already connected/connecting
     }
     if (manualDisconnect) {
@@ -368,7 +385,10 @@ function connectWebSocket() {
     const playerId = localStorage.getItem('wojak_player_id') || `p_${Math.floor(Math.random() * 1e9).toString(36)}`;
     localStorage.setItem('wojak_player_id', playerId);
     clientPlayerId = playerId;
-    const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws?session=${encodeURIComponent(session)}&player=${encodeURIComponent(playerId)}`;
+    const roleParam = isPartyHostClient ? 'host' : 'guest';
+    const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws?session=${encodeURIComponent(session)}&player=${encodeURIComponent(playerId)}&role=${roleParam}`;
+    // Attempt to wake the backend (helps with cold starts)
+    wakeBackend(backendUrl);
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.close();
     }
@@ -383,6 +403,7 @@ function connectWebSocket() {
         console.log('WS connected');
         setConnectionStatus('Connected', 'ok');
         setBannerButtonsVisible(true);
+        sendStartGameIfReady();
         if (wsHeartbeat) clearInterval(wsHeartbeat);
         wsHeartbeat = setInterval(() => {
             if (!ws || ws.readyState !== WebSocket.OPEN) return;
@@ -425,6 +446,7 @@ function handleServerMessage(msg) {
         return;
     }
     if (msg.type === 'snapshot') {
+        matchStarted = !!msg.started;
         hydrateFromSnapshot(msg);
         applyTicks(msg.ticks || []);
         setConnectionStatus('Synced', 'ok');
@@ -439,13 +461,50 @@ function handleServerMessage(msg) {
         return;
     }
     if (msg.type === 'tick') {
+        if (!matchStarted) {
+            matchStarted = true;
+        }
         applyTick(msg);
         setConnectionStatus('Live', 'ok');
+        return;
+    }
+    if (msg.type === 'match_started') {
+        setConnectionStatus('Live', 'ok');
+        startGameRequested = false;
+        startGameSent = false;
+        matchStarted = true;
+        if (startPartyBtn) {
+            startPartyBtn.disabled = true;
+            startPartyBtn.textContent = 'Started';
+        }
+        hideMultiplayerModal();
         return;
     }
     if (msg.type === 'command_result') {
         if (!msg.ok) {
             console.warn('Command failed', msg.error);
+            if (startGameRequested) {
+                startGameRequested = false;
+                startGameSent = false;
+                if (startPartyBtn) {
+                    startPartyBtn.disabled = false;
+                    startPartyBtn.textContent = 'Start Game';
+                }
+                if (msg.error === 'not_host') {
+                    alert('Only the host can start the match.');
+                } else if (msg.error === 'unknown_command') {
+                    // Fallback: assume server auto-starts; mark as started locally and resync
+                    matchStarted = true;
+                    if (startPartyBtn) {
+                        startPartyBtn.disabled = true;
+                        startPartyBtn.textContent = 'Started';
+                    }
+                    sendCommand({ type: 'resync' });
+                    hideMultiplayerModal();
+                } else {
+                    alert('Failed to start game.');
+                }
+            }
         }
         if (msg.ok && msg.data && msg.data.type === 'resync' && msg.data.snapshot) {
             hydrateFromSnapshot({ ...msg.data.snapshot, player: msg.player });
@@ -453,6 +512,16 @@ function handleServerMessage(msg) {
             setConnectionStatus('Resynced', 'ok');
             if (netWorthChart) netWorthChart.update();
             return;
+        }
+        if (msg.ok && msg.data && msg.data.type === 'start_game') {
+            startGameRequested = false;
+            startGameSent = false;
+            matchStarted = true;
+            if (startPartyBtn) {
+                startPartyBtn.disabled = true;
+                startPartyBtn.textContent = 'Started';
+            }
+            hideMultiplayerModal();
         }
         if (msg.player) {
             updatePlayerFromServer(msg.player);
@@ -498,6 +567,16 @@ function hydrateFromSnapshot(snapshot) {
         serverTicks = new Set();
         latestServerPlayers = snapshot.players || [];
         playerNetWorthSeries.clear();
+        renderPlayerLeaderboard(latestServerPlayers);
+        if (snapshot.started) {
+            startGameRequested = false;
+            startGameSent = false;
+            matchStarted = true;
+            if (startPartyBtn) {
+                startPartyBtn.disabled = true;
+                startPartyBtn.textContent = 'Started';
+            }
+        }
     }
     // Hydrate Companies
     if (Array.isArray(snapshot.sim.companies)) {
@@ -826,7 +905,7 @@ function updatePlayerFromServer(playerSummary) {
         }
     }
     syncPortfolioFromServer();
-    if (latestServerPlayers && latestServerPlayers.length) {
+    if (latestServerPlayers) {
         renderPlayerLeaderboard(latestServerPlayers);
     }
 }
@@ -1073,10 +1152,14 @@ function refreshNetWorthChartDatasets() {
 }
 
 function renderPlayerLeaderboard(players = []) {
-    if (!playerLeaderboardEl || !connectedPlayersEl) return;
+    if (!playerLeaderboardEl || !connectedPlayersEl) {
+        renderLobbyPlayers(players);
+        return;
+    }
     if (!isServerAuthoritative || !Array.isArray(players) || players.length === 0) {
         connectedPlayersEl.style.display = 'none';
         playerLeaderboardEl.innerHTML = '';
+        renderLobbyPlayers(players);
         return;
     }
     const sorted = [...players].sort((a, b) => (b.netWorth || 0) - (a.netWorth || 0));
@@ -1097,6 +1180,7 @@ function renderPlayerLeaderboard(players = []) {
     if (connectedPlayersSessionEl && activeSessionId) {
         connectedPlayersSessionEl.textContent = `Session: ${activeSessionId}`;
     }
+    renderLobbyPlayers(players);
 }
 
 function updateMacroEventsDisplay() {
@@ -2223,11 +2307,13 @@ backToMainBtn.addEventListener('click', () => {
     bodyEl.classList.remove('vc-detail-active');
 });
 
-multiplayerBtn.addEventListener('click', showMultiplayerModal);
-closeMultiplayerBtn.addEventListener('click', hideMultiplayerModal);
-multiplayerModal.addEventListener('click', (event) => {
-    if (event.target === multiplayerModal) hideMultiplayerModal();
-});
+if (multiplayerBtn) multiplayerBtn.addEventListener('click', showMultiplayerModal);
+if (closeMultiplayerBtn) closeMultiplayerBtn.addEventListener('click', hideMultiplayerModal);
+if (multiplayerModal) {
+    multiplayerModal.addEventListener('click', (event) => {
+        if (event.target === multiplayerModal) hideMultiplayerModal();
+    });
+}
 const PARTY_CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 function generatePartyCode() {
     let code = '';
@@ -2245,23 +2331,152 @@ function applyBackendAndSession(backend, sessionId) {
     manualDisconnect = false;
 }
 
-connectMultiplayerBtn.addEventListener('click', () => {
-    const backend = mpBackendInput ? mpBackendInput.value.trim() || DEFAULT_BACKEND_URL : DEFAULT_BACKEND_URL;
-    const sessionId = mpSessionInput ? mpSessionInput.value.trim() : 'default';
-    applyBackendAndSession(backend, sessionId || 'default');
-    hideMultiplayerModal();
-    connectWebSocket();
-});
+function sendStartGameIfReady() {
+    if (!startGameRequested || startGameSent) return;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        sendCommand({ type: 'start_game' });
+        startGameSent = true;
+    }
+}
 
-if (createPartyBtn) {
-    createPartyBtn.addEventListener('click', () => {
-        const backend = DEFAULT_BACKEND_URL;
-        const code = generatePartyCode();
-        if (mpSessionInput) mpSessionInput.value = code;
-        applyBackendAndSession(backend, code);
-        hideMultiplayerModal();
+function normalizeHttpUrl(url) {
+    if (!url) return '';
+    if (url.startsWith('ws:')) return url.replace(/^ws/, 'http');
+    if (url.startsWith('wss:')) return url.replace(/^wss/, 'https');
+    return url;
+}
+
+async function wakeBackend(url) {
+    const httpUrl = normalizeHttpUrl(url);
+    if (!httpUrl) return;
+    try {
+        await fetch(`${httpUrl.replace(/\/$/, '')}/health`, { method: 'GET', cache: 'no-store' });
+    } catch (err) {
+        console.warn('Backend wake ping failed', err);
+    }
+}
+
+function setMultiplayerState(state) {
+    multiplayerState = state;
+    if (multiplayerIdleState) multiplayerIdleState.classList.toggle('active', state === 'idle');
+    if (multiplayerJoinState) multiplayerJoinState.classList.toggle('active', state === 'join');
+    if (multiplayerCreateState) multiplayerCreateState.classList.toggle('active', state === 'create');
+    if (state === 'join' && mpJoinCodeInput) {
+        mpJoinCodeInput.focus();
+        mpJoinCodeInput.select();
+    }
+}
+
+function renderLobbyPlayers(players = []) {
+    if (!mpPlayersList) return;
+    const shouldRender = isServerAuthoritative && Array.isArray(players) && players.length > 0;
+    if (!shouldRender) {
+        mpPlayersList.innerHTML = '<li class="mp-player-placeholder">Waiting for players...</li>';
+        return;
+    }
+    mpPlayersList.innerHTML = players.map((p) => {
+        const name = p && p.id ? p.id : 'Player';
+        return `<li><span class="mp-player-dot"></span><span class="mp-player-name">${name}</span></li>`;
+    }).join('');
+}
+
+function resetMultiplayerModal() {
+    if (mpJoinCodeInput) mpJoinCodeInput.value = '';
+    if (mpPartyCodeDisplay) mpPartyCodeDisplay.value = '';
+    lastGeneratedPartyCode = '';
+    startGameRequested = false;
+    startGameSent = false;
+    isPartyHostClient = false;
+    matchStarted = false;
+    if (startPartyBtn) {
+        startPartyBtn.disabled = false;
+        startPartyBtn.textContent = 'Start Game';
+    }
+    setMultiplayerState('idle');
+    renderLobbyPlayers([]);
+}
+
+function attemptJoinParty() {
+    if (!mpJoinCodeInput) return;
+    const sessionId = mpJoinCodeInput.value.trim();
+    if (!sessionId) {
+        mpJoinCodeInput.focus();
+        return;
+    }
+    isPartyHostClient = false;
+    applyBackendAndSession(DEFAULT_BACKEND_URL, sessionId || 'default');
+    connectWebSocket();
+}
+
+function handleCreateParty() {
+    const code = generatePartyCode();
+    lastGeneratedPartyCode = code;
+    isPartyHostClient = true;
+    if (mpPartyCodeDisplay) {
+        mpPartyCodeDisplay.value = code;
+    }
+    setMultiplayerState('create');
+    applyBackendAndSession(DEFAULT_BACKEND_URL, code);
+    connectWebSocket();
+    renderLobbyPlayers([]);
+}
+
+async function handleCopyPartyCode() {
+    if (!mpPartyCodeDisplay || !copyPartyCodeBtn) return;
+    const code = (mpPartyCodeDisplay.value || '').trim();
+    if (!code) return;
+    const previousText = copyPartyCodeBtn.textContent;
+    try {
+        await navigator.clipboard.writeText(code);
+        copyPartyCodeBtn.textContent = 'Copied!';
+        setTimeout(() => {
+            copyPartyCodeBtn.textContent = previousText || 'Copy';
+        }, 1200);
+    } catch (err) {
+        console.warn('Copy failed', err);
+        copyPartyCodeBtn.textContent = previousText || 'Copy';
+    }
+}
+
+function handleStartParty() {
+    const code = lastGeneratedPartyCode || (mpPartyCodeDisplay ? mpPartyCodeDisplay.value.trim() : '');
+    if (!code) return;
+    isPartyHostClient = true;
+    startGameRequested = true;
+    startGameSent = false;
+    if (startPartyBtn) {
+        startPartyBtn.disabled = true;
+        startPartyBtn.textContent = 'Starting...';
+    }
+    applyBackendAndSession(DEFAULT_BACKEND_URL, code);
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        sendStartGameIfReady();
+    } else {
         connectWebSocket();
+    }
+}
+
+if (joinPartyBtn) {
+    joinPartyBtn.addEventListener('click', () => {
+        setMultiplayerState('join');
     });
+}
+if (confirmJoinPartyBtn) {
+    confirmJoinPartyBtn.addEventListener('click', attemptJoinParty);
+}
+if (mpJoinCodeInput) {
+    mpJoinCodeInput.addEventListener('keypress', (event) => {
+        if (event.key === 'Enter') attemptJoinParty();
+    });
+}
+if (createPartyBtn) {
+    createPartyBtn.addEventListener('click', handleCreateParty);
+}
+if (copyPartyCodeBtn) {
+    copyPartyCodeBtn.addEventListener('click', handleCopyPartyCode);
+}
+if (startPartyBtn) {
+    startPartyBtn.addEventListener('click', handleStartParty);
 }
 
 window.leadVentureRound = leadVentureRound;
@@ -2301,14 +2516,9 @@ setTrillionaireBtn.addEventListener('click', () => {
 
 function showMultiplayerModal() {
     if (!multiplayerModal) return;
+    resetMultiplayerModal();
     multiplayerModal.classList.add('active');
-    if (mpBackendInput) {
-        mpBackendInput.value = activeBackendUrl || window.WOJAK_BACKEND_URL || localStorage.getItem(BACKEND_URL_KEY) || DEFAULT_BACKEND_URL || '';
-        mpBackendInput.setAttribute('readonly', 'readonly');
-    }
-    if (mpSessionInput) {
-        mpSessionInput.value = activeSessionId || localStorage.getItem(SESSION_ID_KEY) || generatePartyCode();
-    }
+    renderLobbyPlayers(latestServerPlayers);
 }
 
 function hideMultiplayerModal() {
