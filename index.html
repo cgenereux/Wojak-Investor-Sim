@@ -329,6 +329,35 @@
                     </div>
                     <button id="startPartyBtn" class="borrow-btn start-game-btn">Start Game</button>
                 </div>
+
+                <!-- Character Select Overlay -->
+                <div id="characterSelectOverlay" class="character-overlay">
+                    <div class="character-overlay-header">
+                        <h3>Pick a playable character</h3>
+                        <p>Select who you want to play as before joining.</p>
+                    </div>
+                    <div class="character-option-row">
+                        <button class="character-option" data-character="wojak">
+                            <div class="character-art"><img src="wojaks/wojak.png" alt="Wojak"></div>
+                            <span>Wojak</span>
+                        </button>
+                        <button class="character-option character-option--grug" data-character="grug">
+                            <div class="character-art"><img src="wojaks/grug.png" alt="Grug"></div>
+                            <span>Grug</span>
+                        </button>
+                        <button class="character-option character-option--zoomer" data-character="zoomer">
+                            <div class="character-art"><img src="wojaks/zoomer.png" alt="Zoomer"></div>
+                            <span>Zoomer</span>
+                        </button>
+                        <button class="character-option" data-character="bloomer">
+                            <div class="character-art"><img src="wojaks/bloomer.png" alt="Bloomer"></div>
+                            <span>Bloomer</span>
+                        </button>
+                    </div>
+                    <div class="character-overlay-actions">
+                        <button id="characterCancelBtn" class="borrow-btn secondary-btn" type="button">Back</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

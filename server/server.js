@@ -708,11 +708,17 @@ wss.on('connection', async (ws, req, url) => {
   const rawPlayerId = requestedPlayerId || `p_${Math.floor(Math.random() * 1e9).toString(36)}`;
   const playerId = canonicalizePlayerId(rawPlayerId);
   if (!playerId) {
-    try { ws.close(4006, 'invalid_name'); } catch (err) { /* ignore */ }
+    try {
+      ws.send(JSON.stringify({ type: 'error', error: 'invalid_name' }));
+      ws.close(4006, 'invalid_name');
+    } catch (err) { /* ignore */ }
     return;
   }
   if (isPlayerIdTaken(session, playerId)) {
-    try { ws.close(4005, 'name_taken'); } catch (err) { /* ignore */ }
+    try {
+      ws.send(JSON.stringify({ type: 'error', error: 'name_taken' }));
+      ws.close(4005, 'name_taken');
+    } catch (err) { /* ignore */ }
     return;
   }
   session.clients.add(ws);

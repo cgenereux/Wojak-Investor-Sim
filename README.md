@@ -112,6 +112,7 @@ Multiplayer stays on hold until the single-player loop, presets, and balance pol
 11. **Malding Wojak Polish:** Track a few outstanding edge cases (post-milestone overrides, deep drawdowns) and tighten the revert logic so avatars always swap back at the right time; fixes are noted but still pending.
 12. currently bankrupt companies stay in your portfolio forever -- should fix 
 13. rn when u hit a $0 nw without leverage u dont go bankrupt -- should fix
+14. Multiplayer name collisions: joining with a duplicate display name sometimes leaves the client in a bad state; enforce/handle unique names cleanly without requiring a refresh.
 
 ---
 

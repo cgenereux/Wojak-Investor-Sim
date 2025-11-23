@@ -44,6 +44,9 @@ const mpPlayersListJoin = document.getElementById('mpPlayersListJoin');
 const mpNameError = document.getElementById('mpNameError');
 const NAME_PLACEHOLDERS = ['TheGrug850', 'Bloomer4000', 'TheRealWojak'];
 const MAX_NAME_LENGTH = 30;
+const characterOverlay = document.getElementById('characterSelectOverlay');
+const characterOptionButtons = document.querySelectorAll('.character-option');
+const characterCancelBtn = document.getElementById('characterCancelBtn');
 const playerLeaderboardEl = document.getElementById('playerLeaderboard');
 const connectedPlayersEl = document.getElementById('connectedPlayers');
 const connectedPlayersSessionEl = document.getElementById('connectedPlayersSession');
@@ -156,6 +159,13 @@ window.triggerMacroEvent = function (eventId) {
     return event;
 };
 
+const CHARACTER_SPRITES = {
+    wojak: 'wojaks/wojak.png',
+    grug: 'wojaks/grug.png',
+    zoomer: 'wojaks/zoomer.png',
+    bloomer: 'wojaks/bloomer.png'
+};
+
 // --- Banking Modal Elements ---
 const bankingModal = document.getElementById('bankingModal');
 const closeBankingBtn = document.getElementById('closeBankingBtn');
@@ -186,12 +196,15 @@ let dripEnabled = false;
 const SPEED_STEPS = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8];
 const SESSION_ID_KEY = 'wojak_session_id';
 const BACKEND_URL_KEY = 'wojak_backend_url';
+const SELECTED_CHARACTER_KEY = 'wojak_selected_character';
 const DEFAULT_BACKEND_URL = 'https://wojak-backend.graysand-55f0f3f9.eastus2.azurecontainerapps.io';
 // const DEFAULT_BACKEND_URL = 'http://localhost:4000';
 try {
     const stored = localStorage.getItem(DRIP_STORAGE_KEY);
     if (stored === 'true') dripEnabled = true;
     if (stored === 'false') dripEnabled = false;
+    const storedChar = localStorage.getItem(SELECTED_CHARACTER_KEY);
+    if (storedChar) selectedCharacter = storedChar;
 } catch (err) {
     console.warn('Unable to read DRIP setting:', err);
 }
@@ -268,7 +281,10 @@ let currentHostId = null;
 let matchStarted = false;
 let cachedPlayerName = '';
 let lobbyRefreshTimer = null;
+let pendingPartyAction = null;
+let selectedCharacter = null;
 const playerNetWorthSeries = new Map();
+const playerColorMap = new Map();
 const PLAYER_COLORS = ['#22c55e', '#3b82f6', '#f97316', '#a855f7', '#06b6d4', '#ef4444', '#0ea5e9', '#10b981'];
 let killSessionBtn = null;
 let resyncButtonEl = null;
@@ -481,14 +497,54 @@ function handleServerMessage(msg) {
         alert(msg.message || 'Session idle, closing soon.');
         return;
     }
+    if (msg.type === 'error') {
+        if (msg.error === 'name_taken') {
+            if (mpNameError) {
+                mpNameError.textContent = 'Name taken. Try a different name.';
+                mpNameError.classList.add('visible');
+            }
+            if (mpNameInput) {
+                mpNameInput.classList.add('input-error');
+                mpNameInput.focus();
+                mpNameInput.select();
+            }
+            manualDisconnect = true;
+            isServerAuthoritative = false;
+            setConnectionStatus('Name taken. Pick another name.', 'error');
+            if (ws) {
+                try { ws.close(); } catch (err) { /* ignore */ }
+            }
+        }
+        if (msg.error === 'invalid_name') {
+            if (mpNameError) {
+                mpNameError.textContent = `Invalid name (max ${MAX_NAME_LENGTH} chars)`;
+                mpNameError.classList.add('visible');
+            }
+            if (mpNameInput) {
+                mpNameInput.classList.add('input-error');
+                mpNameInput.focus();
+                mpNameInput.select();
+            }
+            manualDisconnect = true;
+            isServerAuthoritative = false;
+            setConnectionStatus('Invalid name', 'error');
+            if (ws) {
+                try { ws.close(); } catch (err) { /* ignore */ }
+            }
+        }
+        return;
+    }
     if (msg.type === 'players_update') {
-        latestServerPlayers = Array.isArray(msg.players) ? msg.players : [];
+        const roster = Array.isArray(msg.players) ? msg.players : [];
+        latestServerPlayers = mergeLocalCharacter(roster);
+        updatePlayerColors(latestServerPlayers);
         renderPlayerLeaderboard(latestServerPlayers);
         // If we are in join state and have players, show the roster
         if (multiplayerState === 'join' && mpPlayersListJoin) {
             const panel = mpPlayersListJoin.closest('.mp-roster-panel');
             if (panel) panel.style.display = 'block';
         }
+        updateCharacterLocksFromServer(latestServerPlayers);
         return;
     }
     if (msg.type === 'snapshot') {
@@ -649,7 +705,8 @@ function hydrateFromSnapshot(snapshot) {
     if (isServerAuthoritative) {
         netWorthHistory.length = 0;
         serverTicks = new Set();
-        latestServerPlayers = snapshot.players || [];
+        latestServerPlayers = mergeLocalCharacter(snapshot.players || []);
+        updatePlayerColors(latestServerPlayers);
         playerNetWorthSeries.clear();
         renderPlayerLeaderboard(latestServerPlayers);
         if (snapshot.started) {
@@ -870,8 +927,10 @@ function applyTick(tick) {
     if (Array.isArray(tick.players) && tick.players.length) {
         const me = tick.players.find(p => (serverPlayer && p.id === serverPlayer.id) || (clientPlayerId && p.id === clientPlayerId)) || tick.players[0];
         if (me) updatePlayerFromServer(me);
-        latestServerPlayers = tick.players;
-        renderPlayerLeaderboard(tick.players);
+        latestServerPlayers = mergeLocalCharacter(tick.players);
+        updatePlayerColors(latestServerPlayers);
+        renderPlayerLeaderboard(latestServerPlayers);
+        updateCharacterLocksFromServer(latestServerPlayers);
         if (isServerAuthoritative) {
             updateNetWorthSeriesFromPlayers(tickTs, tick.players);
         }
@@ -979,6 +1038,9 @@ function applyTicks(ticks) {
 
 function updatePlayerFromServer(playerSummary) {
     serverPlayer = playerSummary;
+    if (serverPlayer && !serverPlayer.character && selectedCharacter) {
+        serverPlayer.character = selectedCharacter;
+    }
     if (isServerAuthoritative && serverPlayer) {
         if (typeof serverPlayer.cash === 'number') {
             cash = serverPlayer.cash;
@@ -991,6 +1053,7 @@ function updatePlayerFromServer(playerSummary) {
             dripToggle.checked = dripEnabled;
         }
     }
+    applySelectedCharacter(serverPlayer);
     syncPortfolioFromServer();
     if (latestServerPlayers) {
         renderPlayerLeaderboard(latestServerPlayers);
@@ -1125,7 +1188,11 @@ function updateDisplay() {
         : totalBorrowed;
 
     netWorthDisplay.textContent = currencyFormatter.format(displayNetWorth);
-    netWorthDisplay.style.color = displayNetWorth >= 0 ? '#00c742' : '#dc3545';
+    if (isServerAuthoritative && serverPlayer && playerColorMap.has(serverPlayer.id)) {
+        netWorthDisplay.style.color = playerColorMap.get(serverPlayer.id);
+    } else {
+        netWorthDisplay.style.color = displayNetWorth >= 0 ? '#00c742' : '#dc3545';
+    }
     currentDateDisplay.textContent = formatDate(currentDate);
 
     // Update the single display line
@@ -1135,6 +1202,78 @@ function updateDisplay() {
         endGame("bankrupt");
     }
     updateMacroEventsDisplay();
+}
+
+function updateCharacterLocksFromServer(players) {
+    if (!characterOptionButtons || !characterOptionButtons.length) return;
+    if (!Array.isArray(players)) {
+        characterOptionButtons.forEach(btn => {
+            btn.classList.remove('locked');
+            btn.disabled = false;
+        });
+        return;
+    }
+    const takenSet = new Set();
+    players.forEach(p => {
+        const charKey = (p && p.character) ? String(p.character).toLowerCase() : null;
+        if (charKey) takenSet.add(charKey);
+    });
+    characterOptionButtons.forEach(btn => {
+        const key = (btn.dataset.character || '').toLowerCase();
+        const locked = takenSet.has(key);
+        btn.classList.toggle('locked', locked);
+        btn.disabled = locked;
+    });
+}
+
+function updatePlayerColors(players) {
+    if (!Array.isArray(players)) return;
+    playerColorMap.clear();
+    players.forEach((p, idx) => {
+        if (!p || !p.id) return;
+        const color = PLAYER_COLORS[idx % PLAYER_COLORS.length];
+        playerColorMap.set(p.id, color);
+    });
+}
+
+function applySelectedCharacter(player) {
+    if (!player) return;
+    const key = (player.character || '').toLowerCase();
+    const sprite = CHARACTER_SPRITES[key];
+    if (!sprite || !wojakImage) return;
+    wojakImage.src = sprite;
+    if (wojakManager && typeof wojakManager.setBaseImage === 'function') {
+        wojakManager.setBaseImage(sprite, true);
+    }
+}
+
+function setLocalCharacterSelection(characterKey) {
+    if (!characterKey) return;
+    selectedCharacter = characterKey;
+    try {
+        localStorage.setItem(SELECTED_CHARACTER_KEY, characterKey);
+    } catch (err) { /* ignore */ }
+    applySelectedCharacter({ character: characterKey });
+    // Mirror into local roster so lock styling updates for self
+    if (Array.isArray(latestServerPlayers) && clientPlayerId) {
+        latestServerPlayers = latestServerPlayers.map(p => {
+            if (p && p.id === clientPlayerId) {
+                return { ...p, character: characterKey };
+            }
+            return p;
+        });
+        updateCharacterLocksFromServer(latestServerPlayers);
+    }
+}
+
+function mergeLocalCharacter(players) {
+    if (!Array.isArray(players) || !selectedCharacter || !clientPlayerId) return players;
+    return players.map(p => {
+        if (p && p.id === clientPlayerId) {
+            return { ...p, character: selectedCharacter };
+        }
+        return p;
+    });
 }
 
 function renderCompanies(force = false) {
@@ -1192,10 +1331,11 @@ function refreshNetWorthChartDatasets() {
         Array.from(playerNetWorthSeries.entries()).forEach(([id, data], idx) => {
             if (!Array.isArray(data) || data.length === 0) return;
             const sorted = [...data].sort((a, b) => a.x - b.x);
+            const color = playerColorMap.get(id) || PLAYER_COLORS[idx % PLAYER_COLORS.length];
             datasets.push({
                 label: id,
                 data: sorted,
-                borderColor: PLAYER_COLORS[idx % PLAYER_COLORS.length],
+                borderColor: color,
                 backgroundColor: 'transparent',
                 borderWidth: 2,
                 pointRadius: 0,
@@ -2445,6 +2585,23 @@ function applyBackendAndSession(backend, sessionId) {
     currentHostId = null;
 }
 
+function showCharacterOverlay(nextAction) {
+    if (!characterOverlay) {
+        if (typeof nextAction === 'function') nextAction();
+        return;
+    }
+    pendingPartyAction = nextAction;
+    characterOptionButtons.forEach(btn => btn.classList.remove('selected'));
+    updateCharacterLocksFromServer(latestServerPlayers || []);
+    characterOverlay.classList.add('active');
+}
+
+function hideCharacterOverlay() {
+    if (!characterOverlay) return;
+    characterOverlay.classList.remove('active');
+    characterOptionButtons.forEach(btn => btn.classList.remove('selected'));
+}
+
 function sendStartGameIfReady() {
     if (!startGameRequested || startGameSent) return;
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -2566,6 +2723,9 @@ function setMultiplayerState(state) {
         mpJoinCodeInput.classList.remove('input-error');
         if (mpJoinError) mpJoinError.classList.remove('visible');
     }
+    if (characterOverlay) {
+        hideCharacterOverlay();
+    }
 }
 
 function renderLobbyPlayers(players = []) {
@@ -2621,6 +2781,8 @@ function resetMultiplayerModal() {
     }
     setMultiplayerState('idle');
     renderLobbyPlayers([]);
+    hideCharacterOverlay();
+    pendingPartyAction = null;
 }
 
 function attemptJoinParty() {
@@ -2642,23 +2804,29 @@ function attemptJoinParty() {
     }
     if (mpJoinError) mpJoinError.classList.remove('visible');
     isPartyHostClient = false;
-    applyBackendAndSession(DEFAULT_BACKEND_URL, sessionId || 'default');
-    connectWebSocket();
+    const joinAction = () => {
+        applyBackendAndSession(DEFAULT_BACKEND_URL, sessionId || 'default');
+        connectWebSocket();
+    };
+    showCharacterOverlay(joinAction);
 }
 
 function handleCreateParty() {
     const name = requirePlayerName();
     if (!name) return;
-    const code = generatePartyCode();
-    lastGeneratedPartyCode = code;
-    isPartyHostClient = true;
-    if (mpPartyCodeDisplay) {
-        mpPartyCodeDisplay.value = code;
-    }
-    setMultiplayerState('create');
-    applyBackendAndSession(DEFAULT_BACKEND_URL, code);
-    connectWebSocket();
-    renderLobbyPlayers([]);
+    const createAction = () => {
+        const code = generatePartyCode();
+        lastGeneratedPartyCode = code;
+        isPartyHostClient = true;
+        if (mpPartyCodeDisplay) {
+            mpPartyCodeDisplay.value = code;
+        }
+        setMultiplayerState('create');
+        applyBackendAndSession(DEFAULT_BACKEND_URL, code);
+        connectWebSocket();
+        renderLobbyPlayers([]);
+    };
+    showCharacterOverlay(createAction);
 }
 
 async function handleCopyPartyCode() {
@@ -2712,6 +2880,28 @@ if (mpJoinCodeInput) {
     });
     mpJoinCodeInput.addEventListener('input', () => {
         if (mpJoinError) mpJoinError.classList.remove('visible');
+    });
+}
+if (characterOptionButtons && characterOptionButtons.length) {
+    characterOptionButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            selectedCharacter = btn.dataset.character || null;
+            characterOptionButtons.forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            hideCharacterOverlay();
+            const action = pendingPartyAction;
+            pendingPartyAction = null;
+            if (typeof action === 'function') {
+                action(selectedCharacter);
+            }
+            setLocalCharacterSelection(selectedCharacter);
+        });
+    });
+}
+if (characterCancelBtn) {
+    characterCancelBtn.addEventListener('click', () => {
+        hideCharacterOverlay();
+        pendingPartyAction = null;
     });
 }
 if (mpNameInput) {
@@ -2768,6 +2958,7 @@ setTrillionaireBtn.addEventListener('click', () => {
 
 function showMultiplayerModal() {
     if (!multiplayerModal) return;
+    hideCharacterOverlay();
     resetMultiplayerModal();
     multiplayerModal.classList.add('active');
     startLobbyRefresh();
@@ -2777,6 +2968,7 @@ function hideMultiplayerModal() {
     if (!multiplayerModal) return;
     stopLobbyRefresh();
     multiplayerModal.classList.remove('active');
+    hideCharacterOverlay();
 }
 
 // --- Initialization ---
@@ -2803,6 +2995,11 @@ async function init() {
             match_id: 'singleplayer_local',
             player_id: clientPlayerId || null
         });
+    }
+
+    // If a character was previously selected, apply it on load (local only)
+    if (selectedCharacter) {
+        applySelectedCharacter({ character: selectedCharacter });
     }
 
     if (sim && sim.companies) {

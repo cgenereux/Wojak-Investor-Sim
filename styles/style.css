@@ -85,7 +85,8 @@ body.detail-active #detail-view {
 .wojak-image {
     width: 144px;
     height: 144px;
-    object-fit: cover;
+    object-fit: contain;
+    background: #ffffff;
     border-radius: 12px;
     border: none;
     flex-shrink: 0;
@@ -1097,6 +1098,7 @@ button.speed-active:hover {
 /* Multiplayer Modal Adjustments */
 #multiplayerModal .banking-panel {
     max-width: 750px;
+    position: relative;
 }
 
 #multiplayerModal .banking-header {
@@ -1289,4 +1291,129 @@ button.speed-active:hover {
     width: auto;
     object-fit: contain;
     filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.15));
+}
+
+/* Character Selection Overlay */
+.character-overlay {
+    position: absolute;
+    inset: 0;
+    background: #ffffff;
+    color: #0f172a;
+    border-radius: 16px;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    padding: 28px;
+    gap: 18px;
+    z-index: 5;
+    border: 1px solid #e2e8f0;
+}
+
+.character-overlay.active {
+    display: flex;
+}
+
+.character-overlay-header h3 {
+    margin: 0 0 6px;
+    font-size: 22px;
+    color: #0f172a;
+}
+
+.character-overlay-header p {
+    margin: 0;
+    color: #334155;
+}
+
+.character-option-row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(150px, 1fr));
+    gap: 14px;
+}
+
+.character-option {
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 16px 16px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: transform 0.08s ease, box-shadow 0.12s ease, border-color 0.12s ease, background-color 0.12s ease;
+    color: #0f172a;
+    overflow: visible;
+}
+
+.character-art {
+    width: 150px;
+    height: 150px;
+    max-width: 100%;
+    border-radius: 12px;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.character-option img {
+    max-width: 100%;
+    max-height: 100%;
+    height: auto;
+    width: auto;
+    object-fit: contain;
+    display: block;
+}
+
+.character-option span {
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.character-option:hover {
+    transform: translateY(-2px);
+    border-color: #22c55e;
+    background: #ffffff;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15);
+}
+
+.character-option:active {
+    transform: translateY(0);
+}
+
+.character-option.selected {
+    border-color: #22c55e;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.character-overlay-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.secondary-btn {
+    background: #1f2937;
+    color: #e2e8f0;
+    border: 1px solid #334155;
+}
+
+.character-option.locked {
+    opacity: 0.35;
+    cursor: not-allowed;
+    border-color: #cbd5e1;
+    box-shadow: none;
+    transform: none;
+}
+
+.character-option.locked:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+/* Specific tweaks to prevent edge cropping for non-square sprites (multiplayer only) */
+.character-option--grug img,
+.character-option--zoomer img {
+    max-width: 100%;
+    max-height: 100%;
 }
