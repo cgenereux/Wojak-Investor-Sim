@@ -5,6 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wojak Investor Sim</title>
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://us.i.posthog.com https://us-assets.i.posthog.com;
+        connect-src 'self' https://wojak-backend.graysand-55f0f3f9.eastus2.azurecontainerapps.io https://us.i.posthog.com https://us-assets.i.posthog.com;
+        img-src 'self' data:;
+        style-src 'self' 'unsafe-inline';
+    ">
 
     <!-- Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -14,7 +21,7 @@
     <script type="module">
         import posthog from 'https://cdn.jsdelivr.net/npm/posthog-js/+esm'
         posthog.init('phc_j5ukj2NB3lfN1VsZ5cC3SoerSH8MGHi6PLX9BRG0yWc', {
-            api_host: 'https://wojak-backend.graysand-55f0f3f9.eastus2.azurecontainerapps.io/ingest',
+            api_host: 'https://us.i.posthog.com',
             person_profiles: 'identified_only'
         })
     </script>

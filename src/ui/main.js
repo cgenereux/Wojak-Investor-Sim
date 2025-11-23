@@ -52,6 +52,7 @@ const connectedPlayersEl = document.getElementById('connectedPlayers');
 const connectedPlayersSessionEl = document.getElementById('connectedPlayersSession');
 const mpJoinError = document.getElementById('mpJoinError');
 let storedPlayerName = null;
+let selectedCharacter = null;
 
 const DEFAULT_WOJAK_SRC = 'wojaks/wojak.png';
 const MALDING_WOJAK_SRC = 'wojaks/malding-wojak.png';
@@ -284,7 +285,6 @@ let matchStarted = false;
 let cachedPlayerName = '';
 let lobbyRefreshTimer = null;
 let pendingPartyAction = null;
-let selectedCharacter = null;
 const playerNetWorthSeries = new Map();
 const playerColorMap = new Map();
 const PLAYER_COLORS = ['#22c55e', '#3b82f6', '#f97316', '#a855f7', '#06b6d4', '#ef4444', '#0ea5e9', '#10b981'];

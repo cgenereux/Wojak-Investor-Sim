@@ -25,6 +25,10 @@ const GAME_END_YEAR = 2050;
 
 const app = fastify({ logger: false });
 
+app.register(require('@fastify/cors'), {
+  origin: true // Allow all origins for development
+});
+
 function canonicalizePlayerId(id) {
   if (!id) return null;
   const cleaned = id.toString().trim().replace(/\s+/g, ' ').slice(0, 30);
@@ -255,13 +259,7 @@ function armIdleGuard(session) {
 app.register(require('@fastify/http-proxy'), {
   upstream: 'https://us.i.posthog.com',
   prefix: '/ingest',
-  rewritePrefix: '/ingest', // Keep /ingest or strip it? PostHog expects /ingest/s/ or /ingest/i/ etc?
-  // The user's example showed stripping it: pathRewrite: { '^/ingest': '' }
-  // Fastify proxy uses `rewritePrefix` to replace the prefix. If we want to strip it, we set it to empty string?
-  // Wait, fastify-http-proxy documentation says:
-  // "rewritePrefix: Rewrite the prefix to the specified string. Default: '' (empty string)."
-  // If we want to forward /ingest/v1/decide to https://us.i.posthog.com/v1/decide, we should strip /ingest.
-  rewritePrefix: '',
+  rewritePrefix: '', // Strip the prefix
   http2: false
 });
 
