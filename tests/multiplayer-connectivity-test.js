@@ -1,7 +1,7 @@
 /**
- * Minimal multiplayer smoke: start the server on a random port, create a few sessions,
+ * start the server on a random port, create a few sessions,
  * attach multiple players over WebSocket, start games, and confirm ticks arrive.
- * This is a lightweight liveness check (not a load test).
+ * this is a lightweight liveness check (not a load test).
  */
 const { spawn } = require('child_process');
 const net = require('net');

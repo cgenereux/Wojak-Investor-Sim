@@ -1,4 +1,4 @@
-// Dual-sim sanity: ensure two sims with different seeds in one process stay isolated.
+// ensure two sims with different seeds in one process stay isolated.
 require('../src/sim/simShared.js');
 require('../src/sim/ventureStrategies.js');
 require('../src/sim/publicCompanies.js');
