@@ -752,17 +752,43 @@ wss.on('connection', async (ws, req, url) => {
     } catch (err) { /* ignore */ }
     return;
   }
-  if (isPlayerIdTaken(session, playerId)) {
-    try {
-      ws.send(JSON.stringify({ type: 'error', error: 'name_taken' }));
-      ws.close(4005, 'name_taken');
-    } catch (err) { /* ignore */ }
-    return;
+  const lowerPid = playerId.toLowerCase();
+  const socketsWithSameId = [];
+  session.clientPlayers.forEach((pid, socket) => {
+    const canon = canonicalizePlayerId(pid);
+    if (canon && canon.toLowerCase() === lowerPid) {
+      socketsWithSameId.push(socket);
+    }
+  });
+  const existingPlayer = session.players.get(playerId) || null;
+  if (existingPlayer) {
+    // Allow reconnects, but ensure no duplicate live sockets for the same id
+    socketsWithSameId.forEach(socket => {
+      try {
+        if (socket !== ws && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+          socket.close(4001, 'replaced');
+        }
+      } catch (err) { /* ignore */ }
+    });
+  } else {
+    if (session.started) {
+      try {
+        ws.send(JSON.stringify({ type: 'error', error: 'match_started' }));
+        ws.close(4010, 'match_started');
+      } catch (err) { /* ignore */ }
+      return;
+    }
+    if (socketsWithSameId.length > 0) {
+      try {
+        ws.send(JSON.stringify({ type: 'error', error: 'name_taken' }));
+        ws.close(4005, 'name_taken');
+      } catch (err) { /* ignore */ }
+      return;
+    }
   }
   session.clients.add(ws);
-  let player = session.players.get(playerId);
-  if (!player) {
-    player = createPlayer(playerId);
+  let player = existingPlayer || createPlayer(playerId);
+  if (!existingPlayer) {
     session.players.set(playerId, player);
   }
   session.playerRoles.set(playerId, role);
@@ -844,7 +870,7 @@ wss.on('connection', async (ws, req, url) => {
     session.clientPlayers.delete(ws);
     // Remove player if no other socket is using this id
     const stillHasClient = Array.from(session.clientPlayers.values()).includes(playerId);
-    if (!stillHasClient) {
+    if (!stillHasClient && !session.started) {
       session.players.delete(playerId);
     }
     broadcastPlayers(session);

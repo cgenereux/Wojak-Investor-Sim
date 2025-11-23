@@ -17,6 +17,7 @@ const sellBtn = document.getElementById('sellBtn');
 const bankBtn = document.getElementById('bankBtn');
 const subFinancialDisplay = document.getElementById('subFinancialDisplay');
 const wojakImage = document.getElementById('wojakImage');
+const leadAvatarName = document.getElementById('leadAvatarName');
 const partyAvatars = document.getElementById('partyAvatars');
 const faviconLink = document.getElementById('faviconLink');
 const macroEventsDisplay = document.getElementById('macroEventsDisplay');
@@ -534,6 +535,22 @@ async function connectWebSocket() {
             setConnectionStatus('Invalid name', 'error');
             return;
         }
+        if (evt.code === 4010) {
+            if (mpJoinError) {
+                mpJoinError.textContent = 'Match already started. Joining is closed.';
+                mpJoinError.classList.add('visible');
+            }
+            setMultiplayerState('join');
+            shouldPromptCharacterAfterConnect = false;
+            pendingPartyAction = null;
+            hideCharacterOverlay();
+            manualDisconnect = true;
+            isServerAuthoritative = false;
+            if (wsHeartbeat) { clearInterval(wsHeartbeat); wsHeartbeat = null; }
+            ws = null;
+            setConnectionStatus('Match already started', 'error');
+            return;
+        }
         console.warn('WS closed, retrying in 2s', evt?.code, evt?.reason || '');
         setConnectionStatus('Reconnecting...', 'warn');
         if (wsHeartbeat) { clearInterval(wsHeartbeat); wsHeartbeat = null; }
@@ -589,6 +606,22 @@ function handleServerMessage(msg) {
                 localStorage.removeItem('wojak_player_id');
             } catch (err) { /* ignore */ }
             setConnectionStatus('Name taken. Pick another name.', 'error');
+            if (ws) {
+                try { ws.close(); } catch (err) { /* ignore */ }
+            }
+        }
+        if (msg.error === 'match_started') {
+            if (mpJoinError) {
+                mpJoinError.textContent = 'Match already started. Joining is closed.';
+                mpJoinError.classList.add('visible');
+            }
+            setMultiplayerState('join');
+            if (mpNameInput) {
+                mpNameInput.classList.remove('input-error');
+            }
+            manualDisconnect = true;
+            isServerAuthoritative = false;
+            setConnectionStatus('Match already started', 'error');
             if (ws) {
                 try { ws.close(); } catch (err) { /* ignore */ }
             }
@@ -1375,7 +1408,10 @@ function renderPartyAvatars(roster = latestServerPlayers) {
     const html = others.map((p) => {
         const avatarSrc = getPlayerAvatarSrc(p.id || p.name) || CHARACTER_SPRITES['wojak'];
         const label = (p.id || p.name || 'Player').replace(/"/g, '&quot;');
-        return `<div class="party-avatar" title="${label}"><img src="${avatarSrc}" alt="${label}"></div>`;
+        return `<div class="party-avatar" title="${label}">
+                    <img src="${avatarSrc}" alt="${label}">
+                    <div class="party-avatar-name">${label}</div>
+                </div>`;
     }).join('');
     partyAvatars.innerHTML = html;
 }
@@ -1463,6 +1499,10 @@ function setRosterFromServer(players) {
     renderLobbyPlayers(roster);
     renderPartyAvatars(roster);
     promptCharacterIfPending();
+    if (leadAvatarName && isServerAuthoritative) {
+        const name = storedPlayerName || clientPlayerId || '';
+        leadAvatarName.textContent = name;
+    }
     return roster;
 }
 
@@ -2926,6 +2966,10 @@ function setMultiplayerState(state) {
     }
     if (characterOverlay) {
         hideCharacterOverlay();
+    }
+    if (leadAvatarName) {
+        const showName = isServerAuthoritative && (state === 'join' || state === 'create');
+        leadAvatarName.textContent = showName ? (storedPlayerName || clientPlayerId || '') : '';
     }
 }
 
