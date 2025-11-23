@@ -23,6 +23,12 @@ This README is a single, detailed snapshot of how the sim works today, how the c
 node -e "require('./src/sim/simShared.js');require('./src/sim/ventureStrategies.js');require('./src/sim/publicCompanies.js');require('./src/sim/ventureEngineCore.js');require('./src/sim/simEngine.js')"
 ```
 
+**Dev smoke scripts (Node):**
+```bash
+npm run smoke    # Long-run sim + VC sanity checks (fails on NaNs)
+npm run lint     # Syntax-only guard for core entry points
+```
+
 ---
 
 ## 2. Simulation Mechanics

@@ -2,9 +2,15 @@
   "name": "wojak-backend",
   "version": "1.0.0",
   "description": "Wojak Investor Sim Backend",
-  "main": "server.js",
+  "private": true,
+  "main": "server/server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server/server.js",
+    "dev": "node server/server.js",
+    "smoke": "node tests/run-integration-test.js && node tests/compare-dual-simulation-test.js",
+    "test": "npm run smoke",
+    "lint": "node tests/check-syntax.js",
+    "check": "npm run lint"
   },
   "dependencies": {
     "fastify": "^4.26.1",
