@@ -17,6 +17,7 @@ const sellBtn = document.getElementById('sellBtn');
 const bankBtn = document.getElementById('bankBtn');
 const subFinancialDisplay = document.getElementById('subFinancialDisplay');
 const wojakImage = document.getElementById('wojakImage');
+const partyAvatars = document.getElementById('partyAvatars');
 const faviconLink = document.getElementById('faviconLink');
 const macroEventsDisplay = document.getElementById('macroEventsDisplay');
 const buyMaxBtn = document.getElementById('buyMaxBtn');
@@ -360,6 +361,7 @@ function disconnectMultiplayer() {
     }
     latestServerPlayers = [];
     lastRosterSnapshot = [];
+    if (partyAvatars) partyAvatars.innerHTML = '';
     if (ws) {
         try { ws.close(); } catch (err) { /* ignore */ }
         ws = null;
@@ -1359,6 +1361,25 @@ function getPlayerAvatarSrc(playerLabel) {
     return CHARACTER_SPRITES[key] || null;
 }
 
+function renderPartyAvatars(roster = latestServerPlayers) {
+    if (!partyAvatars) return;
+    if (!isServerAuthoritative || !Array.isArray(roster) || roster.length <= 1) {
+        partyAvatars.innerHTML = '';
+        return;
+    }
+    const others = roster.filter(p => p && p.id && p.id !== clientPlayerId);
+    if (!others.length) {
+        partyAvatars.innerHTML = '';
+        return;
+    }
+    const html = others.map((p) => {
+        const avatarSrc = getPlayerAvatarSrc(p.id || p.name) || CHARACTER_SPRITES['wojak'];
+        const label = (p.id || p.name || 'Player').replace(/"/g, '&quot;');
+        return `<div class="party-avatar" title="${label}"><img src="${avatarSrc}" alt="${label}"></div>`;
+    }).join('');
+    partyAvatars.innerHTML = html;
+}
+
 function applySelectedCharacter(player) {
     if (!player) return;
     const key = (player.character || '').toLowerCase();
@@ -1440,6 +1461,7 @@ function setRosterFromServer(players) {
     renderPlayerLeaderboard(roster);
     updateCharacterLocksFromServer(roster);
     renderLobbyPlayers(roster);
+    renderPartyAvatars(roster);
     promptCharacterIfPending();
     return roster;
 }
@@ -2967,6 +2989,7 @@ function resetMultiplayerModal() {
     hideCharacterOverlay();
     pendingPartyAction = null;
     shouldPromptCharacterAfterConnect = false;
+    if (partyAvatars) partyAvatars.innerHTML = '';
 }
 
 function attemptJoinParty() {

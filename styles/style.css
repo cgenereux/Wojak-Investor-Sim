@@ -92,6 +92,38 @@ body.detail-active #detail-view {
     flex-shrink: 0;
 }
 
+.player-avatar-stack {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.party-avatars {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 48px;
+    align-self: flex-end;
+}
+
+.party-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: transparent;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.party-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
 .financial-info {
     display: flex;
     flex-direction: column;
