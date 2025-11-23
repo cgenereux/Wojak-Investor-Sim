@@ -2757,14 +2757,19 @@ function sanitizePlayerName(name) {
 function isNameTaken(name) {
     const roster = Array.isArray(latestServerPlayers) && latestServerPlayers.length ? latestServerPlayers : lastRosterSnapshot;
     if (!name || !Array.isArray(roster) || roster.length === 0) return false;
-    const target = sanitizePlayerName(name);
+    const target = sanitizePlayerName(name).toLowerCase();
     if (!target) return false;
-    const selfId = sanitizePlayerName(clientPlayerId || '');
+    const selfIds = new Set(
+        [clientPlayerId, cachedPlayerName]
+            .map(n => sanitizePlayerName(n || '').toLowerCase())
+            .filter(Boolean)
+    );
     return roster.some(p => {
-        if (!p || typeof p.id !== 'string') return false;
-        const pid = sanitizePlayerName(p.id);
-        if (!pid || pid === selfId) return false;
-        return pid === target;
+        if (!p) return false;
+        const candidates = [];
+        if (typeof p.id === 'string') candidates.push(sanitizePlayerName(p.id).toLowerCase());
+        if (typeof p.name === 'string') candidates.push(sanitizePlayerName(p.name).toLowerCase());
+        return candidates.some(pid => pid && !selfIds.has(pid) && pid === target);
     });
 }
 
@@ -3027,8 +3032,14 @@ if (characterCancelBtn) {
 }
 if (mpNameInput) {
     mpNameInput.addEventListener('input', () => {
-        mpNameInput.classList.remove('input-error');
-        setNameErrorVisible(false);
+        const value = (mpNameInput.value || '').trim();
+        if (value && isNameTaken(value)) {
+            mpNameInput.classList.add('input-error');
+            setNameErrorVisible(true, 'Name taken');
+        } else {
+            mpNameInput.classList.remove('input-error');
+            setNameErrorVisible(false);
+        }
     });
     try { mpNameInput.setAttribute('maxlength', String(MAX_NAME_LENGTH)); } catch (err) { /* ignore */ }
 }
