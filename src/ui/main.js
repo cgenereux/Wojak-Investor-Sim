@@ -292,6 +292,7 @@ let matchStarted = false;
 let cachedPlayerName = '';
 let lobbyRefreshTimer = null;
 let pendingPartyAction = null;
+let shouldPromptCharacterAfterConnect = false;
 const playerNetWorthSeries = new Map();
 const playerColorMap = new Map();
 const PLAYER_COLORS = ['#22c55e', '#3b82f6', '#f97316', '#a855f7', '#06b6d4', '#ef4444', '#0ea5e9', '#10b981'];
@@ -339,6 +340,9 @@ function disconnectMultiplayer() {
     startGameRequested = false;
     startGameSent = false;
     matchStarted = false;
+    shouldPromptCharacterAfterConnect = false;
+    pendingPartyAction = null;
+    hideCharacterOverlay();
     activeBackendUrl = null;
     activeSessionId = null;
     try {
@@ -443,6 +447,9 @@ async function connectWebSocket() {
                 mpJoinError.textContent = 'Party not found';
                 mpJoinError.classList.add('visible');
             }
+            shouldPromptCharacterAfterConnect = false;
+            pendingPartyAction = null;
+            hideCharacterOverlay();
             manualDisconnect = true;
             isServerAuthoritative = false;
             activeSessionId = null;
@@ -465,6 +472,10 @@ async function connectWebSocket() {
                 mpNameInput.focus();
                 mpNameInput.select();
             }
+            shouldPromptCharacterAfterConnect = false;
+            pendingPartyAction = null;
+            hideCharacterOverlay();
+            setMultiplayerState('join');
             manualDisconnect = true; // prevent auto-reconnect loop; user will retry after changing name
             isServerAuthoritative = false;
             lastNameTaken = true;
@@ -485,6 +496,9 @@ async function connectWebSocket() {
         }
         if (evt.code === 4009) {
             setConnectionStatus('Server full. Try again later.', 'error');
+            shouldPromptCharacterAfterConnect = false;
+            pendingPartyAction = null;
+            hideCharacterOverlay();
             manualDisconnect = true;
             isServerAuthoritative = false;
             if (wsHeartbeat) { clearInterval(wsHeartbeat); wsHeartbeat = null; }
@@ -501,6 +515,9 @@ async function connectWebSocket() {
                 mpNameInput.focus();
                 mpNameInput.select();
             }
+            shouldPromptCharacterAfterConnect = false;
+            pendingPartyAction = null;
+            hideCharacterOverlay();
             manualDisconnect = true; // prevent auto-reconnect loop; user will retry
             isServerAuthoritative = false;
             if (wsHeartbeat) { clearInterval(wsHeartbeat); wsHeartbeat = null; }
@@ -552,6 +569,10 @@ function handleServerMessage(msg) {
                 mpNameInput.focus();
                 mpNameInput.select();
             }
+            shouldPromptCharacterAfterConnect = false;
+            pendingPartyAction = null;
+            hideCharacterOverlay();
+            setMultiplayerState('join');
             manualDisconnect = true;
             isServerAuthoritative = false;
             lastNameTaken = true;
@@ -1370,6 +1391,13 @@ function mergeLocalCharacter(players) {
     });
 }
 
+function promptCharacterIfPending() {
+    if (!shouldPromptCharacterAfterConnect) return;
+    if (characterOverlay && characterOverlay.classList.contains('active')) return;
+    shouldPromptCharacterAfterConnect = false;
+    showCharacterOverlay();
+}
+
 function setRosterFromServer(players) {
     const roster = Array.isArray(players)
         ? mergeLocalCharacter(players).map(p => {
@@ -1387,6 +1415,7 @@ function setRosterFromServer(players) {
     renderPlayerLeaderboard(roster);
     updateCharacterLocksFromServer(roster);
     renderLobbyPlayers(roster);
+    promptCharacterIfPending();
     return roster;
 }
 
@@ -2909,6 +2938,7 @@ function resetMultiplayerModal() {
     setMultiplayerState('idle');
     hideCharacterOverlay();
     pendingPartyAction = null;
+    shouldPromptCharacterAfterConnect = false;
 }
 
 function attemptJoinParty() {
@@ -2930,11 +2960,12 @@ function attemptJoinParty() {
     }
     if (mpJoinError) mpJoinError.classList.remove('visible');
     isPartyHostClient = false;
-    const joinAction = () => {
-        applyBackendAndSession(DEFAULT_BACKEND_URL, sessionId || 'default');
-        connectWebSocket();
-    };
-    showCharacterOverlay(joinAction);
+    pendingPartyAction = null;
+    shouldPromptCharacterAfterConnect = true;
+    lastNameTaken = false;
+    hideCharacterOverlay();
+    applyBackendAndSession(DEFAULT_BACKEND_URL, sessionId || 'default');
+    connectWebSocket();
 }
 
 function handleCreateParty() {
