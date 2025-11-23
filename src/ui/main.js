@@ -295,7 +295,14 @@ let pendingPartyAction = null;
 let shouldPromptCharacterAfterConnect = false;
 const playerNetWorthSeries = new Map();
 const playerColorMap = new Map();
-const PLAYER_COLORS = ['#22c55e', '#3b82f6', '#f97316', '#a855f7', '#06b6d4', '#ef4444', '#0ea5e9', '#10b981'];
+const CHARACTER_COLORS = {
+    wojak: '#00c742',
+    zoomer: '#635bff',
+    grug: '#ff8200',
+    bloomer: '#33a0ff'
+};
+const BASE_PLAYER_COLORS = ['#22c55e', '#3b82f6', '#f97316', '#a855f7'];
+const EXTRA_PLAYER_COLORS = ['#ef4444', '#ec4899', '#000000', '#facc15']; // red, pink, black, yellow
 let killSessionBtn = null;
 let resyncButtonEl = null;
 let disconnectButtonEl = null;
@@ -1314,7 +1321,13 @@ function updatePlayerColors(players) {
     playerColorMap.clear();
     players.forEach((p, idx) => {
         if (!p || !p.id) return;
-        const color = PLAYER_COLORS[idx % PLAYER_COLORS.length];
+        const charKey = (p.character || '').toLowerCase();
+        const colorFromCharacter = CHARACTER_COLORS[charKey] || null;
+        const pickableExtras = EXTRA_PLAYER_COLORS.length ? EXTRA_PLAYER_COLORS : BASE_PLAYER_COLORS;
+        const baseColor = idx < BASE_PLAYER_COLORS.length ? BASE_PLAYER_COLORS[idx] : null;
+        const color = colorFromCharacter
+            ? colorFromCharacter
+            : (baseColor || pickColorById(p.id, pickableExtras));
         playerColorMap.set(p.id, color);
     });
 }
@@ -1389,6 +1402,18 @@ function mergeLocalCharacter(players) {
         }
         return p;
     });
+}
+
+function pickColorById(id, palette) {
+    if (!Array.isArray(palette) || palette.length === 0) return '#cccccc';
+    const str = String(id || '');
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash |= 0; // keep 32-bit
+    }
+    const idx = Math.abs(hash) % palette.length;
+    return palette[idx];
 }
 
 function promptCharacterIfPending() {
@@ -1474,7 +1499,8 @@ function refreshNetWorthChartDatasets() {
         Array.from(playerNetWorthSeries.entries()).forEach(([id, data], idx) => {
             if (!Array.isArray(data) || data.length === 0) return;
             const sorted = [...data].sort((a, b) => a.x - b.x);
-            const color = playerColorMap.get(id) || PLAYER_COLORS[idx % PLAYER_COLORS.length];
+            const fallbackPalette = [...BASE_PLAYER_COLORS, ...EXTRA_PLAYER_COLORS];
+            const color = playerColorMap.get(id) || pickColorById(id, fallbackPalette);
             datasets.push({
                 label: id,
                 data: sorted,
@@ -1536,9 +1562,11 @@ function renderPlayerLeaderboard(players = []) {
     const rows = sorted.map(p => {
         const net = currencyFormatter.format(p.netWorth || 0);
         const cashStr = currencyFormatter.format(p.cash || 0);
+        const palette = [...BASE_PLAYER_COLORS, ...EXTRA_PLAYER_COLORS];
+        const color = playerColorMap.get(p.id) || pickColorById(p.id, palette);
         return `
           <div class="portfolio-item" data-portfolio-type="public" data-portfolio-key="player-${p.id}">
-              <div class="company-name">${p.id}</div>
+              <div class="company-name" style="color:${color}">${p.id}</div>
               <div class="portfolio-info">
                   Net Worth: <span class="portfolio-value">${net}</span> | Cash: <span class="portfolio-value">${cashStr}</span>
               </div>
