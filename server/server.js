@@ -252,6 +252,7 @@ function armIdleGuard(session) {
   }, SESSION_IDLE_TIMEOUT_MS);
 }
 
+/*
 app.register(require('@fastify/http-proxy'), {
   upstream: 'https://us.i.posthog.com',
   prefix: '/ingest',
@@ -263,7 +264,7 @@ app.register(require('@fastify/http-proxy'), {
   // If we want to forward /ingest/v1/decide to https://us.i.posthog.com/v1/decide, we should strip /ingest.
   rewritePrefix: '',
   http2: false
-});
+}); */
 
 app.get('/health', async () => ({ ok: true }));
 
