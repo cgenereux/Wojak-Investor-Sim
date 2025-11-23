@@ -391,7 +391,9 @@
       const dtYears = dtDays / DAYS_PER_YEAR;
       if (Array.isArray(this.products) && this.products.length > 0) {
         for (const product of this.products) {
-          product.advance(dtDays, random, this);
+          if (product && typeof product.advance === 'function') {
+            product.advance(dtDays, random, this);
+          }
         }
       }
       if (this.postGateMode) {

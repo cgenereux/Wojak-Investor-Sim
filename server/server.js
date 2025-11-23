@@ -49,7 +49,7 @@ function isPlayerIdTaken(session, candidateId) {
     session.clients.delete(ws);
     try {
       if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
-        ws.close(4005, 'name_taken_replaced');
+        ws.close(4001, 'replaced');
       }
     } catch (err) { /* ignore */ }
   });
@@ -83,6 +83,7 @@ function createPlayer(id) {
     id,
     cash: 3000,
     debt: 0,
+    character: 'wojak',
     dripEnabled: false,
     holdings: {}, // companyId -> units
     ventureHoldings: {}, // ventureId -> equity percent
@@ -313,10 +314,13 @@ function serializePlayer(player, sim) {
   const netWorth = player.cash + equity + ventureValue + commitments - player.debt;
   const bankrupt = netWorth < 0 && player.debt > 0;
   player.bankrupt = bankrupt;
+  const character = player.character || 'wojak';
   return {
     id: player.id,
+    name: player.id,
     cash: player.cash,
     debt: player.debt,
+    character,
     equity,
     ventureEquity: ventureValue,
     ventureCommitmentsValue: commitments,
@@ -638,6 +642,17 @@ function handleCommand(session, player, msg) {
     const enabled = !!msg.enabled;
     player.dripEnabled = enabled;
     return { ok: true, type: 'set_drip', enabled };
+  }
+  if (type === 'set_character') {
+    const key = (msg.character || '').toString().trim().toLowerCase();
+    // Simple allowlist
+    const allowed = new Set(['wojak', 'grug', 'zoomer', 'bloomer']);
+    if (!allowed.has(key)) {
+      return { ok: false, error: 'bad_character' };
+    }
+    player.character = key;
+    broadcastPlayers(session);
+    return { ok: true, type: 'set_character', character: key };
   }
   if (type === 'vc_lead') {
     const companyId = msg.companyId;

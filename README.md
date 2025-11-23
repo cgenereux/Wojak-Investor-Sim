@@ -120,6 +120,7 @@ Multiplayer stays on hold until the single-player loop, presets, and balance pol
 12. currently bankrupt companies stay in your portfolio forever -- should fix 
 13. rn when u hit a $0 nw without leverage u dont go bankrupt -- should fix
 14. Multiplayer name collisions: joining with a duplicate display name sometimes leaves the client in a bad state; enforce/handle unique names cleanly without requiring a refresh.
+15. If the backend is cold-starting, keep retrying party creation/join every few seconds instead of failing once.
 
 ---
 

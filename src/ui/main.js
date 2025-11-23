@@ -199,10 +199,12 @@ const SPEED_STEPS = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 
 const SESSION_ID_KEY = 'wojak_session_id';
 const BACKEND_URL_KEY = 'wojak_backend_url';
 const SELECTED_CHARACTER_KEY = 'wojak_selected_character';
-const DEFAULT_BACKEND_URL = 'https://wojak-backend.graysand-55f0f3f9.eastus2.azurecontainerapps.io';
-// const DEFAULT_BACKEND_URL = 'http://localhost:4000';
+// const DEFAULT_BACKEND_URL = 'https://wojak-backend.graysand-55f0f3f9.eastus2.azurecontainerapps.io';
+const DEFAULT_BACKEND_URL = 'http://localhost:4000';
 let lastNameTaken = false;
 let wsGeneration = 0;
+let latestServerPlayers = [];
+let lastRosterSnapshot = [];
 try {
     const stored = localStorage.getItem(DRIP_STORAGE_KEY);
     if (stored === 'true') dripEnabled = true;
@@ -270,10 +272,6 @@ function getMacroEnv() {
     return null;
 }
 
-let connectionStatusEl = null;
-let resyncBtn = null;
-let disconnectBtn = null;
-let latestServerPlayers = [];
 let activeSessionId = null;
 let activeBackendUrl = null;
 let manualDisconnect = false;
@@ -343,6 +341,7 @@ function disconnectMultiplayer() {
         console.warn('Failed clearing multiplayer prefs', err);
     }
     latestServerPlayers = [];
+    lastRosterSnapshot = [];
     if (ws) {
         try { ws.close(); } catch (err) { /* ignore */ }
         ws = null;
@@ -415,6 +414,9 @@ async function connectWebSocket() {
         setBannerButtonsVisible(true);
         lastNameTaken = false;
         sendStartGameIfReady();
+        if (selectedCharacter) {
+            try { ws.send(JSON.stringify({ type: 'set_character', character: selectedCharacter })); } catch (err) { /* ignore */ }
+        }
         if (wsHeartbeat) clearInterval(wsHeartbeat);
         wsHeartbeat = setInterval(() => {
             if (!ws || ws.readyState !== WebSocket.OPEN) return;
@@ -442,7 +444,7 @@ async function connectWebSocket() {
             // Don't reset the whole modal, just let them try again
             return;
         }
-        if (evt.code === 4005) {
+        if (evt.code === 4005 && (evt.reason === 'name_taken' || evt.reason === '')) {
             if (mpNameError) {
                 mpNameError.textContent = 'Name taken. Try a different name.';
                 mpNameError.classList.add('visible');
@@ -463,6 +465,13 @@ async function connectWebSocket() {
             if (wsHeartbeat) { clearInterval(wsHeartbeat); wsHeartbeat = null; }
             ws = null;
             setConnectionStatus('Name taken. Pick another name.', 'error');
+            return;
+        }
+        if (evt.code === 4001) {
+            setConnectionStatus('Reconnecting...', 'warn');
+            if (!manualDisconnect) {
+                setTimeout(connectWebSocket, 500);
+            }
             return;
         }
         if (evt.code === 4009) {
@@ -573,16 +582,12 @@ function handleServerMessage(msg) {
         return;
     }
     if (msg.type === 'players_update') {
-        const roster = Array.isArray(msg.players) ? msg.players : [];
-        latestServerPlayers = mergeLocalCharacter(roster);
-        updatePlayerColors(latestServerPlayers);
-        renderPlayerLeaderboard(latestServerPlayers);
+        const roster = setRosterFromServer(Array.isArray(msg.players) ? msg.players : []);
         // If we are in join state and have players, show the roster
         if (multiplayerState === 'join' && mpPlayersListJoin) {
             const panel = mpPlayersListJoin.closest('.mp-roster-panel');
             if (panel) panel.style.display = 'block';
         }
-        updateCharacterLocksFromServer(latestServerPlayers);
         return;
     }
     if (msg.type === 'snapshot') {
@@ -591,6 +596,9 @@ function handleServerMessage(msg) {
         applyTicks(msg.ticks || []);
         setConnectionStatus('Synced', 'ok');
         currentHostId = msg.hostId || currentHostId;
+        if (Array.isArray(msg.players)) {
+            setRosterFromServer(msg.players);
+        }
         // Show roster on snapshot too
         if (multiplayerState === 'join' && mpPlayersListJoin) {
             const panel = mpPlayersListJoin.closest('.mp-roster-panel');
@@ -606,6 +614,9 @@ function handleServerMessage(msg) {
         setConnectionStatus('Resynced', 'ok');
         if (msg.hostId) {
             currentHostId = msg.hostId;
+        }
+        if (Array.isArray(msg.snapshot?.players)) {
+            setRosterFromServer(msg.snapshot.players);
         }
         return;
     }
@@ -977,6 +988,9 @@ function applyTick(tick) {
     if (tick.lastTick) {
         maybeTrackDecadeNetWorth(new Date(tick.lastTick), tick.players || []);
     }
+    if (Array.isArray(tick.players)) {
+        setRosterFromServer(tick.players);
+    }
     updateNetWorth();
     renderCompanies();
     updateDisplay();
@@ -1283,6 +1297,25 @@ function resetCharacterToDefault() {
     applySelectedCharacter({ character: 'wojak' });
 }
 
+function getPlayerAvatarSrc(playerLabel) {
+    if (!playerLabel) return null;
+    const roster = Array.isArray(latestServerPlayers) && latestServerPlayers.length ? latestServerPlayers : lastRosterSnapshot;
+    if (!Array.isArray(roster)) return null;
+    // Match by ID or Name (case-insensitive fallback)
+    const match = roster.find(p => {
+        const pid = (p?.id || '').toLowerCase();
+        const pname = (p?.name || '').toLowerCase();
+        const label = playerLabel.toLowerCase();
+        return pid === label || pname === label;
+    });
+    if (!match || !match.character) {
+        // console.debug('[AvatarLookup] Missing character for', playerLabel);
+        return CHARACTER_SPRITES['wojak'] || null;
+    }
+    const key = String(match.character).toLowerCase();
+    return CHARACTER_SPRITES[key] || null;
+}
+
 function applySelectedCharacter(player) {
     if (!player) return;
     const key = (player.character || '').toLowerCase();
@@ -1311,6 +1344,11 @@ function setLocalCharacterSelection(characterKey) {
         });
         updateCharacterLocksFromServer(latestServerPlayers);
     }
+    if (ws && ws.readyState === WebSocket.OPEN && isServerAuthoritative) {
+        try {
+            ws.send(JSON.stringify({ type: 'set_character', character: characterKey }));
+        } catch (err) { /* ignore */ }
+    }
 }
 
 function mergeLocalCharacter(players) {
@@ -1321,6 +1359,26 @@ function mergeLocalCharacter(players) {
         }
         return p;
     });
+}
+
+function setRosterFromServer(players) {
+    const roster = Array.isArray(players)
+        ? mergeLocalCharacter(players).map(p => {
+            if (!p) return p;
+            return {
+                ...p,
+                character: p.character || 'wojak'
+            };
+        })
+        : [];
+    console.debug('[RosterUpdate] Received players:', roster.length, roster.map(p => p.id || p.name));
+    latestServerPlayers = roster;
+    lastRosterSnapshot = roster;
+    updatePlayerColors(roster);
+    renderPlayerLeaderboard(roster);
+    updateCharacterLocksFromServer(roster);
+    renderLobbyPlayers(roster);
+    return roster;
 }
 
 function renderCompanies(force = false) {
@@ -2688,11 +2746,12 @@ function sanitizePlayerName(name) {
 }
 
 function isNameTaken(name) {
-    if (!name || !Array.isArray(latestServerPlayers) || latestServerPlayers.length === 0) return false;
+    const roster = Array.isArray(latestServerPlayers) && latestServerPlayers.length ? latestServerPlayers : lastRosterSnapshot;
+    if (!name || !Array.isArray(roster) || roster.length === 0) return false;
     const target = sanitizePlayerName(name);
     if (!target) return false;
     const selfId = sanitizePlayerName(clientPlayerId || '');
-    return latestServerPlayers.some(p => {
+    return roster.some(p => {
         if (!p || typeof p.id !== 'string') return false;
         const pid = sanitizePlayerName(p.id);
         if (!pid || pid === selfId) return false;
@@ -2820,6 +2879,7 @@ function resetMultiplayerModal() {
     if (mpNameError) mpNameError.classList.remove('visible');
     if (mpJoinError) mpJoinError.classList.remove('visible');
     latestServerPlayers = [];
+    lastRosterSnapshot = [];
     lastGeneratedPartyCode = '';
     startGameRequested = false;
     startGameSent = false;
@@ -3054,6 +3114,9 @@ async function init() {
         resetCharacterToDefault();
     } else if (selectedCharacter) {
         applySelectedCharacter({ character: selectedCharacter });
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            try { ws.send(JSON.stringify({ type: 'set_character', character: selectedCharacter })); } catch (err) { /* ignore */ }
+        }
     }
 
     if (sim && sim.companies) {
@@ -3113,10 +3176,14 @@ async function init() {
                     ? (dsRef.borderColor[0] || '#0f172a')
                     : (dsRef?.borderColor || '#0f172a');
                 const label = dsRef?.label || 'Player';
+                const avatarSrc = getPlayerAvatarSrc(label);
+                const marker = avatarSrc
+                    ? `<img src="${avatarSrc}" alt="${label}" style="width:18px; height:18px; border-radius:50%; object-fit:cover; display:inline-block;" />`
+                    : `<span style="width:10px; height:10px; border-radius:50%; background:${color}; display:inline-block;"></span>`;
                 return `
                     <div style="display:flex; align-items:center; gap:8px; color:#0f172a; margin-top:4px;">
-                        <span style="width:10px; height:10px; border-radius:50%; background:${color}; display:inline-block;"></span>
-                        <span style="flex:1; font-weight:600;">${label}</span>
+                        ${marker}
+                        <span style="flex:1; font-weight:600;">${label}:</span>
                         <span style="font-weight:700; color:${color};">${valueStr}</span>
                     </div>
                 `;

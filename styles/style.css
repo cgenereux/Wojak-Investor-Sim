@@ -120,6 +120,34 @@ body.detail-active #detail-view {
     letter-spacing: 0;
 }
 
+.drip-toggle input[type="checkbox"] {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #097a32;
+    border-radius: 4px;
+    background: #ffffff;
+    position: relative;
+    cursor: pointer;
+}
+
+.drip-toggle input[type="checkbox"]:checked {
+    background: #097a32;
+    border-color: #097a32;
+}
+
+.drip-toggle input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 1px;
+    width: 4px;
+    height: 9px;
+    border: solid #ffffff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
 .net-worth {
     font-size: 48px;
     font-weight: 600;
