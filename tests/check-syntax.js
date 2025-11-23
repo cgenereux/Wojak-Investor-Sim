@@ -6,9 +6,10 @@ const FILES = [
   'src/sim/simEngine.js',
   'src/sim/ventureEngineCore.js',
   'src/ui/main.js',
-  'tests/run-integration-test.js',
-  'tests/run-simulation-test.js',
-  'tests/compare-dual-simulation-test.js'
+  'tests/integration-test.js',
+  'tests/simulation-test.js',
+  'tests/dual-simulation-comparison-test.js',
+  'tests/multiplayer-connectivity-test.js'
 ];
 
 let failures = 0;

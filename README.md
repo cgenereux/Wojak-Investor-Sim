@@ -27,6 +27,7 @@ node -e "require('./src/sim/simShared.js');require('./src/sim/ventureStrategies.
 ```bash
 npm run smoke    # Long-run sim + VC sanity checks (fails on NaNs)
 npm run lint     # Syntax-only guard for core entry points
+npm run mp:connectivity # Multiplayer liveness: spins up a server, multiple sessions/players, and waits for ticks
 ```
 
 ---
