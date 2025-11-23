@@ -199,8 +199,15 @@ const SPEED_STEPS = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 
 const SESSION_ID_KEY = 'wojak_session_id';
 const BACKEND_URL_KEY = 'wojak_backend_url';
 const SELECTED_CHARACTER_KEY = 'wojak_selected_character';
-// const DEFAULT_BACKEND_URL = 'https://wojak-backend.graysand-55f0f3f9.eastus2.azurecontainerapps.io';
-const DEFAULT_BACKEND_URL = 'http://localhost:4000';
+const isLocal =
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1';
+
+const DEFAULT_WS_ORIGIN = isLocal
+    ? 'ws://localhost:4000'
+    : 'wss://wojak-backend.graysand-55f0f3f9.eastus2.azurecontainerapps.io';
+
+const DEFAULT_BACKEND_URL = DEFAULT_WS_ORIGIN.replace(/^ws/, 'http');
 let lastNameTaken = false;
 let wsGeneration = 0;
 let latestServerPlayers = [];
@@ -373,7 +380,8 @@ async function connectWebSocket() {
         console.warn('Manual disconnect set; skipping WS connect');
         return;
     }
-    const backendUrl = activeBackendUrl || window.WOJAK_BACKEND_URL || DEFAULT_BACKEND_URL || '';
+    const baseBackend = activeBackendUrl || window.WOJAK_BACKEND_URL || DEFAULT_WS_ORIGIN || '';
+    const backendUrl = normalizeHttpUrl(baseBackend) || '';
     if (!backendUrl) {
         console.warn('WOJAK_BACKEND_URL not set; skipping WS connect');
         return;
@@ -393,7 +401,8 @@ async function connectWebSocket() {
     }
     clientPlayerId = playerId;
     const roleParam = isPartyHostClient ? 'host' : 'guest';
-    const wsUrl = `${backendUrl.replace(/^http/, 'ws')}/ws?session=${encodeURIComponent(session)}&player=${encodeURIComponent(playerId)}&role=${roleParam}`;
+    const wsOrigin = baseBackend.startsWith('ws') ? baseBackend : backendUrl.replace(/^http/, 'ws');
+    const wsUrl = `${wsOrigin}/ws?session=${encodeURIComponent(session)}&player=${encodeURIComponent(playerId)}&role=${roleParam}`;
     // Attempt to wake the backend (helps with cold starts)
     wakeBackend(backendUrl);
     if (ws && ws.readyState === WebSocket.OPEN) {
