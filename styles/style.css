@@ -74,12 +74,14 @@ body.detail-active #detail-view {
 }
 
 .header-content {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
-    justify-content: flex-start;
+    justify-items: center;
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 20px;
+    gap: 24px;
 }
 
 .wojak-image {
@@ -106,16 +108,39 @@ body.detail-active #detail-view {
     text-align: center;
     line-height: 1.2;
     min-height: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .lead-avatar-name:empty {
     display: none;
 }
 
+.lead-avatar-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    flex-shrink: 0;
+}
+
+.lead-avatar-label {
+    display: inline-block;
+    max-width: 120px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .player-avatar-stack {
     display: flex;
     align-items: center;
     gap: 12px;
+    flex-shrink: 0;
+    min-width: 220px;
+    justify-self: start;
 }
 
 .party-avatars {
@@ -124,6 +149,9 @@ body.detail-active #detail-view {
     gap: 8px;
     min-height: 48px;
     align-self: flex-end;
+    flex-wrap: nowrap;
+    max-width: none;
+    justify-content: flex-start;
 }
 
 .party-avatar {
@@ -153,15 +181,35 @@ body.detail-active #detail-view {
     text-align: center;
     line-height: 1.2;
     width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.party-avatar-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.party-avatar-label {
+    display: inline-block;
+    max-width: 80px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .financial-info {
     display: flex;
     flex-direction: column;
     align-items: center;
-    flex-grow: 1;
     justify-content: center;
-    margin-left: -72px;
+    justify-self: center;
 }
 
 .drip-toggle {
@@ -1176,9 +1224,9 @@ button.speed-active:hover {
 
 /* Header Controls */
 .header-controls {
-    margin-left: auto;
     display: flex;
     align-items: center;
+    justify-self: end;
 }
 
 .header-controls button {

@@ -362,6 +362,7 @@ function disconnectMultiplayer() {
     }
     latestServerPlayers = [];
     lastRosterSnapshot = [];
+    if (leadAvatarName) leadAvatarName.textContent = '';
     if (partyAvatars) partyAvatars.innerHTML = '';
     if (ws) {
         try { ws.close(); } catch (err) { /* ignore */ }
@@ -1340,8 +1341,10 @@ function updateCharacterLocksFromServer(players) {
     }
     const takenSet = new Set();
     players.forEach(p => {
-        const charKey = (p && p.character) ? String(p.character).toLowerCase() : null;
-        if (charKey) takenSet.add(charKey);
+        const charKey = (p && typeof p.character === 'string' && p.character) ? String(p.character).toLowerCase() : null;
+        if (!charKey) return;
+        if (clientPlayerId && p.id && p.id === clientPlayerId) return; // don't lock out our own current pick
+        takenSet.add(charKey);
     });
     characterOptionButtons.forEach(btn => {
         const key = (btn.dataset.character || '').toLowerCase();
@@ -1396,7 +1399,7 @@ function getPlayerAvatarSrc(playerLabel) {
 
 function renderPartyAvatars(roster = latestServerPlayers) {
     if (!partyAvatars) return;
-    if (!isServerAuthoritative || !Array.isArray(roster) || roster.length <= 1) {
+    if (!Array.isArray(roster) || roster.length <= 1) {
         partyAvatars.innerHTML = '';
         return;
     }
@@ -1407,13 +1410,34 @@ function renderPartyAvatars(roster = latestServerPlayers) {
     }
     const html = others.map((p) => {
         const avatarSrc = getPlayerAvatarSrc(p.id || p.name) || CHARACTER_SPRITES['wojak'];
-        const label = (p.id || p.name || 'Player').replace(/"/g, '&quot;');
+        const rawLabel = p.id || p.name || 'Player';
+        const label = escapeHtml(rawLabel);
+        const color = getPlayerColor(p.id);
         return `<div class="party-avatar" title="${label}">
                     <img src="${avatarSrc}" alt="${label}">
-                    <div class="party-avatar-name">${label}</div>
+                    <div class="party-avatar-name">
+                        <span class="party-avatar-dot" style="background:${color};"></span>
+                        <span class="party-avatar-label">${label}</span>
+                    </div>
                 </div>`;
     }).join('');
     partyAvatars.innerHTML = html;
+}
+
+function renderLeadAvatarName(roster = latestServerPlayers) {
+    if (!leadAvatarName) return;
+    if (!Array.isArray(roster) || roster.length === 0) {
+        leadAvatarName.textContent = '';
+        return;
+    }
+    const nameRaw = storedPlayerName || clientPlayerId || '';
+    if (!nameRaw) {
+        leadAvatarName.textContent = '';
+        return;
+    }
+    const color = getPlayerColor(clientPlayerId);
+    const label = escapeHtml(nameRaw);
+    leadAvatarName.innerHTML = `<span class="lead-avatar-dot" style="background:${color};"></span><span class="lead-avatar-label">${label}</span>`;
 }
 
 function applySelectedCharacter(player) {
@@ -1473,6 +1497,19 @@ function pickColorById(id, palette) {
     return palette[idx];
 }
 
+function getPlayerColor(id) {
+    if (!id) return BASE_PLAYER_COLORS[0];
+    const palette = [...BASE_PLAYER_COLORS, ...EXTRA_PLAYER_COLORS];
+    return playerColorMap.get(id) || pickColorById(id, palette);
+}
+
+function escapeHtml(str) {
+    return String(str || '').replace(/[&<>"']/g, (ch) => {
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+        return map[ch] || ch;
+    });
+}
+
 function promptCharacterIfPending() {
     if (!shouldPromptCharacterAfterConnect) return;
     if (characterOverlay && characterOverlay.classList.contains('active')) return;
@@ -1486,7 +1523,7 @@ function setRosterFromServer(players) {
             if (!p) return p;
             return {
                 ...p,
-                character: p.character || 'wojak'
+                character: p.character || null
             };
         })
         : [];
@@ -1498,11 +1535,8 @@ function setRosterFromServer(players) {
     updateCharacterLocksFromServer(roster);
     renderLobbyPlayers(roster);
     renderPartyAvatars(roster);
+    renderLeadAvatarName(roster);
     promptCharacterIfPending();
-    if (leadAvatarName && isServerAuthoritative) {
-        const name = storedPlayerName || clientPlayerId || '';
-        leadAvatarName.textContent = name;
-    }
     return roster;
 }
 
@@ -2968,8 +3002,11 @@ function setMultiplayerState(state) {
         hideCharacterOverlay();
     }
     if (leadAvatarName) {
-        const showName = isServerAuthoritative && (state === 'join' || state === 'create');
-        leadAvatarName.textContent = showName ? (storedPlayerName || clientPlayerId || '') : '';
+        if (state === 'join' || state === 'create') {
+            renderLeadAvatarName(latestServerPlayers);
+        } else {
+            leadAvatarName.textContent = '';
+        }
     }
 }
 
@@ -3034,6 +3071,7 @@ function resetMultiplayerModal() {
     pendingPartyAction = null;
     shouldPromptCharacterAfterConnect = false;
     if (partyAvatars) partyAvatars.innerHTML = '';
+    if (leadAvatarName) leadAvatarName.textContent = '';
 }
 
 function attemptJoinParty() {

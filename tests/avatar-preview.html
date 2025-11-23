@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Avatar Layout Preview</title>
+  <link rel="stylesheet" href="../styles/style.css">
+  <style>
+    body { padding: 24px; background: #f8fafc; }
+    .preview-wrapper { max-width: 1100px; margin: 0 auto; }
+    .preview-note { margin: 12px 0 20px; color: #475569; font-family: Inter, system-ui, -apple-system, sans-serif; }
+  </style>
+</head>
+<body>
+  <div class="preview-wrapper">
+    <p class="preview-note">Static preview of the multiplayer header (your avatar + party avatars). Adjust the sample roster in this file to try different counts or characters.</p>
+    <div class="header">
+      <div class="header-content">
+        <div class="player-avatar-stack">
+          <div class="lead-avatar">
+            <img src="../wojaks/wojak.png" alt="Wojak" class="wojak-image" id="leadAvatarImage">
+            <div class="lead-avatar-name" id="leadAvatarName"></div>
+          </div>
+          <div class="party-avatars" id="partyAvatars"></div>
+        </div>
+        <div class="financial-info">
+          <div class="net-worth">$3,000.00</div>
+          <div class="date">1990-01-01</div>
+          <div class="sub-financial-display">Equities: $0 | Cash: $3,000 | Liabilities: $0</div>
+        </div>
+        <div class="header-controls"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const CHARACTER_SPRITES = {
+      wojak: '../wojaks/wojak.png',
+      grug: '../wojaks/grug.png',
+      zoomer: '../wojaks/zoomer.png',
+      bloomer: '../wojaks/bloomer.png'
+    };
+    const CHARACTER_COLORS = {
+      wojak: '#00c742',
+      zoomer: '#635bff',
+      grug: '#ff8200',
+      bloomer: '#33a0ff'
+    };
+    const BASE_PLAYER_COLORS = ['#22c55e', '#3b82f6', '#f97316', '#a855f7'];
+    const EXTRA_PLAYER_COLORS = ['#ef4444', '#ec4899', '#000000', '#facc15'];
+
+    const roster = [
+      { id: 'You', character: 'wojak' },
+      { id: 'Grugster', character: 'grug' },
+      { id: 'ZoomerKid', character: 'zoomer' },
+      { id: 'Bloomer', character: 'bloomer' }
+    ];
+
+    const clientPlayerId = roster[0].id;
+
+    const leadAvatarName = document.getElementById('leadAvatarName');
+    const partyAvatars = document.getElementById('partyAvatars');
+    const leadAvatarImage = document.getElementById('leadAvatarImage');
+
+    function pickColorById(id, palette) {
+      if (!Array.isArray(palette) || palette.length === 0) return '#cccccc';
+      const str = String(id || '');
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash |= 0;
+      }
+      const idx = Math.abs(hash) % palette.length;
+      return palette[idx];
+    }
+
+    function getPlayerColor(player) {
+      if (!player) return BASE_PLAYER_COLORS[0];
+      const charKey = (player.character || '').toLowerCase();
+      const palette = [...BASE_PLAYER_COLORS, ...EXTRA_PLAYER_COLORS];
+      return CHARACTER_COLORS[charKey] || pickColorById(player.id, palette);
+    }
+
+    function renderLead(player) {
+      if (!player) return;
+      const color = getPlayerColor(player);
+      const name = player.id || 'You';
+      leadAvatarName.innerHTML = `<span class="lead-avatar-dot" style="background:${color};"></span><span class="lead-avatar-label">${name}</span>`;
+      const sprite = CHARACTER_SPRITES[(player.character || 'wojak').toLowerCase()] || CHARACTER_SPRITES.wojak;
+      leadAvatarImage.src = sprite;
+    }
+
+    function renderParty(roster) {
+      if (!partyAvatars) return;
+      const others = roster.filter(p => p.id !== clientPlayerId);
+      const html = others.map(p => {
+        const color = getPlayerColor(p);
+        const sprite = CHARACTER_SPRITES[(p.character || '').toLowerCase()] || CHARACTER_SPRITES.wojak;
+        const label = p.id || 'Player';
+        return `<div class="party-avatar">
+          <img src="${sprite}" alt="${label}">
+          <div class="party-avatar-name">
+            <span class="party-avatar-dot" style="background:${color};"></span>
+            <span class="party-avatar-label">${label}</span>
+          </div>
+        </div>`;
+      }).join('');
+      partyAvatars.innerHTML = html;
+    }
+
+    renderLead(roster[0]);
+    renderParty(roster);
+  </script>
+</body>
+</html>
