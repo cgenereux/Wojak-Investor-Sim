@@ -201,6 +201,8 @@ const BACKEND_URL_KEY = 'wojak_backend_url';
 const SELECTED_CHARACTER_KEY = 'wojak_selected_character';
 const DEFAULT_BACKEND_URL = 'https://wojak-backend.graysand-55f0f3f9.eastus2.azurecontainerapps.io';
 // const DEFAULT_BACKEND_URL = 'http://localhost:4000';
+let lastNameTaken = false;
+let wsGeneration = 0;
 try {
     const stored = localStorage.getItem(DRIP_STORAGE_KEY);
     if (stored === 'true') dripEnabled = true;
@@ -340,12 +342,14 @@ function disconnectMultiplayer() {
     } catch (err) {
         console.warn('Failed clearing multiplayer prefs', err);
     }
+    latestServerPlayers = [];
     if (ws) {
         try { ws.close(); } catch (err) { /* ignore */ }
         ws = null;
     }
     if (wsHeartbeat) { clearInterval(wsHeartbeat); wsHeartbeat = null; }
     isServerAuthoritative = false;
+    resetCharacterToDefault();
     setConnectionStatus('Offline', 'warn');
     setBannerButtonsVisible(false);
 }
@@ -383,9 +387,10 @@ async function connectWebSocket() {
     const storedName = localStorage.getItem('wojak_player_name');
     if (storedName) ensurePlayerIdentity(storedName);
     let playerId = localStorage.getItem('wojak_player_id');
-    if (!playerId) {
+    if (!playerId || lastNameTaken) {
         playerId = `p_${Math.floor(Math.random() * 1e9).toString(36)}`;
-        localStorage.setItem('wojak_player_id', playerId);
+        try { localStorage.setItem('wojak_player_id', playerId); } catch (err) { /* ignore */ }
+        lastNameTaken = false;
     }
     clientPlayerId = playerId;
     const roleParam = isPartyHostClient ? 'host' : 'guest';
@@ -395,6 +400,7 @@ async function connectWebSocket() {
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.close();
     }
+    const currentGen = ++wsGeneration;
     try {
         ws = new WebSocket(wsUrl);
     } catch (err) {
@@ -403,9 +409,11 @@ async function connectWebSocket() {
         return;
     }
     ws.onopen = () => {
+        if (currentGen !== wsGeneration) return;
         console.log('WS connected');
         setConnectionStatus('Connected', 'ok');
         setBannerButtonsVisible(true);
+        lastNameTaken = false;
         sendStartGameIfReady();
         if (wsHeartbeat) clearInterval(wsHeartbeat);
         wsHeartbeat = setInterval(() => {
@@ -418,6 +426,7 @@ async function connectWebSocket() {
         }, 15000);
     };
     ws.onclose = (evt) => {
+        if (currentGen !== wsGeneration) return;
         if (evt.code === 4004) {
             if (mpJoinError) {
                 mpJoinError.textContent = 'Party not found';
@@ -447,6 +456,10 @@ async function connectWebSocket() {
             }
             manualDisconnect = true; // prevent auto-reconnect loop; user will retry after changing name
             isServerAuthoritative = false;
+            lastNameTaken = true;
+            try {
+                localStorage.removeItem('wojak_player_id');
+            } catch (err) { /* ignore */ }
             if (wsHeartbeat) { clearInterval(wsHeartbeat); wsHeartbeat = null; }
             ws = null;
             setConnectionStatus('Name taken. Pick another name.', 'error');
@@ -481,10 +494,12 @@ async function connectWebSocket() {
         ws = null;
     };
     ws.onerror = (err) => {
+        if (currentGen !== wsGeneration) return;
         console.error('WS error', err);
         setConnectionStatus('Connection error', 'error');
     };
     ws.onmessage = (event) => {
+        if (currentGen !== wsGeneration) return;
         try {
             const msg = JSON.parse(event.data);
             handleServerMessage(msg);
@@ -513,6 +528,10 @@ function handleServerMessage(msg) {
             }
             manualDisconnect = true;
             isServerAuthoritative = false;
+            lastNameTaken = true;
+            try {
+                localStorage.removeItem('wojak_player_id');
+            } catch (err) { /* ignore */ }
             setConnectionStatus('Name taken. Pick another name.', 'error');
             if (ws) {
                 try { ws.close(); } catch (err) { /* ignore */ }
@@ -685,6 +704,7 @@ function handleServerMessage(msg) {
         setConnectionStatus('Session ended', 'error');
         setBannerButtonsVisible(false);
         alert(`Game ended (${msg.reason || 'session end'}). Final year: ${msg.year || ''}`);
+        resetCharacterToDefault();
         setTimeout(() => window.location.reload(), 300);
         return;
     }
@@ -1237,6 +1257,14 @@ function updatePlayerColors(players) {
         const color = PLAYER_COLORS[idx % PLAYER_COLORS.length];
         playerColorMap.set(p.id, color);
     });
+}
+
+function resetCharacterToDefault() {
+    selectedCharacter = 'wojak';
+    try {
+        localStorage.setItem(SELECTED_CHARACTER_KEY, 'wojak');
+    } catch (err) { /* ignore */ }
+    applySelectedCharacter({ character: 'wojak' });
 }
 
 function applySelectedCharacter(player) {
@@ -2781,16 +2809,16 @@ function resetMultiplayerModal() {
     startGameSent = false;
     isPartyHostClient = false;
     matchStarted = false;
+    manualDisconnect = false;
+    updateCharacterLocksFromServer([]);
+    renderLobbyPlayers([]);
     if (startPartyBtn) {
         startPartyBtn.disabled = false;
         startPartyBtn.textContent = 'Start Game';
     }
     setMultiplayerState('idle');
-    renderLobbyPlayers([]);
     hideCharacterOverlay();
     pendingPartyAction = null;
-    updateCharacterLocksFromServer([]);
-    manualDisconnect = false;
 }
 
 function attemptJoinParty() {
@@ -3005,8 +3033,10 @@ async function init() {
         });
     }
 
-    // If a character was previously selected, apply it on load (local only)
-    if (selectedCharacter) {
+    // Apply avatar: default Wojak for local, saved selection for multiplayer.
+    if (!isServerAuthoritative) {
+        resetCharacterToDefault();
+    } else if (selectedCharacter) {
         applySelectedCharacter({ character: selectedCharacter });
     }
 

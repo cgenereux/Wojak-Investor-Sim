@@ -35,16 +35,31 @@ function isPlayerIdTaken(session, candidateId) {
   const canonical = canonicalizePlayerId(candidateId);
   if (!canonical) return false;
   const lower = canonical.toLowerCase();
-  const fromPlayers = Array.from(session.players.keys()).some(pid => {
+  // If the name is already present, evict the old sockets/players so the new connection can take it.
+  const matchingSockets = [];
+  session.clientPlayers.forEach((pid, ws) => {
     const canon = canonicalizePlayerId(pid);
-    return canon && canon.toLowerCase() === lower;
+    if (canon && canon.toLowerCase() === lower) {
+      matchingSockets.push(ws);
+    }
   });
-  if (fromPlayers) return true;
-  const fromClients = Array.from(session.clientPlayers.values()).some(pid => {
+  matchingSockets.forEach(ws => {
+    session.clientPlayers.delete(ws);
+    session.clients.delete(ws);
+    try {
+      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+        ws.close(4005, 'name_taken_replaced');
+      }
+    } catch (err) { /* ignore */ }
+  });
+  Array.from(session.players.keys()).forEach(pid => {
     const canon = canonicalizePlayerId(pid);
-    return canon && canon.toLowerCase() === lower;
+    if (canon && canon.toLowerCase() === lower) {
+      session.players.delete(pid);
+    }
   });
-  return fromClients;
+  // After cleanup, allow the new connection to claim the id.
+  return false;
 }
 
 // Simple in-memory sessions (non-persistent)
@@ -715,13 +730,8 @@ wss.on('connection', async (ws, req, url) => {
     } catch (err) { /* ignore */ }
     return;
   }
-  if (isPlayerIdTaken(session, playerId)) {
-    try {
-      ws.send(JSON.stringify({ type: 'error', error: 'name_taken' }));
-      ws.close(4005, 'name_taken');
-    } catch (err) { /* ignore */ }
-    return;
-  }
+  // Allow reconnects: if another socket has this id, evict it and continue.
+  isPlayerIdTaken(session, playerId);
   session.clients.add(ws);
   let player = session.players.get(playerId);
   if (!player) {
