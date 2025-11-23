@@ -51,6 +51,7 @@ const playerLeaderboardEl = document.getElementById('playerLeaderboard');
 const connectedPlayersEl = document.getElementById('connectedPlayers');
 const connectedPlayersSessionEl = document.getElementById('connectedPlayersSession');
 const mpJoinError = document.getElementById('mpJoinError');
+let storedPlayerName = null;
 
 const DEFAULT_WOJAK_SRC = 'wojaks/wojak.png';
 const MALDING_WOJAK_SRC = 'wojaks/malding-wojak.png';
@@ -203,6 +204,7 @@ try {
     const stored = localStorage.getItem(DRIP_STORAGE_KEY);
     if (stored === 'true') dripEnabled = true;
     if (stored === 'false') dripEnabled = false;
+    storedPlayerName = localStorage.getItem('wojak_player_name') || null;
     const storedChar = localStorage.getItem(SELECTED_CHARACTER_KEY);
     if (storedChar) selectedCharacter = storedChar;
 } catch (err) {
@@ -476,6 +478,7 @@ async function connectWebSocket() {
             setConnectionStatus('Disconnected', 'warn');
             setBannerButtonsVisible(false);
         }
+        ws = null;
     };
     ws.onerror = (err) => {
         console.error('WS error', err);
@@ -2583,6 +2586,14 @@ function applyBackendAndSession(backend, sessionId) {
     manualDisconnect = false;
     resetDecadeTracking();
     currentHostId = null;
+    latestServerPlayers = [];
+    if (playerNetWorthSeries && typeof playerNetWorthSeries.clear === 'function') {
+        playerNetWorthSeries.clear();
+    }
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+        try { ws.close(); } catch (err) { /* ignore */ }
+        ws = null;
+    }
 }
 
 function showCharacterOverlay(nextAction) {
@@ -2633,7 +2644,7 @@ function sanitizePlayerName(name) {
 }
 
 function isNameTaken(name) {
-    if (!name || !Array.isArray(latestServerPlayers)) return false;
+    if (!name || !Array.isArray(latestServerPlayers) || latestServerPlayers.length === 0) return false;
     const target = sanitizePlayerName(name);
     if (!target) return false;
     const selfId = sanitizePlayerName(clientPlayerId || '');
@@ -2664,6 +2675,7 @@ function ensurePlayerIdentity(name) {
     const cleaned = sanitizePlayerName(name);
     if (!cleaned) return null;
     cachedPlayerName = cleaned;
+    storedPlayerName = cleaned;
     localStorage.setItem('wojak_player_name', cleaned);
     const pid = makePlayerIdFromName(cleaned) || `p_${Math.floor(Math.random() * 1e9).toString(36)}`;
     localStorage.setItem('wojak_player_id', pid);
@@ -2763,6 +2775,7 @@ function resetMultiplayerModal() {
     }
     if (mpNameError) mpNameError.classList.remove('visible');
     if (mpJoinError) mpJoinError.classList.remove('visible');
+    latestServerPlayers = [];
     lastGeneratedPartyCode = '';
     startGameRequested = false;
     startGameSent = false;
@@ -2776,6 +2789,8 @@ function resetMultiplayerModal() {
     renderLobbyPlayers([]);
     hideCharacterOverlay();
     pendingPartyAction = null;
+    updateCharacterLocksFromServer([]);
+    manualDisconnect = false;
 }
 
 function attemptJoinParty() {
@@ -3031,29 +3046,42 @@ async function init() {
             return;
         }
 
-        // Set Text
+        // Set Text (show all players at the hover index)
         if (tooltipModel.body && tooltipModel.dataPoints && tooltipModel.dataPoints.length > 0) {
-            const dp = tooltipModel.dataPoints[0];
-            const ds = context.chart.data.datasets?.[dp.datasetIndex];
-            const point = ds && Array.isArray(ds.data) ? ds.data[dp.dataIndex] : null;
+            const dataPoints = tooltipModel.dataPoints;
+            const firstPoint = dataPoints[0];
+            const ds = context.chart.data.datasets?.[firstPoint.datasetIndex];
+            const point = ds && Array.isArray(ds.data) ? ds.data[firstPoint.dataIndex] : null;
             if (!point || typeof point.x === 'undefined') {
                 tooltipEl.style.opacity = 0;
                 return;
             }
             const date = new Date(point.x);
             const dateStr = date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-            const rawValue = dp.raw?.y ?? dp.parsed?.y ?? dp.raw ?? dp.parsed;
-            const valueStr = currencyFormatter.format(rawValue);
+
+            const rows = dataPoints.map(dp => {
+                const dsRef = context.chart.data.datasets?.[dp.datasetIndex];
+                const rawValue = dp.raw?.y ?? dp.parsed?.y ?? dp.raw ?? dp.parsed;
+                const valueStr = currencyFormatter.format(rawValue);
+                const color = Array.isArray(dsRef?.borderColor)
+                    ? (dsRef.borderColor[0] || '#0f172a')
+                    : (dsRef?.borderColor || '#0f172a');
+                const label = dsRef?.label || 'Player';
+                return `
+                    <div style="display:flex; align-items:center; gap:8px; color:#0f172a; margin-top:4px;">
+                        <span style="width:10px; height:10px; border-radius:50%; background:${color}; display:inline-block;"></span>
+                        <span style="flex:1; font-weight:600;">${label}</span>
+                        <span style="font-weight:700; color:${color};">${valueStr}</span>
+                    </div>
+                `;
+            }).join('');
 
             const innerHtml = `
                 <div style="margin-bottom: 4px; color: #1e293b; display: flex; align-items: center; gap: 4px;">
                     <span style="font-weight: 600;">Date:</span>
                     <span>${dateStr}</span>
                 </div>
-                <div style="display: flex; align-items: center; gap: 4px;">
-                    <span style="color: #1e293b; font-weight: 600;">Net Worth:</span>
-                    <span style="color: #00c742;">${valueStr}</span>
-                </div>
+                ${rows}
             `;
 
             tooltipEl.innerHTML = innerHtml;
