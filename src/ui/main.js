@@ -42,7 +42,7 @@ const multiplayerCreateState = document.getElementById('multiplayerCreateState')
 const mpPlayersListHost = document.getElementById('mpPlayersListHost');
 const mpPlayersListJoin = document.getElementById('mpPlayersListJoin');
 const mpNameError = document.getElementById('mpNameError');
-const NAME_PLACEHOLDERS = ['TheGrug850', 'Bloomer4000', 'TheRealWojak'];
+const NAME_PLACEHOLDERS = ['TheGrug850', 'Bloomer4000', 'TheRealWojak', 'WiseZoomer24'];
 const MAX_NAME_LENGTH = 30;
 const characterOverlay = document.getElementById('characterSelectOverlay');
 const characterOptionButtons = document.querySelectorAll('.character-option');
@@ -2683,17 +2683,10 @@ function requirePlayerName() {
         return null;
     }
     let name = sanitizePlayerName(rawTrimmed);
-    if (!name && NAME_PLACEHOLDERS.length) {
-        const fallback = sanitizePlayerName(mpNameInput.placeholder || '');
-        if (fallback) {
-            name = fallback;
-            mpNameInput.value = name;
-        }
-    }
     if (!name) {
         mpNameInput.classList.add('input-error');
+        setNameErrorVisible(true, 'Enter a display name');
         mpNameInput.focus();
-        setNameErrorVisible(false);
         return null;
     }
     if (isNameTaken(name)) {
