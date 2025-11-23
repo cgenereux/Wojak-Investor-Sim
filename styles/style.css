@@ -204,6 +204,51 @@ body.detail-active #detail-view {
     text-overflow: ellipsis;
 }
 
+/* Shrink avatars by 20% when 4+ players (many-players class on header-content) */
+.header-content.many-players .party-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+}
+
+.header-content.many-players .party-avatar-name {
+    margin-top: 3px;
+    font-size: 10px;
+}
+
+.header-content.many-players .party-avatar-dot {
+    width: 8px;
+    height: 8px;
+}
+
+.header-content.many-players .party-avatar-label {
+    max-width: 64px;
+}
+
+.header-content.many-players .lead-avatar .wojak-image {
+    width: 115px;
+    height: 115px;
+    border-radius: 10px;
+}
+
+.header-content.many-players .lead-avatar {
+    gap: 6px;
+}
+
+.header-content.many-players .lead-avatar .lead-avatar-name {
+    font-size: 13px;
+    gap: 6px;
+}
+
+.header-content.many-players .lead-avatar .lead-avatar-dot {
+    width: 10px;
+    height: 10px;
+}
+
+.header-content.many-players .lead-avatar .lead-avatar-label {
+    max-width: 96px;
+}
+
 .financial-info {
     display: flex;
     flex-direction: column;

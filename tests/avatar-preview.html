@@ -1,18 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>Avatar Layout Preview</title>
   <link rel="stylesheet" href="../styles/style.css">
   <style>
-    body { padding: 24px; background: #f8fafc; }
-    .preview-wrapper { max-width: 1100px; margin: 0 auto; }
-    .preview-note { margin: 12px 0 20px; color: #475569; font-family: Inter, system-ui, -apple-system, sans-serif; }
+    body {
+      padding: 24px;
+      background: #f8fafc;
+    }
+
+    .preview-wrapper {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .preview-note {
+      margin: 12px 0 20px;
+      color: #475569;
+      font-family: Inter, system-ui, -apple-system, sans-serif;
+    }
   </style>
 </head>
+
 <body>
   <div class="preview-wrapper">
-    <p class="preview-note">Static preview of the multiplayer header (your avatar + party avatars). Adjust the sample roster in this file to try different counts or characters.</p>
+    <p class="preview-note">Static preview of the multiplayer header (your avatar + party avatars). Adjust the sample
+      roster in this file to try different counts or characters.</p>
     <div class="header">
       <div class="header-content">
         <div class="player-avatar-stack">
@@ -111,4 +126,5 @@
     renderParty(roster);
   </script>
 </body>
+
 </html>

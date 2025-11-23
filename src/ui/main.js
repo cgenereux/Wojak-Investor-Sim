@@ -1398,14 +1398,29 @@ function getPlayerAvatarSrc(playerLabel) {
 }
 
 function renderPartyAvatars(roster = latestServerPlayers) {
+    const headerContent = document.querySelector('.header-content');
+    if (headerContent) {
+        if (Array.isArray(roster) && roster.length >= 4) {
+            headerContent.classList.add('many-players');
+        } else {
+            headerContent.classList.remove('many-players');
+        }
+    }
+
     if (!partyAvatars) return;
     if (!Array.isArray(roster) || roster.length <= 1) {
-        partyAvatars.innerHTML = '';
+        if (partyAvatars.innerHTML !== '') {
+            partyAvatars.innerHTML = '';
+            partyAvatars._lastHtml = '';
+        }
         return;
     }
     const others = roster.filter(p => p && p.id && p.id !== clientPlayerId);
     if (!others.length) {
-        partyAvatars.innerHTML = '';
+        if (partyAvatars.innerHTML !== '') {
+            partyAvatars.innerHTML = '';
+            partyAvatars._lastHtml = '';
+        }
         return;
     }
     const html = others.map((p) => {
@@ -1421,23 +1436,36 @@ function renderPartyAvatars(roster = latestServerPlayers) {
                     </div>
                 </div>`;
     }).join('');
+
+    if (partyAvatars._lastHtml === html) return;
     partyAvatars.innerHTML = html;
+    partyAvatars._lastHtml = html;
 }
 
 function renderLeadAvatarName(roster = latestServerPlayers) {
     if (!leadAvatarName) return;
     if (!Array.isArray(roster) || roster.length === 0) {
-        leadAvatarName.textContent = '';
+        if (leadAvatarName.textContent !== '') {
+            leadAvatarName.textContent = '';
+            leadAvatarName._lastHtml = '';
+        }
         return;
     }
     const nameRaw = storedPlayerName || clientPlayerId || '';
     if (!nameRaw) {
-        leadAvatarName.textContent = '';
+        if (leadAvatarName.textContent !== '') {
+            leadAvatarName.textContent = '';
+            leadAvatarName._lastHtml = '';
+        }
         return;
     }
     const color = getPlayerColor(clientPlayerId);
     const label = escapeHtml(nameRaw);
-    leadAvatarName.innerHTML = `<span class="lead-avatar-dot" style="background:${color};"></span><span class="lead-avatar-label">${label}</span>`;
+    const html = `<span class="lead-avatar-dot" style="background:${color};"></span><span class="lead-avatar-label">${label}</span>`;
+
+    if (leadAvatarName._lastHtml === html) return;
+    leadAvatarName.innerHTML = html;
+    leadAvatarName._lastHtml = html;
 }
 
 function applySelectedCharacter(player) {
