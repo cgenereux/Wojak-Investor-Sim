@@ -1468,6 +1468,13 @@ function renderLeadAvatarName(roster = latestServerPlayers) {
     leadAvatarName._lastHtml = html;
 }
 
+function isWojakCharacterSelected() {
+    const key = (serverPlayer && serverPlayer.character)
+        ? serverPlayer.character
+        : selectedCharacter;
+    return (key || '').toLowerCase() === 'wojak';
+}
+
 function applySelectedCharacter(player) {
     if (!player) return;
     const key = (player.character || '').toLowerCase();
@@ -1761,38 +1768,41 @@ function updateNetWorth() {
         lastDrawdownTriggerAth = 0;
     }
     const drawdown = netWorthAth > 0 ? (netWorthAth - netWorth) / netWorthAth : 0;
-    if (drawdown >= 0.4 && netWorthAth > 0 && lastDrawdownTriggerAth !== netWorthAth) {
+    const isWojakAvatar = isWojakCharacterSelected();
+    if (isWojakAvatar && drawdown >= 0.4 && netWorthAth > 0 && lastDrawdownTriggerAth !== netWorthAth) {
         lastDrawdownTriggerAth = netWorthAth;
         if (wojakManager) {
             wojakManager.triggerMalding(netWorthAth, drawdown);
         }
     }
-    if (wojakManager) {
+    if (isWojakAvatar && wojakManager) {
         wojakManager.handleRecovery(netWorth);
     }
 
-    if (netWorth >= 1000000 && !isMillionaire) {
-        isMillionaire = true;
-        if (wojakManager) {
-            wojakManager.setBaseImage('wojaks/suit-wojak.png', true);
+    if (isWojakAvatar) {
+        if (netWorth >= 1000000 && !isMillionaire) {
+            isMillionaire = true;
+            if (wojakManager) {
+                wojakManager.setBaseImage('wojaks/suit-wojak.png', true);
+            }
+            jsConfetti.addConfetti({ emojis: ['💰', '💵'], confettiNumber: 150, emojiSize: 30, });
         }
-        jsConfetti.addConfetti({ emojis: ['💰', '💵'], confettiNumber: 150, emojiSize: 30, });
-    }
-    if (netWorth >= 1000000000 && !isBillionaire) {
-        isBillionaire = true;
-        if (wojakManager) {
-            wojakManager.setBaseImage('wojaks/red-suit-wojak.png', true);
+        if (netWorth >= 1000000000 && !isBillionaire) {
+            isBillionaire = true;
+            if (wojakManager) {
+                wojakManager.setBaseImage('wojaks/red-suit-wojak.png', true);
+            }
+            jsConfetti.addConfetti({ emojis: ['💎', '📀'], confettiNumber: 40, emojiSize: 40, });
         }
-        jsConfetti.addConfetti({ emojis: ['💎', '📀'], confettiNumber: 40, emojiSize: 40, });
-    }
-    if (netWorth >= 1000000000000 && !isTrillionaire) {
-        isTrillionaire = true;
-        if (wojakManager) {
-            wojakManager.setBaseImage('wojaks/purple-suit-wojak.png', true);
+        if (netWorth >= 1000000000000 && !isTrillionaire) {
+            isTrillionaire = true;
+            if (wojakManager) {
+                wojakManager.setBaseImage('wojaks/purple-suit-wojak.png', true);
+            }
+            jsConfetti.addConfetti({ emojis: ['🌌', '🥇', '🔮'], confettiNumber: 100, emojiSize: 30, });
+            setTimeout(() => { jsConfetti.addConfetti({ emojis: ['🌌', '🥇', '🔮'], confettiNumber: 100, emojiSize: 30, }); }, 1000);
+            setTimeout(() => { jsConfetti.addConfetti({ emojis: ['🌌', '🥇', '🔮'], confettiNumber: 100, emojiSize: 30, }); }, 2000);
         }
-        jsConfetti.addConfetti({ emojis: ['🌌', '🥇', '🔮'], confettiNumber: 100, emojiSize: 30, });
-        setTimeout(() => { jsConfetti.addConfetti({ emojis: ['🌌', '🥇', '🔮'], confettiNumber: 100, emojiSize: 30, }); }, 1000);
-        setTimeout(() => { jsConfetti.addConfetti({ emojis: ['🌌', '🥇', '🔮'], confettiNumber: 100, emojiSize: 30, }); }, 2000);
     }
 
     if (netWorth >= 5000000) {
