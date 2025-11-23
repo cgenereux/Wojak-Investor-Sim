@@ -22,6 +22,7 @@ const PORT = process.env.PORT || 4000;
 const ANNUAL_INTEREST_RATE = 0.07;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const GAME_END_YEAR = 2050;
+const MAX_CONNECTIONS = Number(process.env.MAX_CONNECTIONS || 50);
 
 const app = fastify({ logger: false });
 
@@ -68,6 +69,14 @@ const SESSION_CLEANUP_DELAY_MS = 60_000;
 const SESSION_IDLE_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes without player commands
 const SESSION_CLIENT_IDLE_MS = 2 * 60 * 1000; // Kill if no clients for this long
 const SESSION_IDLE_CHECK_MS = 1000; // how often to check client idleness
+
+function getTotalClientCount() {
+  let total = 0;
+  sessions.forEach(session => {
+    total += session.clients.size || 0;
+  });
+  return total;
+}
 
 function createPlayer(id) {
   return {
@@ -706,6 +715,13 @@ server.on('upgrade', (req, socket, head) => {
 });
 
 wss.on('connection', async (ws, req, url) => {
+  if (getTotalClientCount() >= MAX_CONNECTIONS) {
+    try {
+      ws.send(JSON.stringify({ type: 'error', error: 'server_full' }));
+      ws.close(4009, 'server_full');
+    } catch (err) { /* ignore */ }
+    return;
+  }
   const sessionId = url.searchParams.get('session') || 'default';
   const requestedPlayerId = url.searchParams.get('player') || null;
   const role = url.searchParams.get('role') === 'host' ? 'host' : 'guest';

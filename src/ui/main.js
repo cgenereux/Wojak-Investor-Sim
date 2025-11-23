@@ -465,6 +465,14 @@ async function connectWebSocket() {
             setConnectionStatus('Name taken. Pick another name.', 'error');
             return;
         }
+        if (evt.code === 4009) {
+            setConnectionStatus('Server full. Try again later.', 'error');
+            manualDisconnect = true;
+            isServerAuthoritative = false;
+            if (wsHeartbeat) { clearInterval(wsHeartbeat); wsHeartbeat = null; }
+            ws = null;
+            return;
+        }
         if (evt.code === 4006) {
             if (mpNameError) {
                 mpNameError.textContent = `Invalid name (max ${MAX_NAME_LENGTH} chars)`;
@@ -550,6 +558,14 @@ function handleServerMessage(msg) {
             manualDisconnect = true;
             isServerAuthoritative = false;
             setConnectionStatus('Invalid name', 'error');
+            if (ws) {
+                try { ws.close(); } catch (err) { /* ignore */ }
+            }
+        }
+        if (msg.error === 'server_full') {
+            setConnectionStatus('Server full. Try again later.', 'error');
+            manualDisconnect = true;
+            isServerAuthoritative = false;
             if (ws) {
                 try { ws.close(); } catch (err) { /* ignore */ }
             }
