@@ -3388,17 +3388,16 @@ async function init() {
                     ? (dsRef.borderColor[0] || '#0f172a')
                     : (dsRef?.borderColor || '#0f172a');
                 const label = dsRef?.label || 'Player';
-                const avatarSrc = getPlayerAvatarSrc(label);
-                const marker = avatarSrc
+                const avatarSrc = isServerAuthoritative ? getPlayerAvatarSrc(label) : null;
+                const marker = !isServerAuthoritative ? '' : (avatarSrc
                     ? `<img src="${avatarSrc}" alt="${label}" style="width:18px; height:18px; border-radius:50%; object-fit:cover; display:inline-block;" />`
-                    : `<span style="width:10px; height:10px; border-radius:50%; background:${color}; display:inline-block;"></span>`;
-                return `
-                    <div style="display:flex; align-items:center; gap:8px; color:#0f172a; margin-top:4px;">
-                        ${marker}
-                        <span style="flex:1; font-weight:600;">${label}:</span>
-                        <span style="font-weight:700; color:${color};">${valueStr}</span>
-                    </div>
-                `;
+                    : `<span style="width:10px; height:10px; border-radius:50%; background:${color}; display:inline-block;"></span>`);
+                const rowParts = marker ? [marker] : [];
+                rowParts.push(
+                    `<span style="flex:1; font-weight:600;">${label}:</span>`,
+                    `<span style="font-weight:700; color:${color};">${valueStr}</span>`
+                );
+                return `<div style="display:flex; align-items:center; gap:8px; color:#0f172a; margin-top:4px;">${rowParts.join('')}</div>`;
             }).join('');
 
             const innerHtml = `
