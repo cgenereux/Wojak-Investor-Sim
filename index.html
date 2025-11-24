@@ -139,11 +139,11 @@
 
         <!-- Detail View -->
         <div id="detail-view" class="view">
-                <div class="detail-header">
-                    <div class="detail-header-left">
-                        <div class="detail-title-row">
-                            <h2 id="detailCompanyName" class="detail-title">Company Name</h2>
-                            <span id="detailCompanyLocationBadge" class="detail-location"></span>
+            <div class="detail-header">
+                <div class="detail-header-left">
+                    <div class="detail-title-row">
+                        <h2 id="detailCompanyName" class="detail-title">Company Name</h2>
+                        <span id="detailCompanyLocationBadge" class="detail-location"></span>
                         </div>
                         <p id="detailCompanySector" class="detail-sector">Sector</p>
                         <div class="detail-meta">
@@ -190,7 +190,12 @@
         <div id="vc-view" class="view">
             <div class="detail-header">
                 <div>
-                    <h2 class="detail-title">Venture Capital</h2>
+                    <div class="detail-title-row">
+                        <h2 class="detail-title" id="vcDetailCompanyName">Venture Capital</h2>
+                        <span id="vcDetailLocation" class="detail-location"></span>
+                    </div>
+                    <p id="vcDetailMission" class="detail-mission"></p>
+                    <div id="vcDetailFounders" class="detail-founders"></div>
                 </div>
                 <button id="back-to-main-btn">← Back to Market</button>
             </div>
@@ -210,9 +215,14 @@
         <div id="vc-detail-view" class="view">
             <div class="detail-header">
                 <div>
-                    <h2 id="vcDetailCompanyName" class="detail-title">Company Name</h2>
+                    <div class="detail-title-row">
+                        <h2 id="vcDetailCompanyName" class="detail-title">Company Name</h2>
+                        <span id="vcDetailLocation" class="detail-location"></span>
+                    </div>
                     <p id="vcDetailCompanySector" class="detail-sector">Sector</p>
                     <p id="vcDetailFundingRound" class="detail-sector detail-subtext">Stage</p>
+                    <p id="vcDetailMission" class="detail-mission"></p>
+                    <div id="vcDetailFounders" class="detail-founders"></div>
                 </div>
                 <button id="back-to-vc-list-btn">← Back to VC Market</button>
             </div>

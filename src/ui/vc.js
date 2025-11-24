@@ -4,6 +4,9 @@ const vcDetailSectorEl = document.getElementById('vcDetailCompanySector');
 const vcDetailFundingEl = document.getElementById('vcDetailFundingRound');
 const vcDetailStatusEl = document.getElementById('vcDetailStatus');
 const vcDetailDescriptionEl = document.getElementById('vcDetailDescription');
+const vcDetailMissionEl = document.getElementById('vcDetailMission');
+const vcDetailFoundersEl = document.getElementById('vcDetailFounders');
+const vcDetailLocationEl = document.getElementById('vcDetailLocation');
 const vcDetailRoundInfoEl = document.getElementById('vcDetailRoundInfo');
 const vcDetailSuccessChanceEl = document.getElementById('vcDetailSuccessChance');
 const vcDetailTimerEl = document.getElementById('vcDetailTimer');
@@ -279,6 +282,32 @@ function updateVentureDetail(companyId) {
     vcDetailSectorEl.textContent = detail.sector || 'Sector unavailable';
     vcDetailFundingEl.textContent = `Stage: ${detail.stageLabel}`;
     vcDetailStatusEl.textContent = `Status: ${detail.status}`;
+
+    const mission = (detail.mission || detail.description || '').trim();
+    const founders = Array.isArray(detail.founders) ? detail.founders : [];
+    const founderNames = founders.map(f => f && f.name).filter(Boolean);
+    const foundingLocation = (detail.founding_location || detail.foundingLocation || '').trim();
+    if (vcDetailMissionEl) {
+        vcDetailMissionEl.textContent = mission;
+        vcDetailMissionEl.style.display = mission ? 'block' : 'none';
+    }
+    if (vcDetailFoundersEl) {
+        vcDetailFoundersEl.innerHTML = '';
+        if (founderNames.length) {
+            let html = '<div class="detail-founders-label">Founders:</div>';
+            founderNames.forEach(name => {
+                html += `<div class="detail-founder-name">${name}</div>`;
+            });
+            vcDetailFoundersEl.innerHTML = html;
+            vcDetailFoundersEl.style.display = 'flex';
+        } else {
+            vcDetailFoundersEl.style.display = 'none';
+        }
+    }
+    if (vcDetailLocationEl) {
+        vcDetailLocationEl.textContent = foundingLocation || '';
+        vcDetailLocationEl.style.display = foundingLocation ? 'inline-flex' : 'none';
+    }
 
     const valuation = detail.valuation || 0;
     vcDetailDescriptionEl.textContent = detail.description || 'No description provided yet.';
