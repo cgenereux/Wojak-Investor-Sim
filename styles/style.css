@@ -428,7 +428,9 @@ button.speed-active {
 #speedSlider {
     width: 190px;
     margin: 0;
-    accent-color: #00c742;
+    background: transparent;
+    appearance: none;
+    -webkit-appearance: none;
 }
 
 #speedSlider::-webkit-slider-runnable-track {
@@ -446,13 +448,24 @@ button.speed-active {
 }
 
 #speedSlider::-webkit-slider-thumb {
-    background: #0a7a32;
-    border: 1px solid #0a7a32;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 17px;  /* ~25% larger for WebKit (Chrome/Edge/Safari) */
+    height: 17px;
+    margin-top: -4.5px; /* centers thumb on 8px track */
+    border-radius: 50%;
+    background: #097a32;
+    border: 2px solid #097a32;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
 }
 
 #speedSlider::-moz-range-thumb {
-    background: #0a7a32;
-    border: 1px solid #0a7a32;
+    width: 11.22px;  /* ~2% larger than previous Firefox size */
+    height: 11.22px;
+    border-radius: 50%;
+    background: #097a32;
+    border: 2px solid #097a32;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
 }
 
 #speedThumbLabel {
@@ -466,6 +479,12 @@ button.speed-active {
     pointer-events: none;
     user-select: none;
     white-space: nowrap;
+}
+
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+    #speedThumbLabel {
+        top: -22px; /* raise label a bit more for WebKit browsers (Chrome/Edge/Safari) */
+    }
 }
 
 button.speed-active:hover {

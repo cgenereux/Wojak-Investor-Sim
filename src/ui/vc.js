@@ -78,47 +78,6 @@ function renderVentureCompanies(companiesData, formatLargeNumber, formatCurrency
             </div>
         `;
 
-        const quickLeadBtn = document.createElement('button');
-        quickLeadBtn.classList.add('vc-quick-lead-btn', 'buy-btn');
-        const playerCommitted = !!company.playerCommitted;
-        const canLead = company.status === 'Raising' && !playerCommitted;
-        const isIpoPending = company.status === 'IPO Ready';
-        quickLeadBtn.classList.remove('positive');
-        quickLeadBtn.classList.remove('vc-disabled');
-        quickLeadBtn.disabled = !canLead;
-        quickLeadBtn.classList.toggle('vc-disabled', !canLead);
-        let quickLeadLabel;
-        if (playerCommitted) {
-            quickLeadLabel = 'Round Led';
-        } else if (canLead) {
-            quickLeadLabel = 'Lead Round';
-        } else if (isIpoPending) {
-            quickLeadLabel = 'IPO Pending';
-        } else {
-            quickLeadLabel = 'Not Raising';
-        }
-        quickLeadBtn.textContent = quickLeadLabel;
-        quickLeadBtn.addEventListener('click', (event) => {
-            event.stopPropagation();
-            ensureVentureReady();
-            if (typeof leadVentureRound !== 'function') return;
-            const result = leadVentureRound(company.id);
-            if (result && result.success) {
-                quickLeadBtn.textContent = 'Round Led';
-                quickLeadBtn.disabled = true;
-                quickLeadBtn.classList.remove('positive');
-                quickLeadBtn.classList.add('vc-disabled');
-            }
-            if (typeof refreshVentureCompaniesList === 'function') {
-                refreshVentureCompaniesList();
-            }
-            if (typeof refreshVentureDetailView === 'function') {
-                refreshVentureDetailView();
-            }
-        });
-
-        companyDiv.appendChild(quickLeadBtn);
-
         companyDiv.addEventListener('click', () => showVentureCompanyDetail(company.id));
         ventureCompaniesGrid.appendChild(companyDiv);
     });
