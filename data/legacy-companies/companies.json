@@ -4,6 +4,7 @@
         "static": {
             "name": "SmartMart",
             "sector": "Retail",
+            "founding_location": "Bentonville, AR",
             "founders": [
                 {
                     "name": "Linda Harris",
@@ -50,6 +51,7 @@
         "static": {
             "name": "SiliconWave Microsystems",
             "sector": "Semiconductor",
+            "founding_location": "Santa Clara, CA",
             "founders": [
                 {
                     "name": "Joe Ryan",
@@ -96,6 +98,7 @@
         "static": {
             "name": "American Real Estate",
             "sector": "Real Estate",
+            "founding_location": "New York, NY",
             "founders": [
                 {
                     "name": "Teddy Backus",
@@ -143,6 +146,7 @@
         "static": {
             "name": "StellarRise Space Systems",
             "sector": "Aerospace",
+            "founding_location": "Hawthorne, CA",
             "founders": [
                 {
                     "name": "Simon Xavier III",

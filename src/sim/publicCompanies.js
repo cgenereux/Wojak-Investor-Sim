@@ -208,6 +208,9 @@
       this.id = cfg.id;
       this.name = (cfg.static && cfg.static.name) || 'Company';
       this.sector = (cfg.static && cfg.static.sector) || 'General';
+      this.founders = Array.isArray(cfg.static?.founders) ? cfg.static.founders.map(f => ({ ...f })) : (Array.isArray(cfg.founders) ? cfg.founders.map(f => ({ ...f })) : []);
+      this.mission = (cfg.static && cfg.static.mission) || cfg.mission || '';
+      this.foundingLocation = (cfg.static && (cfg.static.founding_location || cfg.static.foundingLocation)) || cfg.founding_location || cfg.foundingLocation || '';
       this.ipoDate = ipoDate;
       this.fromVenture = !!cfg.fromVenture;
       this.macroEnv = macroEnv;
@@ -248,6 +251,15 @@
         this.displayCap = snapshot.displayCap;
       } else if (typeof this.marketCap === 'number') {
         this.displayCap = this.marketCap;
+      }
+      if (Array.isArray(snapshot.founders)) {
+        this.founders = snapshot.founders.map(f => ({ ...f }));
+      }
+      if (typeof snapshot.mission === 'string') {
+        this.mission = snapshot.mission;
+      }
+      if (snapshot.founding_location || snapshot.foundingLocation) {
+        this.foundingLocation = snapshot.founding_location || snapshot.foundingLocation;
       }
 
       // Sync history arrays if provided

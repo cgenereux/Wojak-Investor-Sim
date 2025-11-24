@@ -115,7 +115,7 @@ Multiplayer stays on hold until the single-player loop, presets, and balance pol
 7. Quarterly YoY Charts: Prototype an optional quarterly YoY revenue/profit chart so players can swap between tabular data and a visual trend.
 8. Preset-First Companies (Long Term): Continue migrating every legacy entry onto curated preset definitions so balancing stays centralized.
 9. Era Depth & Product Catalogs (Long Term): Author many more companies/startups across 1990‑2050 plus deeper product libraries so each era feels distinct and varied.
-10. Macro Event System: Introduce headline macro shocks (pandemics, QE waves, financial crises, Bogdanov-style manipulation) that temporarily alter earnings/macro indices across many companies at once to keep late-game runs spicy.
+10. Macro Event Polish: Polish & test & improve macroevents
 11. Malding Wojak Polish: Track a few outstanding edge cases (post-milestone overrides, deep drawdowns) and tighten the revert logic so avatars always swap back at the right time; fixes are noted but still pending.
 12. Currently bankrupt companies stay in your portfolio forever -- should fix.
 13. rn when u hit a $0 nw without leverage u dont go bankrupt -- should fix.
@@ -142,6 +142,7 @@ Multiplayer stays on hold until the single-player loop, presets, and balance pol
 34. Adjust the time slider to a 0.25x–3x range
 35. Maybe add a pause/start button beside the time slider
 36. Fix broken PostHog analytics events
+37. All js alerts should be 2nd thought about -- because they are pretty annoying
 
 ---
 

@@ -41,19 +41,25 @@
       "name": "Nova Devices",
       "sector": "Tech",
       "ipo_window": { "from": 1989, "to": 1993 },
-      "founders": [{ "name": "R. Flores" }, { "name": "L. Tan" }]
+      "founders": [{ "name": "R. Flores" }, { "name": "L. Tan" }],
+      "mission": "Shipping category-defining consumer gadgets every few years.",
+      "founding_location": "Austin, TX"
     },
     {
       "name": "Helio Systems",
       "sector": "Tech",
       "ipo_window": { "from": 1990, "to": 1996 },
-      "founders": [{ "name": "S. Kim" }, { "name": "A. Duarte" }]
+      "founders": [{ "name": "S. Kim" }, { "name": "A. Duarte" }],
+      "mission": "Building resilient solar hardware and storage for emerging markets.",
+      "founding_location": "Denver, CO"
     },
     {
       "name": "Vector Labs",
       "sector": "Industrial",
       "ipo_window": { "from": 1991, "to": 1997 },
-      "founders": [{ "name": "M. Nwosu" }, { "name": "C. Patel" }]
+      "founders": [{ "name": "M. Nwosu" }, { "name": "C. Patel" }],
+      "mission": "Designing industrial automation systems for next-gen factories.",
+      "founding_location": "Detroit, MI"
     }
   ]
 }

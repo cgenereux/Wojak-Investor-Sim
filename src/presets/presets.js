@@ -100,6 +100,8 @@
         return basePickRange(range, fallbackMin, fallbackMax, randBetweenFn);
     }
 
+    // Mission strings should be present-participle (e.g., "Building...", not "Build...").
+
     function clonePipelineTemplate(template = [], scale = 1, prefix = '') {
         return template.map(entry => ({
             id: prefix ? `${prefix}_${entry.id}` : entry.id,
@@ -145,6 +147,8 @@
                     name,
                     sector: defaults.sector || 'Biotech',
                     founders,
+                    mission: entry.mission || defaults.mission || '',
+                    founding_location: entry.founding_location || defaults.founding_location || '',
                     ipo_window: entry.ipo_window || { from: ipoYear, to: ipoYear },
                     ipo_instantly: true
                 },
@@ -209,6 +213,8 @@
                     name,
                     sector: entry.sector || 'Retail',
                     founders,
+                    mission: entry.mission || defaults.mission || '',
+                    founding_location: entry.founding_location || defaults.founding_location || '',
                     ipo_window: ipoRange,
                     ipo_instantly: true
                 },
@@ -261,6 +267,9 @@
                 name: entry.name || `Hypergrowth ${idx + 1}`,
                 sector: entry.sector || defaults.sector || 'Web',
                 description: entry.description || defaults.description || 'Hypergrowth preset',
+                founders: Array.isArray(entry.founders) ? entry.founders.map(f => ({ ...f })) : (Array.isArray(defaults.founders) ? defaults.founders.map(f => ({ ...f })) : []),
+                mission: entry.mission || defaults.mission || '',
+                founding_location: entry.founding_location || defaults.founding_location || '',
                 valuation_usd: valuation,
                 funding_round: entry.funding_round || defaults.funding_round || 'Seed',
                 ipo_stage: entry.ipo_stage || defaults.ipo_stage || 'series_f',
@@ -326,6 +335,8 @@
                     name,
                     sector: entry.sector || defaults.sector || 'Tech',
                     founders: (entry.founders || []).map(f => ({ ...f })),
+                    mission: entry.mission || defaults.mission || '',
+                    founding_location: entry.founding_location || defaults.founding_location || '',
                     ipo_window: ipoRange,
                     ipo_instantly: true
                 },
@@ -373,21 +384,30 @@
             sector: 'Energy',
             description: 'Building compact fusion cores for terrestrial grids.',
             funding_round: 'Series B',
-            gate_stage: 'series_f'
+            gate_stage: 'series_f',
+            founders: [{ name: 'E. Rahman' }, { name: 'J. Cooper' }],
+            mission: 'Delivering compact fusion cores that drop into existing grids.',
+            founding_location: 'Austin, TX'
         },
         {
             name: 'Odin Launch Systems',
             sector: 'Aerospace',
             description: 'Reusable heavy-lift platform for deep space industry.',
             funding_round: 'Series C',
-            gate_stage: 'series_f'
+            gate_stage: 'series_f',
+            founders: [{ name: 'H. Svensson' }, { name: 'P. Li' }],
+            mission: 'Making heavy-lift launches routine for deep-space infrastructure.',
+            founding_location: 'Long Beach, CA'
         },
         {
             name: 'NeuraForge Interfaces',
             sector: 'BioTech',
             description: 'High-bandwidth BMI hardware for clinical and defense.',
             funding_round: 'Series B',
-            gate_stage: 'series_e'
+            gate_stage: 'series_e',
+            founders: [{ name: 'C. Alvarez' }, { name: 'R. Yoon' }],
+            mission: 'Building reliable high-bandwidth brain-computer interfaces.',
+            founding_location: 'Seattle, WA'
         }
     ];
 
@@ -461,6 +481,9 @@
                 name: entry.name,
                 sector: entry.sector || 'Deep Tech',
                 description: entry.description || 'Binary hard-tech preset (private)',
+                founders: Array.isArray(entry.founders) ? entry.founders.map(f => ({ ...f })) : [],
+                mission: entry.mission || '',
+                founding_location: entry.founding_location || '',
                 valuation_usd: valuation,
                 funding_round: entry.funding_round || 'Series B',
                 ipo_stage: 'pre_ipo',

@@ -147,6 +147,9 @@
       static: {
         name: cfg.name || 'Venture Spinout',
         sector: cfg.sector || 'Private',
+        founders: Array.isArray(cfg.founders) ? cfg.founders.map(f => ({ ...f })) : [],
+        mission: cfg.mission || '',
+        founding_location: cfg.founding_location || cfg.foundingLocation || '',
         ipo_window: { from: startYear, to: startYear },
         ipo_instantly: true,
         fromVenture: true
@@ -170,6 +173,9 @@
       this.fromVenture = true;
 
       this.description = config.description || '';
+      this.founders = Array.isArray(config.founders) ? config.founders.map(f => ({ ...f })) : [];
+      this.mission = config.mission || '';
+      this.foundingLocation = config.founding_location || config.foundingLocation || '';
       this.archetype = config.archetype || 'hypergrowth';
       this.roundDefinitions = resolveRoundDefinitions(config.rounds);
       const startingStageId = normalizeStageId(config.funding_round || 'seed');

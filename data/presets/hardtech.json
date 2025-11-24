@@ -7,6 +7,8 @@
         { "name": "Dr. Sahana Patel", "degree": "PhD", "school": "MIT" },
         { "name": "Dr. Kai Nakamura", "degree": "PhD", "school": "Tokyo University" }
       ],
+      "mission": "Developing modular gene therapies that scale to mainstream patients.",
+      "founding_location": "Cambridge, MA",
       "ipo_window": { "from": 1990, "to": 1991 }
     },
     {
@@ -15,6 +17,8 @@
         { "name": "Dr. Elise Carver", "degree": "MD", "school": "Johns Hopkins" },
         { "name": "Dr. Malik Hassan", "degree": "PhD", "school": "Oxford" }
       ],
+      "mission": "Advancing neuroimmune therapies for chronic neurodegeneration.",
+      "founding_location": "Baltimore, MD",
       "ipo_window": { "from": 1991, "to": 1992 }
     },
     {
@@ -23,6 +27,8 @@
         { "name": "Dr. Lucia Romero", "degree": "PhD", "school": "Stanford" },
         { "name": "Dr. Noah Bernstein", "degree": "MD", "school": "Harvard" }
       ],
+      "mission": "Delivering precision oncology diagnostics and targeted biologics globally.",
+      "founding_location": "San Diego, CA",
       "ipo_window": { "from": 1992, "to": 1993 }
     }
   ],

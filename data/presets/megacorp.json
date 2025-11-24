@@ -6,6 +6,8 @@
         { "name": "Linda Harris", "degree": "MBA", "school": "Harvard" }
       ],
       "sector": "Retail",
+      "mission": "Modernizing retail supply chains with smart checkout and logistics automation.",
+      "founding_location": "Bentonville, AR",
       "ipo_window": { "from": 1979, "to": 1981 }
     },
     {
@@ -14,6 +16,8 @@
         { "name": "Marco Viteri", "degree": "MBA", "school": "Columbia" }
       ],
       "sector": "Consumer Staples",
+      "mission": "Reinventing urban convenience formats with data-driven assortments.",
+      "founding_location": "New York, NY",
       "ipo_window": { "from": 1981, "to": 1983 }
     },
     {
@@ -22,6 +26,8 @@
         { "name": "Sandra Osei", "degree": "MBA", "school": "Wharton" }
       ],
       "sector": "Retail",
+      "mission": "Building the logistics backbone for omnichannel retail worldwide.",
+      "founding_location": "Seattle, WA",
       "ipo_window": { "from": 1980, "to": 1982 }
     }
   ],

@@ -53,6 +53,9 @@ const playerLeaderboardEl = document.getElementById('playerLeaderboard');
 const connectedPlayersEl = document.getElementById('connectedPlayers');
 const connectedPlayersSessionEl = document.getElementById('connectedPlayersSession');
 const mpJoinError = document.getElementById('mpJoinError');
+const detailCompanyMission = document.getElementById('detailCompanyMission');
+const detailCompanyFounders = document.getElementById('detailCompanyFounders');
+const detailCompanyLocation = document.getElementById('detailCompanyLocation');
 let storedPlayerName = null;
 let selectedCharacter = null;
 
@@ -2607,11 +2610,51 @@ function updateInvestmentPanel(company) {
     }
 }
 
+function renderCompanyMeta(company) {
+    const founders = Array.isArray(company?.founders)
+        ? company.founders
+        : (Array.isArray(company?.static?.founders) ? company.static.founders : []);
+    const mission = (company?.mission || company?.static?.mission || company?.description || '').trim();
+    const foundingLocation = (company?.foundingLocation || company?.founding_location || company?.static?.founding_location || '').trim();
+    const founderNames = founders.map(f => f && f.name).filter(Boolean);
+
+    console.log('renderCompanyMeta:', { company: company.name, foundingLocation, hasStatic: !!company.static });
+
+    if (detailCompanyMission) {
+        detailCompanyMission.textContent = mission;
+        detailCompanyMission.style.display = mission ? 'block' : 'none';
+    }
+    if (detailCompanyFounders) {
+        if (founderNames.length > 0) {
+            let html = '<div class="detail-founders-label">Founders:</div>';
+            founderNames.forEach(name => {
+                html += `<div class="detail-founder-name">${name}</div>`;
+            });
+            detailCompanyFounders.innerHTML = html;
+            detailCompanyFounders.style.display = 'flex';
+        } else {
+            detailCompanyFounders.innerHTML = '';
+            detailCompanyFounders.style.display = 'none';
+        }
+    }
+    if (detailCompanyLocation) {
+        detailCompanyLocation.textContent = foundingLocation ? `<${foundingLocation}>` : '';
+        detailCompanyLocation.style.display = foundingLocation ? 'inline' : 'none';
+        console.log('Location element updated:', detailCompanyLocation.textContent);
+    }
+    const metaContainer = detailCompanyMission ? detailCompanyMission.parentElement : null;
+    if (metaContainer) {
+        const hasMeta = !!(mission || founderNames.length > 0 || foundingLocation);
+        metaContainer.style.display = hasMeta ? 'block' : 'none';
+    }
+}
+
 function showCompanyDetail(company) {
     activeCompanyDetail = company;
     bodyEl.classList.add('detail-active');
     document.getElementById('detailCompanyName').textContent = company.name;
     document.getElementById('detailCompanySector').textContent = company.bankrupt ? 'Status: Bankrupt' : company.sector;
+    renderCompanyMeta(company);
     updateInvestmentPanel(company);
     const ctx = document.getElementById('companyDetailChart').getContext('2d');
     if (companyDetailChart) { companyDetailChart.destroy(); }

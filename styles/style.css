@@ -655,8 +655,14 @@ button.speed-active:hover {
 .detail-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 20px;
+}
+
+.detail-header-right {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
 }
 
 .detail-title {
@@ -673,6 +679,34 @@ button.speed-active:hover {
     font-size: 16px;
     color: #777;
     margin-top: 4px;
+}
+
+.detail-meta {
+    margin-top: 8px;
+}
+
+.detail-mission {
+    margin: 4px 0;
+    color: #374151;
+    font-size: 15px;
+}
+
+.detail-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.detail-pill {
+    background: #eef2ff;
+    color: #1f2937;
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 13px;
+    line-height: 1.4;
+    display: inline-flex;
+    align-items: center;
 }
 
 #back-btn {
@@ -1600,4 +1634,30 @@ button.speed-active:hover {
 .character-option--zoomer img {
     max-width: 100%;
     max-height: 100%;
+}
+
+.detail-location {
+    font-size: 18px;
+    color: #888;
+    font-weight: 400;
+}
+
+.detail-founders {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+    font-size: 14px;
+    color: #333;
+    margin-top: 10px;
+}
+
+.detail-founders-label {
+    font-weight: 600;
+    margin-bottom: 2px;
+    color: #555;
+}
+
+.detail-founder-name {
+    margin-bottom: 2px;
 }
