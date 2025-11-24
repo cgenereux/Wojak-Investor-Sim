@@ -61,6 +61,9 @@ const detailCompanyMission = document.getElementById('detailCompanyMission');
 const detailCompanyFounders = document.getElementById('detailCompanyFounders');
 const detailCompanyLocation = document.getElementById('detailCompanyLocation');
 const detailCompanyLocationBadge = document.getElementById('detailCompanyLocationBadge');
+const bankruptcyPopup = document.getElementById('bankruptcyPopup');
+const bankruptcyPlayAgainBtn = document.getElementById('bankruptcyPlayAgainBtn');
+const bankruptcyCloseBtn = document.getElementById('bankruptcyCloseBtn');
 let storedPlayerName = null;
 let selectedCharacter = null;
 
@@ -1407,8 +1410,16 @@ function endGame(reason) {
         match_id: matchId,
         player_id: clientPlayerId || null
     });
-    showToast(`${message} Final Net Worth: ${currencyFormatter.format(netWorth)}`, { tone: 'info', duration: 7000 });
-    if (confirm("Play again?")) { location.reload(); }
+
+    if (reason === "bankrupt") {
+        // Show custom bankruptcy popup
+        if (bankruptcyPopup) {
+            bankruptcyPopup.classList.add('show');
+        }
+    } else {
+        showToast(`${message} Final Net Worth: ${currencyFormatter.format(netWorth)}`, { tone: 'info', duration: 7000 });
+        if (confirm("Play again?")) { location.reload(); }
+    }
 }
 
 function gameLoop() {
@@ -2176,6 +2187,20 @@ companiesGrid.addEventListener('click', (event) => {
 backBtn.addEventListener('click', hideCompanyDetail);
 buyBtn.addEventListener('click', () => { if (activeCompanyDetail) buy(activeCompanyDetail.name, investmentAmountInput.value); });
 sellBtn.addEventListener('click', () => { if (activeCompanyDetail) sell(activeCompanyDetail.name, investmentAmountInput.value); });
+
+// Bankruptcy popup
+if (bankruptcyPlayAgainBtn) {
+    bankruptcyPlayAgainBtn.addEventListener('click', () => {
+        location.reload();
+    });
+}
+if (bankruptcyCloseBtn) {
+    bankruptcyCloseBtn.addEventListener('click', () => {
+        if (bankruptcyPopup) {
+            bankruptcyPopup.classList.remove('show');
+        }
+    });
+}
 
 // Buy Max: buy as much as possible with available cash
 buyMaxBtn.addEventListener('click', () => {
