@@ -22,6 +22,9 @@
     imageElement.src = baseSrc;
 
     function setImage(path) {
+      if (imageElement && imageElement.classList) {
+        imageElement.classList.toggle('is-malding', path === maldingSrc);
+      }
       imageElement.src = path;
     }
 

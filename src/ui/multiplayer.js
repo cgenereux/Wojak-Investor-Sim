@@ -1,4 +1,11 @@
 (function (global) {
+    const notify = (msg, tone = 'info') => {
+        if (global.showToast) {
+            global.showToast(msg, { tone, duration: tone === 'error' ? 6000 : 4000 });
+        } else {
+            alert(msg);
+        }
+    };
     // Multiplayer and character-selection helpers extracted from main.js
     function ensureConnectionBanner() {
         // Banner removed by user request
@@ -267,7 +274,7 @@
     function handleServerMessage(msg) {
         if (!msg || typeof msg !== 'object') return;
         if (msg.type === 'idle_warning') {
-            alert(msg.message || 'Session idle, closing soon.');
+            notify(msg.message || 'Session idle, closing soon.', 'warn');
             return;
         }
         if (msg.type === 'error') {
@@ -424,7 +431,7 @@
                         startPartyBtn.textContent = 'Start Game';
                     }
                     if (msg.error === 'not_host') {
-                        alert('Only the host can start the match.');
+                        notify('Only the host can start the match.', 'error');
                     } else if (msg.error === 'unknown_command') {
                         // Fallback: assume server auto-starts; mark as started locally and resync
                         matchStarted = true;
@@ -435,7 +442,7 @@
                         sendCommand({ type: 'resync' });
                         hideMultiplayerModal();
                     } else {
-                        alert('Failed to start game.');
+                        notify('Failed to start game.', 'error');
                     }
                 }
             }
@@ -488,7 +495,7 @@
             }
             setConnectionStatus('Session ended', 'error');
             setBannerButtonsVisible(false);
-            alert(`Game ended (${msg.reason || 'session end'}). Final year: ${msg.year || ''}`);
+            notify(`Game ended (${msg.reason || 'session end'}). Final year: ${msg.year || ''}`, 'warn');
             resetCharacterToDefault();
             setTimeout(() => window.location.reload(), 300);
             return;

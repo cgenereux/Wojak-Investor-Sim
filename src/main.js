@@ -77,6 +77,46 @@ function resetDecadeTracking() {
     emittedDecadeKeys.clear();
 }
 
+const DEFAULT_TOAST_DURATION = 4500;
+function showToast(message, options = {}) {
+    const { tone = 'info', duration = DEFAULT_TOAST_DURATION } = options;
+    const msg = typeof message === 'string' ? message : String(message || '');
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+    const toastEl = document.createElement('div');
+    toastEl.className = `toast toast-${tone}`;
+    toastEl.textContent = msg;
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'toast-close';
+    closeBtn.type = 'button';
+    closeBtn.textContent = '×';
+    closeBtn.addEventListener('click', () => {
+        toastEl.classList.add('hide');
+        setTimeout(() => toastEl.remove(), 150);
+    });
+
+    toastEl.appendChild(closeBtn);
+    container.appendChild(toastEl);
+    requestAnimationFrame(() => toastEl.classList.add('show'));
+
+    const ttl = Number.isFinite(duration) ? duration : DEFAULT_TOAST_DURATION;
+    if (ttl > 0) {
+        setTimeout(() => {
+            toastEl.classList.add('hide');
+            setTimeout(() => toastEl.remove(), 200);
+        }, ttl);
+    }
+    window.showToast = showToast;
+    return toastEl;
+}
+window.showToast = showToast;
+
 function maybeTrackDecadeNetWorth(dateLike, players = null) {
     const year = dateLike instanceof Date ? dateLike.getUTCFullYear() : new Date(dateLike).getUTCFullYear();
     if (!Number.isFinite(year)) return;
@@ -826,7 +866,7 @@ async function loadCompaniesData() {
         return new Simulation(filteredCompanies, simOptions);
     } catch (error) {
         console.error("Could not load data:", error);
-        alert("Failed to load game data. Please ensure JSON files are in the same directory and a local server is running.");
+        showToast("Failed to load game data. Please ensure JSON files are in the same directory and a local server is running.", { tone: 'error', duration: 6000 });
         return null;
     }
 }
@@ -1292,13 +1332,13 @@ function getMaxBorrowing() {
 
 function borrow(amount) {
     amount = parseUserAmount(amount);
-    if (isNaN(amount) || amount <= 0) { alert("Please enter a valid amount to borrow."); return; }
+    if (isNaN(amount) || amount <= 0) { showToast("Please enter a valid amount to borrow.", { tone: 'warn' }); return; }
     if (ws && ws.readyState === WebSocket.OPEN) {
         sendCommand({ type: 'borrow', amount });
         return;
     }
     const maxBorrowing = getMaxBorrowing();
-    if (amount > maxBorrowing) { alert(`You can only borrow up to ${currencyFormatter.format(maxBorrowing)}.`); return; }
+    if (amount > maxBorrowing) { showToast(`You can only borrow up to ${currencyFormatter.format(maxBorrowing)}.`, { tone: 'warn' }); return; }
     totalBorrowed += amount;
     cash += amount;
     lastInterestDate = new Date(currentDate); // Reset interest timer on borrow
@@ -1307,13 +1347,13 @@ function borrow(amount) {
 
 function repay(amount) {
     amount = parseUserAmount(amount);
-    if (isNaN(amount) || amount <= 0) { alert("Please enter a valid amount to repay."); return; }
+    if (isNaN(amount) || amount <= 0) { showToast("Please enter a valid amount to repay.", { tone: 'warn' }); return; }
     if (ws && ws.readyState === WebSocket.OPEN) {
         sendCommand({ type: 'repay', amount });
         return;
     }
-    if (amount > totalBorrowed) { alert(`You only owe ${currencyFormatter.format(totalBorrowed)}.`); return; }
-    if (amount > cash) { alert("You don't have enough cash to repay this amount."); return; }
+    if (amount > totalBorrowed) { showToast(`You only owe ${currencyFormatter.format(totalBorrowed)}.`, { tone: 'warn' }); return; }
+    if (amount > cash) { showToast("You don't have enough cash to repay this amount.", { tone: 'warn' }); return; }
     totalBorrowed -= amount;
     cash -= amount;
     lastInterestDate = new Date(currentDate); // Reset interest timer on repay
@@ -1367,7 +1407,7 @@ function endGame(reason) {
         match_id: matchId,
         player_id: clientPlayerId || null
     });
-    alert(`${message}\nFinal Net Worth: ${currencyFormatter.format(netWorth)}`);
+    showToast(`${message} Final Net Worth: ${currencyFormatter.format(netWorth)}`, { tone: 'info', duration: 7000 });
     if (confirm("Play again?")) { location.reload(); }
 }
 
@@ -1477,17 +1517,23 @@ function gameLoop() {
     }
 }
 
-function buy(companyName, amount) {
+function buy(companyName, amount, opts = {}) {
+    const { skipEmptyWarning = false } = opts || {};
     amount = parseUserAmount(amount);
-    if (isNaN(amount) || amount <= 0) { alert("Invalid amount."); return; }
+    if (isNaN(amount) || amount <= 0) {
+        if (!skipEmptyWarning) {
+            showToast("Enter an amount to buy.", { tone: 'warn' });
+        }
+        return;
+    }
     const company = companies.find(c => c.name === companyName);
     if (!company) return;
     if (ws && ws.readyState === WebSocket.OPEN) {
         sendCommand({ type: 'buy', companyId: company.id, amount });
         return;
     }
-    if (amount > cash) { alert("Insufficient cash for this purchase."); return; }
-    if (company.marketCap < 0.0001) { alert("This company's valuation is too low to purchase right now."); return; }
+    if (amount > cash) { return; }
+    if (company.marketCap < 0.0001) { return; }
     cash -= amount;
     const unitsToBuy = amount / company.marketCap;
     let holding = portfolio.find(h => h.companyName === companyName);
@@ -1496,18 +1542,24 @@ function buy(companyName, amount) {
     updateNetWorth(); updateDisplay(); renderPortfolio(); updateInvestmentPanel(company);
 }
 
-function sell(companyName, amount) {
+function sell(companyName, amount, opts = {}) {
+    const { skipEmptyWarning = false } = opts || {};
     amount = parseFloat(amount);
-    if (isNaN(amount) || amount <= 0) { alert("Invalid amount."); return; }
+    if (isNaN(amount) || amount <= 0) {
+        if (!skipEmptyWarning) {
+            showToast("Enter an amount to sell.", { tone: 'warn' });
+        }
+        return;
+    }
     const company = companies.find(c => c.name === companyName);
     const holding = portfolio.find(h => h.companyName === companyName);
-    if (!company || !holding) { alert("You don't own this stock."); return; }
+    if (!company || !holding) { return; }
     if (ws && ws.readyState === WebSocket.OPEN) {
         sendCommand({ type: 'sell', companyId: company.id, amount });
         return;
     }
     const currentValue = company.marketCap * holding.unitsOwned;
-    if (amount > currentValue) { alert("You cannot sell more than you own."); return; }
+    if (amount > currentValue) { return; }
     cash += amount;
     const unitsToSell = (amount / currentValue) * holding.unitsOwned;
     holding.unitsOwned -= unitsToSell;
@@ -2131,9 +2183,9 @@ buyMaxBtn.addEventListener('click', () => {
         const company = activeCompanyDetail;
         if (company.marketCap > 0.0001) {
             const availableCash = (isServerAuthoritative && serverPlayer) ? serverPlayer.cash : cash;
-            buy(company.name, availableCash);
+            buy(company.name, availableCash, { skipEmptyWarning: true });
         } else {
-            alert("This company's valuation is too low to purchase right now.");
+            // Silent ignore: too low valuation
         }
     }
 });
@@ -2144,9 +2196,9 @@ sellMaxBtn.addEventListener('click', () => {
         const holding = portfolio.find(h => h.companyName === company.name);
         if (holding && holding.unitsOwned > 0) {
             const currentValue = company.marketCap * holding.unitsOwned;
-            sell(company.name, currentValue);
+            sell(company.name, currentValue, { skipEmptyWarning: true });
         } else {
-            alert("You don't own any shares of this company.");
+            // Silent ignore: nothing to sell
         }
     }
 });
@@ -2218,7 +2270,7 @@ maxBorrowBtn.addEventListener('click', () => {
     if (max > 0) {
         borrow(max);
     } else {
-        alert("You cannot borrow any more funds right now.");
+        showToast("You cannot borrow any more funds right now.", { tone: 'warn' });
     }
 });
 
@@ -2230,7 +2282,7 @@ maxRepayBtn.addEventListener('click', () => {
     if (amount > 0) {
         repay(amount);
     } else {
-        alert("You have no debt to repay or no cash available.");
+        showToast("You have no debt to repay or no cash available.", { tone: 'warn' });
     }
 });
 
