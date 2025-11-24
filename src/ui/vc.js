@@ -163,7 +163,10 @@ function buildRoundInfo(detail) {
         info += ` Pipeline: ${round.pipelineStage}`;
     }
     let chance = `Success Chance: ${(round.successProb * 100).toFixed(1)}%`;
-    const monthsRemaining = Math.max(0, round.daysRemaining / 30);
+    const daysRemaining = Number.isFinite(round.daysRemaining)
+        ? round.daysRemaining
+        : (Number.isFinite(round.durationDays) ? Math.max(0, round.durationDays - (detail.daysSinceRound || 0)) : 0);
+    const monthsRemaining = Math.max(0, daysRemaining / 30);
     let timer = `Next round in ~${Math.max(0, Math.ceil(monthsRemaining))} months`;
 
     if (detail.status === 'IPO Ready') {

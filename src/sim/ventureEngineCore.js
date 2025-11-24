@@ -989,6 +989,7 @@
           postMoney: round.postMoney,
           equityOffered: round.equityOffered,
           successProb: round.successProb,
+          durationDays: round.durationDays || null,
           daysRemaining,
           playerCommitted: round.playerCommitted,
           playerCommitAmount: round.playerCommitAmount || 0
@@ -1093,7 +1094,8 @@
             postMoney: round.postMoney,
             equityOffered: round.equityOffered,
             successProb: round.successProb,
-            daysRemaining: Math.max(0, round.durationDays - (this.daysSinceRound || 0)),
+            durationDays: Number.isFinite(round.durationDays) ? round.durationDays : null,
+            daysRemaining: Math.max(0, (Number.isFinite(round.durationDays) ? round.durationDays : 0) - (this.daysSinceRound || 0)),
             playerCommitted: !!round.playerCommitted,
             playerCommitAmount: round.playerCommitAmount || 0
           }
