@@ -679,6 +679,7 @@ button.speed-active:hover {
 .detail-sector {
     font-size: 18px;
     color: #555;
+    margin-top: 8px;
 }
 
 .detail-subtext {

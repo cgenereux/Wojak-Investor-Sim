@@ -386,7 +386,7 @@
             description: 'Building compact fusion cores for terrestrial grids.',
             funding_round: 'Series B',
             gate_stage: 'series_f',
-            founders: [{ name: 'E. Rahman' }, { name: 'J. Cooper' }],
+            founders: [{ name: 'Elias Rahman' }, { name: 'Jordan Cooper' }],
             mission: 'Delivering compact fusion cores that drop into existing grids.',
             founding_location: 'Austin, TX'
         },
@@ -396,7 +396,7 @@
             description: 'Reusable heavy-lift platform for deep space industry.',
             funding_round: 'Series C',
             gate_stage: 'series_f',
-            founders: [{ name: 'H. Svensson' }, { name: 'P. Li' }],
+            founders: [{ name: 'Henrik Svensson' }, { name: 'Patricia Li' }],
             mission: 'Making heavy-lift launches routine for deep-space infrastructure.',
             founding_location: 'Long Beach, CA'
         },
@@ -406,7 +406,7 @@
             description: 'High-bandwidth BMI hardware for clinical and defense.',
             funding_round: 'Series B',
             gate_stage: 'series_e',
-            founders: [{ name: 'C. Alvarez' }, { name: 'R. Yoon' }],
+            founders: [{ name: 'Carla Alvarez' }, { name: 'Rachel Yoon' }],
             mission: 'Building reliable high-bandwidth brain-computer interfaces.',
             founding_location: 'Seattle, WA'
         }

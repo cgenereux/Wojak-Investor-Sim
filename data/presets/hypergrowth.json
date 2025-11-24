@@ -9,8 +9,8 @@
       "ipo_stage": "series_f",
       "gate_stage": "series_c",
       "founders": [
-        { "name": "S. Duarte" },
-        { "name": "K. Lin" }
+        { "name": "Sofia Duarte" },
+        { "name": "Kevin Lin" }
       ],
       "mission": "Making the web instant for real-time collaboration.",
       "founding_location": "San Francisco, CA"
@@ -23,8 +23,8 @@
       "ipo_stage": "series_f",
       "gate_stage": "series_c",
       "founders": [
-        { "name": "R. Khalid" },
-        { "name": "A. Ortega" }
+        { "name": "Reema Khalid" },
+        { "name": "Alex Ortega" }
       ],
       "mission": "Connecting local merchants to consumers through social discovery.",
       "founding_location": "New York, NY"
@@ -37,8 +37,8 @@
       "ipo_stage": "series_f",
       "gate_stage": "series_c",
       "founders": [
-        { "name": "M. Ito" },
-        { "name": "J. Rivera" }
+        { "name": "Maya Ito" },
+        { "name": "Julio Rivera" }
       ],
       "mission": "Powering real-time streaming infrastructure for developers.",
       "founding_location": "Seattle, WA"

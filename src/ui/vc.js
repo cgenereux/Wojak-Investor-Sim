@@ -2,24 +2,20 @@ const ventureCompaniesGrid = document.getElementById('ventureCompaniesGrid');
 const vcDetailNameEl = document.getElementById('vcDetailCompanyName');
 const vcDetailSectorEl = document.getElementById('vcDetailCompanySector');
 const vcDetailFundingEl = document.getElementById('vcDetailFundingRound');
-const vcDetailStatusEl = document.getElementById('vcDetailStatus');
-const vcDetailDescriptionEl = document.getElementById('vcDetailDescription');
 const vcDetailMissionEl = document.getElementById('vcDetailMission');
 const vcDetailFoundersEl = document.getElementById('vcDetailFounders');
 const vcDetailLocationEl = document.getElementById('vcDetailLocation');
 const vcDetailRoundInfoEl = document.getElementById('vcDetailRoundInfo');
 const vcDetailSuccessChanceEl = document.getElementById('vcDetailSuccessChance');
 const vcDetailTimerEl = document.getElementById('vcDetailTimer');
-const vcDetailOwnershipEl = document.getElementById('vcDetailOwnership');
-const vcDetailInvestedEl = document.getElementById('vcDetailInvested');
-const vcDetailLastEventEl = document.getElementById('vcDetailLastEvent');
+const vcPipelinePanel = document.getElementById('vcPipelinePanel');
+const vcPipelineContainer = document.getElementById('vcPipelineContainer');
 const vcLeadRoundBtn = document.getElementById('vcLeadRoundBtn');
 const vcLeadRoundNoteEl = document.getElementById('vcLeadRoundNote');
 const backToVcListBtn = document.getElementById('back-to-vc-list-btn');
 const vcDetailChartCanvas = document.getElementById('vcCompanyDetailChart');
 const vcDetailChartCtx = vcDetailChartCanvas ? vcDetailChartCanvas.getContext('2d') : null;
 const vcFinancialHistoryContainer = document.getElementById('vcFinancialHistoryContainer');
-const vcPipelineContainer = document.getElementById('vcPipelineContainer');
 
 let currentVentureCompanyId = null;
 let vcFormatLargeNumber = (value, precision = 2) => {
@@ -279,10 +275,9 @@ function updateVentureDetail(companyId) {
     // }
 
     vcDetailNameEl.textContent = detail.name;
-    vcDetailSectorEl.textContent = detail.sector || 'Sector unavailable';
-    vcDetailFundingEl.textContent = `Stage: ${detail.stageLabel}`;
-    vcDetailStatusEl.textContent = `Status: ${detail.status}`;
-
+    const valuation = detail.valuation || 0;
+    vcDetailSectorEl.textContent = `${detail.sector || 'Unknown'} - ${detail.stageLabel}`;
+    vcDetailFundingEl.style.display = 'none';
     const mission = (detail.mission || detail.description || '').trim();
     const founders = Array.isArray(detail.founders) ? detail.founders : [];
     const founderNames = founders.map(f => f && f.name).filter(Boolean);
@@ -309,24 +304,10 @@ function updateVentureDetail(companyId) {
         vcDetailLocationEl.style.display = foundingLocation ? 'inline-flex' : 'none';
     }
 
-    const valuation = detail.valuation || 0;
-    vcDetailDescriptionEl.textContent = detail.description || 'No description provided yet.';
-
     const roundInfo = buildRoundInfo(detail);
     vcDetailRoundInfoEl.textContent = roundInfo.info;
     vcDetailSuccessChanceEl.textContent = roundInfo.chance;
     vcDetailTimerEl.textContent = roundInfo.timer;
-
-    const ownershipValue = detail.playerEquity ? detail.playerEquity * valuation : 0;
-    if (detail.playerEquity && detail.playerEquity > 0) {
-        vcDetailOwnershipEl.textContent = `Your Stake: ${detail.playerEquityPercent.toFixed(2)}% (${vcFormatCurrency(ownershipValue)})`;
-    } else {
-        vcDetailOwnershipEl.textContent = 'Your Stake: 0.00%';
-    }
-    const pendingCapital = detail.pendingCommitment || 0;
-    const pendingText = pendingCapital > 0 ? ` | Pending: ${vcFormatCurrency(pendingCapital)}` : '';
-    vcDetailInvestedEl.textContent = `Total Invested: ${vcFormatCurrency(detail.playerInvested || 0)}${pendingText}`;
-    vcDetailLastEventEl.textContent = detail.lastEventNote || '';
 
     if (vcFinancialHistoryContainer) {
         // Ensure structure exists: Controls + Chart Container + Table Container
@@ -370,17 +351,18 @@ function updateVentureDetail(companyId) {
         // Update Chart (will handle its own update vs create logic)
         renderVentureFinancialChart(detail);
     }
-    if (vcPipelineContainer) {
+    if (vcPipelineContainer && vcPipelinePanel) {
         if (typeof window.getPipelineHTML === 'function') {
-            const html = window.getPipelineHTML(detail);
+            const html = window.getPipelineHTML(detail) || '';
             vcPipelineContainer.innerHTML = html;
-            vcPipelineContainer.style.display = html ? 'block' : 'none';
+            const visible = !!html;
+            vcPipelinePanel.style.display = visible ? 'block' : 'none';
+            vcPipelineContainer.style.display = visible ? 'block' : 'none';
         } else {
             vcPipelineContainer.innerHTML = '';
-            vcPipelineContainer.style.display = 'none';
+            vcPipelinePanel.style.display = 'none';
         }
     }
-
     if (vcLeadRoundBtn) {
         const alreadyCommitted = roundInfo.alreadyCommitted;
         const canLeadNow = roundInfo.canLead && !alreadyCommitted;
