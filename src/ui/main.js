@@ -1783,30 +1783,28 @@ function updateNetWorth() {
         wojakManager.handleRecovery(netWorth);
     }
 
-    if (isWojakAvatar) {
-        if (netWorth >= 1000000 && !isMillionaire) {
-            isMillionaire = true;
-            if (wojakManager) {
-                wojakManager.setBaseImage('wojaks/suit-wojak.png', true);
-            }
-            jsConfetti.addConfetti({ emojis: ['💰', '💵'], confettiNumber: 150, emojiSize: 30, });
+    if (netWorth >= 1000000 && !isMillionaire) {
+        isMillionaire = true;
+        if (isWojakAvatar && wojakManager) {
+            wojakManager.setBaseImage('wojaks/suit-wojak.png', true);
         }
-        if (netWorth >= 1000000000 && !isBillionaire) {
-            isBillionaire = true;
-            if (wojakManager) {
-                wojakManager.setBaseImage('wojaks/red-suit-wojak.png', true);
-            }
-            jsConfetti.addConfetti({ emojis: ['💎', '📀'], confettiNumber: 40, emojiSize: 40, });
+        jsConfetti.addConfetti({ emojis: ['💰', '💵'], confettiNumber: 150, emojiSize: 30, });
+    }
+    if (netWorth >= 1000000000 && !isBillionaire) {
+        isBillionaire = true;
+        if (isWojakAvatar && wojakManager) {
+            wojakManager.setBaseImage('wojaks/red-suit-wojak.png', true);
         }
-        if (netWorth >= 1000000000000 && !isTrillionaire) {
-            isTrillionaire = true;
-            if (wojakManager) {
-                wojakManager.setBaseImage('wojaks/purple-suit-wojak.png', true);
-            }
-            jsConfetti.addConfetti({ emojis: ['🌌', '🥇', '🔮'], confettiNumber: 100, emojiSize: 30, });
-            setTimeout(() => { jsConfetti.addConfetti({ emojis: ['🌌', '🥇', '🔮'], confettiNumber: 100, emojiSize: 30, }); }, 1000);
-            setTimeout(() => { jsConfetti.addConfetti({ emojis: ['🌌', '🥇', '🔮'], confettiNumber: 100, emojiSize: 30, }); }, 2000);
+        jsConfetti.addConfetti({ emojis: ['💎', '📀'], confettiNumber: 40, emojiSize: 40, });
+    }
+    if (netWorth >= 1000000000000 && !isTrillionaire) {
+        isTrillionaire = true;
+        if (isWojakAvatar && wojakManager) {
+            wojakManager.setBaseImage('wojaks/purple-suit-wojak.png', true);
         }
+        jsConfetti.addConfetti({ emojis: ['🌌', '🥇', '🔮'], confettiNumber: 100, emojiSize: 30, });
+        setTimeout(() => { jsConfetti.addConfetti({ emojis: ['🌌', '🥇', '🔮'], confettiNumber: 100, emojiSize: 30, }); }, 1000);
+        setTimeout(() => { jsConfetti.addConfetti({ emojis: ['🌌', '🥇', '🔮'], confettiNumber: 100, emojiSize: 30, }); }, 2000);
     }
 
     if (netWorth >= 5000000) {

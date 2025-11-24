@@ -6,8 +6,8 @@ const vcDetailMissionEl = document.getElementById('vcDetailMission');
 const vcDetailFoundersEl = document.getElementById('vcDetailFounders');
 const vcDetailLocationEl = document.getElementById('vcDetailLocation');
 const vcDetailRoundInfoEl = document.getElementById('vcDetailRoundInfo');
-const vcDetailSuccessChanceEl = document.getElementById('vcDetailSuccessChance');
 const vcDetailTimerEl = document.getElementById('vcDetailTimer');
+const vcInvestmentOptionsEl = document.getElementById('vcInvestmentOptions');
 const vcPipelinePanel = document.getElementById('vcPipelinePanel');
 const vcPipelineContainer = document.getElementById('vcPipelineContainer');
 const vcLeadRoundBtn = document.getElementById('vcLeadRoundBtn');
@@ -158,36 +158,70 @@ function buildRoundInfo(detail) {
     }
 
     const { round } = detail;
-    let info = `Raising ${vcFormatCurrency(round.raiseAmount)} at a ${vcFormatCurrency(round.preMoney)} pre (${(round.equityOffered * 100).toFixed(2)}% offered).`;
-    if (round.pipelineStage) {
-        info += ` Pipeline: ${round.pipelineStage}`;
-    }
-    let chance = `Success Chance: ${(round.successProb * 100).toFixed(1)}%`;
+    let info = round.pipelineStage ? `Pipeline: ${round.pipelineStage}` : '';
+    let chance = '';
     const daysRemaining = Number.isFinite(round.daysRemaining)
         ? round.daysRemaining
         : (Number.isFinite(round.durationDays) ? Math.max(0, round.durationDays - (detail.daysSinceRound || 0)) : 0);
     const monthsRemaining = Math.max(0, daysRemaining / 30);
-    let timer = `Next round in ~${Math.max(0, Math.ceil(monthsRemaining))} months`;
+    let timer = `Next round in: ${Math.max(0, Math.ceil(monthsRemaining))} months`;
 
     if (detail.status === 'IPO Ready') {
         info = 'IPO paperwork in progress. No additional rounds required.';
-        chance = 'Success Chance: 100%';
         timer = 'IPO imminent';
     } else if (detail.status === 'Failed') {
         info = 'Company operations have ceased.';
-        chance = 'Success Chance: 0%';
         timer = 'No further rounds.';
     }
 
     const committedAmount = round.playerCommitted ? (round.playerCommitAmount || 0) : 0;
     return {
         info,
-        chance,
+        chance: '',
         timer,
         canLead: detail.status === 'Raising' && !round.playerCommitted,
         alreadyCommitted: round.playerCommitted,
         committedAmount
     };
+}
+
+function renderInvestmentOptions(detail) {
+    if (!vcInvestmentOptionsEl) return;
+    vcInvestmentOptionsEl.innerHTML = '';
+    if (!detail || !detail.round || typeof detail.round.equityOffered !== 'number') return;
+    const equity = Math.max(0, detail.round.equityOffered || 0);
+    const raiseAmount = Number(detail.round.raiseAmount) || 0;
+    const preMoney = Number(detail.round.preMoney) || 0;
+    const postMoney = preMoney + raiseAmount;
+    if (equity <= 0) return;
+    const base = equity * 100;
+    const options = [
+        { label: 'Full Offer', value: base },
+        { label: '1/10 Offer', value: base / 10 },
+        { label: '1/100 Offer', value: base / 100 },
+        { label: '1/1000 Offer', value: base / 1000 }
+    ];
+    const formatPct = (v) => `${v.toFixed(2)}%`;
+    const formatAmount = (pct) => {
+        const equityFraction = pct / 100;
+        const amount = postMoney > 0 ? equityFraction * postMoney : raiseAmount * equityFraction / equity;
+        return vcFormatCurrency(Math.max(0, amount));
+    };
+    const html = options.map(opt => {
+        const pct = Math.max(0, opt.value);
+        const amountDisplay = formatAmount(pct);
+        return `<div class="vc-option-card">
+            <div class="vc-option-top">
+                <div class="vc-option-label">${opt.label}</div>
+                <div class="vc-option-value">${formatPct(pct)}</div>
+            </div>
+            <div class="vc-option-amount">${amountDisplay}</div>
+            <div class="vc-option-actions">
+                <button class="buy-btn vc-option-buy" data-pct="${pct}">Purchase</button>
+            </div>
+        </div>`;
+    }).join('');
+    vcInvestmentOptionsEl.innerHTML = html;
 }
 
 function getVCTooltipHandler(context) {
@@ -309,8 +343,8 @@ function updateVentureDetail(companyId) {
 
     const roundInfo = buildRoundInfo(detail);
     vcDetailRoundInfoEl.textContent = roundInfo.info;
-    vcDetailSuccessChanceEl.textContent = roundInfo.chance;
     vcDetailTimerEl.textContent = roundInfo.timer;
+    renderInvestmentOptions(detail);
 
     if (vcFinancialHistoryContainer) {
         // Ensure structure exists: Controls + Chart Container + Table Container
@@ -367,48 +401,12 @@ function updateVentureDetail(companyId) {
         }
     }
     if (vcLeadRoundBtn) {
-        const alreadyCommitted = roundInfo.alreadyCommitted;
-        const canLeadNow = roundInfo.canLead && !alreadyCommitted;
-        vcLeadRoundBtn.classList.remove('positive');
-        vcLeadRoundBtn.classList.remove('negative');
-        vcLeadRoundBtn.classList.remove('vc-disabled');
-        vcLeadRoundBtn.disabled = !canLeadNow;
-        let detailButtonLabel;
-        if (alreadyCommitted) {
-            detailButtonLabel = 'Round Led';
-        } else if (canLeadNow) {
-            detailButtonLabel = 'Lead This Round';
-        } else if (detail.status === 'IPO Ready') {
-            detailButtonLabel = 'IPO Pending';
-        } else {
-            detailButtonLabel = 'Not Raising';
-        }
-        vcLeadRoundBtn.textContent = detailButtonLabel;
-        vcLeadRoundBtn.classList.toggle('vc-disabled', vcLeadRoundBtn.disabled);
+        vcLeadRoundBtn.style.display = 'none';
     }
     if (vcLeadRoundNoteEl) {
+        vcLeadRoundNoteEl.textContent = '';
         vcLeadRoundNoteEl.classList.remove('positive');
         vcLeadRoundNoteEl.classList.remove('negative');
-        if (roundInfo.alreadyCommitted) {
-            const committedValue = roundInfo.committedAmount > 0
-                ? roundInfo.committedAmount
-                : (detail.pendingCommitment || 0);
-            const committedMsg = committedValue > 0
-                ? `Committed ${vcFormatCurrency(committedValue)} — awaiting results.`
-                : 'You already led this round.';
-            vcLeadRoundNoteEl.textContent = committedMsg;
-            vcLeadRoundNoteEl.classList.add('positive');
-        } else if (!roundInfo.canLead) {
-            vcLeadRoundNoteEl.textContent = '';
-            if (detail.status === 'Failed') {
-                vcLeadRoundNoteEl.textContent = 'This company has failed.';
-                vcLeadRoundNoteEl.classList.add('negative');
-            } else if (detail.status === 'IPO Ready') {
-                vcLeadRoundNoteEl.textContent = 'IPO in progress; no new funding round.';
-            }
-        } else {
-            vcLeadRoundNoteEl.textContent = '';
-        }
     }
 
     // destroyVentureChart({ valuation: true, financial: false }); // Don't destroy blindly!
