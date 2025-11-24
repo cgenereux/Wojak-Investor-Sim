@@ -21,7 +21,7 @@ const macroEvents = require('../data/macroEvents.json');
 const PORT = process.env.PORT || 4000;
 const ANNUAL_INTEREST_RATE = 0.07;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
-const GAME_END_YEAR = 2050;
+const GAME_END_YEAR = 1991; // Temporary for debugging end screens
 const MAX_CONNECTIONS = Number(process.env.MAX_CONNECTIONS || 50);
 
 const app = fastify({ logger: false });

@@ -67,6 +67,12 @@ const bankruptcyCloseBtn = document.getElementById('bankruptcyCloseBtn');
 const bankruptcyPopupMultiplayer = document.getElementById('bankruptcyPopupMultiplayer');
 const bankruptcyOkayBtn = document.getElementById('bankruptcyOkayBtn');
 const bankruptcyCloseBtnMultiplayer = document.getElementById('bankruptcyCloseBtnMultiplayer');
+const timelineEndPopup = document.getElementById('timelineEndPopup');
+const timelineEndTitle = document.getElementById('timelineEndTitle');
+const timelineEndWojak = document.getElementById('timelineEndWojak');
+const timelineEndAmount = document.getElementById('timelineEndAmount');
+const timelineEndPlayAgainBtn = document.getElementById('timelineEndPlayAgainBtn');
+const timelineEndCloseBtn = document.getElementById('timelineEndCloseBtn');
 let storedPlayerName = null;
 let selectedCharacter = null;
 
@@ -349,7 +355,7 @@ let lastInterestDate = new Date(currentDate);
 const ANNUAL_INTEREST_RATE = 0.07;
 
 // --- Global Game Constants ---
-const GAME_END_YEAR = 2050;
+const GAME_END_YEAR = 1991; // Temporary for debugging end screens
 
 let sim = null;
 let companies = [];
@@ -1471,9 +1477,20 @@ function endGame(reason) {
                 bankruptcyPopup.classList.add('show');
             }
         }
-    } else {
-        showToast(`${message} Final Net Worth: ${currencyFormatter.format(netWorth)}`, { tone: 'info', duration: 7000 });
-        if (confirm("Play again?")) { location.reload(); }
+    } else if (reason === "timeline_end") {
+        // Show timeline end popup
+        if (timelineEndTitle) {
+            timelineEndTitle.textContent = `You've reached ${GAME_END_YEAR}!`;
+        }
+        if (timelineEndWojak && wojakImage) {
+            timelineEndWojak.src = wojakImage.src;
+        }
+        if (timelineEndAmount) {
+            timelineEndAmount.textContent = currencyFormatter.format(finalNetWorth);
+        }
+        if (timelineEndPopup) {
+            timelineEndPopup.classList.add('show');
+        }
     }
 }
 
@@ -2270,6 +2287,20 @@ if (bankruptcyCloseBtnMultiplayer) {
     bankruptcyCloseBtnMultiplayer.addEventListener('click', () => {
         if (bankruptcyPopupMultiplayer) {
             bankruptcyPopupMultiplayer.classList.remove('show');
+        }
+    });
+}
+
+// Timeline End popup
+if (timelineEndPlayAgainBtn) {
+    timelineEndPlayAgainBtn.addEventListener('click', () => {
+        location.reload();
+    });
+}
+if (timelineEndCloseBtn) {
+    timelineEndCloseBtn.addEventListener('click', () => {
+        if (timelineEndPopup) {
+            timelineEndPopup.classList.remove('show');
         }
     });
 }

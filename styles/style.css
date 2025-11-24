@@ -1935,3 +1935,49 @@ button.speed-active:hover {
 .bankruptcy-btn:hover {
     background: #15803d;
 }
+
+/* Timeline End Popup */
+.timeline-end-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+    text-align: center;
+}
+
+.timeline-end-subtitle {
+    margin: -8px 0 0 0;
+    font-size: 14px;
+    font-weight: 400;
+    color: #0f172a;
+    text-align: center;
+}
+
+.timeline-end-wojak {
+    width: 45%;
+    height: auto;
+    object-fit: contain;
+}
+
+.timeline-end-networth {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.timeline-end-label {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 400;
+    color: #475569;
+    text-align: center;
+}
+
+.timeline-end-amount {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 400;
+    color: #22c55e;
+    text-align: center;
+}
