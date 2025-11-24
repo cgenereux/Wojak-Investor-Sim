@@ -362,7 +362,7 @@ let lastInterestDate = new Date(currentDate);
 const ANNUAL_INTEREST_RATE = 0.07;
 
 // --- Global Game Constants ---
-const GAME_END_YEAR = 1991; // Temporary for debugging end screens
+const GAME_END_YEAR = 2050;
 
 let sim = null;
 let companies = [];
