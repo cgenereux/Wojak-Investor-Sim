@@ -106,23 +106,42 @@ Multiplayer stays on hold until the single-player loop, presets, and balance pol
 ---
 
 ## 6. Wishlist / TODO
-1. **Preset Helpers & Rosters:** Formalize the API, migrate existing companies to `preset + overrides`, and document the schema so new entries are easy to author.
-2. **Sector Pipelines:** Author the biotech product catalog and start populating consumer/industrial equivalents (store formats, logistics projects, etc.). Ensure pipeline selection is unique per run.
-3. **UI Enhancements:** Surface quarterly dividend events/logs so players can see DRIP vs. cash payouts. Show private-company cash/runway directly in the venture view.
-4. **Testing:** Add a headless smoke test (10+ years) to catch NaNs, stage/IPO frequencies, dividend scheduling bugs, etc.
-5. **Deterministic Seeding:** Eventually allow a seed to reproduce the same preset/pipeline selection for long-form testing.
-6. **Fundraise Balance & VC UI:** Reduce how often companies raise below prior valuations, lengthen round timelines when appropriate, and streamline the venture investing UI so committing to rounds feels straightforward.
-7. **Quarterly YoY Charts:** Prototype an optional quarterly YoY revenue/profit chart so players can swap between tabular data and a visual trend.
-8. **Preset-First Companies (Long Term):** Continue migrating every legacy entry onto curated preset definitions so balancing stays centralized.
-9. **Era Depth & Product Catalogs (Long Term):** Author many more companies/startups across 1990‑2050 plus deeper product libraries so each era feels distinct and varied.
-10. **Macro Event System:** Introduce headline macro shocks (pandemics, QE waves, financial crises, Bogdanov-style manipulation) that temporarily alter earnings/macro indices across many companies at once to keep late-game runs spicy.
-11. **Malding Wojak Polish:** Track a few outstanding edge cases (post-milestone overrides, deep drawdowns) and tighten the revert logic so avatars always swap back at the right time; fixes are noted but still pending.
-12. currently bankrupt companies stay in your portfolio forever -- should fix 
-13. rn when u hit a $0 nw without leverage u dont go bankrupt -- should fix
+1. Preset Helpers & Rosters: Formalize the API, migrate existing companies to `preset + overrides`, and document the schema so new entries are easy to author.
+2. Sector Pipelines: Author the biotech product catalog and start populating consumer/industrial equivalents (store formats, logistics projects, etc.). Ensure pipeline selection is unique per run.
+3. UI Enhancements: Surface quarterly dividend events/logs so players can see DRIP vs. cash payouts. Show private-company cash/runway directly in the venture view.
+4. Testing: Add a headless smoke test (10+ years) to catch NaNs, stage/IPO frequencies, dividend scheduling bugs, etc.
+5. Deterministic Seeding: Eventually allow a seed to reproduce the same preset/pipeline selection for long-form testing.
+6. Fundraise Balance & VC UI: Reduce how often companies raise below prior valuations, lengthen round timelines when appropriate, and streamline the venture investing UI so committing to rounds feels straightforward.
+7. Quarterly YoY Charts: Prototype an optional quarterly YoY revenue/profit chart so players can swap between tabular data and a visual trend.
+8. Preset-First Companies (Long Term): Continue migrating every legacy entry onto curated preset definitions so balancing stays centralized.
+9. Era Depth & Product Catalogs (Long Term): Author many more companies/startups across 1990‑2050 plus deeper product libraries so each era feels distinct and varied.
+10. Macro Event System: Introduce headline macro shocks (pandemics, QE waves, financial crises, Bogdanov-style manipulation) that temporarily alter earnings/macro indices across many companies at once to keep late-game runs spicy.
+11. Malding Wojak Polish: Track a few outstanding edge cases (post-milestone overrides, deep drawdowns) and tighten the revert logic so avatars always swap back at the right time; fixes are noted but still pending.
+12. Currently bankrupt companies stay in your portfolio forever -- should fix.
+13. rn when u hit a $0 nw without leverage u dont go bankrupt -- should fix.
 14. Multiplayer name collisions: joining with a duplicate display name sometimes leaves the client in a bad state; enforce/handle unique names cleanly without requiring a refresh.
 15. If the backend is cold-starting, keep retrying party creation/join every few seconds instead of failing once.
-16. Multiplayer bankruptcy
-17. Verify multiplayer Wojak-only confetti/suit unlocks behave correctly (no effects for other avatars)
+16. Multiplayer bankruptcy.
+17. Verify multiplayer Wojak-only confetti/suit unlocks behave correctly (no effects for other avatars).
+18. Decide if characters should have distinct borrowing knobs (e.g., Wojak default, Grug 6% @ 3x, Zoomer 5% @ 2x, Bloomer 4% @ 1.5x).
+19. Support more than 4 players (up to 8) by skipping character choice beyond slots, assigning random colors, no top avatar, and showing a neutral/blank image in tooltips.
+20. Consider adding monthly incomes in multiplayer (e.g., ~200-400/month scaled by character).
+21. Likely shift start year to 1985 and lower VC unlock requirement to $1M net worth.
+22. Offer smaller VC ticket sizes/packages so players can invest without needing huge cash stacks.
+23. Consider replacing the M/B/T buttons with temporary debug commands during development.
+24. Remove the time slider in multiplayer.
+25. Add a pause/start button to singleplayer.
+26. Maybe add a time slider on company pages.
+27. Add “Founder” and “Founding location” fields to the top-right of company pages.
+28. Clean up the VC company page UI (currently cluttered).
+29. Add a short mission blurb to each company page.
+30. Maybe make the UI mobile-friendly.
+31. Maybe add a log-curve toggle/button in multiplayer.
+32. Align the multiplayer button with the net worth display/chart corner and restyle it (e.g., a small multiplayer icon).
+33. Fix companies going bankrupt instantly on game start
+34. Adjust the time slider to a 0.25x–3x range
+35. Maybe add a pause/start button beside the time slider
+36. Fix broken PostHog analytics events
 
 ---
 
