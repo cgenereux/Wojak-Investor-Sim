@@ -5,7 +5,7 @@ const FILES = [
   'server/server.js',
   'src/sim/simEngine.js',
   'src/sim/ventureEngineCore.js',
-  'src/ui/main.js',
+  'src/main.js',
   'tests/integration-test.js',
   'tests/simulation-test.js',
   'tests/dual-simulation-comparison-test.js',
