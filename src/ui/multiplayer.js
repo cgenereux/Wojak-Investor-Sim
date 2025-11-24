@@ -369,11 +369,11 @@
                 hydrateFromSnapshot({ ...msg.snapshot, player: msg.player, ticks: msg.ticks });
                 applyTicks(msg.ticks || []);
             }
-            setConnectionStatus('Resynced', 'ok');
-            if (msg.hostId) {
-                currentHostId = msg.hostId;
-            }
-            if (Array.isArray(msg.snapshot?.players)) {
+        setConnectionStatus('Resynced', 'ok');
+        if (msg.hostId) {
+            currentHostId = msg.hostId;
+        }
+        if (Array.isArray(msg.snapshot?.players)) {
                 setRosterFromServer(msg.snapshot.players);
             }
             return;
@@ -1055,6 +1055,7 @@
         promptCharacterIfPending,
         setLocalCharacterSelection,
         mergeLocalCharacter,
-        setRosterFromServer
+        setRosterFromServer,
+        setMultiplayerState
     };
 })(window);

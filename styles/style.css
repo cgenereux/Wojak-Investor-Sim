@@ -262,7 +262,8 @@ body.detail-active #detail-view {
 .header-controls {
     justify-self: end;
     align-self: start;
-    margin-top: 8px;
+    margin-top: 14px;
+    margin-right: -8px;
 }
 
 .drip-toggle {
