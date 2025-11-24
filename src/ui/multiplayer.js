@@ -477,9 +477,8 @@
         }
         if (msg.type === 'end') {
             const finalNetWorth = (serverPlayer && typeof serverPlayer.netWorth === 'number') ? serverPlayer.netWorth : netWorth;
-            const playerNames = Array.isArray(latestServerPlayers)
-                ? latestServerPlayers.map(p => p?.id || p?.name).filter(Boolean)
-                : [];
+            const playersRaw = Array.isArray(latestServerPlayers) ? latestServerPlayers : [];
+            const playerNames = playersRaw.map(p => p?.id || p?.name).filter(Boolean);
             trackEvent('match_ended', {
                 mode: 'multiplayer',
                 final_net_worth: finalNetWorth,
@@ -495,9 +494,8 @@
             }
             setConnectionStatus('Session ended', 'error');
             setBannerButtonsVisible(false);
-            notify(`Game ended (${msg.reason || 'session end'}). Final year: ${msg.year || ''}`, 'warn');
             resetCharacterToDefault();
-            setTimeout(() => window.location.reload(), 300);
+            renderMultiplayerEndSummary(playersRaw, msg.year || null);
             return;
         }
         if (msg.type === 'error') {

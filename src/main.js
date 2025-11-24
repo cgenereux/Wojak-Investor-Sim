@@ -73,6 +73,13 @@ const timelineEndWojak = document.getElementById('timelineEndWojak');
 const timelineEndAmount = document.getElementById('timelineEndAmount');
 const timelineEndPlayAgainBtn = document.getElementById('timelineEndPlayAgainBtn');
 const timelineEndCloseBtn = document.getElementById('timelineEndCloseBtn');
+const multiplayerEndPopup = document.getElementById('multiplayerEndPopup');
+const multiplayerEndLeaderboard = document.getElementById('multiplayerEndLeaderboard');
+const multiplayerEndCloseBtn = document.getElementById('multiplayerEndCloseBtn');
+const multiplayerEndOkayBtn = document.getElementById('multiplayerEndOkayBtn');
+const multiplayerEndTitle = document.getElementById('multiplayerEndTitle');
+const multiplayerEndSubtitle = document.getElementById('multiplayerEndSubtitle');
+const multiplayerEndHeading = document.getElementById('multiplayerEndHeading');
 let storedPlayerName = null;
 let selectedCharacter = null;
 
@@ -998,6 +1005,67 @@ function escapeHtml(str) {
         const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
         return map[ch] || ch;
     });
+}
+
+function renderMultiplayerEndSummary(players = [], finalYear = null) {
+    if (!multiplayerEndPopup || !multiplayerEndLeaderboard) return;
+    multiplayerEndLeaderboard.innerHTML = '';
+    const endYearLabel = finalYear || GAME_END_YEAR;
+    if (multiplayerEndTitle) {
+        multiplayerEndTitle.textContent = `You've reached ${endYearLabel}!`;
+    }
+    if (multiplayerEndSubtitle) {
+        multiplayerEndSubtitle.textContent = 'Thanks for playing!';
+    }
+    if (multiplayerEndHeading) {
+        multiplayerEndHeading.textContent = 'Ending Net Worths:';
+    }
+    const sorted = [...players].filter(Boolean).sort((a, b) => {
+        const aNet = Number.isFinite(a?.netWorth) ? a.netWorth : Number(a?.net_worth) || 0;
+        const bNet = Number.isFinite(b?.netWorth) ? b.netWorth : Number(b?.net_worth) || 0;
+        return bNet - aNet;
+    });
+    if (!sorted.length) {
+        const emptyRow = document.createElement('div');
+        emptyRow.className = 'mp-end-row';
+        emptyRow.textContent = 'No player data.';
+        multiplayerEndLeaderboard.appendChild(emptyRow);
+    } else {
+        sorted.forEach((p, idx) => {
+            const row = document.createElement('div');
+            row.className = 'mp-end-row';
+
+            const rank = document.createElement('span');
+            rank.className = 'mp-end-rank';
+            rank.textContent = `${idx + 1}.`;
+
+            const avatar = document.createElement('img');
+            avatar.className = 'mp-end-avatar';
+            const avatarSrc = typeof getPlayerAvatarSrc === 'function'
+                ? getPlayerAvatarSrc(p?.id || p?.name)
+                : (CHARACTER_SPRITES[(p?.character || '').toLowerCase()] || DEFAULT_WOJAK_SRC);
+            avatar.src = avatarSrc;
+            avatar.alt = p?.character || 'avatar';
+
+            const name = document.createElement('span');
+            name.className = 'mp-end-name';
+            name.textContent = `${p?.id || p?.name || 'Player'}:`;
+
+            const nwVal = Number.isFinite(p?.netWorth) ? p.netWorth : Number(p?.net_worth) || 0;
+            const networth = document.createElement('span');
+            networth.className = 'mp-end-networth';
+            networth.textContent = currencyFormatter.format(nwVal);
+            const color = getPlayerColor(p?.id || p?.name);
+            if (color) networth.style.color = color;
+
+            row.appendChild(rank);
+            row.appendChild(avatar);
+            row.appendChild(name);
+            row.appendChild(networth);
+            multiplayerEndLeaderboard.appendChild(row);
+        });
+    }
+    multiplayerEndPopup.classList.add('show');
 }
 
 function renderCompanies(force = false) {
@@ -2302,6 +2370,18 @@ if (timelineEndCloseBtn) {
         if (timelineEndPopup) {
             timelineEndPopup.classList.remove('show');
         }
+    });
+}
+
+// Multiplayer End popup
+if (multiplayerEndOkayBtn) {
+    multiplayerEndOkayBtn.addEventListener('click', () => {
+        location.reload();
+    });
+}
+if (multiplayerEndCloseBtn) {
+    multiplayerEndCloseBtn.addEventListener('click', () => {
+        location.reload();
     });
 }
 
