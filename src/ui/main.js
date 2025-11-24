@@ -5,6 +5,7 @@ const currentDateDisplay = document.getElementById('currentDateDisplay');
 const companiesGrid = document.getElementById('companiesGrid');
 
 const speedSlider = document.getElementById('speedSlider');
+const speedSliderWrap = document.querySelector('.speed-slider-wrap');
 const speedThumbLabel = document.getElementById('speedThumbLabel');
 const backBtn = document.getElementById('back-btn');
 const portfolioList = document.getElementById('portfolioList');
@@ -28,6 +29,9 @@ const vcView = document.getElementById('vc-view');
 const backToMainBtn = document.getElementById('back-to-main-btn');
 const dripToggle = document.getElementById('dripToggle');
 const multiplayerBtn = document.getElementById('multiplayerBtn');
+const multiplayerBtnContainer = document.getElementById('multiplayerBtnContainer');
+const multiplayerStatusDisplay = document.getElementById('multiplayerStatusDisplay');
+const mpSessionIdDisplay = document.getElementById('mpSessionIdDisplay');
 const multiplayerModal = document.getElementById('multiplayerModal');
 const closeMultiplayerBtn = document.getElementById('closeMultiplayerBtn');
 const mpNameInput = document.getElementById('mpNameInput');
@@ -377,6 +381,9 @@ function disconnectMultiplayer() {
     resetCharacterToDefault();
     setConnectionStatus('Offline', 'warn');
     setBannerButtonsVisible(false);
+    if (speedSliderWrap) speedSliderWrap.style.display = '';
+    if (multiplayerBtnContainer) multiplayerBtnContainer.style.display = '';
+    if (multiplayerStatusDisplay) multiplayerStatusDisplay.style.display = 'none';
 }
 
 function killRemoteSession() {
@@ -412,12 +419,13 @@ async function connectWebSocket() {
     setConnectionStatus('Connecting...', 'warn');
     const storedName = localStorage.getItem('wojak_player_name');
     if (storedName) ensurePlayerIdentity(storedName);
-    let playerId = localStorage.getItem('wojak_player_id');
-    if (!playerId || lastNameTaken) {
+    let playerId = clientPlayerId || localStorage.getItem('wojak_player_id');
+    if (!playerId) {
         playerId = `p_${Math.floor(Math.random() * 1e9).toString(36)}`;
         try { localStorage.setItem('wojak_player_id', playerId); } catch (err) { /* ignore */ }
-        lastNameTaken = false;
     }
+    // Reset flag; we'll let the server tell us if a real conflict remains
+    lastNameTaken = false;
     clientPlayerId = playerId;
     const roleParam = isPartyHostClient ? 'host' : 'guest';
     const wsOrigin = baseBackend.startsWith('ws') ? baseBackend : backendUrl.replace(/^http/, 'ws');
@@ -440,6 +448,10 @@ async function connectWebSocket() {
         console.log('WS connected');
         setConnectionStatus('Connected', 'ok');
         setBannerButtonsVisible(true);
+        if (speedSliderWrap) speedSliderWrap.style.display = 'none';
+        if (multiplayerBtnContainer) multiplayerBtnContainer.style.display = 'none';
+        if (multiplayerStatusDisplay) multiplayerStatusDisplay.style.display = 'block';
+        if (mpSessionIdDisplay) mpSessionIdDisplay.textContent = activeSessionId || 'default';
         lastNameTaken = false;
         sendStartGameIfReady();
         if (selectedCharacter) {
@@ -3057,6 +3069,8 @@ function requirePlayerName() {
         setNameErrorVisible(true, 'Name taken');
         return null;
     }
+    // A fresh, valid name clears any stale \"name taken\" state
+    lastNameTaken = false;
     mpNameInput.classList.remove('input-error');
     setNameErrorVisible(false);
     ensurePlayerIdentity(name);

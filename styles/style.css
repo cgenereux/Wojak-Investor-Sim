@@ -70,7 +70,7 @@ body.detail-active #detail-view {
 
 .header {
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
 }
 
 .header-content {
@@ -140,7 +140,9 @@ body.detail-active #detail-view {
     gap: 12px;
     flex-shrink: 0;
     min-width: 220px;
+    min-width: 220px;
     justify-self: start;
+    align-self: center;
 }
 
 .party-avatars {
@@ -255,6 +257,12 @@ body.detail-active #detail-view {
     align-items: center;
     justify-content: center;
     justify-self: center;
+}
+
+.header-controls {
+    justify-self: end;
+    align-self: start;
+    margin-top: 8px;
 }
 
 .drip-toggle {

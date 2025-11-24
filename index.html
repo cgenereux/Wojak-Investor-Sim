@@ -53,9 +53,14 @@
                         <div class="sub-financial-display" id="subFinancialDisplay"></div>
                     </div>
                     <div class="header-controls">
-                        <div class="tooltip-container">
+                        <div class="tooltip-container" id="multiplayerBtnContainer">
                             <button id="multiplayerBtn">Play Multiplayer</button>
                             <span class="tooltip-text">Join a shared session to compete with friends.</span>
+                        </div>
+                        <div id="multiplayerStatusDisplay" style="display: none; text-align: center;">
+                            <div style="font-weight: 600; color: #111;">Playing Multiplayer</div>
+                            <div style="font-size: 15px; color: #666;">Session ID: <span id="mpSessionIdDisplay"></span>
+                            </div>
                         </div>
                     </div>
                 </div>

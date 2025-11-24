@@ -762,7 +762,17 @@ wss.on('connection', async (ws, req, url) => {
   });
   const existingPlayer = session.players.get(playerId) || null;
   if (existingPlayer) {
-    // Allow reconnects, but ensure no duplicate live sockets for the same id
+    const hasActiveDupes = socketsWithSameId.some(socket =>
+      socket !== ws && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)
+    );
+    if (hasActiveDupes) {
+      try {
+        ws.send(JSON.stringify({ type: 'error', error: 'name_taken' }));
+        ws.close(4005, 'name_taken');
+      } catch (err) { /* ignore */ }
+      return;
+    }
+    // Allow reconnect when no other live socket is using this id
     socketsWithSameId.forEach(socket => {
       try {
         if (socket !== ws && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
