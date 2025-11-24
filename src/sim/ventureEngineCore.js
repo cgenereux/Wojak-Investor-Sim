@@ -564,7 +564,11 @@
 
     shouldStartNextRound() {
       if (!this.strategy) return false;
-      return this.strategy.shouldStartNextRound();
+      // If no current round and status isn't failed/exited/ipo, allow strategy to decide.
+      if (this.status === 'failed' || this.status === 'exited' || this.status === 'ipo' || this.status === 'ipo_pending') {
+        return false;
+      }
+      return this.strategy.shouldStartNextRound(this);
     }
 
     calculateRoundHealth() {
@@ -638,6 +642,8 @@
       let durationDays = stage.durationDays
         ? Math.max(30, stage.durationDays)
         : Math.max(60, Math.round(Math.max(2, runwayMonths * 0.35) * 30)) * 3;
+      if (!Number.isFinite(durationDays) || durationDays <= 0) durationDays = 180;
+      if (!Number.isFinite(runwayMonths) || runwayMonths <= 0) runwayMonths = Math.ceil(durationDays / 30);
       let pipelineStageName = null;
 
       let nextRound = {

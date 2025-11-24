@@ -185,7 +185,12 @@
     shouldResolveRound() {
       const company = this.company;
       const round = company.currentRound;
-      return !!(round && round.stageReadyToResolve);
+      if (!round) return false;
+      if (round.stageReadyToResolve) return true;
+      if (Number.isFinite(round.durationDays) && company.daysSinceRound >= round.durationDays) {
+        return true;
+      }
+      return false;
     }
 
     advancePreGate(dtYears, dtDays, currentDate) {
