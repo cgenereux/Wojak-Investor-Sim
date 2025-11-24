@@ -1,23 +1,44 @@
 /* VC View */
 #vc-view {
-    position: absolute; top: 0; left: 0;
-    transform: translateX(100%); opacity: 0; visibility: hidden;
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform: translateX(100%);
+    opacity: 0;
+    visibility: hidden;
 }
+
 #vc-detail-view {
-    position: absolute; top: 0; left: 0;
-    transform: translateX(100%); opacity: 0; visibility: hidden;
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform: translateX(100%);
+    opacity: 0;
+    visibility: hidden;
 }
+
 body.vc-active #main-view {
-    transform: translateX(-100%); opacity: 0; visibility: hidden;
+    transform: translateX(-100%);
+    opacity: 0;
+    visibility: hidden;
 }
+
 body.vc-active #vc-view {
-    transform: translateX(0); opacity: 1; visibility: visible;
+    transform: translateX(0);
+    opacity: 1;
+    visibility: visible;
 }
+
 body.vc-active.vc-detail-active #vc-view {
-    transform: translateX(-100%); opacity: 0; visibility: hidden;
+    transform: translateX(-100%);
+    opacity: 0;
+    visibility: hidden;
 }
+
 body.vc-active.vc-detail-active #vc-detail-view {
-    transform: translateX(0); opacity: 1; visibility: visible;
+    transform: translateX(0);
+    opacity: 1;
+    visibility: visible;
 }
 
 .vc-disabled {
