@@ -101,6 +101,7 @@
     }
 
     // Mission strings should be present-participle (e.g., "Building...", not "Build...").
+    // Keep founders to 1–3 (2–3 common, 1 rare) and use US locations for consistency.
 
     function clonePipelineTemplate(template = [], scale = 1, prefix = '') {
         return template.map(entry => ({

@@ -56,6 +56,7 @@ const mpJoinError = document.getElementById('mpJoinError');
 const detailCompanyMission = document.getElementById('detailCompanyMission');
 const detailCompanyFounders = document.getElementById('detailCompanyFounders');
 const detailCompanyLocation = document.getElementById('detailCompanyLocation');
+const detailCompanyLocationBadge = document.getElementById('detailCompanyLocationBadge');
 let storedPlayerName = null;
 let selectedCharacter = null;
 
@@ -2618,8 +2619,6 @@ function renderCompanyMeta(company) {
     const foundingLocation = (company?.foundingLocation || company?.founding_location || company?.static?.founding_location || '').trim();
     const founderNames = founders.map(f => f && f.name).filter(Boolean);
 
-    console.log('renderCompanyMeta:', { company: company.name, foundingLocation, hasStatic: !!company.static });
-
     if (detailCompanyMission) {
         detailCompanyMission.textContent = mission;
         detailCompanyMission.style.display = mission ? 'block' : 'none';
@@ -2638,9 +2637,12 @@ function renderCompanyMeta(company) {
         }
     }
     if (detailCompanyLocation) {
-        detailCompanyLocation.textContent = foundingLocation ? `<${foundingLocation}>` : '';
-        detailCompanyLocation.style.display = foundingLocation ? 'inline' : 'none';
-        console.log('Location element updated:', detailCompanyLocation.textContent);
+        detailCompanyLocation.textContent = foundingLocation ? `Founded in ${foundingLocation}` : '';
+        detailCompanyLocation.style.display = foundingLocation ? 'inline-flex' : 'none';
+    }
+    if (detailCompanyLocationBadge) {
+        detailCompanyLocationBadge.textContent = foundingLocation || '';
+        detailCompanyLocationBadge.style.display = foundingLocation ? 'inline-flex' : 'none';
     }
     const metaContainer = detailCompanyMission ? detailCompanyMission.parentElement : null;
     if (metaContainer) {

@@ -139,20 +139,22 @@
 
         <!-- Detail View -->
         <div id="detail-view" class="view">
-            <div class="detail-header">
-                <div class="detail-header-left">
-                    <h2 id="detailCompanyName" class="detail-title">Company Name <span id="detailCompanyLocation"
-                            class="detail-location"></span></h2>
-                    <p id="detailCompanySector" class="detail-sector">Sector</p>
-                    <div class="detail-meta">
-                        <p id="detailCompanyMission" class="detail-mission"></p>
+                <div class="detail-header">
+                    <div class="detail-header-left">
+                        <div class="detail-title-row">
+                            <h2 id="detailCompanyName" class="detail-title">Company Name</h2>
+                            <span id="detailCompanyLocationBadge" class="detail-location"></span>
+                        </div>
+                        <p id="detailCompanySector" class="detail-sector">Sector</p>
+                        <div class="detail-meta">
+                            <p id="detailCompanyMission" class="detail-mission"></p>
+                        </div>
+                    </div>
+                    <div class="detail-header-right">
+                        <div id="detailCompanyFounders" class="detail-founders"></div>
+                        <button id="back-btn">← Back to Market</button>
                     </div>
                 </div>
-                <div class="detail-header-right">
-                    <div id="detailCompanyFounders" class="detail-founders"></div>
-                    <button id="back-btn">← Back to Market</button>
-                </div>
-            </div>
             <div class="chart-container">
                 <canvas id="companyDetailChart"></canvas>
             </div>

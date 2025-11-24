@@ -670,6 +670,12 @@ button.speed-active:hover {
     font-weight: 600;
 }
 
+.detail-title-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+}
+
 .detail-sector {
     font-size: 18px;
     color: #555;
@@ -698,7 +704,8 @@ button.speed-active:hover {
     margin-top: 4px;
 }
 
-.detail-pill {
+.detail-pill,
+.detail-location {
     background: #eef2ff;
     color: #1f2937;
     border-radius: 999px;
@@ -707,6 +714,12 @@ button.speed-active:hover {
     line-height: 1.4;
     display: inline-flex;
     align-items: center;
+}
+
+.detail-location {
+    background: transparent;
+    color: #555;
+    padding: 0;
 }
 
 #back-btn {
