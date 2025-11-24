@@ -524,13 +524,17 @@ function buildSnapshot(session) {
 }
 
 function handleCommand(session, player, msg) {
-  if (player.bankrupt) {
-    return { ok: false, error: 'bankrupt' };
-  }
   if (!msg || typeof msg !== 'object') {
     return { ok: false, error: 'bad_payload' };
   }
   const type = msg.type;
+  if (!type) {
+    return { ok: false, error: 'bad_payload' };
+  }
+  const allowedWhileBankrupt = (type === 'ping' || type === 'resync' || type === 'liquidate_assets');
+  if (player.bankrupt && !allowedWhileBankrupt) {
+    return { ok: false, error: 'bankrupt' };
+  }
   if (type !== 'ping') {
     session.lastActivity = Date.now();
     resetIdleTimer(session);
@@ -628,6 +632,18 @@ function handleCommand(session, player, msg) {
     player.cash -= repayable;
     player.debt -= repayable;
     return { ok: true, type: 'repay', amount: repayable, capRemaining: maxBorrowable(session.sim, player) };
+  }
+  if (type === 'liquidate_assets') {
+    player.cash = 0;
+    player.debt = 0;
+    player.holdings = {};
+    player.ventureHoldings = {};
+    player.ventureCommitments = {};
+    player.ventureCashInvested = {};
+    player.bankrupt = false;
+    player.lastCommandTs = Date.now();
+    broadcastPlayers(session);
+    return { ok: true, type: 'liquidate_assets' };
   }
   if (type === 'set_drip') {
     const enabled = !!msg.enabled;

@@ -64,6 +64,9 @@ const detailCompanyLocationBadge = document.getElementById('detailCompanyLocatio
 const bankruptcyPopup = document.getElementById('bankruptcyPopup');
 const bankruptcyPlayAgainBtn = document.getElementById('bankruptcyPlayAgainBtn');
 const bankruptcyCloseBtn = document.getElementById('bankruptcyCloseBtn');
+const bankruptcyPopupMultiplayer = document.getElementById('bankruptcyPopupMultiplayer');
+const bankruptcyOkayBtn = document.getElementById('bankruptcyOkayBtn');
+const bankruptcyCloseBtnMultiplayer = document.getElementById('bankruptcyCloseBtnMultiplayer');
 let storedPlayerName = null;
 let selectedCharacter = null;
 
@@ -330,6 +333,7 @@ let netWorthHistory = [{ x: currentDate.getTime(), y: netWorth }];
 let netWorthAth = netWorth;
 let lastDrawdownTriggerAth = 0;
 let wojakManager = null;
+let handlingBankruptcy = false;
 if (wojakImage) {
     wojakManager = wojakFactory.createWojakManager({
         imageElement: wojakImage,
@@ -931,8 +935,18 @@ function updateDisplay() {
     // Update the single display line
     subFinancialDisplay.textContent = `Equities: ${currencyFormatter.format(publicAssets + privateAssets)} | Cash: ${currencyFormatter.format(displayCash)} | Liabilities: ${currencyFormatter.format(displayDebt)}`;
 
-    if (netWorth < 0 && totalBorrowed > 0) {
+    const singleplayerBankrupt = !isServerAuthoritative && netWorth <= 0;
+    const multiplayerBankrupt = isServerAuthoritative && netWorth < 0;
+    if (!handlingBankruptcy && (singleplayerBankrupt || multiplayerBankrupt)) {
+        handlingBankruptcy = true;
         endGame("bankrupt");
+        return;
+    }
+    if (handlingBankruptcy) {
+        const resolved = netWorth >= 0 && displayDebt <= 0 && (!isServerAuthoritative || (serverPlayer && !serverPlayer.bankrupt));
+        if (resolved) {
+            handlingBankruptcy = false;
+        }
     }
     updateMacroEventsDisplay();
 }
@@ -1394,7 +1408,39 @@ function updateBankingDisplay() {
 function showBankingModal() { updateBankingDisplay(); bankingModal.classList.add('active'); }
 function hideBankingModal() { bankingModal.classList.remove('active'); bankingAmountInput.value = ''; }
 
+function liquidatePlayerAssets() {
+    handlingBankruptcy = true;
+    if (isServerAuthoritative) {
+        sendCommand({ type: 'liquidate_assets' });
+        // Optimistically clear local state so the UI reflects the reset immediately
+        if (!serverPlayer) {
+            serverPlayer = { id: clientPlayerId || 'player', holdings: {}, ventureHoldings: {}, ventureCommitments: {}, ventureCashInvested: {} };
+        }
+        serverPlayer.cash = 0;
+        serverPlayer.debt = 0;
+        serverPlayer.holdings = {};
+        serverPlayer.ventureHoldings = {};
+        serverPlayer.ventureCommitments = {};
+        serverPlayer.ventureCashInvested = {};
+        serverPlayer.netWorth = 0;
+        serverPlayer.bankrupt = false;
+    }
+    // Fallback and local UI: wipe positions and debt, set balances to zero
+    cash = 0;
+    totalBorrowed = 0;
+    portfolio = [];
+    if (ventureSim && typeof ventureSim.resetPlayerHoldings === 'function') {
+        ventureSim.resetPlayerHoldings();
+    }
+    updateNetWorth();
+    updateDisplay();
+    renderPortfolio();
+}
+
 function endGame(reason) {
+    if (reason === "bankrupt") {
+        handlingBankruptcy = true;
+    }
     pauseGame();
     let message = "";
     if (reason === "bankrupt") { message = "GAME OVER! You went bankrupt!"; }
@@ -1412,9 +1458,18 @@ function endGame(reason) {
     });
 
     if (reason === "bankrupt") {
-        // Show custom bankruptcy popup
-        if (bankruptcyPopup) {
-            bankruptcyPopup.classList.add('show');
+        // Show appropriate bankruptcy popup based on mode
+        if (isServerAuthoritative) {
+            liquidatePlayerAssets();
+            // Multiplayer bankruptcy
+            if (bankruptcyPopupMultiplayer) {
+                bankruptcyPopupMultiplayer.classList.add('show');
+            }
+        } else {
+            // Singleplayer bankruptcy
+            if (bankruptcyPopup) {
+                bankruptcyPopup.classList.add('show');
+            }
         }
     } else {
         showToast(`${message} Final Net Worth: ${currencyFormatter.format(netWorth)}`, { tone: 'info', duration: 7000 });
@@ -2188,7 +2243,7 @@ backBtn.addEventListener('click', hideCompanyDetail);
 buyBtn.addEventListener('click', () => { if (activeCompanyDetail) buy(activeCompanyDetail.name, investmentAmountInput.value); });
 sellBtn.addEventListener('click', () => { if (activeCompanyDetail) sell(activeCompanyDetail.name, investmentAmountInput.value); });
 
-// Bankruptcy popup
+// Bankruptcy popup (Singleplayer)
 if (bankruptcyPlayAgainBtn) {
     bankruptcyPlayAgainBtn.addEventListener('click', () => {
         location.reload();
@@ -2198,6 +2253,23 @@ if (bankruptcyCloseBtn) {
     bankruptcyCloseBtn.addEventListener('click', () => {
         if (bankruptcyPopup) {
             bankruptcyPopup.classList.remove('show');
+        }
+    });
+}
+
+// Bankruptcy popup (Multiplayer)
+if (bankruptcyOkayBtn) {
+    bankruptcyOkayBtn.addEventListener('click', () => {
+        liquidatePlayerAssets();
+        if (bankruptcyPopupMultiplayer) {
+            bankruptcyPopupMultiplayer.classList.remove('show');
+        }
+    });
+}
+if (bankruptcyCloseBtnMultiplayer) {
+    bankruptcyCloseBtnMultiplayer.addEventListener('click', () => {
+        if (bankruptcyPopupMultiplayer) {
+            bankruptcyPopupMultiplayer.classList.remove('show');
         }
     });
 }

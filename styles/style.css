@@ -1906,6 +1906,14 @@ button.speed-active:hover {
     text-align: center;
 }
 
+.bankruptcy-liquidation-text {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 400;
+    color: #475569;
+    text-align: center;
+}
+
 .bankruptcy-wojak {
     width: 60%;
     height: auto;
