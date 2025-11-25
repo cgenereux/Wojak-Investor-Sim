@@ -13,11 +13,16 @@
 
     let baseSrc = imageElement.getAttribute('src') || defaultSrc;
     let isMalding = false;
-    let maldingTimeoutId = null;
+    let maldingTimeoutId = null; // Caps the total malding duration
     let maldingAth = null;
     let maldingRecoveryThreshold = null;
     let maldingSevere = false;
-    let maldingMinDurationElapsed = false;
+    let maldingStartTime = null;
+
+    const MALD_MAX_MS = 14000; // Hard cap so Wojak never malds longer than this
+    const MALD_MIN_MILD_MS = 10000;
+    const MALD_MIN_SEVERE_MS = 14000;
+    const MALD_MIN_SEVERE_RELAXED_MS = 10000; // After recovering to -50% line
 
     imageElement.src = baseSrc;
 
@@ -36,7 +41,7 @@
       maldingAth = null;
       maldingRecoveryThreshold = null;
       maldingSevere = false;
-      maldingMinDurationElapsed = false;
+      maldingStartTime = null;
       if (isMalding || force) {
         isMalding = false;
         setImage(baseSrc);
@@ -57,33 +62,40 @@
         clearTimeout(maldingTimeoutId);
       }
       isMalding = true;
+      maldingStartTime = Date.now();
       maldingAth = drawdownAth || null;
-      maldingSevere = drawdownPercent >= 0.6;
-      maldingMinDurationElapsed = false;
+      maldingSevere = drawdownPercent >= 0.7;
       if (drawdownAth) {
-        const thresholdFactor = maldingSevere ? 0.6 : 1;
+        const thresholdFactor = maldingSevere ? 0.5 : 1;
         maldingRecoveryThreshold = drawdownAth * thresholdFactor;
       } else {
         maldingRecoveryThreshold = null;
       }
       setImage(maldingSrc);
+      // Hard cap timer to ensure malding never exceeds MALD_MAX_MS
       maldingTimeoutId = setTimeout(() => {
         maldingTimeoutId = null;
-        maldingMinDurationElapsed = true;
-        const netWorth = getNetWorth();
-        if (!maldingSevere && (!maldingRecoveryThreshold || netWorth >= maldingRecoveryThreshold)) {
-          endMalding();
-        } else if (maldingSevere && maldingRecoveryThreshold && netWorth >= maldingRecoveryThreshold) {
-          endMalding();
-        }
-      }, 10000);
+        endMalding();
+      }, MALD_MAX_MS);
+    }
+
+    function getRequiredMinMs(netWorth) {
+      if (!maldingSevere) return MALD_MIN_MILD_MS;
+      const recoveredToFiftyLine = maldingRecoveryThreshold != null && netWorth >= maldingRecoveryThreshold;
+      return recoveredToFiftyLine ? MALD_MIN_SEVERE_RELAXED_MS : MALD_MIN_SEVERE_MS;
     }
 
     function handleRecovery(netWorth) {
-      if (!isMalding || maldingRecoveryThreshold == null) return;
-      if (!maldingSevere && netWorth >= maldingRecoveryThreshold) {
+      if (!isMalding) return;
+      const now = Date.now();
+      const elapsed = maldingStartTime ? (now - maldingStartTime) : 0;
+      if (elapsed >= MALD_MAX_MS) {
         endMalding();
-      } else if (maldingSevere && maldingMinDurationElapsed && netWorth >= maldingRecoveryThreshold) {
+        return;
+      }
+      const thresholdMet = !maldingRecoveryThreshold || netWorth >= maldingRecoveryThreshold;
+      const requiredMin = getRequiredMinMs(netWorth);
+      if (thresholdMet && elapsed >= requiredMin) {
         endMalding();
       }
     }
@@ -101,15 +113,16 @@
       endMalding,
       reset,
       get state() {
-        return {
-          baseSrc,
-          isMalding,
-          maldingAth,
-          maldingRecoveryThreshold,
-          maldingSevere,
-          maldingMinDurationElapsed
-        };
-      }
+      return {
+        baseSrc,
+        isMalding,
+        maldingAth,
+        maldingRecoveryThreshold,
+        maldingSevere,
+        maldingStartTime,
+        maldingMaxDurationMs: MALD_MAX_MS
+      };
+    }
     };
   }
 

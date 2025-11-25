@@ -1277,13 +1277,18 @@ function updateNetWorth() {
     }
     const drawdown = netWorthAth > 0 ? (netWorthAth - netWorth) / netWorthAth : 0;
     const isWojakAvatar = isWojakCharacterSelected();
-    if (isWojakAvatar && drawdown >= 0.4 && netWorthAth > 0 && lastDrawdownTriggerAth !== netWorthAth) {
+    const isSuitedWojak = isWojakAvatar && (isMillionaire || isBillionaire || isTrillionaire);
+    const maldingEnabled = isWojakAvatar && !isSuitedWojak && !isServerAuthoritative; // Temporarily disable in multiplayer
+    if (!maldingEnabled && wojakManager) {
+        wojakManager.endMalding(true);
+    }
+    if (maldingEnabled && drawdown >= 0.5 && netWorthAth > 0 && lastDrawdownTriggerAth !== netWorthAth) {
         lastDrawdownTriggerAth = netWorthAth;
         if (wojakManager) {
             wojakManager.triggerMalding(netWorthAth, drawdown);
         }
     }
-    if (isWojakAvatar && wojakManager) {
+    if (maldingEnabled && wojakManager) {
         wojakManager.handleRecovery(netWorth);
     }
 
