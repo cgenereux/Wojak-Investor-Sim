@@ -33,6 +33,7 @@ let vcFormatCurrency = (value) => vcFormatLargeNumber(value || 0);
 let ventureCompanyDetailChart = null;
 let ventureFinancialBarChart = null;
 let currentVcChartRange = 80;
+const lastInvestmentOptionsKey = new Map();
 
 function ensureVentureReady() {
     if (typeof ensureVentureSimulation === 'function') {
@@ -145,12 +146,32 @@ function buildRoundInfo(detail) {
     };
 }
 
-function renderInvestmentOptions(detail) {
+function renderInvestmentOptions(detail, companyId = null) {
     if (!vcInvestmentOptionsEl) return;
+    if (!detail || !detail.round || typeof detail.round.equityOffered !== 'number') {
+        vcInvestmentOptionsEl.innerHTML = '';
+        if (vcRoundDilutionEl) vcRoundDilutionEl.textContent = '';
+        lastInvestmentOptionsKey.delete(companyId || detail?.id || detail?.name || '');
+        return;
+    }
+    const roundStage = detail.round.stageLabel || detail.round.label || detail.stageLabel || '';
+    const keyParts = [
+        companyId || detail.id || detail.name || '',
+        roundStage,
+        Number(detail.round.raiseAmount) || 0,
+        Number(detail.round.preMoney) || 0,
+        Number(detail.round.equityOffered) || 0,
+        detail.round.playerCommitted ? 'committed' : 'open',
+        detail.round.playerCommitted ? (detail.round.playerCommitAmount || 0) : 0
+    ];
+    const key = keyParts.join('|');
+    if (lastInvestmentOptionsKey.get(companyId || detail.id || detail.name || '') === key) {
+        return; // Skip re-render if round data hasn't changed
+    }
+    lastInvestmentOptionsKey.set(companyId || detail.id || detail.name || '', key);
     vcInvestmentOptionsEl.innerHTML = '';
     if (vcRoundDilutionEl) vcRoundDilutionEl.textContent = '';
 
-    if (!detail || !detail.round || typeof detail.round.equityOffered !== 'number') return;
     const dilutionPct = Math.max(0, detail.round.equityOffered * 100);
     const currentStageIdx = Array.isArray(detail.rounds)
         ? detail.rounds.findIndex(r => (r?.stageLabel || '').toLowerCase() === (detail.round.stageLabel || '').toLowerCase())
@@ -323,7 +344,7 @@ function updateVentureDetail(companyId) {
     const roundInfo = buildRoundInfo(detail);
     vcDetailRoundInfoEl.textContent = roundInfo.info;
     vcDetailTimerEl.textContent = roundInfo.timer;
-    renderInvestmentOptions(detail);
+    renderInvestmentOptions(detail, companyId);
 
     if (vcFinancialHistoryContainer) {
         // Ensure structure exists: Controls + Chart Container + Table Container
@@ -499,6 +520,7 @@ function hideVentureCompanyDetail() {
     document.body.classList.remove('vc-detail-active');
     currentVentureCompanyId = null;
     destroyVentureChart();
+    lastInvestmentOptionsKey.clear();
 }
 
 function refreshVentureCompaniesList() {
