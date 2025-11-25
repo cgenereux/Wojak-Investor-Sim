@@ -70,6 +70,7 @@
         refreshJoinUi();
         setConnectionStatus('Offline', 'warn');
         setBannerButtonsVisible(false);
+        document.body.classList.remove('multiplayer-active');
         if (speedSliderWrap) speedSliderWrap.style.display = '';
         if (multiplayerBtnContainer) multiplayerBtnContainer.style.display = '';
         if (multiplayerStatusDisplay) multiplayerStatusDisplay.style.display = 'none';
@@ -137,6 +138,7 @@
             console.log('WS connected');
             setConnectionStatus('Connected', 'ok');
             setBannerButtonsVisible(true);
+            document.body.classList.add('multiplayer-active');
             if (speedSliderWrap) speedSliderWrap.style.display = 'none';
             if (multiplayerBtnContainer) multiplayerBtnContainer.style.display = 'none';
             if (multiplayerStatusDisplay) multiplayerStatusDisplay.style.display = 'block';
@@ -390,11 +392,11 @@
                 hydrateFromSnapshot({ ...msg.snapshot, player: msg.player, ticks: msg.ticks });
                 applyTicks(msg.ticks || []);
             }
-        setConnectionStatus('Resynced', 'ok');
-        if (msg.hostId) {
-            currentHostId = msg.hostId;
-        }
-        if (Array.isArray(msg.snapshot?.players)) {
+            setConnectionStatus('Resynced', 'ok');
+            if (msg.hostId) {
+                currentHostId = msg.hostId;
+            }
+            if (Array.isArray(msg.snapshot?.players)) {
                 setRosterFromServer(msg.snapshot.players);
             }
             return;

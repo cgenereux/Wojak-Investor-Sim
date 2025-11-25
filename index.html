@@ -70,44 +70,48 @@
                 <canvas id="netWorthChart"></canvas>
             </div>
             <div class="controls">
-                <div class="speed-slider-wrap">
-                    <div class="time-controls-row">
-                        <div class="playback-controls">
-                            <button id="playPauseBtn" class="playback-btn" title="Pause">
-                                <svg id="pauseIcon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                                    <rect x="6" y="4" width="4" height="16"></rect>
-                                    <rect x="14" y="4" width="4" height="16"></rect>
-                                </svg>
-                                <svg id="playIcon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"
-                                    style="display: none;">
-                                    <polygon points="5,3 19,12 5,21"></polygon>
-                                </svg>
-                            </button>
+                <div class="controls-group-left">
+                    <div class="speed-slider-wrap">
+                        <div class="time-controls-row">
+                            <div class="playback-controls">
+                                <button id="playPauseBtn" class="playback-btn" title="Pause">
+                                    <svg id="pauseIcon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                        <rect x="6" y="4" width="4" height="16"></rect>
+                                        <rect x="14" y="4" width="4" height="16"></rect>
+                                    </svg>
+                                    <svg id="playIcon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"
+                                        style="display: none;">
+                                        <polygon points="5,3 19,12 5,21"></polygon>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="speed-slider-row">
+                                <input type="range" id="speedSlider" min="0" max="16" step="1" value="2" />
+                                <span id="speedThumbLabel">1x</span>
+                            </div>
                         </div>
-                        <div class="speed-slider-row">
-                            <input type="range" id="speedSlider" min="0" max="16" step="1" value="2" />
-                            <span id="speedThumbLabel">1x</span>
-                        </div>
+                        <label for="speedSlider">Time</label>
                     </div>
-                    <label for="speedSlider">Time</label>
+                    <button id="bankBtn">Banking Services</button>
                 </div>
-                <button id="bankBtn">Banking Services</button>
-                <div class="tooltip-container">
-                    <button id="vcBtn" disabled>Venture Capital</button>
-                    <span class="tooltip-text">Access to venture investments requires a net worth of at least
-                        $1,000,000.</span>
-                </div>
-                <div class="drip-toggle">
-                    <input type="checkbox" id="dripToggle">
-                    <span class="drip-label">Reinvest Dividends</span>
+                <div class="controls-group-right">
+                    <div class="tooltip-container">
+                        <button id="vcBtn" disabled>Venture Capital</button>
+                        <span class="tooltip-text">Access to venture investments requires a net worth of at least
+                            $1,000,000.</span>
+                    </div>
+                    <div class="drip-toggle">
+                        <input type="checkbox" id="dripToggle">
+                        <span class="drip-label">Reinvest Dividends</span>
+                    </div>
                 </div>
             </div>
 
-            <div class="debug-controls">
+            <!-- <div class="debug-controls">
                 <button id="setMillionaireBtn">M</button>
                 <button id="setBillionaireBtn">B</button>
                 <button id="setTrillionaireBtn">T</button>
-            </div>
+            </div> -->
 
             <div class="portfolio">
                 <div class="portfolio-header">

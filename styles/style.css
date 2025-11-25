@@ -384,6 +384,10 @@ body.detail-active #detail-view {
     flex-shrink: 0;
 }
 
+body:not(.multiplayer-active) .drip-toggle {
+    margin-left: 12px;
+}
+
 .drip-label {
     font-size: 16px;
     text-transform: none;
@@ -476,11 +480,46 @@ body.detail-active #detail-view {
 
 .controls {
     display: flex;
-    gap: 10px;
     justify-content: center;
     align-items: center;
     margin-bottom: 10px;
-    flex-wrap: wrap;
+    width: 100%;
+    max-width: 900px;
+    /* Allow more width for groups */
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.controls-group-left {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    flex: 1;
+    padding-right: 5px;
+    /* Half of the 10px gap between buttons */
+}
+
+.controls-group-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    flex: 1;
+    padding-left: 5px;
+    /* Half of the 10px gap between buttons */
+}
+
+/* Multiplayer Overrides */
+body.multiplayer-active .controls {
+    gap: 10px;
+}
+
+body.multiplayer-active .controls-group-left,
+body.multiplayer-active .controls-group-right {
+    flex: initial;
+    padding: 0;
+    justify-content: center;
 }
 
 .debug-controls {
@@ -595,11 +634,11 @@ button.speed-active {
     align-items: center;
     gap: 10px;
     position: relative;
-    min-width: 210px;
+    min-width: 179px;
 }
 
 #speedSlider {
-    width: 190px;
+    width: 162px;
     margin: 0;
     background: transparent;
     appearance: none;
