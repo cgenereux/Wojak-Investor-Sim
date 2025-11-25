@@ -14,6 +14,15 @@
     return fallback;
   };
 
+  const pickDescription = (def, rngFn = getRng()) => {
+    if (Array.isArray(def.descriptions) && def.descriptions.length > 0) {
+      const idx = Math.floor(rngFn() * def.descriptions.length);
+      const entry = def.descriptions[idx];
+      if (typeof entry === 'string') return entry;
+    }
+    return def.description || def.notes || '';
+  };
+
   class MacroEventManager {
     constructor(definitions = [], baseYear = 1990) {
       this.baseYear = baseYear;
@@ -36,7 +45,7 @@
       if (!force && rngFn() > chance) return null;
       const id = def.id || `macro_event_${Math.floor(rngFn() * 1e9).toString(36)}`;
       const label = def.label || 'Macro Event';
-      const description = def.description || def.notes || '';
+      const description = pickDescription(def, rngFn);
       const startRange = Array.isArray(def.start_year_range) && def.start_year_range.length === 2
         ? def.start_year_range
         : [def.start_year || this.baseYear + 2, def.start_year || this.baseYear + 2];
@@ -66,6 +75,9 @@
           })
         : [];
       const state = options.forceActive ? 'active' : 'scheduled';
+      const polarity = typeof def.polarity === 'string' ? def.polarity.toLowerCase() : '';
+      const isPositive = def.good === true || def.positive === true || polarity === 'positive' || polarity === 'good';
+      const isNegative = def.bad === true || def.negative === true || polarity === 'negative' || polarity === 'bad';
       return {
         id,
         label,
@@ -79,7 +91,10 @@
         globalMinMultiplier: typeof globalMinMultiplier === 'number' ? globalMinMultiplier : 1,
         valuationMinMultiplier: typeof valuationMinMultiplier === 'number' ? valuationMinMultiplier : 1,
         sectorImpacts,
-        state
+        state,
+        polarity: isPositive ? 'positive' : (isNegative ? 'negative' : 'neutral'),
+        isPositive,
+        isNegative
       };
     }
 
@@ -104,6 +119,15 @@
         id: evt.id,
         label: evt.label,
         description: evt.description,
+        polarity: evt.polarity || 'neutral',
+        isPositive: !!evt.isPositive,
+        isNegative: !!evt.isNegative,
+        totalDays: evt.totalDays || Math.max(1, Math.ceil((evt.endDate - evt.startDate) / DAY_MS)),
+        progress: (() => {
+          const elapsed = Math.max(0, (ref - evt.startDate) / DAY_MS);
+          const total = evt.totalDays || Math.max(1, (evt.endDate - evt.startDate) / DAY_MS);
+          return Math.max(0, Math.min(1, elapsed / total));
+        })(),
         daysRemaining: Math.max(0, Math.ceil((evt.endDate - ref) / DAY_MS))
       }));
     }

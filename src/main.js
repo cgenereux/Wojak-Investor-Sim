@@ -428,6 +428,8 @@ let killSessionBtn = null;
 let resyncButtonEl = null;
 let disconnectButtonEl = null;
 const emittedDecadeKeys = new Set();
+const bankruptNotifiedIds = new Set();
+const macroEventNotifiedIds = new Set();
 const ENABLE_LOCAL_BANKRUPTCY_TEST = false;
 const BANKRUPTCY_TEST_DELAY_MS = 12000;
 const HOLDING_PURGE_DELAY_MS = 9000;
@@ -699,6 +701,7 @@ function applyTick(tick) {
         setRosterFromServer(tick.players);
     }
     updateNetWorth();
+    notifyBankruptcies(companies);
     updateBankingDisplay();
     renderCompanies();
     updateDisplay();
@@ -1284,17 +1287,22 @@ function renderPlayerLeaderboard(players = []) {
 function updateMacroEventsDisplay() {
     if (!macroEventsDisplay) return;
     const events = (sim && typeof sim.getActiveMacroEvents === 'function') ? sim.getActiveMacroEvents() : [];
-    if (!events || events.length === 0) {
-        macroEventsDisplay.innerHTML = '';
-        macroEventsDisplay.classList.remove('active');
-        return;
-    }
-    macroEventsDisplay.classList.add('active');
-    const html = events.map(evt => {
-        const desc = evt.description ? evt.description.replace(/"/g, '&quot;') : '';
-        return `<span class="macro-event-pill" title="${desc}">${evt.label}</span>`;
-    }).join('');
-    macroEventsDisplay.innerHTML = html;
+    macroEventsDisplay.style.display = 'none'; // hide legacy pill bar
+    macroEventsDisplay.innerHTML = '';
+    macroEventsDisplay.classList.remove('active');
+    if (!events || events.length === 0) return;
+    events.forEach(evt => {
+        if (!evt || !evt.id) return;
+        const progress = Number.isFinite(evt.progress) ? evt.progress : 1;
+        if (progress < 0.3) return;
+        if (macroEventNotifiedIds.has(evt.id)) return;
+        macroEventNotifiedIds.add(evt.id);
+        const label = evt.label || 'Macro event';
+        const desc = evt.description || '';
+        const message = desc ? `${label}: ${desc}` : label;
+        const tone = evt.isPositive ? 'macro-good' : (evt.isNegative ? 'macro-bad' : 'macro');
+        showToast(message, { tone, duration: 10000 });
+    });
 }
 
 // --- Utility: Parse user-entered currency/number strings ---
@@ -1413,6 +1421,16 @@ function clearBankingInputAndRefresh() {
         bankingAmountInput.value = '';
     }
     updateBankingDisplay();
+}
+
+function notifyBankruptcies(companiesList = []) {
+    companiesList.forEach(company => {
+        if (!company || !company.id || !company.bankrupt) return;
+        if (bankruptNotifiedIds.has(company.id)) return;
+        bankruptNotifiedIds.add(company.id);
+        const name = company.name || 'A company';
+        showToast(`${name} declared bankruptcy.`, { tone: 'warn', duration: 5000 });
+    });
 }
 
 function clamp(value, min, max) {
@@ -1742,6 +1760,7 @@ function gameLoop() {
     maybeTrackDecadeNetWorth(currentDate);
     updateDisplay();
     updateBankingDisplay();
+    notifyBankruptcies(companies);
     renderPortfolio();
     netWorthChart.update();
 

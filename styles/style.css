@@ -113,13 +113,14 @@ body.detail-active #detail-view {
 .toast {
     position: relative;
     min-width: 240px;
-    max-width: 360px;
-    padding: 12px 14px;
+    max-width: 476px;
+    padding: 12px 32px 12px 14px; /* extra right padding for close button */
     border-radius: 10px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
     color: #0f172a;
     background: #ffffff;
     font-weight: 600;
+    font-size: 13px;
     border: 1px solid #e2e8f0;
     opacity: 0;
     transform: translateY(-6px);
@@ -146,6 +147,30 @@ body.detail-active #detail-view {
     background: #fff7f7;
 }
 
+.toast-macro {
+    border-color: #fca5a5;
+    background: #fff1f2;
+    font-size: 17px;
+    line-height: 1.4;
+    padding: 15px 34px 15px 16px;
+}
+
+.toast-macro-good {
+    border-color: #86efac;
+    background: #ecfdf3;
+    font-size: 17px;
+    line-height: 1.4;
+    padding: 15px 34px 15px 16px;
+}
+
+.toast-macro-bad {
+    border-color: #fca5a5;
+    background: #fff1f2;
+    font-size: 17px;
+    line-height: 1.4;
+    padding: 15px 34px 15px 16px;
+}
+
 .toast-error {
     border-color: #fca5a5;
     background: #fff1f2;
@@ -163,7 +188,7 @@ body.detail-active #detail-view {
     background: transparent;
     border: none;
     color: inherit;
-    font-size: 16px;
+    font-size: 14px;
     cursor: pointer;
     padding: 2px;
 }
