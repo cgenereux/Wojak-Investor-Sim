@@ -114,7 +114,8 @@ body.detail-active #detail-view {
     position: relative;
     min-width: 240px;
     max-width: 476px;
-    padding: 12px 32px 12px 14px; /* extra right padding for close button */
+    padding: 12px 32px 12px 14px;
+    /* extra right padding for close button */
     border-radius: 10px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
     color: #0f172a;
@@ -477,6 +478,7 @@ body.detail-active #detail-view {
     display: flex;
     gap: 10px;
     justify-content: center;
+    align-items: center;
     margin-bottom: 10px;
     flex-wrap: wrap;
 }
@@ -522,13 +524,70 @@ button.speed-active {
 
 .speed-slider-wrap {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 0;
     padding: 0;
     border: none;
     background: transparent;
     font-weight: 600;
     color: #1f2937;
+    position: relative;
+}
+
+.speed-slider-wrap label {
+    position: absolute;
+    bottom: -17px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 15px;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.time-controls-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.playback-controls {
+    display: flex;
+    align-items: center;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    overflow: visible;
+}
+
+.playback-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1.5px solid #097a32;
+    background: transparent;
+    color: #097a32;
+    cursor: pointer;
+    border-radius: 6px;
+    /* Rounded square */
+}
+
+.playback-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+.playback-btn:hover {
+    background-color: transparent !important;
+    color: #097a32 !important;
+    border-color: #097a32 !important;
+}
+
+.playback-btn:active {
+    background-color: #dcfce7 !important;
 }
 
 .speed-slider-row {

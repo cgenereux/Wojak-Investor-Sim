@@ -2541,6 +2541,18 @@ if (speedSlider) {
         const nextSpeed = SPEED_STEPS[clampedIdx] ?? 1;
         setGameSpeed(nextSpeed);
     });
+
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    if (playPauseBtn) {
+        playPauseBtn.addEventListener('click', () => {
+            if (currentSpeed > 0) {
+                setGameSpeed(0);
+            } else {
+                setGameSpeed(1);
+            }
+        });
+    }
+
     if (typeof speedSlider.value === 'string') {
         const initialIdx = SPEED_STEPS.indexOf(currentSpeed);
         speedSlider.value = `${initialIdx >= 0 ? initialIdx : 2}`;
@@ -2560,6 +2572,22 @@ function updateSpeedThumbLabel() {
     const pos = ratio * Math.max(0, trackWidth - thumbWidth) + thumbWidth / 2;
     speedThumbLabel.style.left = `${pos}px`;
     speedThumbLabel.textContent = currentSpeed <= 0 ? 'Paused' : `${currentSpeed}x Speed`;
+
+    // Update Play/Pause Icon
+    const pauseIcon = document.getElementById('pauseIcon');
+    const playIcon = document.getElementById('playIcon');
+    const btn = document.getElementById('playPauseBtn');
+    if (pauseIcon && playIcon && btn) {
+        if (currentSpeed <= 0) {
+            pauseIcon.style.display = 'none';
+            playIcon.style.display = 'block';
+            btn.title = "Play";
+        } else {
+            pauseIcon.style.display = 'block';
+            playIcon.style.display = 'none';
+            btn.title = "Pause";
+        }
+    }
 }
 
 window.addEventListener('resize', () => {
