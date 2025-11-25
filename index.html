@@ -321,7 +321,7 @@
                     </div>
                 </div>
                 <div id="multiplayerJoinState" class="multiplayer-state">
-                    <div class="input-label">Enter a party code</div>
+                    <div class="input-label join-code-label" id="mpJoinCodeLabel">Enter a party code</div>
                     <div class="mp-join-row">
                         <button id="confirmJoinPartyBtn" class="borrow-btn join-action-btn">Join</button>
                         <input type="text" id="mpJoinCodeInput" placeholder="ABC123">
@@ -332,6 +332,7 @@
                         <ul id="mpPlayersListJoin" class="mp-player-list">
                             <li class="mp-player-placeholder">Waiting for players...</li>
                         </ul>
+                        <div id="mpWaitingForHost" class="mp-waiting-host"></div>
                     </div>
                 </div>
                 <div id="multiplayerCreateState" class="multiplayer-state">

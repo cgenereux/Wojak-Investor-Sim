@@ -34,6 +34,8 @@
         startGameSent = false;
         matchStarted = false;
         shouldPromptCharacterAfterConnect = false;
+        hasJoinedPartyAsGuest = false;
+        lastKnownHostLabel = '';
         pendingPartyAction = null;
         hideCharacterOverlay();
         activeBackendUrl = null;
@@ -55,6 +57,7 @@
         if (wsHeartbeat) { clearInterval(wsHeartbeat); wsHeartbeat = null; }
         isServerAuthoritative = false;
         resetCharacterToDefault();
+        refreshJoinUi();
         setConnectionStatus('Offline', 'warn');
         setBannerButtonsVisible(false);
         if (speedSliderWrap) speedSliderWrap.style.display = '';
@@ -602,12 +605,60 @@
         return name;
     }
 
+    function getHostLabelFromRoster(roster = latestServerPlayers) {
+        if (Array.isArray(roster) && roster.length) {
+            if (currentHostId) {
+                const hostMatch = roster.find((p) => p && p.id === currentHostId);
+                if (hostMatch && hostMatch.id) return hostMatch.id;
+            }
+            const first = roster[0];
+            if (first && first.id) return first.id;
+        }
+        if (currentHostId) return currentHostId;
+        if (lastKnownHostLabel) return lastKnownHostLabel;
+        return '';
+    }
+
+    function refreshJoinUi(hostLabel = null) {
+        const joinedGuest = hasJoinedPartyAsGuest && multiplayerState === 'join' && !isPartyHostClient;
+        const host = (hostLabel || lastKnownHostLabel || currentHostId || '').trim();
+        if (host) lastKnownHostLabel = host;
+        const joinRow = multiplayerJoinState ? multiplayerJoinState.querySelector('.mp-join-row') : null;
+        if (multiplayerJoinState) multiplayerJoinState.classList.toggle('joined', joinedGuest);
+        if (joinRow) joinRow.classList.toggle('joined', joinedGuest);
+        if (mpJoinCodeLabel) mpJoinCodeLabel.style.display = joinedGuest ? 'none' : '';
+        if (mpJoinCodeInput) {
+            mpJoinCodeInput.style.display = joinedGuest ? 'none' : '';
+            if (joinedGuest) mpJoinCodeInput.classList.remove('input-error');
+        }
+        if (mpJoinError && joinedGuest) mpJoinError.classList.remove('visible');
+        if (confirmJoinPartyBtn) {
+            const joinedLabel = host ? `Joined ${host}'s Party` : 'Joined Party';
+            confirmJoinPartyBtn.textContent = joinedGuest ? joinedLabel : 'Join';
+            confirmJoinPartyBtn.disabled = joinedGuest;
+            confirmJoinPartyBtn.classList.toggle('joined', joinedGuest);
+            confirmJoinPartyBtn.setAttribute('aria-disabled', joinedGuest ? 'true' : 'false');
+        }
+        if (mpWaitingForHost) {
+            if (joinedGuest) {
+                mpWaitingForHost.textContent = host
+                    ? `Waiting for ${host} to start the match...`
+                    : 'Waiting for the host to start the match...';
+                mpWaitingForHost.style.display = 'block';
+            } else {
+                mpWaitingForHost.textContent = '';
+                mpWaitingForHost.style.display = 'none';
+            }
+        }
+    }
+
     function setMultiplayerState(state) {
         multiplayerState = state;
         // multiplayerIdleState removed from HTML
         if (multiplayerJoinState) multiplayerJoinState.classList.toggle('active', state === 'join');
         if (multiplayerCreateState) multiplayerCreateState.classList.toggle('active', state === 'create');
-        if (state === 'join' && mpJoinCodeInput) {
+        const alreadyJoinedGuest = hasJoinedPartyAsGuest && state === 'join' && !isPartyHostClient;
+        if (state === 'join' && mpJoinCodeInput && !alreadyJoinedGuest) {
             mpJoinCodeInput.focus();
             mpJoinCodeInput.select();
             // Hide roster initially until connected
@@ -628,6 +679,7 @@
                 leadAvatarName.textContent = '';
             }
         }
+        refreshJoinUi(getHostLabelFromRoster(latestServerPlayers));
     }
 
     function renderLobbyPlayers(players = []) {
@@ -678,6 +730,8 @@
         startGameRequested = false;
         startGameSent = false;
         isPartyHostClient = false;
+        hasJoinedPartyAsGuest = false;
+        lastKnownHostLabel = '';
         matchStarted = false;
         manualDisconnect = false;
         updateCharacterLocksFromServer([]);
@@ -692,6 +746,7 @@
         shouldPromptCharacterAfterConnect = false;
         if (partyAvatars) partyAvatars.innerHTML = '';
         if (leadAvatarName) leadAvatarName.textContent = '';
+        refreshJoinUi();
     }
 
     function attemptJoinParty() {
@@ -808,6 +863,9 @@
         localStorage.setItem(SESSION_ID_KEY, activeSessionId);
         manualDisconnect = false;
         resetDecadeTracking();
+        hasJoinedPartyAsGuest = false;
+        lastKnownHostLabel = '';
+        refreshJoinUi();
         currentHostId = null;
         latestServerPlayers = [];
         if (playerNetWorthSeries && typeof playerNetWorthSeries.clear === 'function') {
@@ -1017,6 +1075,18 @@
         renderLobbyPlayers(roster);
         renderPartyAvatars(roster);
         renderLeadAvatarName(roster);
+        const shouldMarkJoined = !isPartyHostClient
+            && multiplayerState === 'join'
+            && clientPlayerId
+            && roster.some(p => p && p.id === clientPlayerId);
+        if (shouldMarkJoined) {
+            hasJoinedPartyAsGuest = true;
+        }
+        const hostLabel = getHostLabelFromRoster(roster);
+        if (hostLabel) {
+            lastKnownHostLabel = hostLabel;
+        }
+        refreshJoinUi(hostLabel);
         promptCharacterIfPending();
         return roster;
     }

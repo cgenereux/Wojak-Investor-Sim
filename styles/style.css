@@ -1624,6 +1624,51 @@ button.speed-active:hover {
     flex: 1;
 }
 
+.mp-roster-panel {
+    width: 60%;
+    min-width: 380px;
+    max-width: 520px;
+    margin: 6px auto 0;
+}
+
+.multiplayer-state.joined .join-code-label,
+.multiplayer-state.joined .mp-join-row input {
+    display: none;
+}
+
+.multiplayer-state.joined .mp-join-row {
+    justify-content: center;
+    gap: 0;
+    width: 100%;
+}
+
+.join-action-btn.joined {
+    background-color: #22c55e;
+    color: #ffffff;
+    cursor: default;
+    pointer-events: none;
+    box-shadow: none;
+}
+
+.join-action-btn.joined:hover {
+    background-color: #22c55e;
+}
+
+.mp-waiting-host {
+    display: none;
+    margin-top: 10px;
+    font-size: 14px;
+    color: #1f2937;
+    font-weight: 600;
+    text-align: center;
+    white-space: nowrap;
+    width: 100%;
+}
+
+.multiplayer-state.joined .mp-waiting-host {
+    display: block;
+}
+
 .party-code-row {
     display: flex;
     align-items: center;
@@ -1656,6 +1701,7 @@ button.speed-active:hover {
 
 .players-label {
     margin-top: 8px;
+    white-space: nowrap;
 }
 
 .mp-player-list {
@@ -1665,6 +1711,7 @@ button.speed-active:hover {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    width: 100%;
 }
 
 .mp-player-list li {
@@ -1675,6 +1722,7 @@ button.speed-active:hover {
     background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 10px;
+    width: 100%;
 }
 
 .mp-player-placeholder {
@@ -1692,10 +1740,8 @@ button.speed-active:hover {
 .mp-player-name {
     font-weight: 600;
     color: #0f172a;
-}
-
-.mp-roster-panel {
-    margin-top: 6px;
+    flex: 1;
+    text-align: left;
 }
 
 .start-game-btn {
