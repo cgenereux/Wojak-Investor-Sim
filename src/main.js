@@ -1296,7 +1296,7 @@ function updateNetWorth() {
         setTimeout(() => { jsConfetti.addConfetti({ emojis: ['🌌', '🥇', '🔮'], confettiNumber: 100, emojiSize: 30, }); }, 2000);
     }
 
-    if (netWorth >= 5000000) {
+    if (netWorth >= 1000000) {
         vcBtn.disabled = false;
         vcBtn.parentElement.classList.remove('disabled');
         ensureVentureSimulation();

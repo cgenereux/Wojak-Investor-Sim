@@ -700,6 +700,51 @@ function handleCommand(session, player, msg) {
       stageLabel: leadResult.stageLabel
     };
   }
+  if (type === 'vc_invest') {
+    const companyId = msg.companyId;
+    const pct = Number(msg.pct);
+    if (!companyId || !session.ventureSim) {
+      return { ok: false, error: 'unknown_company' };
+    }
+    if (!Number.isFinite(pct) || pct <= 0) {
+      return { ok: false, error: 'bad_amount' };
+    }
+    const company = session.ventureSim.getCompanyById(companyId);
+    if (!company || company.status !== 'raising' || !company.currentRound) {
+      return { ok: false, error: 'not_raising' };
+    }
+    const equityFraction = pct / 100;
+    const investResult = session.ventureSim.invest(companyId, equityFraction, player.id);
+    if (!investResult?.success) {
+      return { ok: false, error: investResult?.reason || 'invest_failed' };
+    }
+    const amount = investResult.amount || 0;
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return { ok: false, error: 'bad_amount' };
+    }
+    if (player.cash < amount) {
+      // roll back pending commitment
+      company.pendingCommitment = Math.max(0, (company.pendingCommitment || 0) - amount);
+      if (company.currentRound) {
+        company.currentRound.playerCommitAmount = Math.max(0, (company.currentRound.playerCommitAmount || 0) - amount);
+        company.currentRound.playerCommitEquity = Math.max(0, (company.currentRound.playerCommitEquity || 0) - equityFraction);
+        if ((company.currentRound.playerCommitAmount || 0) <= 0) {
+          company.currentRound.playerCommitted = false;
+        }
+      }
+      return { ok: false, error: 'insufficient_cash' };
+    }
+    player.cash -= amount;
+    player.ventureCommitments[companyId] = (player.ventureCommitments[companyId] || 0) + amount;
+    player.lastCommandTs = Date.now();
+    return {
+      ok: true,
+      type: 'vc_invest',
+      companyId,
+      amount,
+      equityFraction: investResult.equityFraction || equityFraction
+    };
+  }
   if (type === 'debug_set_cash') {
     const amount = msg.amount;
     if (!Number.isFinite(amount)) {

@@ -697,6 +697,7 @@
       }
       this.currentRound.playerCommitted = true;
       this.currentRound.playerCommitAmount = this.currentRound.raiseAmount;
+      this.currentRound.playerCommitEquity = this.currentRound.equityOffered;
       this.currentRound.commitPlayerId = playerId || null;
       this.lastCommitPlayerId = playerId || this.lastCommitPlayerId || null;
       this.pendingCommitment = (this.pendingCommitment || 0) + this.currentRound.raiseAmount;
@@ -705,6 +706,40 @@
         raiseAmount: this.currentRound.raiseAmount,
         equityOffered: this.currentRound.equityOffered,
         stageLabel: this.currentRound.stageLabel
+      };
+    }
+
+    commitInvestment(equityFraction = 0, playerId = null) {
+      if (!this.currentRound || this.status !== 'raising') {
+        return { success: false, reason: 'Not currently raising.' };
+      }
+      const round = this.currentRound;
+      const maxEquity = Math.max(0, Number(round.equityOffered) || 0);
+      const preMoney = Number(round.preMoney) || 0;
+      const raiseAmount = Number(round.raiseAmount) || 0;
+      const postMoney = Number(round.postMoney) || (preMoney + raiseAmount);
+      if (!Number.isFinite(postMoney) || postMoney <= 0 || maxEquity <= 0) {
+        return { success: false, reason: 'Invalid round terms.' };
+      }
+      const desiredEquity = Math.max(0, equityFraction || 0);
+      const existingEquity = Math.max(0, Number(round.playerCommitEquity) || 0);
+      const remainingEquity = Math.max(0, maxEquity - existingEquity);
+      const equityUsed = Math.min(remainingEquity, desiredEquity);
+      if (equityUsed <= 0) {
+        return { success: false, reason: 'Allocation full.' };
+      }
+      const amount = equityUsed * postMoney;
+      round.playerCommitted = true;
+      round.playerCommitEquity = existingEquity + equityUsed;
+      round.playerCommitAmount = (round.playerCommitAmount || 0) + amount;
+      round.commitPlayerId = playerId || round.commitPlayerId || null;
+      this.lastCommitPlayerId = playerId || this.lastCommitPlayerId || null;
+      this.pendingCommitment = (this.pendingCommitment || 0) + amount;
+      return {
+        success: true,
+        amount,
+        equityFraction: equityUsed,
+        stageLabel: round.stageLabel
       };
     }
 
@@ -757,8 +792,12 @@
 
       const preMoney = closingRound.fairValue ?? this.computeFairValue(false);
       const raiseAmount = closingRound.raiseAmount;
-      const postMoney = preMoney + raiseAmount;
-      const equityOffered = closingRound.equityOffered;
+      const committedAmount = Number(closingRound.playerCommitAmount) || 0;
+      const committedEquity = Number(closingRound.playerCommitEquity) || 0;
+      const raiseAmountUsed = committedAmount > 0 ? committedAmount : raiseAmount;
+      const postMoney = preMoney + raiseAmountUsed;
+      const equityOfferedDefault = postMoney > 0 ? (raiseAmount / (preMoney + raiseAmount)) : 0;
+      const equityOffered = committedAmount > 0 && committedEquity > 0 ? committedEquity : equityOfferedDefault;
       const dilutedEquity = this.playerEquity * (preMoney / postMoney);
 
       if (!success && roundFailuresEnabled) {
@@ -822,13 +861,12 @@
       }
 
       let updatedEquity = dilutedEquity;
-      const committedAmount = closingRound.playerCommitAmount || raiseAmount;
       if (closingRound.playerCommitted) {
         const recipientId = closingRound.commitPlayerId || this.lastCommitPlayerId || null;
         if (recipientId) {
-          this.playerEquityMap[recipientId] = (this.playerEquityMap[recipientId] || 0) + equityOffered;
+          this.playerEquityMap[recipientId] = (this.playerEquityMap[recipientId] || 0) + (committedEquity || equityOffered);
         }
-        updatedEquity += equityOffered;
+        updatedEquity += (committedEquity || equityOffered);
         this.playerInvested += this.pendingCommitment || 0;
         this.pendingCommitment = 0;
       }
@@ -859,7 +897,7 @@
 
       const runwayMonths = closingRound.runwayMonths || between(stage.monthsToNextRound[0], stage.monthsToNextRound[1]);
       const runwayDays = Math.max(120, Math.round(runwayMonths * 30));
-      this.cash += raiseAmount;
+      this.cash += raiseAmountUsed;
       this.runwayTargetDays = runwayDays;
       this.daysSinceLastRaise = 0;
       this.raiseTriggerCash = Math.max(raiseAmount * 0.35, this.cashBurnPerDay * 90, 250_000);
@@ -900,7 +938,7 @@
       const previousStageLabel = closingRound.stageLabel;
       this.stageIndex = Math.min(this.stageIndex + 1, Math.max(0, this.roundDefinitions.length - 1));
       const displayValuation = this.currentValuation;
-      const cashNote = Math.round(raiseAmount).toLocaleString();
+      const cashNote = Math.round(raiseAmountUsed).toLocaleString();
       this.stageChanged = true;
       this.generateRound(currentDate);
       const nextStageLabel = this.currentStage ? this.currentStage.label : 'Next round';
@@ -992,7 +1030,8 @@
           durationDays: round.durationDays || null,
           daysRemaining,
           playerCommitted: round.playerCommitted,
-          playerCommitAmount: round.playerCommitAmount || 0
+          playerCommitAmount: round.playerCommitAmount || 0,
+          playerCommitEquity: round.playerCommitEquity || 0
         } : null
       };
     }
@@ -1097,7 +1136,8 @@
             durationDays: Number.isFinite(round.durationDays) ? round.durationDays : null,
             daysRemaining: Math.max(0, (Number.isFinite(round.durationDays) ? round.durationDays : 0) - (this.daysSinceRound || 0)),
             playerCommitted: !!round.playerCommitted,
-            playerCommitAmount: round.playerCommitAmount || 0
+            playerCommitAmount: round.playerCommitAmount || 0,
+            playerCommitEquity: round.playerCommitEquity || 0
           }
           : null
       };
@@ -1188,6 +1228,14 @@
         return { success: false, reason: 'Company not found.' };
       }
       return company.leadRound(playerId);
+    }
+
+    invest(companyId, equityFraction = 0, playerId = null) {
+      const company = this.getCompanyById(companyId);
+      if (!company) {
+        return { success: false, reason: 'Company not found.' };
+      }
+      return company.commitInvestment(equityFraction, playerId);
     }
 
     getCompanySummaries() {

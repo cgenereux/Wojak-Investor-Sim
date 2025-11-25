@@ -741,6 +741,74 @@ function renderVentureFinancialChart(company) {
     }
 }
 
+function computeVenturePackageAmount(detail, pct) {
+    if (!detail || !detail.round) return 0;
+    const round = detail.round;
+    const preMoney = Number(round.preMoney) || 0;
+    const raiseAmount = Number(round.raiseAmount) || 0;
+    const postMoney = Number(round.postMoney) || (preMoney + raiseAmount);
+    const equityFraction = Math.max(0, pct) / 100;
+    if (!Number.isFinite(postMoney) || postMoney <= 0 || equityFraction <= 0) return 0;
+    return equityFraction * postMoney;
+}
+
+function handleVenturePurchase(pct) {
+    if (!currentVentureCompanyId || !Number.isFinite(pct) || pct <= 0) return;
+    ensureVentureReady();
+    const detail = typeof getVentureCompanyDetail === 'function' ? getVentureCompanyDetail(currentVentureCompanyId) : null;
+    const amount = computeVenturePackageAmount(detail, pct);
+    const equityFraction = pct / 100;
+    if (!amount || amount <= 0) {
+        if (vcLeadRoundNoteEl) {
+            vcLeadRoundNoteEl.textContent = 'Unable to price this package.';
+            vcLeadRoundNoteEl.classList.add('negative');
+            vcLeadRoundNoteEl.classList.remove('positive');
+        }
+        return;
+    }
+    const usingServer = typeof isServerAuthoritative !== 'undefined' && isServerAuthoritative && typeof sendCommand === 'function' && typeof WebSocket !== 'undefined' && ws && ws.readyState === WebSocket.OPEN;
+    if (usingServer) {
+        sendCommand({ type: 'vc_invest', companyId: currentVentureCompanyId, pct });
+        if (vcLeadRoundNoteEl) {
+            vcLeadRoundNoteEl.textContent = `Requested ${pct.toFixed(2)}% package…`;
+            vcLeadRoundNoteEl.classList.remove('negative');
+            vcLeadRoundNoteEl.classList.add('positive');
+        }
+        return;
+    }
+    if (typeof cash !== 'undefined' && cash < amount) {
+        if (vcLeadRoundNoteEl) {
+            vcLeadRoundNoteEl.textContent = 'Insufficient cash for this package.';
+            vcLeadRoundNoteEl.classList.add('negative');
+            vcLeadRoundNoteEl.classList.remove('positive');
+        }
+        return;
+    }
+    if (ventureSim && typeof ventureSim.invest === 'function') {
+        const result = ventureSim.invest(currentVentureCompanyId, equityFraction, (typeof clientPlayerId !== 'undefined' ? clientPlayerId : 'local_player'));
+        if (!result?.success) {
+            if (vcLeadRoundNoteEl) {
+                vcLeadRoundNoteEl.textContent = result?.reason || 'Investment failed.';
+                vcLeadRoundNoteEl.classList.add('negative');
+                vcLeadRoundNoteEl.classList.remove('positive');
+            }
+            return;
+        }
+    }
+    if (typeof cash !== 'undefined') {
+        cash -= amount;
+    }
+    if (typeof updateNetWorth === 'function') updateNetWorth();
+    if (typeof updateDisplay === 'function') updateDisplay();
+    if (typeof renderPortfolio === 'function') renderPortfolio();
+    if (vcLeadRoundNoteEl) {
+        vcLeadRoundNoteEl.textContent = `Committed ${vcFormatCurrency(amount)} for ${(pct).toFixed(2)}%.`;
+        vcLeadRoundNoteEl.classList.remove('negative');
+        vcLeadRoundNoteEl.classList.add('positive');
+    }
+    refreshVentureDetailView();
+}
+
 function initVC() {
     if (backToVcListBtn) {
         backToVcListBtn.addEventListener('click', hideVentureCompanyDetail);
@@ -761,6 +829,14 @@ function initVC() {
                 vcLeadRoundNoteEl.classList.add('positive');
                 vcLeadRoundNoteEl.classList.remove('negative');
             }
+        });
+    }
+    if (vcInvestmentOptionsEl) {
+        vcInvestmentOptionsEl.addEventListener('click', (evt) => {
+            const btn = evt.target.closest('.vc-option-buy');
+            if (!btn) return;
+            const pct = parseFloat(btn.dataset.pct);
+            handleVenturePurchase(pct);
         });
     }
 }
