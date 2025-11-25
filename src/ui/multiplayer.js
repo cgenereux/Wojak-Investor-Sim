@@ -19,6 +19,9 @@
         // Banner removed
     }
 
+    let lastIdleWarningSeconds = null;
+    let idleExitHandled = false;
+
     function requestResync(reason = 'manual') {
         if (!ws || ws.readyState !== WebSocket.OPEN) {
             setConnectionStatus('Resync unavailable (disconnected)', 'warn');
@@ -36,6 +39,8 @@
         shouldPromptCharacterAfterConnect = false;
         hasJoinedPartyAsGuest = false;
         lastKnownHostLabel = '';
+        idleExitHandled = false;
+        lastIdleWarningSeconds = null;
         pendingPartyAction = null;
         hideCharacterOverlay();
         activeBackendUrl = null;
@@ -277,7 +282,8 @@
     function handleServerMessage(msg) {
         if (!msg || typeof msg !== 'object') return;
         if (msg.type === 'idle_warning') {
-            notify(msg.message || 'Session idle, closing soon.', 'warn');
+            lastIdleWarningSeconds = Number.isFinite(msg.idleSeconds) ? msg.idleSeconds : lastIdleWarningSeconds;
+            handleIdleExit('idle_timeout', lastIdleWarningSeconds);
             return;
         }
         if (msg.type === 'error') {
@@ -482,15 +488,23 @@
             const finalNetWorth = (serverPlayer && typeof serverPlayer.netWorth === 'number') ? serverPlayer.netWorth : netWorth;
             const playersRaw = Array.isArray(latestServerPlayers) ? latestServerPlayers : [];
             const playerNames = playersRaw.map(p => p?.id || p?.name).filter(Boolean);
+            const reason = msg.reason || 'session_end';
+            const isIdleEnd = reason === 'idle_timeout' || reason === 'client_idle';
+            const isManualKill = reason === 'manual_kill';
             trackEvent('match_ended', {
                 mode: 'multiplayer',
                 final_net_worth: finalNetWorth,
-                reason: msg.reason || 'session_end',
+                reason,
                 match_id: activeSessionId || 'default',
                 player_id: clientPlayerId || null,
                 player_count: playerNames.length || null,
                 player_names: playerNames
             });
+            if (isIdleEnd || isManualKill) {
+                const idleSecs = Number.isFinite(msg.idleSeconds) ? msg.idleSeconds : lastIdleWarningSeconds;
+                handleIdleExit(isManualKill ? 'manual_kill' : 'idle_timeout', idleSecs);
+                return;
+            }
             manualDisconnect = true;
             if (ws) {
                 try { ws.close(); } catch (err) { /* ignore */ }
@@ -603,6 +617,39 @@
         setNameErrorVisible(false);
         ensurePlayerIdentity(name);
         return name;
+    }
+
+    function handleIdleExit(reason = 'idle_timeout', idleSeconds = null) {
+        if (idleExitHandled) return;
+        idleExitHandled = true;
+        const secs = Number.isFinite(idleSeconds)
+            ? idleSeconds
+            : (Number.isFinite(lastIdleWarningSeconds) ? lastIdleWarningSeconds : 30);
+        const prefix = reason === 'manual_kill'
+            ? 'The host closed the session.'
+            : `No player actions for ${secs} seconds. Server shutting down.`;
+        window.alert(`${prefix} Switching to single player.`);
+        if (typeof pauseGame === 'function') {
+            pauseGame();
+        } else {
+            try { clearInterval(gameInterval); } catch (err) { /* ignore */ }
+            isPaused = true;
+        }
+        disconnectMultiplayer();
+        setMultiplayerState('join');
+        hideMultiplayerModal();
+        isServerAuthoritative = false;
+        activeSessionId = 'singleplayer_local';
+        matchStarted = false;
+        currentHostId = null;
+        const targetSpeed = Math.max(currentSpeed || 0, 1);
+        if (typeof setGameSpeed === 'function') {
+            setGameSpeed(targetSpeed);
+        }
+        updateDisplay();
+        try {
+            setTimeout(() => window.location.reload(), 50);
+        } catch (err) { /* ignore */ }
     }
 
     function getHostLabelFromRoster(roster = latestServerPlayers) {

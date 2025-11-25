@@ -57,7 +57,7 @@ function isPlayerIdTaken(session, candidateId) {
 // Simple in-memory sessions (non-persistent)
 const sessions = new Map();
 const SESSION_CLEANUP_DELAY_MS = 60_000;
-const SESSION_IDLE_TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes without player commands
+const SESSION_IDLE_TIMEOUT_MS = 4 * 60 * 1000; // 4 minutes without player commands
 const SESSION_CLIENT_IDLE_MS = 2 * 60 * 1000; // Kill if no clients for this long
 const SESSION_IDLE_CHECK_MS = 1000; // how often to check client idleness
 
@@ -221,11 +221,13 @@ function endSession(session, reason = 'timeline_end') {
   if (session.ended) return;
   session.ended = true;
   stopTickLoop(session);
+  const idleSeconds = reason === 'idle_timeout' ? SESSION_IDLE_TIMEOUT_MS / 1000 : null;
   broadcast(session, {
     type: 'end',
     reason,
     year: GAME_END_YEAR,
-    lastTick: session.sim.lastTick ? session.sim.lastTick.toISOString() : null
+    lastTick: session.sim.lastTick ? session.sim.lastTick.toISOString() : null,
+    idleSeconds
   });
   scheduleSessionCleanup(session);
 }
