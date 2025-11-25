@@ -340,6 +340,12 @@ body.detail-active #detail-view {
     margin-right: -20px;
 }
 
+#multiplayerBtn {
+    font-size: 16px;
+    padding: 13px 26px;
+    font-weight: 500;
+}
+
 .drip-toggle {
     display: flex;
     align-items: center;
