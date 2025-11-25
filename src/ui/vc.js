@@ -152,7 +152,13 @@ function renderInvestmentOptions(detail) {
 
     if (!detail || !detail.round || typeof detail.round.equityOffered !== 'number') return;
     const dilutionPct = Math.max(0, detail.round.equityOffered * 100);
-    const roundLabel = detail.round.stageLabel || detail.stageLabel || 'Round';
+    const currentStageIdx = Array.isArray(detail.rounds)
+        ? detail.rounds.findIndex(r => (r?.stageLabel || '').toLowerCase() === (detail.round.stageLabel || '').toLowerCase())
+        : -1;
+    const nextRoundIdx = currentStageIdx >= 0 ? currentStageIdx + 1 : -1;
+    const nextStageLabel = nextRoundIdx >= 0 && Array.isArray(detail.rounds) && detail.rounds[nextRoundIdx]
+        ? detail.rounds[nextRoundIdx].stageLabel || detail.rounds[nextRoundIdx].label || 'Next Round'
+        : (detail.round.stageLabel || detail.stageLabel || 'Next Round');
     const equity = Math.max(0, detail.round.equityOffered || 0);
     const raiseAmount = Number(detail.round.raiseAmount) || 0;
     const preMoney = Number(detail.round.preMoney) || 0;
@@ -187,7 +193,7 @@ function renderInvestmentOptions(detail) {
     }).join('');
 
     if (vcRoundDilutionEl) {
-        vcRoundDilutionEl.textContent = `${roundLabel} Dilution: ${dilutionPct.toFixed(2)}%`;
+        vcRoundDilutionEl.textContent = `${nextStageLabel} Dilution: ${dilutionPct.toFixed(2)}%`;
     }
     vcInvestmentOptionsEl.innerHTML = html;
 }

@@ -153,14 +153,16 @@
       const hasEquity = (detail.playerEquity || 0) > 0;
       const pendingCommitment = detail.pendingCommitment || 0;
       const hasPending = pendingCommitment > 0;
+      const isInFlight = hasPending && !hasEquity;
       if (!hasEquity && !hasPending) return;
       const equityValue = hasEquity ? detail.playerEquity * detail.valuation : 0;
       const pendingValue = !hasEquity && hasPending ? pendingCommitment : 0;
       const formattedValue = hasEquity ? currencyFormatter.format(equityValue) : (hasPending ? currencyFormatter.format(pendingValue) : '');
-      const pendingLabel = hasPending ? `Committed: ${currencyFormatter.format(pendingCommitment)}` : '';
+      const pendingLabel = (!isInFlight && hasPending) ? `Committed: ${currencyFormatter.format(pendingCommitment)}` : '';
       const key = `private:${summary.id}`;
       const stakeLabel = hasEquity ? `${detail.playerEquityPercent.toFixed(2)}% stake` : 'Stake pending';
       const stageLabel = detail.stageLabel || summary.stageLabel || 'Private';
+      const nameLabel = isInFlight ? `${summary.name} (${stageLabel}) (In Flight)` : `${summary.name} (${stageLabel})`;
       const valueRowDisplay = (hasEquity || hasPending) ? 'block' : 'none';
       if (existingItems.has(key)) {
         const item = existingItems.get(key);
@@ -173,23 +175,23 @@
         const pendingEl = item.querySelector('.portfolio-pending');
         if (pendingEl) {
           pendingEl.textContent = pendingLabel;
-          pendingEl.style.display = hasPending ? 'block' : 'none';
+          pendingEl.style.display = (!isInFlight && hasPending) ? 'block' : 'none';
         }
         const nameEl = item.querySelector('.company-name');
         if (nameEl) {
-          nameEl.textContent = `${summary.name} (${stageLabel})`;
+          nameEl.textContent = nameLabel;
         }
         existingItems.delete(key);
       } else {
         newPortfolioHtml.push(`
           <div class="portfolio-item" data-portfolio-type="private" data-venture-id="${summary.id}" data-portfolio-key="${key}">
-              <div class="company-name">${summary.name} (${stageLabel})</div>
+              <div class="company-name">${nameLabel}</div>
               <div class="portfolio-info">
                   <div class="portfolio-value-row" style="display:${valueRowDisplay}">
                       Value: <span class="portfolio-value">${formattedValue}</span>
                   </div>
                   <span class="portfolio-stake">${stakeLabel}</span>
-                  <span class="portfolio-pending" style="display:${hasPending ? 'block' : 'none'}">${pendingLabel}</span>
+                  <span class="portfolio-pending" style="display:${(!isInFlight && hasPending) ? 'block' : 'none'}">${pendingLabel}</span>
               </div>
           </div>
         `);
@@ -201,17 +203,34 @@
       Object.entries(serverPlayer.ventureCommitments).forEach(([vcId, amount]) => {
         if (!amount || amount <= 0) return;
         const key = `private:${vcId}`;
-        if (existingItems.has(key)) return; // already rendered via ventureSim
-        const label = `Committed: ${currencyFormatter.format(amount)}`;
+        const nameLabel = `${vcId} (Private) (In Flight)`;
+        if (existingItems.has(key)) {
+          const item = existingItems.get(key);
+          const nameEl = item.querySelector('.company-name');
+          if (nameEl) nameEl.textContent = nameLabel;
+          const valueEl = item.querySelector('.portfolio-value');
+          if (valueEl) valueEl.textContent = currencyFormatter.format(amount);
+          const valueRow = item.querySelector('.portfolio-value-row');
+          if (valueRow) valueRow.style.display = 'block';
+          const pendingEl = item.querySelector('.portfolio-pending');
+          if (pendingEl) {
+            pendingEl.textContent = '';
+            pendingEl.style.display = 'none';
+          }
+          const stakeEl = item.querySelector('.portfolio-stake');
+          if (stakeEl) stakeEl.textContent = 'Stake pending';
+          existingItems.delete(key);
+          return;
+        }
         newPortfolioHtml.push(`
           <div class="portfolio-item" data-portfolio-type="private" data-venture-id="${vcId}" data-portfolio-key="${key}">
-              <div class="company-name">${vcId} (Private)</div>
+              <div class="company-name">${nameLabel}</div>
               <div class="portfolio-info">
                   <div class="portfolio-value-row" style="display:block">
                       Value: <span class="portfolio-value">${currencyFormatter.format(amount)}</span>
                   </div>
                   <span class="portfolio-stake">Stake pending</span>
-                  <span class="portfolio-pending" style="display:block">${label}</span>
+                  <span class="portfolio-pending" style="display:none"></span>
               </div>
           </div>
         `);

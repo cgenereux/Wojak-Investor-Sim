@@ -936,17 +936,24 @@ function updateDisplay() {
     const displayDebt = serverPlayer && typeof serverPlayer.debt === 'number'
         ? serverPlayer.debt
         : totalBorrowed;
+    const displayCommitments = (isServerAuthoritative && serverPlayer && typeof serverPlayer.ventureCommitmentsValue === 'number')
+        ? serverPlayer.ventureCommitmentsValue
+        : pendingCommitments;
 
-    netWorthDisplay.textContent = currencyFormatter.format(displayNetWorth);
+    // Compute net worth locally to ensure pending commitments are reflected immediately
+    const computedNetWorth = displayCash + equityValue + displayCommitments - displayDebt;
+
+    netWorthDisplay.textContent = currencyFormatter.format(isServerAuthoritative ? computedNetWorth : displayNetWorth);
     if (isServerAuthoritative && serverPlayer && playerColorMap.has(serverPlayer.id)) {
         netWorthDisplay.style.color = playerColorMap.get(serverPlayer.id);
     } else {
-        netWorthDisplay.style.color = displayNetWorth >= 0 ? '#00c742' : '#dc3545';
+        const colorBasis = isServerAuthoritative ? computedNetWorth : displayNetWorth;
+        netWorthDisplay.style.color = colorBasis >= 0 ? '#00c742' : '#dc3545';
     }
     currentDateDisplay.textContent = formatDate(currentDate);
 
     // Update the single display line
-    subFinancialDisplay.textContent = `Equities: ${currencyFormatter.format(publicAssets + privateAssets)} | Cash: ${currencyFormatter.format(displayCash)} | Liabilities: ${currencyFormatter.format(displayDebt)}`;
+    subFinancialDisplay.textContent = `Equities: ${currencyFormatter.format(equityValue)} | Cash: ${currencyFormatter.format(displayCash)} | Liabilities: ${currencyFormatter.format(displayDebt)}`;
 
     const singleplayerBankrupt = !isServerAuthoritative && netWorth <= 0;
     const multiplayerBankrupt = isServerAuthoritative && netWorth < 0;
@@ -1243,7 +1250,15 @@ function parseUserAmount(input) {
 // --- Game Logic ---
 function updateNetWorth() {
     if (serverPlayer && isServerAuthoritative) {
-        netWorth = serverPlayer.netWorth || netWorth;
+        const publicValue = portfolio.reduce((sum, holding) => {
+            const company = companies.find(c => c.name === holding.companyName);
+            return sum + (company ? company.marketCap * holding.unitsOwned : 0);
+        }, 0);
+        const privateValue = typeof serverPlayer.ventureEquity === 'number' ? serverPlayer.ventureEquity : (ventureSim ? ventureSim.getPlayerHoldingsValue() : 0);
+        const pendingCommitments = typeof serverPlayer.ventureCommitmentsValue === 'number' ? serverPlayer.ventureCommitmentsValue : (ventureSim ? ventureSim.getPendingCommitments() : 0);
+        const displayCash = typeof serverPlayer.cash === 'number' ? serverPlayer.cash : cash;
+        const displayDebt = typeof serverPlayer.debt === 'number' ? serverPlayer.debt : totalBorrowed;
+        netWorth = displayCash + publicValue + privateValue + pendingCommitments - displayDebt;
     } else {
         let totalHoldingsValue = portfolio.reduce((sum, holding) => {
             const company = companies.find(c => c.name === holding.companyName);

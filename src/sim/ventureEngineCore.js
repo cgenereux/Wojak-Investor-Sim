@@ -801,9 +801,9 @@
       const raiseAmount = closingRound.raiseAmount;
       const committedAmount = Number(closingRound.playerCommitAmount) || 0;
       const committedEquity = Number(closingRound.playerCommitEquity) || 0;
-      const raiseAmountUsed = committedAmount > 0 ? committedAmount : raiseAmount;
+      const raiseAmountUsed = raiseAmount; // Assume the round is fully funded alongside the player
       const postMoney = preMoney + raiseAmountUsed;
-      const equityOfferedDefault = postMoney > 0 ? (raiseAmount / (preMoney + raiseAmount)) : 0;
+      const equityOfferedDefault = postMoney > 0 ? (raiseAmountUsed / postMoney) : 0;
       const equityOffered = committedAmount > 0 && committedEquity > 0 ? committedEquity : equityOfferedDefault;
       const dilutedEquity = this.playerEquity * (preMoney / postMoney);
 
