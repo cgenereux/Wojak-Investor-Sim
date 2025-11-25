@@ -375,8 +375,12 @@ function accrueInterest(session, dtDays) {
     if (!player || player.debt <= 0) return;
     const interest = player.debt * ANNUAL_INTEREST_RATE * (dtDays / 365);
     if (interest <= 0) return;
-    player.debt += interest;
-    player.cash -= interest;
+    const payFromCash = Math.min(player.cash, interest);
+    player.cash -= payFromCash;
+    const unpaid = interest - payFromCash;
+    if (unpaid > 0) {
+      player.debt += unpaid; // capitalize unpaid interest into debt
+    }
     player.lastInterestTs = session.sim.lastTick ? session.sim.lastTick.toISOString() : new Date().toISOString();
   });
 }

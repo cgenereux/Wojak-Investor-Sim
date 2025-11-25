@@ -1397,7 +1397,12 @@ function calculateInterest() {
 function chargeInterest() {
     const interest = calculateInterest();
     if (interest > 0) {
-        cash -= interest;
+        const payFromCash = Math.min(cash, interest);
+        cash -= payFromCash;
+        const unpaid = interest - payFromCash;
+        if (unpaid > 0) {
+            totalBorrowed += unpaid; // capitalize unpaid interest into debt
+        }
         lastInterestDate = new Date(currentDate);
     }
 }

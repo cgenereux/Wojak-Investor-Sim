@@ -6,6 +6,7 @@
             alert(msg);
         }
     };
+    const bankingAmountInput = document.getElementById('bankingAmountInput');
     // Multiplayer and character-selection helpers extracted from main.js
     function ensureConnectionBanner() {
         // Banner removed by user request
@@ -453,6 +454,12 @@
                     } else {
                         notify('Failed to start game.', 'error');
                     }
+                }
+            }
+            if (msg.ok && msg.data && (msg.data.type === 'borrow' || msg.data.type === 'repay')) {
+                if (bankingAmountInput) bankingAmountInput.value = '';
+                if (typeof updateBankingDisplay === 'function') {
+                    updateBankingDisplay();
                 }
             }
             if (msg.ok && msg.data && msg.data.type === 'resync' && msg.data.snapshot) {
