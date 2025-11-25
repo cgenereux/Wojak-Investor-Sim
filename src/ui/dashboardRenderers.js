@@ -157,7 +157,7 @@
       const equityValue = hasEquity ? detail.playerEquity * detail.valuation : 0;
       const pendingValue = !hasEquity && hasPending ? pendingCommitment : 0;
       const formattedValue = hasEquity ? currencyFormatter.format(equityValue) : (hasPending ? currencyFormatter.format(pendingValue) : '');
-      const pendingLabel = hasPending ? `Committed (in flight): ${currencyFormatter.format(pendingCommitment)}` : '';
+      const pendingLabel = hasPending ? `Committed: ${currencyFormatter.format(pendingCommitment)}` : '';
       const key = `private:${summary.id}`;
       const stakeLabel = hasEquity ? `${detail.playerEquityPercent.toFixed(2)}% stake` : 'Stake pending';
       const stageLabel = detail.stageLabel || summary.stageLabel || 'Private';
@@ -202,7 +202,7 @@
         if (!amount || amount <= 0) return;
         const key = `private:${vcId}`;
         if (existingItems.has(key)) return; // already rendered via ventureSim
-        const label = `Committed (in flight): ${currencyFormatter.format(amount)}`;
+        const label = `Committed: ${currencyFormatter.format(amount)}`;
         newPortfolioHtml.push(`
           <div class="portfolio-item" data-portfolio-type="private" data-venture-id="${vcId}" data-portfolio-key="${key}">
               <div class="company-name">${vcId} (Private)</div>

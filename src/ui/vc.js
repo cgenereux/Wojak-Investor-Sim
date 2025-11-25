@@ -8,6 +8,7 @@ const vcDetailLocationEl = document.getElementById('vcDetailLocation');
 const vcDetailRoundInfoEl = document.getElementById('vcDetailRoundInfo');
 const vcDetailTimerEl = document.getElementById('vcDetailTimer');
 const vcInvestmentOptionsEl = document.getElementById('vcInvestmentOptions');
+const vcRoundDilutionEl = document.getElementById('vcRoundDilutionDisplay');
 const vcPipelinePanel = document.getElementById('vcPipelinePanel');
 const vcPipelineContainer = document.getElementById('vcPipelineContainer');
 const vcLeadRoundBtn = document.getElementById('vcLeadRoundBtn');
@@ -147,7 +148,11 @@ function buildRoundInfo(detail) {
 function renderInvestmentOptions(detail) {
     if (!vcInvestmentOptionsEl) return;
     vcInvestmentOptionsEl.innerHTML = '';
+    if (vcRoundDilutionEl) vcRoundDilutionEl.textContent = '';
+
     if (!detail || !detail.round || typeof detail.round.equityOffered !== 'number') return;
+    const dilutionPct = Math.max(0, detail.round.equityOffered * 100);
+    const roundLabel = detail.round.stageLabel || detail.stageLabel || 'Round';
     const equity = Math.max(0, detail.round.equityOffered || 0);
     const raiseAmount = Number(detail.round.raiseAmount) || 0;
     const preMoney = Number(detail.round.preMoney) || 0;
@@ -180,6 +185,10 @@ function renderInvestmentOptions(detail) {
             </div>
         </div>`;
     }).join('');
+
+    if (vcRoundDilutionEl) {
+        vcRoundDilutionEl.textContent = `${roundLabel} Dilution: ${dilutionPct.toFixed(2)}%`;
+    }
     vcInvestmentOptionsEl.innerHTML = html;
 }
 
@@ -222,14 +231,19 @@ function getVCTooltipHandler(context) {
         const rawValue = tooltipModel.dataPoints[0].raw.y;
         const valueStr = vcFormatLargeNumber(rawValue, 1);
 
+        const stage = tooltipModel.dataPoints[0].raw.stage || 'N/A';
         const innerHtml = `
             <div style="margin-bottom: 4px; color: #1e293b; display: flex; align-items: center; gap: 4px;">
                 <span style="font-weight: 600;">Date:</span>
                 <span>${dateStr}</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 4px;">
+            <div style="margin-bottom: 4px; display: flex; align-items: center; gap: 4px;">
                 <span style="color: #1e293b; font-weight: 600;">Valuation:</span>
                 <span style="color: #3b82f6;">${valueStr}</span>
+            </div>
+            <div style="color: #1e293b; display: flex; align-items: center; gap: 4px;">
+                <span style="font-weight: 600;">Last Round:</span>
+                <span>${stage}</span>
             </div>
         `;
 
@@ -383,7 +397,7 @@ function updateVentureDetail(companyId) {
 
     if (ventureCompanyDetailChart) {
         // Update existing chart
-        ventureCompanyDetailChart.data.datasets[0].data = history.map(point => ({ x: point.x, y: point.y }));
+        ventureCompanyDetailChart.data.datasets[0].data = history.map(point => ({ x: point.x, y: point.y, stage: point.stage }));
         ventureCompanyDetailChart.options.scales.y.suggestedMin = suggestedMin;
         ventureCompanyDetailChart.options.scales.y.suggestedMax = suggestedMax;
         ventureCompanyDetailChart.update('none');
@@ -394,7 +408,7 @@ function updateVentureDetail(companyId) {
             data: {
                 datasets: [{
                     label: 'Valuation',
-                    data: history.map(point => ({ x: point.x, y: point.y })),
+                    data: history.map(point => ({ x: point.x, y: point.y, stage: point.stage })),
                     borderColor: '#3b82f6',
                     backgroundColor: 'rgba(59, 130, 246, 0.15)',
                     borderWidth: 2,
@@ -769,6 +783,15 @@ function handleVenturePurchase(pct) {
     const usingServer = typeof isServerAuthoritative !== 'undefined' && isServerAuthoritative && typeof sendCommand === 'function' && typeof WebSocket !== 'undefined' && ws && ws.readyState === WebSocket.OPEN;
     if (usingServer) {
         sendCommand({ type: 'vc_invest', companyId: currentVentureCompanyId, pct });
+        if (typeof serverPlayer === 'object' && serverPlayer) {
+            serverPlayer.cash = (serverPlayer.cash || 0) - amount;
+            if (!serverPlayer.ventureCommitments) serverPlayer.ventureCommitments = {};
+            serverPlayer.ventureCommitments[currentVentureCompanyId] = (serverPlayer.ventureCommitments[currentVentureCompanyId] || 0) + amount;
+            serverPlayer.ventureCommitmentsValue = (serverPlayer.ventureCommitmentsValue || 0) + amount;
+            serverPlayer.netWorth = (serverPlayer.netWorth || (typeof netWorth !== 'undefined' ? netWorth : 0)); // keep level (cash down, commitment up)
+        }
+        if (typeof updateNetWorth === 'function') updateNetWorth();
+        if (typeof updateDisplay === 'function') updateDisplay();
         if (vcLeadRoundNoteEl) {
             vcLeadRoundNoteEl.textContent = `Requested ${pct.toFixed(2)}% package…`;
             vcLeadRoundNoteEl.classList.remove('negative');

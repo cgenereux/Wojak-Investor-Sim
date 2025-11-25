@@ -353,12 +353,19 @@
     recordHistory(date) {
       if (!date) return;
       const timestamp = date && date.getTime ? date.getTime() : 0;
+
+      let stageLabel = 'Pre-Seed';
+      if (this.stageIndex > 0 && this.roundDefinitions && this.roundDefinitions[this.stageIndex - 1]) {
+        stageLabel = this.roundDefinitions[this.stageIndex - 1].label;
+      }
+
       const last = this.history[this.history.length - 1];
       if (last && last.x === timestamp) {
         last.y = this.currentValuation;
+        last.stage = stageLabel;
         return;
       }
-      this.history.push({ x: timestamp, y: this.currentValuation });
+      this.history.push({ x: timestamp, y: this.currentValuation, stage: stageLabel });
     }
 
     accumulateFinancials(dtDays, currentDate) {
