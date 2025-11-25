@@ -7,6 +7,10 @@
         }
     };
     const bankingAmountInput = document.getElementById('bankingAmountInput');
+    const clearBankingInputAndRefresh = () => {
+        if (bankingAmountInput) bankingAmountInput.value = '';
+        if (typeof updateBankingDisplay === 'function') updateBankingDisplay();
+    };
     // Multiplayer and character-selection helpers extracted from main.js
     function ensureConnectionBanner() {
         // Banner removed by user request
@@ -457,10 +461,7 @@
                 }
             }
             if (msg.ok && msg.data && (msg.data.type === 'borrow' || msg.data.type === 'repay')) {
-                if (bankingAmountInput) bankingAmountInput.value = '';
-                if (typeof updateBankingDisplay === 'function') {
-                    updateBankingDisplay();
-                }
+                clearBankingInputAndRefresh();
             }
             if (msg.ok && msg.data && msg.data.type === 'resync' && msg.data.snapshot) {
                 hydrateFromSnapshot({ ...msg.data.snapshot, player: msg.player });

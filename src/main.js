@@ -699,6 +699,7 @@ function applyTick(tick) {
         setRosterFromServer(tick.players);
     }
     updateNetWorth();
+    updateBankingDisplay();
     renderCompanies();
     updateDisplay();
     if (isServerAuthoritative) {
@@ -1407,6 +1408,13 @@ function chargeInterest() {
     }
 }
 
+function clearBankingInputAndRefresh() {
+    if (bankingAmountInput) {
+        bankingAmountInput.value = '';
+    }
+    updateBankingDisplay();
+}
+
 function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
 }
@@ -1511,6 +1519,7 @@ function borrow(amount) {
     if (isNaN(amount) || amount <= 0) { showToast("Please enter a valid amount to borrow.", { tone: 'warn' }); return; }
     if (ws && ws.readyState === WebSocket.OPEN) {
         sendCommand({ type: 'borrow', amount });
+        clearBankingInputAndRefresh();
         return;
     }
     const maxBorrowing = getMaxBorrowing();
@@ -1518,7 +1527,7 @@ function borrow(amount) {
     totalBorrowed += amount;
     cash += amount;
     lastInterestDate = new Date(currentDate); // Reset interest timer on borrow
-    updateNetWorth(); updateDisplay(); updateBankingDisplay(); bankingAmountInput.value = '';
+    updateNetWorth(); updateDisplay(); clearBankingInputAndRefresh();
 }
 
 function repay(amount) {
@@ -1526,6 +1535,7 @@ function repay(amount) {
     if (isNaN(amount) || amount <= 0) { showToast("Please enter a valid amount to repay.", { tone: 'warn' }); return; }
     if (ws && ws.readyState === WebSocket.OPEN) {
         sendCommand({ type: 'repay', amount });
+        clearBankingInputAndRefresh();
         return;
     }
     if (amount > totalBorrowed) { showToast(`You only owe ${currencyFormatter.format(totalBorrowed)}.`, { tone: 'warn' }); return; }
@@ -1533,7 +1543,7 @@ function repay(amount) {
     totalBorrowed -= amount;
     cash -= amount;
     lastInterestDate = new Date(currentDate); // Reset interest timer on repay
-    updateNetWorth(); updateDisplay(); updateBankingDisplay(); bankingAmountInput.value = '';
+    updateNetWorth(); updateDisplay(); clearBankingInputAndRefresh();
 }
 
 function updateBankingDisplay() {
@@ -1731,6 +1741,7 @@ function gameLoop() {
     updateNetWorth();
     maybeTrackDecadeNetWorth(currentDate);
     updateDisplay();
+    updateBankingDisplay();
     renderPortfolio();
     netWorthChart.update();
 
