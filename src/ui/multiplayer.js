@@ -740,6 +740,10 @@
             }).join('')
             : '<li class="mp-player-placeholder">Waiting for players...</li>';
         lists.forEach(list => { list.innerHTML = html; });
+        if (mpHostColdStartHint) {
+            const showHint = isPartyHostClient && multiplayerState === 'create' && !shouldRender;
+            mpHostColdStartHint.style.display = showHint ? 'block' : 'none';
+        }
     }
 
     function startLobbyRefresh() {

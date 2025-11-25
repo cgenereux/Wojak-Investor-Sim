@@ -43,6 +43,7 @@ const mpJoinCodeLabel = document.getElementById('mpJoinCodeLabel');
 const mpPartyCodeDisplay = document.getElementById('mpPartyCodeDisplay');
 const copyPartyCodeBtn = document.getElementById('copyPartyCodeBtn');
 const startPartyBtn = document.getElementById('startPartyBtn');
+const mpHostColdStartHint = document.getElementById('mpHostColdStartHint');
 // const multiplayerIdleState = document.getElementById('multiplayerIdleState'); // Removed from HTML
 const multiplayerJoinState = document.getElementById('multiplayerJoinState');
 const multiplayerCreateState = document.getElementById('multiplayerCreateState');
