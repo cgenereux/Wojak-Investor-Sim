@@ -1541,6 +1541,8 @@ button.speed-active:hover {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    align-items: flex-end;
+    width: 100%;
 }
 
 .multiplayer-action-row {
@@ -1625,7 +1627,7 @@ button.speed-active:hover {
 }
 
 .mp-roster-panel {
-    width: 60%;
+    width: 50%;
     min-width: 380px;
     max-width: 520px;
     margin: 6px auto 0;
