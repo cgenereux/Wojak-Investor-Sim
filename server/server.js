@@ -21,6 +21,7 @@ const macroEvents = require('../data/macroEvents.json');
 const PORT = process.env.PORT || 4000;
 const ANNUAL_INTEREST_RATE = 0.07;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const BANKRUPT_PURGE_DELAY_MS = 9000;
 const GAME_END_YEAR = 2050;
 const MAX_CONNECTIONS = Number(process.env.MAX_CONNECTIONS || 50);
 
@@ -122,7 +123,8 @@ async function buildMatch(seed = Date.now()) {
     lastActivity: Date.now(),
     idleGuardTimer: null,
     clientActivity: new Map(),
-    idleCheckHandle: null
+    idleCheckHandle: null,
+    bankruptRemovalTimers: new Map()
   };
 }
 
@@ -155,6 +157,7 @@ function startTickLoop(session) {
     const ventureEvents = sanitizeVentureEvents(ventureEventsRaw);
     accrueInterest(session, dtDays);
     const dividendEvents = distributeDividends(session);
+    scheduleBankruptHoldingCleanup(session);
     const payload = {
       type: 'tick',
       lastTick: session.sim.lastTick ? session.sim.lastTick.toISOString() : null,
@@ -220,6 +223,7 @@ function cacheAndBroadcast(session, tick) {
 function endSession(session, reason = 'timeline_end') {
   if (session.ended) return;
   session.ended = true;
+  clearBankruptCleanupTimers(session);
   stopTickLoop(session);
   const idleSeconds = reason === 'idle_timeout' ? SESSION_IDLE_TIMEOUT_MS / 1000 : null;
   broadcast(session, {
@@ -410,6 +414,33 @@ function distributeDividends(session) {
     });
   });
   return events;
+}
+
+function scheduleBankruptHoldingCleanup(session) {
+  if (!session || !session.sim || !Array.isArray(session.sim.companies)) return;
+  session.sim.companies.forEach(company => {
+    if (!company || !company.bankrupt || !company.id) return;
+    if (session.bankruptRemovalTimers.has(company.id)) return;
+    const timer = setTimeout(() => {
+      if (!session || session.ended) return;
+      session.players.forEach(player => {
+        if (player && player.holdings && player.holdings[company.id]) {
+          delete player.holdings[company.id];
+        }
+      });
+      session.bankruptRemovalTimers.delete(company.id);
+      broadcastPlayers(session);
+    }, BANKRUPT_PURGE_DELAY_MS);
+    session.bankruptRemovalTimers.set(company.id, timer);
+  });
+}
+
+function clearBankruptCleanupTimers(session) {
+  if (!session || !session.bankruptRemovalTimers) return;
+  session.bankruptRemovalTimers.forEach((timer, key) => {
+    try { clearTimeout(timer); } catch (err) { /* ignore */ }
+    session.bankruptRemovalTimers.delete(key);
+  });
 }
 
 function sanitizeVentureEvents(events) {

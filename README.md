@@ -90,11 +90,11 @@
     6. Pause button + time slider on company pages
     7. Need to make sure bankrupt companies don't stay in your portfolio forever
     8. Fix those couple PostHog analytics that don't work currently
-    9. Some kind of UI that tells the player "the back end is currently warming up -- give it 20 seconds or so" if party creation doesn't work within 3 seconds
     10. Monthly incomes in multiplayer (maybe $100/month) -- optional for players to enable -- maybe won't have this in v1.0
     11. Log curve option for multiplayer
     12. Make game start at 1985
-
+  Complete:
+    9. Some kind of UI that tells the player "the back end is currently warming up -- give it 20 seconds or so" if party creation doesn't work within 3 seconds -- *done*
 
   Venture Capital (what’s in-game)
 

@@ -428,6 +428,11 @@ let killSessionBtn = null;
 let resyncButtonEl = null;
 let disconnectButtonEl = null;
 const emittedDecadeKeys = new Set();
+const ENABLE_LOCAL_BANKRUPTCY_TEST = false;
+const BANKRUPTCY_TEST_DELAY_MS = 12000;
+const HOLDING_PURGE_DELAY_MS = 9000;
+let bankruptcyTestTimer = null;
+const holdingsPurgeTimers = new Map();
 
 function initMatchContext(seedOverride = null) {
     if (!matchSeed) {
@@ -841,6 +846,56 @@ const companyRenderState = {
     hoveredCompanyName: null,
     companyQueueCounter: 0
 };
+
+function maybeScheduleBankruptcyTest() {
+    if (!ENABLE_LOCAL_BANKRUPTCY_TEST || isServerAuthoritative) return;
+    if (!Array.isArray(companies) || companies.length === 0) return;
+    if (bankruptcyTestTimer) clearTimeout(bankruptcyTestTimer);
+
+    const liveCompanies = companies.filter(c => c && !c.bankrupt);
+    if (!liveCompanies.length) return;
+
+    const rng = matchRngFn || Math.random;
+    const target = liveCompanies[Math.floor(rng() * liveCompanies.length)];
+    const targetName = (target && target.name) ? target.name : 'TestCo';
+    showToast(`Testing: ${targetName} will go bankrupt soon. Buy shares to observe.`, { tone: 'warn', duration: 6000 });
+
+    bankruptcyTestTimer = setTimeout(() => {
+        if (!target || typeof target.markBankrupt !== 'function' || target.bankrupt) return;
+        const now = sim && sim.lastTick ? new Date(sim.lastTick) : new Date();
+        try {
+            target.markBankrupt(now);
+        } catch (err) {
+            console.warn('Failed to mark test bankruptcy', err);
+            return;
+        }
+        updateNetWorth();
+        renderPortfolio();
+        renderCompanies();
+        updateDisplay();
+        if (netWorthChart) netWorthChart.update();
+        showToast(`${targetName} went bankrupt for testing.`, { tone: 'warn', duration: 6000 });
+    }, BANKRUPTCY_TEST_DELAY_MS);
+}
+
+function scheduleLocalBankruptHoldingPurge(company) {
+    if (isServerAuthoritative || !company || !company.name) return;
+    const inPortfolio = portfolio.some(h => h && h.companyName === company.name && h.unitsOwned > 0);
+    if (!inPortfolio) return;
+    if (holdingsPurgeTimers.has(company.name)) return;
+    const timer = setTimeout(() => {
+        holdingsPurgeTimers.delete(company.name);
+        const before = portfolio.length;
+        portfolio = portfolio.filter(h => h.companyName !== company.name);
+        if (before !== portfolio.length) {
+            updateNetWorth();
+            renderPortfolio();
+            updateDisplay();
+            if (netWorthChart) netWorthChart.update();
+        }
+    }, HOLDING_PURGE_DELAY_MS);
+    holdingsPurgeTimers.set(company.name, timer);
+}
 
 function ensureVentureSimulation(force = false) {
     if ((force || !ventureSim) && typeof VentureSimulation !== 'undefined' && ventureCompanies.length > 0) {
@@ -1613,6 +1668,14 @@ function gameLoop() {
         renderPortfolio();
     } else if (typeof refreshVentureDetailView === 'function' && document.body.classList.contains('vc-detail-active')) {
         refreshVentureDetailView();
+    }
+
+    if (!isServerAuthoritative) {
+        (sim?.companies || []).forEach(company => {
+            if (company && company.bankrupt) {
+                scheduleLocalBankruptHoldingPurge(company);
+            }
+        });
     }
 
     // --- Dividend payout to player (quarterly events) ---
@@ -2715,6 +2778,9 @@ async function init() {
 
     if (sim && sim.companies) {
         companies = sim.companies;
+    }
+    if (!isServerAuthoritative) {
+        maybeScheduleBankruptcyTest();
     }
 
     const getNetWorthTooltipHandler = (context) => {
