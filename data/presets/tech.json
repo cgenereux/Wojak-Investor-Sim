@@ -1,0 +1,109 @@
+{
+  "defaults": {
+    "structural_bias": {
+      "min": 0.6,
+      "max": 3,
+      "half_life_years": 18
+    },
+    "base_revenue_usd": [
+      1500000000,
+      7000000000
+    ],
+    "margin_curve": {
+      "start_profit_margin": [
+        0.1,
+        0.16
+      ],
+      "terminal_profit_margin": [
+        0.22,
+        0.32
+      ],
+      "years_to_mature": [
+        6,
+        10
+      ]
+    },
+    "multiple_curve": {
+      "initial_ps_ratio": [
+        4.5,
+        7.5
+      ],
+      "terminal_pe_ratio": [
+        16,
+        26
+      ],
+      "years_to_converge": [
+        9,
+        13
+      ]
+    },
+    "finance": {
+      "starting_cash_ratio": 0.06,
+      "starting_debt_ratio": 0.01,
+      "interest_rate_annual": 0.05
+    },
+    "sector": "Tech",
+    "costs": {
+      "opex_fixed_usd": [
+        220000000,
+        480000000
+      ],
+      "opex_variable_ratio": [
+        0.12,
+        0.22
+      ],
+      "rd_base_ratio": [
+        0.06,
+        0.1
+      ]
+    },
+    "ipo_window": {
+      "from": 1984,
+      "to": 1992
+    }
+  },
+  "roster": [
+    {
+      "name": "Orion Microsystems",
+      "sector": "Tech",
+      "ipo_window": {
+        "from": 1985,
+        "to": 1990
+      },
+      "founders": [
+        { "name": "Clara Thompson" },
+        { "name": "Rajiv Desai" }
+      ],
+      "mission": "Building dependable operating systems and software for every desk.",
+      "founding_location": "Redmond, WA"
+    },
+    {
+      "name": "Pioneer Devices",
+      "sector": "Tech",
+      "ipo_window": {
+        "from": 1984,
+        "to": 1989
+      },
+      "founders": [
+        { "name": "Miguel Alvarez" },
+        { "name": "Hannah Park" }
+      ],
+      "mission": "Designing iconic consumer hardware with seamless ecosystems.",
+      "founding_location": "Cupertino, CA"
+    },
+    {
+      "name": "Summit Systems",
+      "sector": "Tech",
+      "ipo_window": {
+        "from": 1986,
+        "to": 1991
+      },
+      "founders": [
+        { "name": "Grace Ito" },
+        { "name": "Daniel Cho" }
+      ],
+      "mission": "Delivering enterprise databases and middleware that never sleep.",
+      "founding_location": "San Jose, CA"
+    }
+  ]
+}

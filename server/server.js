@@ -92,6 +92,7 @@ async function buildMatch(seed = Date.now()) {
   const presetOpts = { rng: rngFn, baseDir: path.join(__dirname, '..') };
   const pubs = [];
   pubs.push(...await Presets.generateHardTechPresetCompanies(3, presetOpts));
+  pubs.push(...await Presets.generateTechPresetCompanies(2, presetOpts));
   pubs.push(...await Presets.generateSteadyMegacorpCompanies(4, presetOpts));
   pubs.push(...await Presets.generateProductRotatorCompanies(2, presetOpts));
   const ventures = [

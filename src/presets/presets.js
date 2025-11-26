@@ -37,6 +37,7 @@
     const MEGACORP_DATA_PATH = 'data/presets/megacorp.json';
     const HYPERGROWTH_DATA_PATH = 'data/presets/hypergrowth.json';
     const PRODUCT_ROTATOR_DATA_PATH = 'data/presets/product_rotator.json';
+    const TECH_DATA_PATH = 'data/presets/tech.json';
     const BINARY_HARDTECH_DATA_PATH = 'data/presets/binary_hardtech.json';
     const PRODUCT_CATALOG_DATA_PATH = 'data/productCatalogs/core.json';
 
@@ -394,6 +395,80 @@
         });
     }
 
+    async function generateTechPresetCompanies(count = 1, options = {}) {
+        const { randBetween, randIntBetween, makeId } = buildRandomTools(options);
+        const pickRangeLocal = (range, fallbackMin, fallbackMax) => pickRange(range, fallbackMin, fallbackMax, randBetween);
+        const presetData = await loadPresetJson(TECH_DATA_PATH, options);
+        const rosterSource = Array.isArray(presetData?.roster) ? presetData.roster.slice() : [];
+        if (rosterSource.length === 0) return [];
+        const defaults = presetData?.defaults || {};
+        const structuralBiasDefaults = defaults.structural_bias || { min: 0.6, max: 3, half_life_years: 18 };
+        const marginDefaults = defaults.margin_curve || {};
+        const multipleDefaults = defaults.multiple_curve || {};
+        const financeDefaults = defaults.finance || {};
+        const costDefaults = defaults.costs || {};
+        const ipoInstantDefault = defaults.ipo_instantly ?? false;
+
+        const pickRoster = [];
+        while (pickRoster.length < count && rosterSource.length > 0) {
+            const idx = randIntBetween(0, rosterSource.length);
+            pickRoster.push(rosterSource.splice(idx, 1)[0]);
+        }
+
+        return pickRoster.map((entry, idx) => {
+            const name = entry.name || `Tech Co ${idx + 1}`;
+            const baseRevenue = pickRangeLocal(defaults.base_revenue_usd, 1_500_000_000, 7_000_000_000);
+            const ipoRange = entry.ipo_window || defaults.ipo_window || { from: 1984, to: 1992 };
+            const ipoInstantly = entry.ipo_instantly ?? ipoInstantDefault;
+
+            return {
+                id: makeId(`preset_tech_${slugify(name)}`, idx),
+                static: {
+                    name,
+                    sector: entry.sector || defaults.sector || 'Tech',
+                    founders: (entry.founders || []).map(f => ({ ...f })),
+                    mission: entry.mission || defaults.mission || '',
+                    founding_location: entry.founding_location || defaults.founding_location || '',
+                    ipo_window: ipoRange,
+                    ipo_instantly: ipoInstantly
+                },
+                sentiment: {
+                    structural_bias: { ...structuralBiasDefaults }
+                },
+                base_business: {
+                    revenue_process: {
+                        initial_revenue_usd: {
+                            min: baseRevenue * 0.75,
+                            max: baseRevenue * 1.25
+                        }
+                    },
+                    margin_curve: {
+                        start_profit_margin: pickRangeLocal(marginDefaults.start_profit_margin, 0.10, 0.16),
+                        terminal_profit_margin: pickRangeLocal(marginDefaults.terminal_profit_margin, 0.22, 0.32),
+                        years_to_mature: pickRangeLocal(marginDefaults.years_to_mature, 6, 10)
+                    },
+                    multiple_curve: {
+                        initial_ps_ratio: pickRangeLocal(multipleDefaults.initial_ps_ratio, 4.5, 7.5),
+                        terminal_pe_ratio: pickRangeLocal(multipleDefaults.terminal_pe_ratio, 16, 26),
+                        years_to_converge: pickRangeLocal(multipleDefaults.years_to_converge, 9, 13)
+                    }
+                },
+                finance: {
+                    starting_cash_usd: baseRevenue * (financeDefaults.starting_cash_ratio ?? 0.06),
+                    starting_debt_usd: baseRevenue * (financeDefaults.starting_debt_ratio ?? 0.01),
+                    interest_rate_annual: financeDefaults.interest_rate_annual ?? 0.05
+                },
+                costs: {
+                    opex_fixed_usd: pickRangeLocal(costDefaults.opex_fixed_usd, 220_000_000, 480_000_000),
+                    opex_variable_ratio: pickRangeLocal(costDefaults.opex_variable_ratio, 0.12, 0.22),
+                    rd_base_ratio: pickRangeLocal(costDefaults.rd_base_ratio, 0.06, 0.1)
+                },
+                pipeline: [],
+                events: []
+            };
+        });
+    }
+
     const hardTechRoster = [
         {
             name: 'Apex Fusion Works',
@@ -524,6 +599,7 @@
         generateHypergrowthPresetCompanies,
         generateBinaryHardTechCompanies,
         generateProductRotatorCompanies,
+        generateTechPresetCompanies,
         DEFAULT_VC_ROUNDS,
         HARDTECH_VC_ROUNDS
     };

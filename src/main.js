@@ -186,6 +186,7 @@ const {
     generateSteadyMegacorpCompanies,
     generateHypergrowthPresetCompanies,
     generateBinaryHardTechCompanies,
+    generateTechPresetCompanies,
     generateProductRotatorCompanies,
     DEFAULT_VC_ROUNDS,
     HARDTECH_VC_ROUNDS
@@ -926,16 +927,20 @@ async function loadCompaniesData() {
         const macroEvents = macroEventsResponse.ok ? await macroEventsResponse.json() : [];
         if (!Array.isArray(ventureCompanies)) ventureCompanies = [];
         let filteredCompanies = []; // temporarily ignore legacy companies
-        const presetOptions = matchRngFn ? { rng: matchRngFn } : {};
-        const presetHardTechCompanies = await generateHardTechPresetCompanies(3, presetOptions);
-        if (Array.isArray(presetHardTechCompanies)) {
-            filteredCompanies.push(...presetHardTechCompanies);
-        }
-        const presetMegacorpCompanies = await generateSteadyMegacorpCompanies(4, presetOptions);
-        if (Array.isArray(presetMegacorpCompanies)) {
-            filteredCompanies.push(...presetMegacorpCompanies);
-        }
-        const productRotatorCompanies = await generateProductRotatorCompanies(2, presetOptions);
+    const presetOptions = matchRngFn ? { rng: matchRngFn } : {};
+    const presetHardTechCompanies = await generateHardTechPresetCompanies(3, presetOptions);
+    if (Array.isArray(presetHardTechCompanies)) {
+        filteredCompanies.push(...presetHardTechCompanies);
+    }
+    const presetTechCompanies = await generateTechPresetCompanies(2, presetOptions);
+    if (Array.isArray(presetTechCompanies)) {
+        filteredCompanies.push(...presetTechCompanies);
+    }
+    const presetMegacorpCompanies = await generateSteadyMegacorpCompanies(4, presetOptions);
+    if (Array.isArray(presetMegacorpCompanies)) {
+        filteredCompanies.push(...presetMegacorpCompanies);
+    }
+    const productRotatorCompanies = await generateProductRotatorCompanies(2, presetOptions);
         if (Array.isArray(productRotatorCompanies)) {
             filteredCompanies.push(...productRotatorCompanies);
         }

@@ -129,6 +129,42 @@
       ],
       "mission": "Designing industrial automation systems for next-gen factories.",
       "founding_location": "Detroit, MI"
+    },
+    {
+      "name": "Northstar Computing",
+      "sector": "Tech",
+      "ipo_window": {
+        "from": 1984,
+        "to": 1989
+      },
+      "founders": [
+        {
+          "name": "Elena Brooks"
+        },
+        {
+          "name": "Mark Chen"
+        }
+      ],
+      "mission": "Building intuitive personal computing platforms for the mainstream.",
+      "founding_location": "Cupertino, CA"
+    },
+    {
+      "name": "Summit DataWorks",
+      "sector": "Tech",
+      "ipo_window": {
+        "from": 1986,
+        "to": 1991
+      },
+      "founders": [
+        {
+          "name": "Arjun Mehta"
+        },
+        {
+          "name": "Patricia Ng"
+        }
+      ],
+      "mission": "Delivering reliable databases and middleware for global enterprises.",
+      "founding_location": "Redmond, WA"
     }
   ]
 }

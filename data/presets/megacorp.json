@@ -158,6 +158,60 @@
         "to": 1986
       },
       "sector": "Biotech"
+    },
+    {
+      "name": "American Real Estate",
+      "mission": "Acquiring, developing, and managing commercial hubs across the U.S.",
+      "founders": [
+        {
+          "name": "Darren Whitfield"
+        },
+        {
+          "name": "Melanie Ortiz"
+        }
+      ],
+      "founding_location": "New York, NY",
+      "ipo_window": {
+        "from": 1983,
+        "to": 1987
+      },
+      "sector": "Real Estate"
+    },
+    {
+      "name": "Lockmere Systems",
+      "mission": "Engineering advanced avionics and defense platforms for allied forces.",
+      "founders": [
+        {
+          "name": "Colin Hart"
+        },
+        {
+          "name": "Rebecca Lin"
+        }
+      ],
+      "founding_location": "Fort Worth, TX",
+      "ipo_window": {
+        "from": 1982,
+        "to": 1986
+      },
+      "sector": "Defense"
+    },
+    {
+      "name": "Marston Aerospace",
+      "mission": "Building next-gen aircraft and space systems for the US military.",
+      "founders": [
+        {
+          "name": "Angela Marston"
+        },
+        {
+          "name": "Victor Delgado"
+        }
+      ],
+      "founding_location": "St. Louis, MO",
+      "ipo_window": {
+        "from": 1983,
+        "to": 1988
+      },
+      "sector": "Aerospace"
     }
   ],
   "defaults": {
