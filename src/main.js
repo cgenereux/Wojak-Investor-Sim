@@ -2461,11 +2461,18 @@ function setGameSpeed(speed) {
 companiesGrid.addEventListener('click', (event) => {
     const companyBox = event.target.closest('.company-box');
     if (!companyBox) return;
-    const dataId = companyBox.dataset.companyId || companyBox.dataset.companyName || '';
-    const companyName = companyBox.dataset.companyName || '';
+    const decode = (value = '') => {
+        try { return decodeURIComponent(value); } catch (err) { return value || ''; }
+    };
+    const dataId = decode(companyBox.dataset.companyId || '');
+    const companyName = decode(companyBox.dataset.companyName || '');
+    const queueIdx = companyBox.dataset.companyQueue || '';
     let company = null;
     if (dataId) {
         company = companies.find(c => (c.id && c.id === dataId) || c.name === dataId);
+    }
+    if (!company && queueIdx) {
+        company = companies.find(c => String(c.__queueIndex || '') === queueIdx);
     }
     if (!company && companyName) {
         company = companies.find(c => c.name === companyName);
@@ -2898,6 +2905,10 @@ async function init() {
 
     if (sortCompaniesSelect) {
         sortCompaniesSelect.value = currentSort;
+        if (!Array.from(sortCompaniesSelect.options).some(opt => opt.value === currentSort)) {
+            currentSort = 'ipoQueue';
+            sortCompaniesSelect.value = currentSort;
+        }
     }
 
     initMatchContext();

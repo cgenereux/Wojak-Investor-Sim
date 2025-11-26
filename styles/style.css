@@ -918,6 +918,55 @@ button.speed-active:hover {
     font-style: normal;
 }
 
+.companies-grid .company-box:not(.bankrupt).sector-tech {
+    background: #eaf3ff;
+    border-color: #d4e6ff;
+}
+
+.companies-grid .company-box:not(.bankrupt).sector-biotech {
+    background: #fff0f6;
+    border-color: #ffd6e8;
+}
+
+.companies-grid .company-box:not(.bankrupt).sector-banking {
+    background: #eef7ff;
+    border-color: #d7ebff;
+}
+
+.companies-grid .company-box:not(.bankrupt).sector-retail,
+.companies-grid .company-box:not(.bankrupt).sector-staples {
+    background: #fff7ec;
+    border-color: #ffe7c7;
+}
+
+.companies-grid .company-box:not(.bankrupt).sector-airlines,
+.companies-grid .company-box:not(.bankrupt).sector-aerospace {
+    background: #f0f8ff;
+    border-color: #d8ecff;
+}
+
+.companies-grid .company-box:not(.bankrupt).sector-automotive,
+.companies-grid .company-box:not(.bankrupt).sector-industrial {
+    background: #f4f7f0;
+    border-color: #dde5d4;
+}
+
+.companies-grid .company-box:not(.bankrupt).sector-defense,
+.companies-grid .company-box:not(.bankrupt).sector-energy {
+    background: #f4f8f3;
+    border-color: #d8ead6;
+}
+
+.companies-grid .company-box:not(.bankrupt).sector-realestate {
+    background: #f6f3ff;
+    border-color: #e3dbff;
+}
+
+.companies-grid .company-box:not(.bankrupt).sector-web {
+    background: #f0f5ff;
+    border-color: #d9e5ff;
+}
+
 .detail-header {
     display: flex;
     justify-content: space-between;

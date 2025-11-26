@@ -1,7 +1,19 @@
 (function (global) {
   const DEFAULT_RENDER_INTERVAL = 500;
   const SECTOR_CLASS_MAP = {
-    // sector colors temporarily disabled
+    tech: 'sector-tech',
+    biotech: 'sector-biotech',
+    banking: 'sector-banking',
+    retail: 'sector-retail',
+    'consumer staples': 'sector-staples',
+    airlines: 'sector-airlines',
+    automotive: 'sector-automotive',
+    aerospace: 'sector-aerospace',
+    defense: 'sector-defense',
+    energy: 'sector-energy',
+    industrial: 'sector-industrial',
+    'real estate': 'sector-realestate',
+    web: 'sector-web'
   };
 
   function escapeHtml(value = '') {
@@ -11,6 +23,14 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  function encodeDataValue(value = '') {
+    try {
+      return encodeURIComponent(String(value));
+    } catch (err) {
+      return String(value || '');
+    }
   }
 
   function getSectorClass(sector = '') {
@@ -55,6 +75,17 @@
       filtered.sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0));
     } else if (currentSort === 'ipoDateDesc') {
       filtered.sort((x, y) => ((y.ipoDate instanceof Date ? y.ipoDate.getTime() : 0) - (x.ipoDate instanceof Date ? x.ipoDate.getTime() : 0)));
+    } else if (currentSort === 'sector') {
+      filtered.sort((a, b) => {
+        const sa = (a.sector || '').toLowerCase();
+        const sb = (b.sector || '').toLowerCase();
+        if (sa === sb) {
+          ensureCompanyQueueIndex(a, state);
+          ensureCompanyQueueIndex(b, state);
+          return (a.__queueIndex || 0) - (b.__queueIndex || 0);
+        }
+        return sa.localeCompare(sb);
+      });
     } else if (currentSort === 'ipoQueue') {
       filtered.sort((a, b) => {
         ensureCompanyQueueIndex(a, state);
@@ -75,17 +106,20 @@
       const cap = (Number.isFinite(company.displayCap) && company.displayCap > 0)
         ? company.displayCap
         : (Number.isFinite(company.marketCap) ? company.marketCap : 0);
-      const boxClass = company.bankrupt ? 'company-box bankrupt' : 'company-box';
+      const sectorClass = company.bankrupt ? '' : getSectorClass(company.sector);
+      const boxClass = company.bankrupt ? 'company-box bankrupt' : `company-box${sectorClass ? ` ${sectorClass}` : ''}`;
       const capLabel = company.bankrupt ? 'Market Cap: Bankrupt' : `Market Cap: ${formatLargeNumber(cap)}`;
       const sectorLabel = company.bankrupt ? 'Status: Bankrupt' : (company.sector || 'Unknown');
-      const sectorClass = company.bankrupt ? '' : getSectorClass(company.sector);
       const companyId = company.id || company.name || '';
+      const queueIndex = company.__queueIndex || 0;
       const safeId = escapeHtml(companyId);
       const safeName = escapeHtml(company.name || 'Unknown');
       const safeCap = escapeHtml(capLabel);
       const safeSector = escapeHtml(sectorLabel);
+      const dataId = encodeDataValue(companyId);
+      const dataName = encodeDataValue(company.name || '');
       return `
-        <div class="${boxClass}" data-company-id="${safeId}" data-company-name="${safeName}">
+        <div class="${boxClass}" data-company-id="${dataId}" data-company-name="${dataName}" data-company-queue="${queueIndex}">
             <div class="company-name">${safeName}</div>
             <div class="company-info">
                 <div class="company-valuation" data-company-cap="${safeId}">${safeCap}</div>
