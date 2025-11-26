@@ -33,7 +33,7 @@ const { VentureSimulation } = (global.VentureEngineModule || {});
   ];
   const ventureCompanies = [
     ...(await generateHypergrowthPresetCompanies(presetOptions)),
-    ...generateBinaryHardTechCompanies(1, presetOptions)
+    ...await generateBinaryHardTechCompanies(1, presetOptions)
   ];
 
   const sim = new global.Simulation(publicCompanies, { seed, macroEvents: [] });

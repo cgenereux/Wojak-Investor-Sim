@@ -173,13 +173,15 @@ function renderInvestmentOptions(detail, companyId = null) {
     if (vcRoundDilutionEl) vcRoundDilutionEl.textContent = '';
 
     const dilutionPct = Math.max(0, detail.round.equityOffered * 100);
-    const currentStageIdx = Array.isArray(detail.rounds)
-        ? detail.rounds.findIndex(r => (r?.stageLabel || '').toLowerCase() === (detail.round.stageLabel || '').toLowerCase())
-        : -1;
-    const nextRoundIdx = currentStageIdx >= 0 ? currentStageIdx + 1 : -1;
-    const nextStageLabel = nextRoundIdx >= 0 && Array.isArray(detail.rounds) && detail.rounds[nextRoundIdx]
-        ? detail.rounds[nextRoundIdx].stageLabel || detail.rounds[nextRoundIdx].label || 'Next Round'
-        : (detail.round.stageLabel || detail.stageLabel || 'Next Round');
+    const rounds = Array.isArray(detail.rounds) ? detail.rounds : [];
+    const stageIndex = Number.isFinite(detail.stageIndex) && rounds.length
+        ? Math.min(Math.max(Math.trunc(detail.stageIndex), 0), rounds.length - 1)
+        : rounds.findIndex(r => (r?.stageLabel || r?.label || '').toLowerCase() === (detail.round.stageLabel || '').toLowerCase());
+    const nextRoundIdx = stageIndex >= 0 ? stageIndex + 1 : -1;
+    const nextStageLabel = detail.nextStageLabel
+        || (nextRoundIdx >= 0 && nextRoundIdx < rounds.length
+            ? rounds[nextRoundIdx].stageLabel || rounds[nextRoundIdx].label || 'Next Round'
+            : (detail.round.stageLabel || detail.stageLabel || 'Next Round'));
     const equity = Math.max(0, detail.round.equityOffered || 0);
     const raiseAmount = Number(detail.round.raiseAmount) || 0;
     const preMoney = Number(detail.round.preMoney) || 0;
@@ -198,6 +200,7 @@ function renderInvestmentOptions(detail, companyId = null) {
         const amount = postMoney > 0 ? equityFraction * postMoney : raiseAmount * equityFraction / equity;
         return vcFormatCurrency(Math.max(0, amount));
     };
+    const resolvedNextLabel = nextStageLabel || detail.round.stageLabel || detail.stageLabel || 'Next Round';
     const html = options.map(opt => {
         const pct = Math.max(0, opt.value);
         const amountDisplay = formatAmount(pct);
@@ -214,7 +217,17 @@ function renderInvestmentOptions(detail, companyId = null) {
     }).join('');
 
     if (vcRoundDilutionEl) {
-        vcRoundDilutionEl.textContent = `${nextStageLabel} Dilution: ${dilutionPct.toFixed(2)}%`;
+        vcRoundDilutionEl.textContent = `${resolvedNextLabel} Dilution: ${dilutionPct.toFixed(2)}%`;
+    }
+    const titleEl = vcInvestmentOptionsEl?.closest('.investment-panel')?.querySelector('.investment-title');
+    if (titleEl) {
+        const normalizedNext = (resolvedNextLabel || '').toLowerCase();
+        if (normalizedNext.includes('ipo')) {
+            titleEl.textContent = 'IPO Investment Options';
+        } else {
+            const roundLabel = resolvedNextLabel || 'Next';
+            titleEl.textContent = `${roundLabel} Round Investment Options`;
+        }
     }
     vcInvestmentOptionsEl.innerHTML = html;
 }

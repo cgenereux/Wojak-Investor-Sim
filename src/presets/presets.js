@@ -37,6 +37,7 @@
     const MEGACORP_DATA_PATH = 'data/presets/megacorp.json';
     const HYPERGROWTH_DATA_PATH = 'data/presets/hypergrowth.json';
     const PRODUCT_ROTATOR_DATA_PATH = 'data/presets/product_rotator.json';
+    const BINARY_HARDTECH_DATA_PATH = 'data/presets/binary_hardtech.json';
     const PRODUCT_CATALOG_DATA_PATH = 'data/productCatalogs/core.json';
 
     let fs = null;
@@ -131,6 +132,7 @@
         const multipleDefaults = defaults.multiple_curve || {};
         const initialRevenueConfig = defaults.initial_revenue_usd || {};
         const pipelineScaleRange = defaults.pipeline_scale || [0.75, 1.25];
+        const ipoInstantDefault = defaults.ipo_instantly ?? false;
 
         picked.forEach((entry, i) => {
             const name = entry.name || `Biotech Innovator ${i + 1}`;
@@ -141,6 +143,7 @@
             const initialRevenueMax = initialRevenueMin * maxMultiplier;
             const ipoYear = entry.ipo_window ? randIntBetween(entry.ipo_window.from, entry.ipo_window.to) : randIntBetween(1990, 1993);
             const currentPipelineScale = pickRangeLocal(pipelineScaleRange, 0.75, 1.25);
+            const ipoInstantly = entry.ipo_instantly ?? ipoInstantDefault;
 
             const company = {
                 id,
@@ -151,7 +154,7 @@
                     mission: entry.mission || defaults.mission || '',
                     founding_location: entry.founding_location || defaults.founding_location || '',
                     ipo_window: entry.ipo_window || { from: ipoYear, to: ipoYear },
-                    ipo_instantly: true
+                    ipo_instantly: ipoInstantly
                 },
                 sentiment: {
                     structural_bias: { ...structuralBiasDefaults }
@@ -194,6 +197,7 @@
         const marginDefaults = defaults.margin_curve || {};
         const multipleDefaults = defaults.multiple_curve || {};
         const financeDefaults = defaults.finance || {};
+        const ipoInstantDefault = defaults.ipo_instantly ?? false;
         const picked = [];
         while (picked.length < count && rosterSource.length > 0) {
             const idx = randIntBetween(0, rosterSource.length);
@@ -206,6 +210,7 @@
             const id = makeId(`preset_megacorp_${slugify(name)}`, i);
             const baseRevenue = pickRangeLocal(defaults.base_revenue_usd, 60_000_000_000, 200_000_000_000);
             const ipoRange = entry.ipo_window || { from: 1980, to: 1985 };
+            const ipoInstantly = entry.ipo_instantly ?? ipoInstantDefault;
             const startingCashRatio = financeDefaults.starting_cash_ratio ?? 0.03;
             const startingDebtRatio = financeDefaults.starting_debt_ratio ?? 0.05;
             const startMargin = pickRangeLocal(marginDefaults.start_profit_margin, 0.025, 0.04);
@@ -219,7 +224,7 @@
                     mission: entry.mission || defaults.mission || '',
                     founding_location: entry.founding_location || defaults.founding_location || '',
                     ipo_window: ipoRange,
-                    ipo_instantly: true
+                    ipo_instantly: ipoInstantly
                 },
                 sentiment: {
                     structural_bias: { ...structuralBiasDefaults }
@@ -318,6 +323,7 @@
         const financeDefaults = defaults.finance || {};
         const costDefaults = defaults.costs || {};
         const planDefaults = defaults.product_plan || {};
+        const ipoInstantDefault = defaults.ipo_instantly ?? false;
 
         const pickRoster = [];
         while (pickRoster.length < count && rosterSource.length > 0) {
@@ -329,6 +335,7 @@
             const name = entry.name || `Product Rotator ${idx + 1}`;
             const baseRevenue = pickRangeLocal(defaults.base_revenue_usd, 2_000_000_000, 8_000_000_000);
             const ipoRange = entry.ipo_window || defaults.ipo_window || { from: 1990, to: 1995 };
+            const ipoInstantly = entry.ipo_instantly ?? ipoInstantDefault;
             const pipelineProductPlan = {
                 catalog,
                 initial: planDefaults.initial ?? 2,
@@ -347,7 +354,7 @@
                     mission: entry.mission || defaults.mission || '',
                     founding_location: entry.founding_location || defaults.founding_location || '',
                     ipo_window: ipoRange,
-                    ipo_instantly: true
+                    ipo_instantly: ipoInstantly
                 },
                 sentiment: {
                     structural_bias: { ...structuralBiasDefaults }
@@ -420,33 +427,24 @@
         }
     ];
 
-    const hardTechPipelineTemplate = [
-        {
-            id: 'deeptech_flagship',
-            label: 'Flagship Hard-Tech Program',
-            full_revenue_usd: 30_000_000_000,
-            stages: [
-                { id: 'concept_validation', name: 'Concept Validation', duration_days: 720, success_prob: 0.55, value_realization: 0.1, cost_usd: 120_000_000, max_retries: 2 },
-                { id: 'prototype_build', name: 'Prototype Build', duration_days: 900, depends_on: 'concept_validation', success_prob: 0.5, value_realization: 0.2, cost_usd: 180_000_000, max_retries: 2 },
-                { id: 'pilot_demo', name: 'Pilot Demonstration', duration_days: 720, depends_on: 'prototype_build', success_prob: 0.6, value_realization: 0.25, cost_usd: 220_000_000, max_retries: 1 },
-                { id: 'regulatory_clearance', name: 'Regulatory Clearance', duration_days: 540, depends_on: 'pilot_demo', success_prob: 0.7, value_realization: 0.25, cost_usd: 150_000_000, max_retries: 1 },
-                { id: 'commercial_ramp', name: 'Commercial Ramp', duration_days: 540, depends_on: 'regulatory_clearance', success_prob: 0.85, value_realization: 0.2, cost_usd: 120_000_000, max_retries: 1, commercialises_revenue: true }
-            ]
-        }
-    ];
-
-    const cloneHardTechPipeline = (scale = 1, prefix = '') => {
-        return hardTechPipelineTemplate.map(entry => ({
+    function clonePipelineTemplate(template = [], scale = 1, prefix = '') {
+        return template.map(entry => ({
             id: prefix ? `${prefix}_${entry.id}` : entry.id,
             label: entry.label,
-            full_revenue_usd: Math.round(entry.full_revenue_usd * scale),
-            stages: entry.stages.map(stage => ({ ...stage }))
+            full_revenue_usd: Math.round((entry.full_revenue_usd || 0) * scale),
+            stages: Array.isArray(entry.stages) ? entry.stages.map(stage => ({ ...stage })) : []
         }));
-    };
+    }
 
-    function generateBinaryHardTechCompanies(count = 1, options = {}) {
+    async function generateBinaryHardTechCompanies(count = 1, options = {}) {
         const { randBetween, randIntBetween, makeId } = buildRandomTools(options);
-        const roster = [...hardTechRoster];
+        const data = await loadPresetJson(BINARY_HARDTECH_DATA_PATH, options);
+        const rosterSource = Array.isArray(data?.roster) ? data.roster.slice() : [];
+        const pipelineTemplate = Array.isArray(data?.defaults?.pipelineTemplate)
+            ? data.defaults.pipelineTemplate
+            : [];
+        if (rosterSource.length === 0 || pipelineTemplate.length === 0) return [];
+        const roster = [...rosterSource];
         const companies = [];
         while (companies.length < count && roster.length > 0) {
             const idx = randIntBetween(0, roster.length);
@@ -455,7 +453,7 @@
             const id = makeId(`preset_hardtech_${slugify(entry.name)}`, companies.length);
             const pipelineScale = randBetween(0.8, 1.4);
             const pipelineIdPrefix = `${id}_binary`;
-            const pipeline = cloneHardTechPipeline(pipelineScale, pipelineIdPrefix);
+            const pipeline = clonePipelineTemplate(pipelineTemplate, pipelineScale, pipelineIdPrefix);
             const initialRevenue = randBetween(2_000_000, 6_000_000);
             const baseBusiness = {
                 revenue_process: {

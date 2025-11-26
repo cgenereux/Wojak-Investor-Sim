@@ -96,7 +96,7 @@ async function buildMatch(seed = Date.now()) {
   pubs.push(...await Presets.generateProductRotatorCompanies(2, presetOpts));
   const ventures = [
     ...(await Presets.generateHypergrowthPresetCompanies(presetOpts)),
-    ...Presets.generateBinaryHardTechCompanies(1, presetOpts)
+    ...await Presets.generateBinaryHardTechCompanies(1, presetOpts)
   ];
   const sim = new Simulation(pubs, { seed, rng: rngFn, macroEvents: macroEvents || [] });
   const ventureSim = new VentureSimulation(ventures, sim.lastTick, { seed, rng: rngFn });

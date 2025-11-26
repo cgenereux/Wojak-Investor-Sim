@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node server/server.js",
     "dev": "node server/server.js",
-    "smoke": "node tests/integration-test.js && node tests/dual-simulation-comparison-test.js",
+    "smoke": "node tests/integration-test.js && node tests/dual-simulation-comparison-test.js && node tests/ipo-window-behavior-test.js",
     "mp:connectivity": "node tests/multiplayer-connectivity-test.js",
     "test": "npm run smoke",
     "validate:presets": "node tests/validate-presets.js",

@@ -1,0 +1,50 @@
+{
+  "roster": [
+    {
+      "name": "Apex Fusion Works",
+      "sector": "Energy",
+      "description": "Building compact fusion cores for terrestrial grids.",
+      "funding_round": "Series B",
+      "gate_stage": "series_f",
+      "founders": [{ "name": "Elias Rahman" }, { "name": "Jordan Cooper" }],
+      "mission": "Delivering compact fusion cores that drop into existing grids.",
+      "founding_location": "Austin, TX"
+    },
+    {
+      "name": "Odin Launch Systems",
+      "sector": "Aerospace",
+      "description": "Reusable heavy-lift platform for deep space industry.",
+      "funding_round": "Series C",
+      "gate_stage": "series_f",
+      "founders": [{ "name": "Henrik Svensson" }, { "name": "Patricia Li" }],
+      "mission": "Making heavy-lift launches routine for deep-space infrastructure.",
+      "founding_location": "Long Beach, CA"
+    },
+    {
+      "name": "NeuraForge Interfaces",
+      "sector": "BioTech",
+      "description": "High-bandwidth BMI hardware for clinical and defense.",
+      "funding_round": "Series B",
+      "gate_stage": "series_e",
+      "founders": [{ "name": "Carla Alvarez" }, { "name": "Rachel Yoon" }],
+      "mission": "Building reliable high-bandwidth brain-computer interfaces.",
+      "founding_location": "Seattle, WA"
+    }
+  ],
+  "defaults": {
+    "pipelineTemplate": [
+      {
+        "id": "deeptech_flagship",
+        "label": "Flagship Hard-Tech Program",
+        "full_revenue_usd": 30000000000,
+        "stages": [
+          { "id": "concept_validation", "name": "Concept Validation", "duration_days": 720, "success_prob": 0.55, "value_realization": 0.1, "cost_usd": 120000000, "max_retries": 2 },
+          { "id": "prototype_build", "name": "Prototype Build", "duration_days": 900, "depends_on": "concept_validation", "success_prob": 0.5, "value_realization": 0.2, "cost_usd": 180000000, "max_retries": 2 },
+          { "id": "pilot_demo", "name": "Pilot Demonstration", "duration_days": 720, "depends_on": "prototype_build", "success_prob": 0.6, "value_realization": 0.25, "cost_usd": 220000000, "max_retries": 1 },
+          { "id": "regulatory_clearance", "name": "Regulatory Clearance", "duration_days": 540, "depends_on": "pilot_demo", "success_prob": 0.7, "value_realization": 0.25, "cost_usd": 150000000, "max_retries": 1 },
+          { "id": "commercial_ramp", "name": "Commercial Ramp", "duration_days": 540, "depends_on": "regulatory_clearance", "success_prob": 0.85, "value_realization": 0.2, "cost_usd": 120000000, "max_retries": 1, "commercialises_revenue": true }
+        ]
+      }
+    ]
+  }
+}

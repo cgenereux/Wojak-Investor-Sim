@@ -355,8 +355,9 @@
       const timestamp = date && date.getTime ? date.getTime() : 0;
 
       let stageLabel = 'Pre-Seed';
-      if (this.stageIndex > 0 && this.roundDefinitions && this.roundDefinitions[this.stageIndex - 1]) {
-        stageLabel = this.roundDefinitions[this.stageIndex - 1].label;
+      if (Array.isArray(this.roundDefinitions) && this.roundDefinitions.length > 0) {
+        const idx = Math.max(0, Math.min(this.stageIndex ?? 0, this.roundDefinitions.length - 1));
+        stageLabel = this.roundDefinitions[idx]?.label || stageLabel;
       }
 
       const last = this.history[this.history.length - 1];
@@ -988,6 +989,22 @@
       const round = this.currentRound;
       const stage = this.currentStage;
       const daysRemaining = round ? Math.max(0, round.durationDays - this.daysSinceRound) : 0;
+      const rounds = Array.isArray(this.roundDefinitions)
+        ? this.roundDefinitions.map((r, idx) => ({
+            id: r.id,
+            label: r.label,
+            stageLabel: r.label,
+            index: idx
+          }))
+        : [];
+      const stageIndex = Math.max(
+        0,
+        Math.min(
+          Number.isFinite(this.stageIndex) ? Math.trunc(this.stageIndex) : 0,
+          Math.max(0, rounds.length - 1)
+        )
+      );
+      const nextStage = rounds.length && stageIndex + 1 < rounds.length ? rounds[stageIndex + 1] : null;
       return {
         id: this.id,
         name: this.name,
@@ -999,6 +1016,9 @@
         valuation: this.currentValuation,
         stageLabel: stage ? stage.label : 'N/A',
         status: this.getStatusLabel(),
+        stageIndex,
+        nextStageId: nextStage ? nextStage.id : null,
+        nextStageLabel: nextStage ? nextStage.label : null,
         playerEquity: this.playerEquity,
         playerEquityPercent: this.playerEquity * 100,
         playerInvested: this.playerInvested,
@@ -1039,7 +1059,8 @@
           playerCommitted: round.playerCommitted,
           playerCommitAmount: round.playerCommitAmount || 0,
           playerCommitEquity: round.playerCommitEquity || 0
-        } : null
+        } : null,
+        rounds
       };
     }
 

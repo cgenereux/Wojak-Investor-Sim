@@ -943,8 +943,10 @@ async function loadCompaniesData() {
         if (Array.isArray(presetVentureCompanies)) {
             ventureCompanies.push(...presetVentureCompanies);
         }
-        const hardTechCompanies = generateBinaryHardTechCompanies(1, presetOptions);
-        ventureCompanies.push(...hardTechCompanies);
+        const hardTechCompanies = await generateBinaryHardTechCompanies(1, presetOptions);
+        if (Array.isArray(hardTechCompanies)) {
+            ventureCompanies.push(...hardTechCompanies);
+        }
         ensureVentureSimulation(true);
         const simOptions = matchRngFn ? { macroEvents, seed: matchSeed, rng: matchRngFn } : { macroEvents };
         return new Simulation(filteredCompanies, simOptions);

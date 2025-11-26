@@ -7,6 +7,7 @@ const FILES = [
   'src/sim/ventureEngineCore.js',
   'src/main.js',
   'tests/integration-test.js',
+  'tests/ipo-window-behavior-test.js',
   'tests/simulation-test.js',
   'tests/dual-simulation-comparison-test.js',
   'tests/multiplayer-connectivity-test.js'

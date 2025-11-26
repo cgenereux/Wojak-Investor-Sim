@@ -71,7 +71,7 @@ async function main() {
   ];
   const ventureCompanies = [
     ...(await Presets.generateHypergrowthPresetCompanies(presetOpts)),
-    ...Presets.generateBinaryHardTechCompanies(1, presetOpts)
+    ...await Presets.generateBinaryHardTechCompanies(1, presetOpts)
   ];
 
   const sim = new Simulation(publicCompanies, { seed, rng: rngFn, macroEvents: macroEvents || [] });
