@@ -931,7 +931,7 @@ async function loadCompaniesData() {
         if (Array.isArray(presetHardTechCompanies)) {
             filteredCompanies.push(...presetHardTechCompanies);
         }
-        const presetMegacorpCompanies = await generateSteadyMegacorpCompanies(2, presetOptions);
+        const presetMegacorpCompanies = await generateSteadyMegacorpCompanies(4, presetOptions);
         if (Array.isArray(presetMegacorpCompanies)) {
             filteredCompanies.push(...presetMegacorpCompanies);
         }

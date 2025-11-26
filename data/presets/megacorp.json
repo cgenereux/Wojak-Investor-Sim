@@ -64,8 +64,8 @@
       ],
       "founding_location": "Atlanta, GA",
       "ipo_window": {
-        "from": 1992,
-        "to": 1995
+        "from": 1982,
+        "to": 1986
       },
       "sector": "Airlines"
     },
@@ -100,10 +100,64 @@
       ],
       "founding_location": "San Francisco, CA",
       "ipo_window": {
-        "from": 1989,
-        "to": 1997
+        "from": 1981,
+        "to": 1985
       },
       "sector": "Airlines"
+    },
+    {
+      "name": "Atlas Motor Works",
+      "mission": "Building dependable, efficient cars and trucks for working families.",
+      "founders": [
+        {
+          "name": "Carl Nguyen"
+        },
+        {
+          "name": "Dana Ruiz"
+        }
+      ],
+      "founding_location": "Detroit, MI",
+      "ipo_window": {
+        "from": 1984,
+        "to": 1987
+      },
+      "sector": "Automotive"
+    },
+    {
+      "name": "Genova Therapeutics",
+      "mission": "Scaling biologics manufacturing for frontline therapies.",
+      "founders": [
+        {
+          "name": "Dr. Priya Malhotra"
+        },
+        {
+          "name": "Evan Brooks"
+        }
+      ],
+      "founding_location": "Cambridge, MA",
+      "ipo_window": {
+        "from": 1983,
+        "to": 1987
+      },
+      "sector": "Biotech"
+    },
+    {
+      "name": "Pacific Bio Systems",
+      "mission": "Delivering diagnostics and reagents to hospital networks worldwide.",
+      "founders": [
+        {
+          "name": "Dr. Lena Romero"
+        },
+        {
+          "name": "Marcus Lee"
+        }
+      ],
+      "founding_location": "San Diego, CA",
+      "ipo_window": {
+        "from": 1982,
+        "to": 1986
+      },
+      "sector": "Biotech"
     }
   ],
   "defaults": {
