@@ -1784,10 +1784,9 @@ function gameLoop() {
     if (activeCompanyDetail) {
         updateInvestmentPanelStats(activeCompanyDetail);
 
-        if (activeCompanyDetail.hasPipelineUpdate) {
-            updatePipelineDisplay(activeCompanyDetail);
-            activeCompanyDetail.hasPipelineUpdate = false;
-        }
+        // Always update pipeline to show live progress
+        updatePipelineDisplay(activeCompanyDetail);
+        activeCompanyDetail.hasPipelineUpdate = false;
     }
 }
 
@@ -2542,6 +2541,30 @@ if (speedSlider) {
         setGameSpeed(nextSpeed);
     });
 
+    // Detail View Controls
+    const playPauseBtnDetail = document.getElementById('playPauseBtnDetail');
+    if (playPauseBtnDetail) {
+        playPauseBtnDetail.addEventListener('click', () => {
+            if (currentSpeed > 0) {
+                setGameSpeed(0);
+            } else {
+                setGameSpeed(1);
+            }
+        });
+    }
+
+    // VC Detail View Controls
+    const playPauseBtnVcDetail = document.getElementById('playPauseBtnVcDetail');
+    if (playPauseBtnVcDetail) {
+        playPauseBtnVcDetail.addEventListener('click', () => {
+            if (currentSpeed > 0) {
+                setGameSpeed(0);
+            } else {
+                setGameSpeed(1);
+            }
+        });
+    }
+
     const playPauseBtn = document.getElementById('playPauseBtn');
     if (playPauseBtn) {
         playPauseBtn.addEventListener('click', () => {
@@ -2555,39 +2578,71 @@ if (speedSlider) {
 
     if (typeof speedSlider.value === 'string') {
         const initialIdx = SPEED_STEPS.indexOf(currentSpeed);
-        speedSlider.value = `${initialIdx >= 0 ? initialIdx : 2}`;
+        const val = `${initialIdx >= 0 ? initialIdx : 2}`;
+        speedSlider.value = val;
     }
     updateSpeedThumbLabel();
 }
 
 function updateSpeedThumbLabel() {
-    if (!speedSlider || !speedThumbLabel) return;
     const idx = SPEED_STEPS.indexOf(currentSpeed);
-    const sliderMin = Number(speedSlider.min) || 0;
-    const sliderMax = Number(speedSlider.max) || Math.max(SPEED_STEPS.length - 1, 1);
     const val = idx >= 0 ? idx : 1;
-    const ratio = (val - sliderMin) / Math.max(1, sliderMax - sliderMin);
-    const trackWidth = speedSlider.clientWidth || 0;
-    const thumbWidth = 16; // approximate thumb width
-    const pos = ratio * Math.max(0, trackWidth - thumbWidth) + thumbWidth / 2;
-    speedThumbLabel.style.left = `${pos}px`;
-    speedThumbLabel.textContent = currentSpeed <= 0 ? 'Paused' : `${currentSpeed}x Speed`;
 
-    // Update Play/Pause Icon
-    const pauseIcon = document.getElementById('pauseIcon');
-    const playIcon = document.getElementById('playIcon');
-    const btn = document.getElementById('playPauseBtn');
-    if (pauseIcon && playIcon && btn) {
-        if (currentSpeed <= 0) {
-            pauseIcon.style.display = 'none';
-            playIcon.style.display = 'block';
-            btn.title = "Play";
-        } else {
-            pauseIcon.style.display = 'block';
-            playIcon.style.display = 'none';
-            btn.title = "Pause";
+    // Helper to update a specific set of controls
+    const updateControls = (slider, label, pauseIcon, playIcon, btn) => {
+        if (slider && label) {
+            slider.value = val; // Sync slider value
+
+            const sliderMin = Number(slider.min) || 0;
+            const sliderMax = Number(slider.max) || Math.max(SPEED_STEPS.length - 1, 1);
+            const ratio = (val - sliderMin) / Math.max(1, sliderMax - sliderMin);
+            const trackWidth = slider.clientWidth || 0;
+            const thumbWidth = 16;
+            const pos = ratio * Math.max(0, trackWidth - thumbWidth) + thumbWidth / 2;
+
+            label.style.left = `${pos}px`;
+            label.textContent = currentSpeed <= 0 ? 'Paused' : `${currentSpeed}x Speed`;
         }
-    }
+
+        if (pauseIcon && playIcon && btn) {
+            if (currentSpeed <= 0) {
+                pauseIcon.style.display = 'none';
+                playIcon.style.display = 'block';
+                btn.title = "Play";
+            } else {
+                pauseIcon.style.display = 'block';
+                playIcon.style.display = 'none';
+                btn.title = "Pause";
+            }
+        }
+    };
+
+    // Main Controls
+    updateControls(
+        speedSlider,
+        speedThumbLabel,
+        document.getElementById('pauseIcon'),
+        document.getElementById('playIcon'),
+        document.getElementById('playPauseBtn')
+    );
+
+    // Detail View Controls (No slider/label)
+    updateControls(
+        null,
+        null,
+        document.getElementById('pauseIconDetail'),
+        document.getElementById('playIconDetail'),
+        document.getElementById('playPauseBtnDetail')
+    );
+
+    // VC Detail View Controls (No slider/label)
+    updateControls(
+        null,
+        null,
+        document.getElementById('pauseIconVcDetail'),
+        document.getElementById('playIconVcDetail'),
+        document.getElementById('playPauseBtnVcDetail')
+    );
 }
 
 window.addEventListener('resize', () => {

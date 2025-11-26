@@ -3,7 +3,7 @@
     "id": "pandemic_global",
     "label": "Warning: Global Pandemic",
     "chance": 0.75,
-    "start_year_range": [1990, 2040],
+    "start_year_range": [1995, 2040],
     "impact_days_range": [150, 240],
     "recovery_days_range": [240, 420],
     "global_multiplier_range": [0.55, 0.75],

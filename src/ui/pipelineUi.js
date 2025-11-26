@@ -59,7 +59,34 @@
                     if (stage.completed) {
                         connectorClass = stage.succeeded ? 'completed' : 'failed';
                     }
-                    html += `<div class="connector ${connectorClass}"></div>`;
+
+                    let infoHtml = '';
+                    /*
+                    // DISABLED: User feedback indicated this text (probability and time remaining) didn't look good.
+                    // Keeping the logic here in case we decide to re-enable it later.
+                    
+                    // Show info only if this stage is active (incomplete) or future, AND the pipeline is still valid
+                    if (!stage.completed && lastStageSucceeded) {
+                        const remainingDays = (stage.duration_days || 0) - (stage.elapsed || 0);
+                        const months = Math.ceil(Math.max(0, remainingDays) / 30);
+                        const prob = stage.success_prob ? Math.round(stage.success_prob * 100) : 0;
+                        
+                        let timeText = `Results in ${months} month${months === 1 ? '' : 's'}`;
+                        if (stage.tries > 0) {
+                            timeText += ` (Retry ${stage.tries})`;
+                        }
+
+                        infoHtml = `
+                        <div class="connector-info">
+                            <div class="info-prob">${prob}% chance of success</div>
+                            <div class="info-time">${timeText}</div>
+                        </div>`;
+                    }
+                    */
+
+                    html += `<div class="connector ${connectorClass}">
+                        ${infoHtml}
+                    </div>`;
                 }
             });
 
