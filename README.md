@@ -117,3 +117,4 @@
   - Ventures first: Venture rosters (hypergrowth + hard-tech) seed each era and IPO into the public sim with their live state; late-era public-only names fill gaps (industrial/space megacorps).
   - Sector catalogs: Expand product catalogs per sector and enforce uniqueness per run so two companies don’t share the same pipeline in a playthrough.
   - Size target: Grow toward ~80 public companies across 1990–2050 plus a rotating bench of private ventures each decade; replace placeholders with curated names as the list fills out.
+  - Current Roster: public 26 companies (Biotech 5, Retail 2, Consumer Staples 1, Airlines 3, Automotive 1, Real Estate 1, Defense 1, Aerospace 1, Tech 7, Industrial 1, Banking 3); private 6 companies (Web 3, Energy 1, Aerospace 1, BioTech 1).

@@ -521,20 +521,28 @@ function getFinancialTableHTML(history) {
     `;
 }
 
-function showVentureCompanyDetail(companyId) {
+function showVentureCompanyDetail(companyId, options = {}) {
     if (!companyId) return;
+    const { skipHistory = false } = options;
     ensureVentureReady();
     currentVentureCompanyId = companyId;
     document.body.classList.add('vc-active');
     document.body.classList.add('vc-detail-active');
     updateVentureDetail(companyId);
+    if (!skipHistory && typeof window.pushViewState === 'function' && !window.__suppressHistoryPush) {
+        window.pushViewState('vc-detail', { ventureId: companyId });
+    }
 }
 
-function hideVentureCompanyDetail() {
+function hideVentureCompanyDetail(options = {}) {
+    const { skipHistory = false } = options;
     document.body.classList.remove('vc-detail-active');
     currentVentureCompanyId = null;
     destroyVentureChart();
     lastInvestmentOptionsKey.clear();
+    if (!skipHistory && typeof window.pushViewState === 'function' && !window.__suppressHistoryPush) {
+        window.pushViewState('vc', {});
+    }
 }
 
 function refreshVentureCompaniesList() {

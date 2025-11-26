@@ -117,6 +117,9 @@
       const boxClass = company.bankrupt ? 'company-box bankrupt' : `company-box${sectorClass ? ` ${sectorClass}` : ''}`;
       const capLabel = company.bankrupt ? 'Market Cap: Bankrupt' : `Market Cap: ${formatLargeNumber(cap)}`;
       const sectorLabel = company.bankrupt ? 'Status: Bankrupt' : (company.sector || 'Unknown');
+      const ipoLabel = company.ipoDate instanceof Date
+        ? `${company.ipoDate.getFullYear()}`
+        : '';
       const companyId = company.id || company.name || '';
       const queueIndex = company.__queueIndex || 0;
       const safeId = escapeHtml(companyId);
@@ -125,8 +128,10 @@
       const safeSector = escapeHtml(sectorLabel);
       const dataId = encodeDataValue(companyId);
       const dataName = encodeDataValue(company.name || '');
+      const safeIpo = escapeHtml(ipoLabel);
       return `
         <div class="${boxClass}" data-company-id="${dataId}" data-company-name="${dataName}" data-company-queue="${queueIndex}">
+            ${safeIpo ? `<div class="company-ipo-badge">${safeIpo}</div>` : ''}
             <div class="company-name">${safeName}</div>
             <div class="company-info">
                 <div class="company-valuation" data-company-cap="${safeId}">${safeCap}</div>

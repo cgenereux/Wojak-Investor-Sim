@@ -146,6 +146,87 @@ function showToast(message, options = {}) {
 }
 window.showToast = showToast;
 
+// --- History Navigation Helpers ---
+const VIEW_MARKET = 'market';
+const VIEW_COMPANY = 'company';
+const VIEW_VC = 'vc';
+const VIEW_VC_DETAIL = 'vc-detail';
+let suppressHistoryPush = false;
+window.__suppressHistoryPush = false;
+
+function getCurrentUrlForState() {
+    if (typeof window === 'undefined') return '';
+    return `${window.location.pathname}${window.location.search}${window.location.hash}`;
+}
+
+function statesEqual(a = {}, b = {}) {
+    return (a.view || '') === (b.view || '')
+        && (a.companyId || '') === (b.companyId || '')
+        && (a.ventureId || '') === (b.ventureId || '');
+}
+
+function pushViewState(view, payload = {}, options = {}) {
+    if (typeof history === 'undefined' || typeof history.pushState !== 'function') return;
+    if (suppressHistoryPush || window.__suppressHistoryPush) return;
+    const next = { view, ...payload };
+    const replace = options.replace === true;
+    const current = history.state || {};
+    if (!replace && statesEqual(current, next)) return;
+    const url = getCurrentUrlForState();
+    if (replace || !history.state) {
+        history.replaceState(next, '', url);
+    } else {
+        history.pushState(next, '', url);
+    }
+}
+window.pushViewState = pushViewState;
+
+function applyHistoryState(state = { view: VIEW_MARKET }) {
+    suppressHistoryPush = true;
+    window.__suppressHistoryPush = true;
+    const view = state?.view || VIEW_MARKET;
+    if (view === VIEW_COMPANY) {
+        const id = state.companyId;
+        const company = companies.find(c => (c.id && c.id === id) || c.name === id);
+        if (company) {
+            showCompanyDetail(company, { skipHistory: true });
+        } else {
+            hideCompanyDetail(true);
+        }
+        bodyEl.classList.remove('vc-active');
+        bodyEl.classList.remove('vc-detail-active');
+    } else if (view === VIEW_VC_DETAIL) {
+        if (typeof openVentureTab === 'function') openVentureTab({ skipHistory: true });
+        if (typeof showVentureCompanyDetail === 'function' && state.ventureId) {
+            showVentureCompanyDetail(state.ventureId, { skipHistory: true });
+        }
+    } else if (view === VIEW_VC) {
+        if (typeof openVentureTab === 'function') openVentureTab({ skipHistory: true });
+        if (typeof hideVentureCompanyDetail === 'function') hideVentureCompanyDetail({ skipHistory: true });
+    } else {
+        hideCompanyDetail(true);
+        bodyEl.classList.remove('vc-active');
+        bodyEl.classList.remove('vc-detail-active');
+        if (typeof hideVentureCompanyDetail === 'function') hideVentureCompanyDetail({ skipHistory: true });
+    }
+    suppressHistoryPush = false;
+    window.__suppressHistoryPush = false;
+}
+
+function initHistoryNavigation() {
+    if (typeof history === 'undefined' || typeof history.replaceState !== 'function') return;
+    const initialState = history.state && history.state.view ? history.state : { view: VIEW_MARKET };
+    suppressHistoryPush = true;
+    window.__suppressHistoryPush = true;
+    history.replaceState(initialState, '', getCurrentUrlForState());
+    suppressHistoryPush = false;
+    window.__suppressHistoryPush = false;
+}
+
+window.addEventListener('popstate', (event) => {
+    applyHistoryState(event.state || { view: VIEW_MARKET });
+});
+
 function maybeTrackDecadeNetWorth(dateLike, players = null) {
     const year = dateLike instanceof Date ? dateLike.getUTCFullYear() : new Date(dateLike).getUTCFullYear();
     if (!Number.isFinite(year)) return;
@@ -585,9 +666,9 @@ function hydrateFromSnapshot(snapshot) {
     if (activeCompanyDetail) {
         const updated = companies.find(c => c.id === activeCompanyDetail.id || c.name === activeCompanyDetail.name);
         if (updated) {
-            showCompanyDetail(updated);
+            showCompanyDetail(updated, { skipHistory: true });
         } else {
-            hideCompanyDetail();
+            hideCompanyDetail(true);
         }
     }
 }
@@ -2351,8 +2432,11 @@ function renderCompanyMeta(company) {
     }
 }
 
-function showCompanyDetail(company) {
+function showCompanyDetail(company, options = {}) {
+    const { skipHistory = false } = options;
     activeCompanyDetail = company;
+    bodyEl.classList.remove('vc-active');
+    bodyEl.classList.remove('vc-detail-active');
     bodyEl.classList.add('detail-active');
     document.getElementById('detailCompanyName').textContent = company.name;
     document.getElementById('detailCompanySector').textContent = company.bankrupt ? 'Status: Bankrupt' : company.sector;
@@ -2406,13 +2490,21 @@ function showCompanyDetail(company) {
     document.getElementById('financialHistoryContainer').innerHTML = '';
     renderCompanyFinancialHistory(company);
     updatePipelineDisplay(company); // Draw pipeline on view
+
+    if (!skipHistory && typeof pushViewState === 'function') {
+        const companyId = company.id || company.name;
+        pushViewState(VIEW_COMPANY, { companyId });
+    }
 }
 
-function hideCompanyDetail() {
+function hideCompanyDetail(skipHistory = false) {
     activeCompanyDetail = null;
     bodyEl.classList.remove('detail-active');
     if (companyDetailChart) { companyDetailChart.destroy(); companyDetailChart = null; }
     destroyFinancialYoyChart();
+    if (!skipHistory && typeof pushViewState === 'function') {
+        pushViewState(VIEW_MARKET, {});
+    }
 }
 
 function pauseGame() {
@@ -2455,6 +2547,35 @@ function setGameSpeed(speed) {
         speedSlider.value = idx >= 0 ? idx : 2;
     }
     updateSpeedThumbLabel();
+}
+
+function openVentureTab(options = {}) {
+    const { skipHistory = false } = options;
+    bodyEl.classList.add('vc-active');
+    bodyEl.classList.remove('detail-active');
+    hideCompanyDetail(true);
+    ensureVentureSimulation();
+    const summaries = typeof getVentureCompanySummaries === 'function' ? getVentureCompanySummaries() : ventureCompanies;
+    renderVentureCompanies(
+        summaries,
+        formatLargeNumber,
+        formatLargeNumber
+    );
+    if (!skipHistory && typeof pushViewState === 'function') {
+        pushViewState(VIEW_VC, {});
+    }
+}
+
+function closeVentureTab(options = {}) {
+    const { skipHistory = false } = options;
+    if (typeof hideVentureCompanyDetail === 'function') {
+        hideVentureCompanyDetail({ skipHistory: true });
+    }
+    bodyEl.classList.remove('vc-active');
+    bodyEl.classList.remove('vc-detail-active');
+    if (!skipHistory && typeof pushViewState === 'function') {
+        pushViewState(VIEW_MARKET, {});
+    }
 }
 
 // --- Event Listeners ---
@@ -2748,22 +2869,14 @@ bankingAmountInput.addEventListener('keypress', (event) => {
 });
 
 vcBtn.addEventListener('click', () => {
-    bodyEl.classList.add('vc-active');
-    ensureVentureSimulation();
-    const summaries = typeof getVentureCompanySummaries === 'function' ? getVentureCompanySummaries() : ventureCompanies;
-    renderVentureCompanies(
-        summaries,
-        formatLargeNumber,
-        formatLargeNumber
-    );
+    openVentureTab();
 });
 
 backToMainBtn.addEventListener('click', () => {
     if (typeof hideVentureCompanyDetail === 'function') {
-        hideVentureCompanyDetail();
+        hideVentureCompanyDetail({ skipHistory: true });
     }
-    bodyEl.classList.remove('vc-active');
-    bodyEl.classList.remove('vc-detail-active');
+    closeVentureTab();
 });
 
 if (multiplayerBtn) multiplayerBtn.addEventListener('click', showMultiplayerModal);
@@ -2910,6 +3023,8 @@ async function init() {
             sortCompaniesSelect.value = currentSort;
         }
     }
+
+    initHistoryNavigation();
 
     initMatchContext();
     resetDecadeTracking();
