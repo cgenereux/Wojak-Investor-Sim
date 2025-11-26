@@ -86,6 +86,13 @@ const multiplayerEndHeading = document.getElementById('multiplayerEndHeading');
 let storedPlayerName = null;
 let selectedCharacter = null;
 
+// Quick heads-up for small screens; the experience isn't optimized for mobile yet.
+if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+    setTimeout(() => {
+        alert("Sorry, Wojak Sim is not optimized for mobile yet :(");
+    }, 1000);
+}
+
 const DEFAULT_WOJAK_SRC = 'wojaks/wojak.png';
 const MALDING_WOJAK_SRC = 'wojaks/malding-wojak.png';
 

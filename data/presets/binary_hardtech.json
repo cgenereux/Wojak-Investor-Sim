@@ -1,14 +1,21 @@
 {
-  "roster": [
+  "companies": [
     {
       "name": "Apex Fusion Works",
       "sector": "Energy",
       "description": "Building compact fusion cores for terrestrial grids.",
       "funding_round": "Series B",
       "gate_stage": "series_f",
-      "founders": [{ "name": "Elias Rahman" }, { "name": "Jordan Cooper" }],
+      "ipo_stage": "pre_ipo",
+      "founders": [
+        { "name": "Elias Rahman", "degree": "PhD", "school": "MIT" },
+        { "name": "Jordan Cooper", "degree": "PhD", "school": "Princeton" }
+      ],
       "mission": "Delivering compact fusion cores that drop into existing grids.",
-      "founding_location": "Austin, TX"
+      "founding_location": "Austin, TX",
+      "valuation_usd": 22000000,
+      "hypergrowth_window_years": 2.5,
+      "hypergrowth_total_multiplier": 12
     },
     {
       "name": "Odin Launch Systems",
@@ -16,9 +23,16 @@
       "description": "Reusable heavy-lift platform for deep space industry.",
       "funding_round": "Series C",
       "gate_stage": "series_f",
-      "founders": [{ "name": "Henrik Svensson" }, { "name": "Patricia Li" }],
+      "ipo_stage": "pre_ipo",
+      "founders": [
+        { "name": "Henrik Svensson", "degree": "MS", "school": "KTH" },
+        { "name": "Patricia Li", "degree": "MS", "school": "Caltech" }
+      ],
       "mission": "Making heavy-lift launches routine for deep-space infrastructure.",
-      "founding_location": "Long Beach, CA"
+      "founding_location": "Long Beach, CA",
+      "valuation_usd": 28000000,
+      "hypergrowth_window_years": 2.2,
+      "hypergrowth_total_multiplier": 10
     },
     {
       "name": "NeuraForge Interfaces",
@@ -26,9 +40,16 @@
       "description": "High-bandwidth BMI hardware for clinical and defense.",
       "funding_round": "Series B",
       "gate_stage": "series_e",
-      "founders": [{ "name": "Carla Alvarez" }, { "name": "Rachel Yoon" }],
+      "ipo_stage": "pre_ipo",
+      "founders": [
+        { "name": "Carla Alvarez", "degree": "PhD", "school": "Stanford" },
+        { "name": "Rachel Yoon", "degree": "PhD", "school": "UW" }
+      ],
       "mission": "Building reliable high-bandwidth brain-computer interfaces.",
-      "founding_location": "Seattle, WA"
+      "founding_location": "Seattle, WA",
+      "valuation_usd": 20000000,
+      "hypergrowth_window_years": 2.8,
+      "hypergrowth_total_multiplier": 15
     }
   ],
   "defaults": {

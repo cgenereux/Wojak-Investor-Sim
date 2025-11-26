@@ -514,7 +514,9 @@
     async function generateBinaryHardTechCompanies(count = 1, options = {}) {
         const { randBetween, randIntBetween, makeId } = buildRandomTools(options);
         const data = await loadPresetJson(BINARY_HARDTECH_DATA_PATH, options);
-        const rosterSource = Array.isArray(data?.roster) ? data.roster.slice() : [];
+        const rosterSource = Array.isArray(data?.roster)
+            ? data.roster.slice()
+            : (Array.isArray(data?.companies) ? data.companies.slice() : []);
         const pipelineTemplate = Array.isArray(data?.defaults?.pipelineTemplate)
             ? data.defaults.pipelineTemplate
             : [];
