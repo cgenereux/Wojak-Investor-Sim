@@ -2,34 +2,67 @@
   "$schema": "https://example.com/risky-biotech.schema.json",
   "roster": [
     {
-      "name": "Helixor Biosystems",
+      "name": "GeneScale Therapeutics",
       "founders": [
-        { "name": "Dr. Sahana Patel", "degree": "PhD", "school": "MIT" },
-        { "name": "Dr. Kai Nakamura", "degree": "PhD", "school": "Tokyo University" }
+        {
+          "name": "Dr. Sahana Patel",
+          "degree": "PhD",
+          "school": "MIT"
+        },
+        {
+          "name": "Dr. Kai Nakamura",
+          "degree": "PhD",
+          "school": "Tokyo University"
+        }
       ],
       "mission": "Developing modular gene therapies that scale to mainstream patients.",
       "founding_location": "Cambridge, MA",
-      "ipo_window": { "from": 1990, "to": 1991 }
+      "ipo_window": {
+        "from": 2000,
+        "to": 2003
+      }
     },
     {
-      "name": "NeuroVance Therapeutics",
+      "name": "SynapClear Therapies",
       "founders": [
-        { "name": "Dr. Elise Carver", "degree": "MD", "school": "Johns Hopkins" },
-        { "name": "Dr. Malik Hassan", "degree": "PhD", "school": "Oxford" }
+        {
+          "name": "Dr. Elise Carver",
+          "degree": "MD",
+          "school": "Johns Hopkins"
+        },
+        {
+          "name": "Dr. Malik Hassan",
+          "degree": "PhD",
+          "school": "Oxford"
+        }
       ],
-      "mission": "Advancing neuroimmune therapies for chronic neurodegeneration.",
+      "mission": "Creating immune therapies for brain disease.",
       "founding_location": "Baltimore, MD",
-      "ipo_window": { "from": 1991, "to": 1992 }
+      "ipo_window": {
+        "from": 1999,
+        "to": 2006
+      }
     },
     {
-      "name": "OptiGene BioPharma",
+      "name": "OncoGen",
       "founders": [
-        { "name": "Dr. Lucia Romero", "degree": "PhD", "school": "Stanford" },
-        { "name": "Dr. Noah Bernstein", "degree": "MD", "school": "Harvard" }
+        {
+          "name": "Dr. Lucia Romero",
+          "degree": "PhD",
+          "school": "Stanford"
+        },
+        {
+          "name": "Dr. Noah Bernstein",
+          "degree": "MD",
+          "school": "Harvard"
+        }
       ],
-      "mission": "Delivering precision oncology diagnostics and targeted biologics globally.",
+      "mission": "Targeted cancer diagnostics and therapies.",
       "founding_location": "San Diego, CA",
-      "ipo_window": { "from": 1992, "to": 1993 }
+      "ipo_window": {
+        "from": 1992,
+        "to": 1997
+      }
     }
   ],
   "pipelineTemplate": [
@@ -38,19 +71,97 @@
       "label": "Pan-cancer Immunotherapy",
       "full_revenue_usd": 40000000000,
       "stages": [
-        { "id": "phase_1", "name": "Phase 1 Trials", "duration_days": 730, "success_prob": 0.26, "value_realization": 0.15, "cost_usd": 120000000, "max_retries": 2 },
-        { "id": "phase_2", "name": "Phase 2 Trials", "duration_days": 1095, "depends_on": "phase_1", "success_prob": 0.41, "value_realization": 0.3, "cost_usd": 220000000, "max_retries": 2 },
-        { "id": "phase_3", "name": "Phase 3 Trials", "duration_days": 1460, "depends_on": "phase_2", "success_prob": 0.58, "value_realization": 0.4, "cost_usd": 380000000, "max_retries": 1 },
-        { "id": "fda_review", "name": "FDA Review", "duration_days": 365, "depends_on": "phase_3", "success_prob": 0.78, "value_realization": 0.15, "cost_usd": 110000000, "max_retries": 1, "commercialises_revenue": true }
+        {
+          "id": "phase_1",
+          "name": "Phase 1 Trials",
+          "duration_days": 730,
+          "success_prob": 0.26,
+          "value_realization": 0.15,
+          "cost_usd": 120000000,
+          "max_retries": 2
+        },
+        {
+          "id": "phase_2",
+          "name": "Phase 2 Trials",
+          "duration_days": 1095,
+          "depends_on": "phase_1",
+          "success_prob": 0.41,
+          "value_realization": 0.3,
+          "cost_usd": 220000000,
+          "max_retries": 2
+        },
+        {
+          "id": "phase_3",
+          "name": "Phase 3 Trials",
+          "duration_days": 1460,
+          "depends_on": "phase_2",
+          "success_prob": 0.58,
+          "value_realization": 0.4,
+          "cost_usd": 380000000,
+          "max_retries": 1
+        },
+        {
+          "id": "fda_review",
+          "name": "FDA Review",
+          "duration_days": 365,
+          "depends_on": "phase_3",
+          "success_prob": 0.78,
+          "value_realization": 0.15,
+          "cost_usd": 110000000,
+          "max_retries": 1,
+          "commercialises_revenue": true
+        }
       ]
     }
   ],
   "defaults": {
+    "structural_bias": {
+      "min": 0.2,
+      "max": 6,
+      "half_life_years": 25
+    },
+    "margin_curve": {
+      "start_profit_margin": [
+        0.08,
+        0.15
+      ],
+      "terminal_profit_margin": [
+        0.5,
+        0.7
+      ],
+      "years_to_mature": [
+        10,
+        14
+      ]
+    },
+    "multiple_curve": {
+      "initial_ps_ratio": [
+        28,
+        45
+      ],
+      "terminal_pe_ratio": [
+        16,
+        22
+      ],
+      "years_to_converge": [
+        8,
+        12
+      ]
+    },
     "sector": "Biotech",
-    "structural_bias": { "min": 0.2, "max": 6, "half_life_years": 25 },
-    "margin_curve": { "start_profit_margin": [0.08, 0.15], "terminal_profit_margin": [0.5, 0.7], "years_to_mature": [10, 14] },
-    "multiple_curve": { "initial_ps_ratio": [28, 45], "terminal_pe_ratio": [16, 22], "years_to_converge": [8, 12] },
-    "initial_revenue_usd": { "min": [1000000, 5000000], "maxMultiplier": [4, 8] },
-    "pipeline_scale": [0.75, 1.25]
+    "initial_revenue_usd": {
+      "min": [
+        1000000,
+        5000000
+      ],
+      "maxMultiplier": [
+        4,
+        8
+      ]
+    },
+    "pipeline_scale": [
+      0.75,
+      1.25
+    ]
   }
 }

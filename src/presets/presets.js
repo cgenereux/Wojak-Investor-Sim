@@ -238,13 +238,11 @@
                     },
                     multiple_curve: {
                         initial_ps_ratio: (() => {
-                            const initialPe = pickRangeLocal(
-                                multipleDefaults.initial_pe_ratio ?? multipleDefaults.initial_ps_ratio,
-                                18,
-                                32
-                            );
-                            const ps = initialPe * Math.max(0.01, startMargin);
-                            return ps;
+                            // If an initial PE is provided, use it directly as the starting earnings multiple.
+                            if (multipleDefaults.initial_pe_ratio) {
+                                return pickRangeLocal(multipleDefaults.initial_pe_ratio, 12, 18);
+                            }
+                            return pickRangeLocal(multipleDefaults.initial_ps_ratio, 0.7, 1.1);
                         })(),
                         terminal_pe_ratio: pickRangeLocal(multipleDefaults.terminal_pe_ratio, 12, 15),
                         years_to_converge: pickRangeLocal(multipleDefaults.years_to_converge, 6, 9)

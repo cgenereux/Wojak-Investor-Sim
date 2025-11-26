@@ -2,7 +2,7 @@
   "$schema": "https://example.com/hypergrowth-web.schema.json",
   "companies": [
     {
-      "name": "ViaWave",
+      "name": "eBuy",
       "sector": "Web",
       "description": "1990s hypergrowth web preset (private)",
       "funding_round": "Seed",
@@ -12,11 +12,11 @@
         { "name": "Sofia Duarte" },
         { "name": "Kevin Lin" }
       ],
-      "mission": "Making the web instant for real-time collaboration.",
+      "mission": "Empowering anyone to buy and sell online through the power of auctions.",
       "founding_location": "San Francisco, CA"
     },
     {
-      "name": "LinkPulse",
+      "name": "CyberWorks",
       "sector": "Web",
       "description": "1990s hypergrowth web preset (private)",
       "funding_round": "Seed",
@@ -26,11 +26,11 @@
         { "name": "Reema Khalid" },
         { "name": "Alex Ortega" }
       ],
-      "mission": "Connecting local merchants to consumers through social discovery.",
-      "founding_location": "New York, NY"
+      "mission": "Securing electronic commerce in the Internet age.",
+      "founding_location": "Palo Alto, CA"
     },
     {
-      "name": "HyperLoom",
+      "name": "StreamCast",
       "sector": "Web",
       "description": "1990s hypergrowth web preset (private)",
       "funding_round": "Seed",
@@ -40,8 +40,8 @@
         { "name": "Maya Ito" },
         { "name": "Julio Rivera" }
       ],
-      "mission": "Powering real-time streaming infrastructure for developers.",
-      "founding_location": "Seattle, WA"
+      "mission": "Live broadcasting for the Internet age.",
+      "founding_location": "San Francisco, CA"
     }
   ],
   "defaults": {
@@ -56,7 +56,7 @@
     "post_gate_baseline_multiple": [4, 7],
     "post_gate_multiple_decay_years": [5, 9],
     "post_gate_margin": [0.18, 0.3],
-    "max_failures_before_collapse": 2,
+    "max_failures_before_collapse": 1,
     "binary_success": false,
     "rounds": ["seed","series_a","series_b","series_c","series_d","series_e","series_f","pre_ipo"]
   }
