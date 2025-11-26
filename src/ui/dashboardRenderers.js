@@ -59,7 +59,7 @@
         ? company.displayCap
         : (Number.isFinite(company.marketCap) ? company.marketCap : 0);
       const boxClass = company.bankrupt ? 'company-box bankrupt' : 'company-box';
-      const capLabel = company.bankrupt ? 'Cap: Bankrupt' : `Cap: ${formatLargeNumber(cap)}`;
+      const capLabel = company.bankrupt ? 'Market Cap: Bankrupt' : `Market Cap: ${formatLargeNumber(cap)}`;
       const sectorLabel = company.bankrupt ? 'Status: Bankrupt' : (company.sector || 'Unknown');
       return `
         <div class="${boxClass}" data-company-name="${company.name}">
