@@ -34,6 +34,7 @@ let ventureCompanyDetailChart = null;
 let ventureFinancialBarChart = null;
 let currentVcChartRange = 80;
 const lastInvestmentOptionsKey = new Map();
+let venturePurchaseLock = false;
 
 function ensureVentureReady() {
     if (typeof ensureVentureSimulation === 'function') {
@@ -807,9 +808,22 @@ function computeVenturePackageAmount(detail, pct) {
     return equityFraction * postMoney;
 }
 
-function handleVenturePurchase(pct) {
-    if (!currentVentureCompanyId || !Number.isFinite(pct) || pct <= 0) return;
+  function handleVenturePurchase(pct) {
+    if (venturePurchaseLock) return;
+    venturePurchaseLock = true;
+    let unlocked = false;
+    const release = () => {
+        if (!unlocked) {
+            unlocked = true;
+            venturePurchaseLock = false;
+        }
+    };
+    if (!currentVentureCompanyId || !Number.isFinite(pct) || pct <= 0) {
+        release();
+        return;
+    }
     ensureVentureReady();
+    const availableCashSnapshot = (typeof cash !== 'undefined' && Number.isFinite(Number(cash))) ? Number(cash) : null;
     const detail = typeof getVentureCompanyDetail === 'function' ? getVentureCompanyDetail(currentVentureCompanyId) : null;
     const amount = computeVenturePackageAmount(detail, pct);
     const equityFraction = pct / 100;
@@ -819,6 +833,7 @@ function handleVenturePurchase(pct) {
             vcLeadRoundNoteEl.classList.add('negative');
             vcLeadRoundNoteEl.classList.remove('positive');
         }
+        release();
         return;
     }
     const usingServer = typeof isServerAuthoritative !== 'undefined' && isServerAuthoritative && typeof sendCommand === 'function' && typeof WebSocket !== 'undefined' && ws && ws.readyState === WebSocket.OPEN;
@@ -838,14 +853,12 @@ function handleVenturePurchase(pct) {
             vcLeadRoundNoteEl.classList.remove('negative');
             vcLeadRoundNoteEl.classList.add('positive');
         }
+        release();
         return;
     }
-    if (typeof cash !== 'undefined' && cash < amount) {
-        if (vcLeadRoundNoteEl) {
-            vcLeadRoundNoteEl.textContent = 'Insufficient cash for this package.';
-            vcLeadRoundNoteEl.classList.add('negative');
-            vcLeadRoundNoteEl.classList.remove('positive');
-        }
+    if (Number.isFinite(availableCashSnapshot) && availableCashSnapshot + 1e-6 < amount) {
+        showToast(`Insufficient cash for this package. Needed ${vcFormatCurrency(amount)}, you have ${vcFormatCurrency(availableCashSnapshot)}.`, { tone: 'warn', duration: 5000 });
+        release();
         return;
     }
     if (ventureSim && typeof ventureSim.invest === 'function') {
@@ -856,11 +869,13 @@ function handleVenturePurchase(pct) {
                 vcLeadRoundNoteEl.classList.add('negative');
                 vcLeadRoundNoteEl.classList.remove('positive');
             }
+            release();
             return;
         }
     }
     if (typeof cash !== 'undefined') {
-        cash -= amount;
+        const base = Number.isFinite(availableCashSnapshot) ? availableCashSnapshot : Number(cash) || 0;
+        cash = base - amount;
     }
     if (typeof updateNetWorth === 'function') updateNetWorth();
     if (typeof updateDisplay === 'function') updateDisplay();
@@ -871,6 +886,7 @@ function handleVenturePurchase(pct) {
         vcLeadRoundNoteEl.classList.add('positive');
     }
     refreshVentureDetailView();
+    release();
 }
 
 function initVC() {

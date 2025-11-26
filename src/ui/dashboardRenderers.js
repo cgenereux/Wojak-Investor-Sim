@@ -1,5 +1,22 @@
 (function (global) {
   const DEFAULT_RENDER_INTERVAL = 500;
+  const SECTOR_CLASS_MAP = {
+    // sector colors temporarily disabled
+  };
+
+  function escapeHtml(value = '') {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function getSectorClass(sector = '') {
+    const key = String(sector || '').trim().toLowerCase();
+    return SECTOR_CLASS_MAP[key] || '';
+  }
 
   function ensureCompanyQueueIndex(company, state) {
     if (!company) return;
@@ -61,12 +78,18 @@
       const boxClass = company.bankrupt ? 'company-box bankrupt' : 'company-box';
       const capLabel = company.bankrupt ? 'Market Cap: Bankrupt' : `Market Cap: ${formatLargeNumber(cap)}`;
       const sectorLabel = company.bankrupt ? 'Status: Bankrupt' : (company.sector || 'Unknown');
+      const sectorClass = company.bankrupt ? '' : getSectorClass(company.sector);
+      const companyId = company.id || company.name || '';
+      const safeId = escapeHtml(companyId);
+      const safeName = escapeHtml(company.name || 'Unknown');
+      const safeCap = escapeHtml(capLabel);
+      const safeSector = escapeHtml(sectorLabel);
       return `
-        <div class="${boxClass}" data-company-name="${company.name}">
-            <div class="company-name">${company.name}</div>
+        <div class="${boxClass}" data-company-id="${safeId}" data-company-name="${safeName}">
+            <div class="company-name">${safeName}</div>
             <div class="company-info">
-                <div class="company-valuation" data-company-cap="${company.name}">${capLabel}</div>
-                <div class="company-sector">${sectorLabel}</div>
+                <div class="company-valuation" data-company-cap="${safeId}">${safeCap}</div>
+                <div class="company-sector${sectorClass ? ` ${sectorClass}` : ''}">${safeSector}</div>
             </div>
         </div>`;
     }).join('');

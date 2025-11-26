@@ -2461,8 +2461,22 @@ function setGameSpeed(speed) {
 companiesGrid.addEventListener('click', (event) => {
     const companyBox = event.target.closest('.company-box');
     if (!companyBox) return;
-    const companyName = companyBox.dataset.companyName;
-    const company = companies.find(c => c.name === companyName);
+    const dataId = companyBox.dataset.companyId || companyBox.dataset.companyName || '';
+    const companyName = companyBox.dataset.companyName || '';
+    let company = null;
+    if (dataId) {
+        company = companies.find(c => (c.id && c.id === dataId) || c.name === dataId);
+    }
+    if (!company && companyName) {
+        company = companies.find(c => c.name === companyName);
+    }
+    if (!company) {
+        const nameEl = companyBox.querySelector('.company-name');
+        const fallbackName = nameEl ? nameEl.textContent : '';
+        if (fallbackName) {
+            company = companies.find(c => c.name === fallbackName);
+        }
+    }
     if (company) showCompanyDetail(company);
 });
 backBtn.addEventListener('click', hideCompanyDetail);

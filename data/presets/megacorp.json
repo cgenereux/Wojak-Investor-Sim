@@ -18,16 +18,16 @@
       }
     },
     {
-      "name": "Ryan's Home Repair",
+      "name": "Ryan’s Repair & Supply",
       "founders": [
         {
-          "name": "Ryan Viteri",
-          "degree": "MBA",
+          "name": "Ryan Smith",
+          "degree": "BS",
           "school": "University of Illinois"
         }
       ],
       "sector": "Consumer Staples",
-      "mission": ".",
+      "mission": "Supplying the tools and materials homeowners trust.",
       "founding_location": "New York, NY",
       "ipo_window": {
         "from": 1981,

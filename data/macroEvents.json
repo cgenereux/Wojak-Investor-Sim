@@ -4,14 +4,15 @@
     "label": "Warning: Global Pandemic",
     "chance": 0.75,
     "start_year_range": [1995, 2040],
-    "impact_days_range": [150, 240],
-    "recovery_days_range": [240, 420],
+    "impact_days_range": [200, 300],
+    "recovery_days_range": [300, 500],
     "global_multiplier_range": [0.55, 0.75],
-    "valuation_compression_range": [0.65, 0.7],
+    "valuation_compression_range": [0.55, 0.7],
     "sector_impacts": [
       { "sector": "Retail", "min_multiplier": [0.4, 0.6] },
       { "sector": "Travel", "min_multiplier": [0.3, 0.5] },
-      { "sector": "Biotech", "min_multiplier": [1.15, 1.35] }
+      { "sector": "Biotech", "min_multiplier": [1.15, 1.35] },
+      { "sector": "Airlines", "min_multiplier": [0.3, 0.5] }
     ],
     "effects": [
       { "type": "macro_mu_delta", "value": -0.02 }
@@ -20,8 +21,7 @@
     "descriptions": [
     "A highly contagious influenza strain overwhelms hospitals nationwide.",
     "Novel airborne pathogen spreads across 30 states in weeks.",
-    "Deadly virus traced to livestock sparks nationwide quarantine measures; travel restrictions imposed.",
-    "Pneumonia-like illness with 3% mortality rate reaches all major metropolitan areas; schools and businesses ordered closed."
+    "Deadly virus traced to livestock sparks nationwide quarantine measures; travel restrictions imposed."
     ]
   }
 ]
