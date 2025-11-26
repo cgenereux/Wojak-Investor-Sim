@@ -967,6 +967,20 @@ button.speed-active:hover {
     border-color: #d9e5ff;
 }
 
+.portfolio-list .portfolio-item.sector-tech { background: #eaf3ff; border-color: #d4e6ff; }
+.portfolio-list .portfolio-item.sector-biotech { background: #fff0f6; border-color: #ffd6e8; }
+.portfolio-list .portfolio-item.sector-banking { background: #eef7ff; border-color: #d7ebff; }
+.portfolio-list .portfolio-item.sector-retail,
+.portfolio-list .portfolio-item.sector-staples { background: #fff7ec; border-color: #ffe7c7; }
+.portfolio-list .portfolio-item.sector-airlines,
+.portfolio-list .portfolio-item.sector-aerospace { background: #f0f8ff; border-color: #d8ecff; }
+.portfolio-list .portfolio-item.sector-automotive,
+.portfolio-list .portfolio-item.sector-industrial { background: #f4f7f0; border-color: #dde5d4; }
+.portfolio-list .portfolio-item.sector-defense,
+.portfolio-list .portfolio-item.sector-energy { background: #f4f8f3; border-color: #d8ead6; }
+.portfolio-list .portfolio-item.sector-realestate { background: #f6f3ff; border-color: #e3dbff; }
+.portfolio-list .portfolio-item.sector-web { background: #f0f5ff; border-color: #d9e5ff; }
+
 .detail-header {
     display: flex;
     justify-content: space-between;

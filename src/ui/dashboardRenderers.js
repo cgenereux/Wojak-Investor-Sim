@@ -15,6 +15,7 @@
     'real estate': 'sector-realestate',
     web: 'sector-web'
   };
+  const SECTOR_CLASS_VALUES = Object.values(SECTOR_CLASS_MAP);
 
   function escapeHtml(value = '') {
     return String(value)
@@ -36,6 +37,12 @@
   function getSectorClass(sector = '') {
     const key = String(sector || '').trim().toLowerCase();
     return SECTOR_CLASS_MAP[key] || '';
+  }
+
+  function applySectorClass(el, sectorClass = '') {
+    if (!el) return;
+    SECTOR_CLASS_VALUES.forEach(cls => el.classList.remove(cls));
+    if (sectorClass) el.classList.add(sectorClass);
   }
 
   function ensureCompanyQueueIndex(company, state) {
@@ -184,16 +191,18 @@
     portfolio.forEach(holding => {
       const company = companies.find(c => c.name === holding.companyName);
       if (!company) return;
+      const sectorClass = getSectorClass(company.sector);
       const currentValue = company.marketCap * holding.unitsOwned;
       const formattedValue = currencyFormatter.format(currentValue);
       const key = `public:${holding.companyName}`;
       if (existingItems.has(key)) {
         const item = existingItems.get(key);
         item.querySelector('.portfolio-value').textContent = formattedValue;
+        applySectorClass(item, sectorClass);
         existingItems.delete(key);
       } else {
         newPortfolioHtml.push(`
-          <div class="portfolio-item" data-portfolio-type="public" data-portfolio-key="${key}">
+          <div class="portfolio-item${sectorClass ? ` ${sectorClass}` : ''}" data-portfolio-type="public" data-portfolio-key="${key}">
               <div class="company-name">${holding.companyName}</div>
               <div class="portfolio-info">
                   Value: <span class="portfolio-value">${formattedValue}</span>
@@ -220,6 +229,7 @@
       const stakeLabel = hasEquity ? `${detail.playerEquityPercent.toFixed(2)}% stake` : 'Stake pending';
       const stageLabel = detail.stageLabel || summary.stageLabel || 'Private';
       const nameLabel = isInFlight ? `${summary.name} (${stageLabel}) (In Flight)` : `${summary.name} (${stageLabel})`;
+      const sectorClass = getSectorClass(detail.sector || summary.sector);
       const valueRowDisplay = (hasEquity || hasPending) ? 'block' : 'none';
       if (existingItems.has(key)) {
         const item = existingItems.get(key);
@@ -238,10 +248,11 @@
         if (nameEl) {
           nameEl.textContent = nameLabel;
         }
+        applySectorClass(item, sectorClass);
         existingItems.delete(key);
       } else {
         newPortfolioHtml.push(`
-          <div class="portfolio-item" data-portfolio-type="private" data-venture-id="${summary.id}" data-portfolio-key="${key}">
+          <div class="portfolio-item${sectorClass ? ` ${sectorClass}` : ''}" data-portfolio-type="private" data-venture-id="${summary.id}" data-portfolio-key="${key}">
               <div class="company-name">${nameLabel}</div>
               <div class="portfolio-info">
                   <div class="portfolio-value-row" style="display:${valueRowDisplay}">
