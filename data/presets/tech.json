@@ -40,7 +40,7 @@
     "finance": {
       "starting_cash_ratio": 0.06,
       "starting_debt_ratio": 0.01,
-      "interest_rate_annual": 0.05
+      "interest_rate_annual": 0.07
     },
     "sector": "Tech",
     "costs": {

@@ -20,7 +20,56 @@
       "ipo_window": {
         "from": 2000,
         "to": 2003
-      }
+      },
+      "pipeline": [
+        {
+          "id": "sickle_cell_gene_therapy",
+          "label": "Sickle Cell Gene Therapy",
+          "full_revenue_usd": 18000000000,
+          "stages": [
+            {
+              "id": "phase_1",
+              "name": "Phase 1 Trials",
+              "duration_days": 730,
+              "success_prob": 0.30,
+              "value_realization": 0.14,
+              "cost_usd": 130000000,
+              "max_retries": 2
+            },
+            {
+              "id": "phase_2",
+              "name": "Phase 2 Trials",
+              "duration_days": 1095,
+              "depends_on": "phase_1",
+              "success_prob": 0.45,
+              "value_realization": 0.28,
+              "cost_usd": 240000000,
+              "max_retries": 2
+            },
+            {
+              "id": "phase_3",
+              "name": "Phase 3 Trials",
+              "duration_days": 1460,
+              "depends_on": "phase_2",
+              "success_prob": 0.58,
+              "value_realization": 0.6,
+              "cost_usd": 350000000,
+              "max_retries": 1
+            },
+            {
+              "id": "fda_review",
+              "name": "FDA Review",
+              "duration_days": 365,
+              "depends_on": "phase_3",
+              "success_prob": 0.78,
+              "value_realization": 0.20,
+              "cost_usd": 90000000,
+              "max_retries": 1,
+              "commercialises_revenue": true
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "Synaptix",
@@ -41,7 +90,56 @@
       "ipo_window": {
         "from": 1999,
         "to": 2006
-      }
+      },
+  "pipeline": [
+    {
+      "id": "neuroimmune_alzheimers",
+      "label": "Alzheimer's Neuroimmune Therapy",
+      "full_revenue_usd": 14000000000,
+      "stages": [
+        {
+          "id": "phase_1",
+          "name": "Phase 1 Trials",
+          "duration_days": 730,
+          "success_prob": 0.22,
+          "value_realization": 0.15,
+          "cost_usd": 95000000,
+          "max_retries": 2
+        },
+        {
+          "id": "phase_2",
+          "name": "Phase 2 Trials",
+          "duration_days": 1095,
+          "depends_on": "phase_1",
+          "success_prob": 0.36,
+          "value_realization": 0.3,
+          "cost_usd": 180000000,
+          "max_retries": 1
+        },
+        {
+          "id": "phase_3",
+          "name": "Phase 3 Trials",
+          "duration_days": 1460,
+          "depends_on": "phase_2",
+          "success_prob": 0.52,
+          "value_realization": 0.4,
+          "cost_usd": 320000000,
+          "max_retries": 1
+        },
+        {
+          "id": "fda_review",
+          "name": "FDA Review",
+          "duration_days": 365,
+          "depends_on": "phase_3",
+          "success_prob": 0.75,
+          "value_realization": 0.15,
+          "cost_usd": 85000000,
+          "max_retries": 1,
+          "commercialises_revenue": true
+        }
+      ]
+    }
+  ]
     },
     {
       "name": "OncoGen",
@@ -67,47 +165,47 @@
   ],
   "pipelineTemplate": [
     {
-      "id": "pan_cancer_immunotherapy",
-      "label": "Pan-cancer Immunotherapy",
-      "full_revenue_usd": 40000000000,
+      "id": "general_biotech_program",
+      "label": "Biotech Program",
+      "full_revenue_usd": 30000000000,
       "stages": [
         {
           "id": "phase_1",
           "name": "Phase 1 Trials",
-          "duration_days": 730,
-          "success_prob": 0.26,
-          "value_realization": 0.15,
-          "cost_usd": 120000000,
+          "duration_days": 720,
+          "success_prob": 0.28,
+          "value_realization": 0.08,
+          "cost_usd": 110000000,
           "max_retries": 2
         },
         {
           "id": "phase_2",
           "name": "Phase 2 Trials",
-          "duration_days": 1095,
+          "duration_days": 1040,
           "depends_on": "phase_1",
-          "success_prob": 0.41,
-          "value_realization": 0.3,
-          "cost_usd": 220000000,
+          "success_prob": 0.42,
+          "value_realization": 0.19,
+          "cost_usd": 200000000,
           "max_retries": 2
         },
         {
           "id": "phase_3",
           "name": "Phase 3 Trials",
-          "duration_days": 1460,
+          "duration_days": 1400,
           "depends_on": "phase_2",
-          "success_prob": 0.58,
-          "value_realization": 0.4,
-          "cost_usd": 380000000,
+          "success_prob": 0.6,
+          "value_realization": 0.37,
+          "cost_usd": 320000000,
           "max_retries": 1
         },
         {
           "id": "fda_review",
           "name": "FDA Review",
-          "duration_days": 365,
+          "duration_days": 360,
           "depends_on": "phase_3",
-          "success_prob": 0.78,
-          "value_realization": 0.15,
-          "cost_usd": 110000000,
+          "success_prob": 0.8,
+          "value_realization": 0.6,
+          "cost_usd": 100000000,
           "max_retries": 1,
           "commercialises_revenue": true
         }

@@ -1,0 +1,104 @@
+{
+  "defaults": {
+    "structural_bias": {
+      "min": 0.4,
+      "max": 2,
+      "half_life_years": 25
+    },
+    "base_revenue_usd": [
+      1200000000,
+      4000000000
+    ],
+    "margin_curve": {
+      "start_profit_margin": [
+        0.08,
+        0.12
+      ],
+      "terminal_profit_margin": [
+        0.16,
+        0.22
+      ],
+      "years_to_mature": [
+        40,
+        60
+      ]
+    },
+    "multiple_curve": {
+      "initial_ps_ratio": [
+        1.2,
+        1.8
+      ],
+      "initial_pe_ratio": [
+        9,
+        14
+      ],
+      "terminal_pe_ratio": [
+        9,
+        15
+      ],
+      "years_to_converge": [
+        40,
+        60
+      ]
+    },
+    "finance": {
+      "starting_cash_ratio": 0.04,
+      "starting_debt_ratio": 0.00,
+      "interest_rate_annual": 0.05
+    },
+    "sector": "Banking",
+    "ipo_window": {
+      "from": 1975,
+      "to": 1988
+    },
+    "costs": {
+      "opex_fixed_usd": [
+        15000000,
+        30000000
+      ],
+      "opex_variable_ratio": [
+        0.08,
+        0.16
+      ],
+      "rd_base_ratio": [
+        0.02,
+        0.04
+      ]
+    }
+  },
+  "roster": [
+    {
+      "name": "Hargrove & Sons",
+      "mission": "Preserving wealth across generations through disciplined investment banking.",
+      "founders": [
+        { "name": "Theodore Hargrove III" },
+        { "name": "Edmund Whitmore" }
+      ],
+      "founding_location": "New York, NY",
+      "ipo_window": { "from": 1979, "to": 1987 },
+      "sector": "Banking"
+    },
+    {
+      "name": "Sterling National Bank",
+      "mission": "Anchoring American commerce with trusted lending and capital markets.",
+      "founders": [
+        { "name": "James Sterling" },
+        { "name": "Catherine Aldrich" }
+      ],
+      "founding_location": "New York, NY",
+      "ipo_window": { "from": 1976, "to": 1982 },
+      "sector": "Banking"
+    },
+    {
+      "name": "Wainwright Brothers",
+      "mission": "Advising the world's leading institutions on mergers, acquisitions, and strategy.",
+      "founders": [
+        { "name": "Charles Wainwright" },
+        { "name": "Henry Wainwright" }
+      ],
+      "founding_location": "Boston, MA",
+      "ipo_window": { "from": 1969, "to": 1981 },
+      "sector": "Banking"
+    }
+  ]
+}

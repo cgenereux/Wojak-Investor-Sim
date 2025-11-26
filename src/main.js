@@ -194,6 +194,7 @@ const {
     generateHypergrowthPresetCompanies,
     generateBinaryHardTechCompanies,
     generateTechPresetCompanies,
+    generateBankingPresetCompanies,
     generateProductRotatorCompanies,
     DEFAULT_VC_ROUNDS,
     HARDTECH_VC_ROUNDS
@@ -938,6 +939,10 @@ async function loadCompaniesData() {
     const presetHardTechCompanies = await generateHardTechPresetCompanies(3, presetOptions);
     if (Array.isArray(presetHardTechCompanies)) {
         filteredCompanies.push(...presetHardTechCompanies);
+    }
+    const presetBankingCompanies = await generateBankingPresetCompanies(2, presetOptions);
+    if (Array.isArray(presetBankingCompanies)) {
+        filteredCompanies.push(...presetBankingCompanies);
     }
     const presetTechCompanies = await generateTechPresetCompanies(2, presetOptions);
     if (Array.isArray(presetTechCompanies)) {

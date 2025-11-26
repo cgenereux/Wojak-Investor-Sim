@@ -5,7 +5,8 @@ const PUBLIC_PRESETS = [
   'data/presets/hardtech.json',
   'data/presets/megacorp.json',
   'data/presets/product_rotator.json',
-  'data/presets/tech.json'
+  'data/presets/tech.json',
+  'data/presets/banking.json'
 ];
 const PRIVATE_PRESETS = [
   'data/presets/hypergrowth.json',
