@@ -3,51 +3,151 @@
     {
       "name": "SmartCart Holdings",
       "founders": [
-        { "name": "Linda Harris", "degree": "MBA", "school": "Harvard" }
+        {
+          "name": "Linda Harris",
+          "degree": "MBA",
+          "school": "Harvard"
+        }
       ],
       "sector": "Retail",
       "mission": "Modernizing retail supply chains with smart checkout and logistics automation.",
       "founding_location": "Bentonville, AR",
-      "ipo_window": { "from": 1979, "to": 1981 }
+      "ipo_window": {
+        "from": 1979,
+        "to": 1981
+      }
     },
     {
-      "name": "UrbanShop Group",
+      "name": "Ryan's Home Repair",
       "founders": [
-        { "name": "Marco Viteri", "degree": "MBA", "school": "Columbia" }
+        {
+          "name": "Ryan Viteri",
+          "degree": "MBA",
+          "school": "University of Illinois"
+        }
       ],
       "sector": "Consumer Staples",
-      "mission": "Reinventing urban convenience formats with data-driven assortments.",
+      "mission": ".",
       "founding_location": "New York, NY",
-      "ipo_window": { "from": 1981, "to": 1983 }
+      "ipo_window": {
+        "from": 1981,
+        "to": 1983
+      }
     },
     {
       "name": "GlobalMart Logistics",
       "founders": [
-        { "name": "Sandra Osei", "degree": "MBA", "school": "Wharton" }
+        {
+          "name": "Sandra Osei",
+          "degree": "MBA",
+          "school": "Wharton"
+        }
       ],
       "sector": "Retail",
-      "mission": "Building the logistics backbone for omnichannel retail worldwide.",
+      "mission": "Empowering homeowners with reliable tools, materials, and service to get every project done right.",
       "founding_location": "Seattle, WA",
-      "ipo_window": { "from": 1980, "to": 1982 }
+      "ipo_window": {
+        "from": 1980,
+        "to": 1982
+      }
+    },
+    {
+      "name": "SkyBridge Air",
+      "mission": "Linking global hubs with reliable long-haul service.",
+      "founders": [
+        {
+          "name": "Amelia Carter"
+        },
+        {
+          "name": "Diego Alvarez"
+        }
+      ],
+      "founding_location": "Atlanta, GA",
+      "ipo_window": {
+        "from": 1992,
+        "to": 1995
+      },
+      "sector": "Airlines"
+    },
+    {
+      "name": "Joe's Airways",
+      "mission": "Making premium transcontinental flights affordable.",
+      "founders": [
+        {
+          "name": "Joe Smhoe"
+        },
+        {
+          "name": "Sarah Collins"
+        }
+      ],
+      "founding_location": "Seattle, WA",
+      "ipo_window": {
+        "from": 1993,
+        "to": 1996
+      },
+      "sector": "Airlines"
+    },
+    {
+      "name": "Pacific Crest Airlines",
+      "mission": "Delivering reliable regional lift along the Pacific Rim.",
+      "founders": [
+        {
+          "name": "Kenji Morita"
+        },
+        {
+          "name": "Sara Delgado"
+        }
+      ],
+      "founding_location": "San Francisco, CA",
+      "ipo_window": {
+        "from": 1994,
+        "to": 1997
+      },
+      "sector": "Airlines"
     }
   ],
   "defaults": {
-    "structural_bias": { "min": 0.5, "max": 3, "half_life_years": 15 },
-    "base_revenue_usd": [60000000000, 200000000000],
+    "structural_bias": {
+      "min": 0.5,
+      "max": 3,
+      "half_life_years": 15
+    },
+    "base_revenue_usd": [
+      60000000000,
+      200000000000
+    ],
     "margin_curve": {
-      "start_profit_margin": [0.025, 0.04],
-      "terminal_profit_margin": [0.05, 0.08],
-      "years_to_mature": [7, 10]
+      "start_profit_margin": [
+        0.03,
+        0.10
+      ],
+      "terminal_profit_margin": [
+        0.12,
+        0.21
+      ],
+      "years_to_mature": [
+        7,
+        10
+      ]
     },
     "multiple_curve": {
-      "initial_ps_ratio": [0.7, 1.1],
-      "terminal_pe_ratio": [12, 15],
-      "years_to_converge": [6, 9]
+      "initial_pe_ratio": [
+        8,
+        15
+      ],
+      "terminal_pe_ratio": [
+        12,
+        15
+      ],
+      "years_to_converge": [
+        6,
+        9
+      ]
     },
     "finance": {
       "starting_cash_ratio": 0.03,
-      "starting_debt_ratio": 0.05,
-      "interest_rate_annual": 0.05
+      "starting_debt_ratio": 0.00,
+      "interest_rate_annual": 0.07
     }
   }
 }

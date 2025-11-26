@@ -110,12 +110,12 @@
 
   class MacroEnvironment {
     constructor (sectorsSet, eventManager = null) {
-      this.defaultParams = { mu: 0.06, sigma: 0.15 };
+      this.defaultParams = { mu: 0.12, sigma: 0.15 };
       this.sectorPresets = {
         Biotech:        { mu: 0.08, sigma: 0.25 },
         Semiconductor:  { mu: 0.10, sigma: 0.30 },
-        Tech:           { mu: 0.12, sigma: 0.22 },
-        Retail:         { mu: 0.04, sigma: 0.10 }
+        Tech:           { mu: 0.165, sigma: 0.22 },
+        Retail:         { mu: 0.12, sigma: 0.10 }
       };
       this.eventManager = eventManager || null;
 

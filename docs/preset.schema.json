@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Company Preset File",
+  "type": "object",
+  "required": ["defaults", "roster"],
+  "properties": {
+    "defaults": {
+      "type": "object",
+      "description": "Baseline values applied to every roster entry unless overridden.",
+      "properties": {
+        "sector": { "type": "string" },
+        "mission": { "type": "string" },
+        "founding_location": { "type": "string" },
+        "structural_bias": {
+          "type": "object",
+          "properties": {
+            "min": { "type": "number" },
+            "max": { "type": "number" },
+            "half_life_years": { "type": "number" }
+          },
+          "additionalProperties": true
+        },
+        "margin_curve": {
+          "type": "object",
+          "properties": {
+            "start_profit_margin": { "type": "number" },
+            "terminal_profit_margin": { "type": "number" },
+            "years_to_mature": { "type": "number" }
+          },
+          "additionalProperties": true
+        },
+        "multiple_curve": {
+          "type": "object",
+          "properties": {
+            "initial_ps_ratio": { "type": "number" },
+            "terminal_pe_ratio": { "type": "number" },
+            "years_to_converge": { "type": "number" }
+          },
+          "additionalProperties": true
+        },
+        "initial_revenue_usd": {
+          "type": "object",
+          "properties": {
+            "min": { "type": "number" },
+            "maxMultiplier": { "type": "number" }
+          },
+          "additionalProperties": true
+        },
+        "pipelineTemplate": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/pipelineStage" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "roster": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/rosterEntry" }
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "founder": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "pipelineStage": {
+      "type": "object",
+      "required": ["id", "label", "duration_days"],
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": "string" },
+        "duration_days": { "type": "number", "minimum": 1 },
+        "success_probability": { "type": "number", "minimum": 0, "maximum": 1 },
+        "commercialises_revenue": { "type": "boolean" },
+        "cost_usd": { "type": "number" },
+        "max_retries": { "type": "number" }
+      },
+      "additionalProperties": true
+    },
+    "ipoWindow": {
+      "type": "object",
+      "required": ["from", "to"],
+      "properties": {
+        "from": { "type": "number" },
+        "to": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "rosterEntry": {
+      "type": "object",
+      "required": ["name", "mission", "founders", "founding_location", "ipo_window"],
+      "properties": {
+        "name": { "type": "string" },
+        "mission": { "type": "string" },
+        "sector": { "type": "string" },
+        "founders": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/founder" },
+          "minItems": 1,
+          "maxItems": 3
+        },
+        "founding_location": { "type": "string" },
+        "ipo_window": { "$ref": "#/$defs/ipoWindow" },
+        "ipo_instantly": { "type": "boolean" },
+        "structural_bias": { "$ref": "#/properties/defaults/properties/structural_bias" },
+        "margin_curve": { "$ref": "#/properties/defaults/properties/margin_curve" },
+        "multiple_curve": { "$ref": "#/properties/defaults/properties/multiple_curve" },
+        "initial_revenue_usd": { "$ref": "#/properties/defaults/properties/initial_revenue_usd" },
+        "pipeline": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/pipelineStage" }
+        },
+        "pipeline_scale": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

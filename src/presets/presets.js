@@ -208,6 +208,8 @@
             const ipoRange = entry.ipo_window || { from: 1980, to: 1985 };
             const startingCashRatio = financeDefaults.starting_cash_ratio ?? 0.03;
             const startingDebtRatio = financeDefaults.starting_debt_ratio ?? 0.05;
+            const startMargin = pickRangeLocal(marginDefaults.start_profit_margin, 0.025, 0.04);
+            const terminalMargin = pickRangeLocal(marginDefaults.terminal_profit_margin, 0.05, 0.08);
             const company = {
                 id,
                 static: {
@@ -230,12 +232,20 @@
                         }
                     },
                     margin_curve: {
-                        start_profit_margin: pickRangeLocal(marginDefaults.start_profit_margin, 0.025, 0.04),
-                        terminal_profit_margin: pickRangeLocal(marginDefaults.terminal_profit_margin, 0.05, 0.08),
+                        start_profit_margin: startMargin,
+                        terminal_profit_margin: terminalMargin,
                         years_to_mature: pickRangeLocal(marginDefaults.years_to_mature, 7, 10)
                     },
                     multiple_curve: {
-                        initial_ps_ratio: pickRangeLocal(multipleDefaults.initial_ps_ratio, 0.7, 1.1),
+                        initial_ps_ratio: (() => {
+                            const initialPe = pickRangeLocal(
+                                multipleDefaults.initial_pe_ratio ?? multipleDefaults.initial_ps_ratio,
+                                18,
+                                32
+                            );
+                            const ps = initialPe * Math.max(0.01, startMargin);
+                            return ps;
+                        })(),
                         terminal_pe_ratio: pickRangeLocal(multipleDefaults.terminal_pe_ratio, 12, 15),
                         years_to_converge: pickRangeLocal(multipleDefaults.years_to_converge, 6, 9)
                     }
