@@ -261,6 +261,12 @@
       if (snapshot.founding_location || snapshot.foundingLocation) {
         this.foundingLocation = snapshot.founding_location || snapshot.foundingLocation;
       }
+      if (snapshot.ipoDate) {
+        const parsed = new Date(snapshot.ipoDate);
+        if (!isNaN(parsed.getTime())) {
+          this.ipoDate = parsed;
+        }
+      }
 
       // Sync history arrays if provided
       if (Array.isArray(snapshot.history)) {

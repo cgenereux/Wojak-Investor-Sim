@@ -1339,34 +1339,39 @@ function refreshNetWorthChartDatasets() {
         Array.from(playerNetWorthSeries.entries()).forEach(([id, data], idx) => {
             if (!Array.isArray(data) || data.length === 0) return;
             const sorted = [...data].sort((a, b) => a.x - b.x);
-            const fallbackPalette = [...BASE_PLAYER_COLORS, ...EXTRA_PLAYER_COLORS];
-            const color = playerColorMap.get(id) || pickColorById(id, fallbackPalette);
-            datasets.push({
-                label: id,
-                data: sorted,
-                borderColor: color,
-                backgroundColor: 'transparent',
-                borderWidth: 2,
-                pointRadius: 0,
-                pointHoverRadius: 4,
-                fill: false,
-                tension: 0.25,
-                cubicInterpolationMode: 'monotone'
-            });
+        const fallbackPalette = [...BASE_PLAYER_COLORS, ...EXTRA_PLAYER_COLORS];
+        const color = playerColorMap.get(id) || pickColorById(id, fallbackPalette);
+        datasets.push({
+            label: id,
+            data: sorted,
+            borderColor: color,
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHoverRadius: 6,
+            pointHoverBackgroundColor: color,
+            pointHoverBorderWidth: 0,
+            fill: false,
+            tension: 0.25,
+            cubicInterpolationMode: 'monotone'
         });
-        if (datasets.length === 0) {
-            datasets.push({
-                label: 'Net Worth',
-                data: netWorthHistory,
-                borderColor: '#00c742',
-                backgroundColor: 'transparent',
-                borderWidth: 2,
-                pointRadius: 0,
-                tension: 0.25,
-                fill: false,
-                cubicInterpolationMode: 'monotone'
-            });
-        }
+      });
+      if (datasets.length === 0) {
+        datasets.push({
+            label: 'Net Worth',
+            data: netWorthHistory,
+            borderColor: '#00c742',
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHoverRadius: 6,
+            pointHoverBackgroundColor: '#00c742',
+            pointHoverBorderWidth: 0,
+            tension: 0.25,
+            fill: false,
+            cubicInterpolationMode: 'monotone'
+        });
+      }
         netWorthChart.data.datasets = datasets;
         netWorthChart.update();
     } else {
@@ -2084,6 +2089,22 @@ function getCompanyTooltipHandler(context) {
         tooltipEl.style.whiteSpace = 'nowrap';
         tooltipEl.style.zIndex = '100';
         tooltipEl.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+        const arrow = document.createElement('div');
+        arrow.className = 'chartjs-tooltip-arrow';
+        arrow.style.position = 'absolute';
+        arrow.style.top = '-6px';
+        arrow.style.left = '50%';
+        arrow.style.transform = 'translateX(-50%)';
+        arrow.style.width = '0';
+        arrow.style.height = '0';
+        arrow.style.borderLeft = '6px solid transparent';
+        arrow.style.borderRight = '6px solid transparent';
+        arrow.style.borderBottom = '6px solid #ffffff';
+        const content = document.createElement('div');
+        content.className = 'chartjs-tooltip-content';
+        tooltipEl.appendChild(arrow);
+        tooltipEl.appendChild(content);
+        tooltipEl._content = content;
         document.body.appendChild(tooltipEl);
     }
 
@@ -2112,7 +2133,8 @@ function getCompanyTooltipHandler(context) {
             </div>
         `;
 
-        tooltipEl.innerHTML = innerHtml;
+        const content = tooltipEl.querySelector('.chartjs-tooltip-content') || tooltipEl._content || tooltipEl;
+        content.innerHTML = innerHtml;
     }
 
     const position = context.chart.canvas.getBoundingClientRect();
@@ -2121,8 +2143,9 @@ function getCompanyTooltipHandler(context) {
     // Display, position, and set styles for font
     tooltipEl.style.opacity = 1;
     tooltipEl.style.position = 'absolute';
+    const verticalOffset = 10;
     tooltipEl.style.left = position.left + window.pageXOffset + tooltipModel.caretX + 'px';
-    tooltipEl.style.top = position.top + window.pageYOffset + tooltipModel.caretY + 'px';
+    tooltipEl.style.top = position.top + window.pageYOffset + tooltipModel.caretY + verticalOffset + 'px';
     tooltipEl.style.font = bodyFont.string;
     tooltipEl.style.padding = tooltipModel.padding + 'px ' + tooltipModel.padding + 'px';
     tooltipEl.style.pointerEvents = 'none';
@@ -2552,6 +2575,11 @@ function showCompanyDetail(company, options = {}) {
                     external: getCompanyTooltipHandler,
                     mode: 'index',
                     intersect: false,
+                }
+            },
+            transitions: {
+                active: {
+                    animation: { duration: 0 }
                 }
             },
             scales: {
@@ -3180,22 +3208,38 @@ async function init() {
         if (!tooltipEl) {
             tooltipEl = document.createElement('div');
             tooltipEl.id = 'chartjs-tooltip';
-            tooltipEl.style.opacity = 1;
-            tooltipEl.style.pointerEvents = 'none';
-            tooltipEl.style.position = 'absolute';
-            tooltipEl.style.transform = 'translate(-50%, 0)';
-            tooltipEl.style.transition = 'all .1s ease';
-            tooltipEl.style.backgroundColor = '#ffffff';
-            tooltipEl.style.borderRadius = '6px';
-            tooltipEl.style.color = '#1e293b';
-            tooltipEl.style.padding = '8px';
-            tooltipEl.style.fontFamily = 'Inter, sans-serif';
-            tooltipEl.style.fontSize = '14px';
-            tooltipEl.style.whiteSpace = 'nowrap';
-            tooltipEl.style.zIndex = '100';
-            tooltipEl.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
-            document.body.appendChild(tooltipEl);
-        }
+        tooltipEl.style.opacity = 1;
+        tooltipEl.style.pointerEvents = 'none';
+        tooltipEl.style.position = 'absolute';
+        tooltipEl.style.transform = 'translate(-50%, 0)';
+        tooltipEl.style.transition = 'all .1s ease';
+        tooltipEl.style.backgroundColor = '#ffffff';
+        tooltipEl.style.borderRadius = '6px';
+        tooltipEl.style.color = '#1e293b';
+        tooltipEl.style.padding = '8px';
+        tooltipEl.style.fontFamily = 'Inter, sans-serif';
+        tooltipEl.style.fontSize = '14px';
+        tooltipEl.style.whiteSpace = 'nowrap';
+        tooltipEl.style.zIndex = '100';
+        tooltipEl.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+        const arrow = document.createElement('div');
+        arrow.className = 'chartjs-tooltip-arrow';
+        arrow.style.position = 'absolute';
+        arrow.style.top = '-6px';
+        arrow.style.left = '50%';
+        arrow.style.transform = 'translateX(-50%)';
+        arrow.style.width = '0';
+        arrow.style.height = '0';
+        arrow.style.borderLeft = '6px solid transparent';
+        arrow.style.borderRight = '6px solid transparent';
+        arrow.style.borderBottom = '6px solid #ffffff';
+        const content = document.createElement('div');
+        content.className = 'chartjs-tooltip-content';
+        tooltipEl.appendChild(arrow);
+        tooltipEl.appendChild(content);
+        tooltipEl._content = content;
+        document.body.appendChild(tooltipEl);
+    }
 
         // Hide if no tooltip
         const tooltipModel = context.tooltip;
@@ -3245,15 +3289,17 @@ async function init() {
                 ${rows}
             `;
 
-            tooltipEl.innerHTML = innerHtml;
-        }
+        const content = tooltipEl.querySelector('.chartjs-tooltip-content') || tooltipEl._content || tooltipEl;
+        content.innerHTML = innerHtml;
+    }
 
         const position = context.chart.canvas.getBoundingClientRect();
 
         // Display, position, and set styles for font
         tooltipEl.style.opacity = 1;
+        const verticalOffset = 10; // push tooltip slightly below the hover point
         tooltipEl.style.left = position.left + window.pageXOffset + tooltipModel.caretX + 'px';
-        tooltipEl.style.top = position.top + window.pageYOffset + tooltipModel.caretY + 'px';
+        tooltipEl.style.top = position.top + window.pageYOffset + tooltipModel.caretY + verticalOffset + 'px';
     };
 
     if (netWorthChart && typeof netWorthChart.destroy === 'function') {
@@ -3289,6 +3335,11 @@ async function init() {
                 tooltip: {
                     enabled: false,
                     external: getNetWorthTooltipHandler
+                }
+            },
+            transitions: {
+                active: {
+                    animation: { duration: 0 }
                 }
             },
             scales: {

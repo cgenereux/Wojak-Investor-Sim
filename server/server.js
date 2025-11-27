@@ -165,8 +165,8 @@ function startTickLoop(session) {
       lastTick: session.sim.lastTick ? session.sim.lastTick.toISOString() : null,
       companies: session.sim.companies.map(c => {
         if (typeof c.toSnapshot === 'function') {
-          // Send minimal history in ticks to save bandwidth, but enough for live updates
-          return c.toSnapshot({ historyLimit: 1, quarterLimit: 2 });
+          // Send minimal price history but deeper financial/quarterly history for charts
+          return c.toSnapshot({ historyLimit: 1, quarterLimit: 40 });
         }
         return {
           id: c.id,

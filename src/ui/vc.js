@@ -255,6 +255,22 @@ function getVCTooltipHandler(context) {
         tooltipEl.style.whiteSpace = 'nowrap';
         tooltipEl.style.zIndex = '100';
         tooltipEl.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+        const arrow = document.createElement('div');
+        arrow.className = 'chartjs-tooltip-arrow';
+        arrow.style.position = 'absolute';
+        arrow.style.top = '-6px';
+        arrow.style.left = '50%';
+        arrow.style.transform = 'translateX(-50%)';
+        arrow.style.width = '0';
+        arrow.style.height = '0';
+        arrow.style.borderLeft = '6px solid transparent';
+        arrow.style.borderRight = '6px solid transparent';
+        arrow.style.borderBottom = '6px solid #ffffff';
+        const content = document.createElement('div');
+        content.className = 'chartjs-tooltip-content';
+        tooltipEl.appendChild(arrow);
+        tooltipEl.appendChild(content);
+        tooltipEl._content = content;
         document.body.appendChild(tooltipEl);
     }
 
@@ -288,7 +304,8 @@ function getVCTooltipHandler(context) {
             </div>
         `;
 
-        tooltipEl.innerHTML = innerHtml;
+        const content = tooltipEl.querySelector('.chartjs-tooltip-content') || tooltipEl._content || tooltipEl;
+        content.innerHTML = innerHtml;
     }
 
     const position = context.chart.canvas.getBoundingClientRect();
@@ -297,8 +314,9 @@ function getVCTooltipHandler(context) {
     // Display, position, and set styles for font
     tooltipEl.style.opacity = 1;
     tooltipEl.style.position = 'absolute';
+    const verticalOffset = 10;
     tooltipEl.style.left = position.left + window.pageXOffset + tooltipModel.caretX + 'px';
-    tooltipEl.style.top = position.top + window.pageYOffset + tooltipModel.caretY + 'px';
+    tooltipEl.style.top = position.top + window.pageYOffset + tooltipModel.caretY + verticalOffset + 'px';
     tooltipEl.style.font = bodyFont.string;
     tooltipEl.style.padding = tooltipModel.padding + 'px ' + tooltipModel.padding + 'px';
     tooltipEl.style.pointerEvents = 'none';
@@ -506,6 +524,11 @@ function updateVentureDetail(companyId) {
                         mode: 'index',
                         intersect: false,
                     },
+                },
+                transitions: {
+                    active: {
+                        animation: { duration: 0 }
+                    }
                 },
                 scales: {
                     x: { type: 'time', time: { unit: 'year' } },
