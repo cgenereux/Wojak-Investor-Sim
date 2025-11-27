@@ -66,8 +66,7 @@ async function main() {
 
   const publicCompanies = [
     ...(await Presets.generateHardTechPresetCompanies(2, presetOpts)),
-    ...(await Presets.generateSteadyMegacorpCompanies(2, presetOpts)),
-    ...(await Presets.generateProductRotatorCompanies(2, presetOpts))
+    ...(await Presets.generateSteadyMegacorpCompanies(2, presetOpts))
   ];
   const ventureCompanies = [
     ...(await Presets.generateHypergrowthPresetCompanies(presetOpts)),

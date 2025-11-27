@@ -8,6 +8,7 @@
     Random,
     random,
     between,
+    clampValue,
     MarginCurve,
     MultipleCurve,
     sectorMicro,
@@ -19,6 +20,51 @@
   const QUARTER_DAYS = 365 / 4;
   const MAX_QUARTER_HISTORY = 100;
   const PRODUCT_RETIRE_DELAY_DAYS = Math.round(2.5 * 365);
+
+  const DEFAULT_STRUCT_BIAS_RANGE = [0.6, 1.8];
+  const DEFAULT_STRUCT_BIAS_HALFLIFE = 8;
+
+  const buildStructBiasState = (cfg = {}, rngFn = random) => {
+    const halfLifeYears = Number.isFinite(cfg.structural_bias_half_life_years)
+      ? cfg.structural_bias_half_life_years
+      : Number.isFinite(cfg.half_life_years)
+        ? cfg.half_life_years
+        : DEFAULT_STRUCT_BIAS_HALFLIFE;
+
+    // Bounds: prefer explicit min/max; else use band; else default range.
+    let lower = Number.isFinite(cfg.min) ? cfg.min : null;
+    let upper = Number.isFinite(cfg.max) ? cfg.max : null;
+
+    const rawBand = cfg.band ?? cfg.bandwidth ?? cfg.structural_bias_band;
+    if (lower == null || upper == null) {
+      if (Number.isFinite(rawBand)) {
+        const b = Math.abs(rawBand);
+        lower = lower ?? 1 - b;
+        upper = upper ?? 1 + b;
+      }
+    }
+
+    if (lower == null || upper == null) {
+      [lower, upper] = DEFAULT_STRUCT_BIAS_RANGE;
+    }
+
+    lower = clampValue(lower, 0.2, 10);
+    upper = clampValue(upper, lower + 0.05, 10);
+
+    const span = Math.max(0.01, upper - lower);
+    const sigma = Number(cfg.sigma ?? cfg.volatility ?? cfg.structural_bias_sigma) || span * 0.25;
+    const k = Math.log(2) / Math.max(0.25, halfLifeYears);
+    const initial = clampValue(lower + between(0, 1, rngFn) * span, lower, upper);
+    return { value: initial, lower, upper, sigma, k };
+  };
+
+  const stepStructBias = (state, dtYears, gaussianFn = () => Random.gaussian()) => {
+    if (!state || !Number.isFinite(dtYears) || dtYears <= 0) return state?.value ?? 1;
+    const noise = gaussianFn();
+    const next = state.value + state.k * (1 - state.value) * dtYears + state.sigma * Math.sqrt(dtYears) * noise;
+    state.value = clampValue(next, state.lower, state.upper);
+    return state.value;
+  };
 
   const sampleRange = (range, fallbackMin, fallbackMax) => {
     if (Array.isArray(range) && range.length >= 2) return between(range[0], range[1]);
@@ -638,11 +684,8 @@
       this.flatRev = 0;
 
       const biasCfg = (cfg.sentiment && cfg.sentiment.structural_bias) || {};
-      const minB = biasCfg.min ?? 0.25;
-      const maxB = biasCfg.max ?? 4;
-      this.structBias = between(minB, maxB);
-      const hl = biasCfg.half_life_years ?? 15;
-      this.biasLambda = Math.log(2) / hl;
+      this.structBiasState = buildStructBiasState(biasCfg, this.rng || random);
+      this.structBias = this.structBiasState.value;
 
       this.cyclical = between(0.8, 1.2);
       this.cyc_k = 0.3;
@@ -772,13 +815,20 @@
         : 1;
       const adjustedFairValue = fairValue * valuationMultiplier;
 
-      this.structBias = 1 + (this.structBias - 1) * Math.exp(-this.biasLambda * dtYears);
+      this.structBias = stepStructBias(
+        this.structBiasState,
+        dtYears,
+        () => Random.gaussian(this.rng || random)
+      );
       const epsCyc = Random.gaussian(this.rng || random);
       this.cyclical += this.cyc_k * (1 - this.cyclical) * dtYears
         + this.cyc_sig * Math.sqrt(dtYears) * epsCyc;
       this.cyclical = Math.max(0.2, Math.min(5, this.cyclical));
 
-      const sentiment = this.structBias * this.cyclical;
+      const envSentiment = this.macroEnv && typeof this.macroEnv.getSentimentMultiplier === 'function'
+        ? this.macroEnv.getSentimentMultiplier(this.sector)
+        : 1;
+      const sentiment = this.structBias * envSentiment * this.cyclical;
       const enterprise = adjustedFairValue * sentiment;
 
       const leverage = this.debt / Math.max(1, enterprise);
@@ -933,7 +983,8 @@
       this.opexFixed = cost.opex_fixed_usd ?? 25_000_000;
       this.opexVar = cost.opex_variable_ratio ?? 0.12;
 
-      this.structBias = between(0.8, 1.4);
+      this.structBiasState = buildStructBiasState(config.structural_bias || {}, this.rng || random);
+      this.structBias = this.structBiasState.value;
       this.sentiment = 1;
       this.inflection = { triggered: false };
       this.peakArr = this.arr;
@@ -973,8 +1024,11 @@
       }
       this.growthTarget = Math.max(-0.8, Math.min(3.0, this.growthTarget));
 
-      this.structBias += Random.gaussian(this.rng || random) * 0.005;
-      this.structBias = Math.max(0.6, Math.min(1.6, this.structBias));
+      this.structBias = stepStructBias(
+        this.structBiasState,
+        dtYears,
+        () => Random.gaussian(this.rng || random)
+      );
       this.sentiment += Random.gaussian(this.rng || random) * 0.025;
       this.sentiment = Math.max(0.5, Math.min(1.8, this.sentiment));
 
@@ -1026,7 +1080,10 @@
       }
 
       const growthPercent = effectiveGrowth;
-      const multiple = Math.min(35, Math.max(3, 6 + 12 * growthPercent)) * this.structBias * this.sentiment;
+      const envSentiment = this.macroEnv && typeof this.macroEnv.getSentimentMultiplier === 'function'
+        ? this.macroEnv.getSentimentMultiplier(this.sector)
+        : 1;
+      const multiple = Math.min(35, Math.max(3, 6 + 12 * growthPercent)) * this.structBias * envSentiment * this.sentiment;
       const intrinsicValue = Math.max(5_000_000, this.arr * Math.max(1, multiple));
       this.marketCap = Math.max(intrinsicValue, this.cash - this.debt);
       this.displayCap = this.marketCap;

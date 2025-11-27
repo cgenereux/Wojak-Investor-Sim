@@ -95,7 +95,6 @@ async function buildMatch(seed = Date.now()) {
   pubs.push(...await Presets.generateBankingPresetCompanies(2, presetOpts));
   pubs.push(...await Presets.generateTechPresetCompanies(2, presetOpts));
   pubs.push(...await Presets.generateSteadyMegacorpCompanies(4, presetOpts));
-  pubs.push(...await Presets.generateProductRotatorCompanies(2, presetOpts));
   const ventures = [
     ...(await Presets.generateHypergrowthPresetCompanies(presetOpts)),
     ...await Presets.generateBinaryHardTechCompanies(1, presetOpts)

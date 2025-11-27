@@ -13,7 +13,6 @@ const { SeededRandom } = global.SimShared;
 const {
   generateHardTechPresetCompanies,
   generateSteadyMegacorpCompanies,
-  generateProductRotatorCompanies,
   generateHypergrowthPresetCompanies,
   generateBinaryHardTechCompanies
 } = global.PresetGenerators || {};
@@ -28,8 +27,7 @@ const { VentureSimulation } = (global.VentureEngineModule || {});
 
   const publicCompanies = [
     ...(await generateHardTechPresetCompanies(1, presetOptions)),
-    ...(await generateSteadyMegacorpCompanies(1, presetOptions)),
-    ...(await generateProductRotatorCompanies(1, presetOptions))
+    ...(await generateSteadyMegacorpCompanies(1, presetOptions))
   ];
   const ventureCompanies = [
     ...(await generateHypergrowthPresetCompanies(presetOptions)),

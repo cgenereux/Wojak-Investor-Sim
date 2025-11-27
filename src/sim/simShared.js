@@ -122,10 +122,34 @@
       };
       this.eventManager = eventManager || null;
 
+      const buildBiasState = (range = [0.9, 1.1], halfLifeYears = 12) => {
+        const [lo, hi] = Array.isArray(range) && range.length >= 2 ? range : [0.9, 1.1];
+        const lower = Math.max(0.2, Math.min(lo, hi));
+        const upper = Math.max(lower + 0.05, Math.max(lo, hi));
+        const k = Math.log(2) / Math.max(0.25, halfLifeYears);
+        const span = Math.max(0.01, upper - lower);
+        const sigma = span * 0.3;
+        const value = lower + random() * span;
+        return { value, lower, upper, k, sigma };
+      };
+
+      const stepBias = (state, dtYears) => {
+        if (!state || dtYears <= 0) return;
+        const noise = Random.gaussian();
+        const next = state.value + state.k * (1 - state.value) * dtYears + state.sigma * Math.sqrt(dtYears) * noise;
+        state.value = clampValue(next, state.lower, state.upper);
+      };
+
+      this.stepBias = stepBias;
+
+      this.marketBiasState = buildBiasState([0.85, 1.2], 14);
+      this.sectorBiasStates = {};
+
       this.idxs = {};
       sectorsSet.forEach(sec => {
         const p = this.sectorPresets[sec] || this.defaultParams;
         this.idxs[sec] = { value: 1, mu: p.mu, sigma: p.sigma };
+        this.sectorBiasStates[sec] = buildBiasState([0.7, 1.4], 10);
       });
 
       if (!this.idxs.DEFAULT) {
@@ -134,12 +158,16 @@
           mu: this.defaultParams.mu,
           sigma: this.defaultParams.sigma
         };
+        this.sectorBiasStates.DEFAULT = buildBiasState([0.7, 1.4], 10);
       }
 
       this.events = [];
     }
 
     step (dtYears) {
+      this.stepBias(this.marketBiasState, dtYears);
+      Object.values(this.sectorBiasStates).forEach(state => this.stepBias(state, dtYears));
+
       const muDelta = this.eventManager ? this.eventManager.getMacroMuDelta() : 0;
       const volMult = this.eventManager ? this.eventManager.getVolatilityMultiplier() : 1;
       Object.values(this.idxs).forEach(idx => {
@@ -157,6 +185,9 @@
       if (!this.idxs[sector]) {
         const p = this.sectorPresets[sector] || this.defaultParams;
         this.idxs[sector] = { value: 1, mu: p.mu, sigma: p.sigma };
+        this.sectorBiasStates[sector] = this.sectorBiasStates.DEFAULT
+          ? { ...this.sectorBiasStates.DEFAULT }
+          : { value: 1, lower: 0.7, upper: 1.4, k: Math.log(2) / 10, sigma: 0.21 };
       }
     }
 
@@ -170,6 +201,14 @@
       this.ensureSector(sector);
       const entry = this.idxs[sector] || this.idxs.DEFAULT || { mu: this.defaultParams.mu };
       return entry.mu;
+    }
+
+    getSentimentMultiplier(sector) {
+      this.ensureSector(sector);
+      const market = this.marketBiasState ? this.marketBiasState.value : 1;
+      const sectorState = this.sectorBiasStates[sector] || this.sectorBiasStates.DEFAULT;
+      const sectorBias = sectorState ? sectorState.value : 1;
+      return market * sectorBias;
     }
 
     getRevenueMultiplier(sector) {

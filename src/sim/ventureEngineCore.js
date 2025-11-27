@@ -271,6 +271,10 @@
       this.postGateBaselineMultiple = Math.max(Number(config.post_gate_baseline_multiple || 4), 1);
       this.postGateMultipleDecayYears = Math.max(Number(config.post_gate_multiple_decay_years || 6), 1);
       this.postGateMargin = Math.max(Number(config.post_gate_margin || 0.2), 0.05);
+      this.pmfLossProbPerYear = Number(config.pmf_loss_prob_per_year ?? config.pmfLossProbPerYear ?? 0);
+      this.pmfDeclineRateRange = config.pmf_decline_rate_range || config.pmf_decline_rate || config.pmfDeclineRateRange || [-0.4, -0.25];
+      this.pmfDeclineDurationYears = config.pmf_decline_duration_years || config.pmf_decline_duration || config.pmfDeclineDurationYears || [2, 3];
+      this.hyperPmfState = { active: false, elapsed: 0, durationYears: 0, declineRate: 0 };
 
       this.strategy = createVentureStrategy(this);
       this.gateCleared = false;
@@ -1168,12 +1172,21 @@
       this.marketCap = this.currentValuation;
       this.displayCap = this.currentValuation;
 
+      // Preserve some revenue expectations from pipeline when entering public markets
+      const unlockedPV = Array.isArray(this.products)
+        ? this.products.reduce((s, p) => s + (typeof p.unlockedValue === 'function' ? p.unlockedValue() : 0), 0)
+        : 0;
+      const optionPV = Array.isArray(this.products)
+        ? this.products.reduce((s, p) => s + (typeof p.expectedValue === 'function' ? p.expectedValue() : 0), 0)
+        : 0;
+
       const stage = this.getStageFinancials();
       const ps = stage && stage.ps ? stage.ps : 6;
       const macroFactor = this.macroEnv ? this.macroEnv.getValue(this.sector) : 1;
       const revenueSnapshot = Math.max(1, this.revenue || this.currentValuation / Math.max(ps, 1));
       const denom = Math.max(1e-3, macroFactor * Math.max(this.micro || 1, 0.05) * Math.max(this.revMult || 1, 0.05));
-      const normalizedBase = (revenueSnapshot + (this.flatRev || 0)) / denom;
+      const pipelineSignal = (unlockedPV + optionPV) / Math.max(ps, 1);
+      const normalizedBase = (revenueSnapshot + pipelineSignal + (this.flatRev || 0)) / denom;
       this.baseRevenue = Math.max(1, normalizedBase);
 
       if (this.marginCurve && isFinite(this.lastRoundMargin)) {

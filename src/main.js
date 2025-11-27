@@ -321,12 +321,11 @@ const {
     generateBinaryHardTechCompanies,
     generateTechPresetCompanies,
     generateBankingPresetCompanies,
-    generateProductRotatorCompanies,
     DEFAULT_VC_ROUNDS,
     HARDTECH_VC_ROUNDS
 } = PresetGenerators;
 
-if (!generateHardTechPresetCompanies || !generateSteadyMegacorpCompanies || !generateHypergrowthPresetCompanies || !generateBinaryHardTechCompanies || !generateProductRotatorCompanies) {
+if (!generateHardTechPresetCompanies || !generateSteadyMegacorpCompanies || !generateHypergrowthPresetCompanies || !generateBinaryHardTechCompanies) {
     throw new Error('PresetGenerators failed to load. Ensure presets.js is included before main.js.');
 }
 
@@ -1112,26 +1111,22 @@ async function loadCompaniesData() {
         const macroEvents = macroEventsResponse.ok ? await macroEventsResponse.json() : [];
         if (!Array.isArray(ventureCompanies)) ventureCompanies = [];
         let filteredCompanies = []; // temporarily ignore legacy companies
-    const presetOptions = matchRngFn ? { rng: matchRngFn } : {};
-    const presetHardTechCompanies = await generateHardTechPresetCompanies(3, presetOptions);
-    if (Array.isArray(presetHardTechCompanies)) {
-        filteredCompanies.push(...presetHardTechCompanies);
-    }
-    const presetBankingCompanies = await generateBankingPresetCompanies(2, presetOptions);
-    if (Array.isArray(presetBankingCompanies)) {
-        filteredCompanies.push(...presetBankingCompanies);
-    }
-    const presetTechCompanies = await generateTechPresetCompanies(2, presetOptions);
-    if (Array.isArray(presetTechCompanies)) {
-        filteredCompanies.push(...presetTechCompanies);
-    }
-    const presetMegacorpCompanies = await generateSteadyMegacorpCompanies(4, presetOptions);
-    if (Array.isArray(presetMegacorpCompanies)) {
-        filteredCompanies.push(...presetMegacorpCompanies);
-    }
-    const productRotatorCompanies = await generateProductRotatorCompanies(2, presetOptions);
-        if (Array.isArray(productRotatorCompanies)) {
-            filteredCompanies.push(...productRotatorCompanies);
+        const presetOptions = matchRngFn ? { rng: matchRngFn } : {};
+        const presetHardTechCompanies = await generateHardTechPresetCompanies(3, presetOptions);
+        if (Array.isArray(presetHardTechCompanies)) {
+            filteredCompanies.push(...presetHardTechCompanies);
+        }
+        const presetBankingCompanies = await generateBankingPresetCompanies(2, presetOptions);
+        if (Array.isArray(presetBankingCompanies)) {
+            filteredCompanies.push(...presetBankingCompanies);
+        }
+        const presetTechCompanies = await generateTechPresetCompanies(2, presetOptions);
+        if (Array.isArray(presetTechCompanies)) {
+            filteredCompanies.push(...presetTechCompanies);
+        }
+        const presetMegacorpCompanies = await generateSteadyMegacorpCompanies(4, presetOptions);
+        if (Array.isArray(presetMegacorpCompanies)) {
+            filteredCompanies.push(...presetMegacorpCompanies);
         }
         const presetVentureCompanies = await generateHypergrowthPresetCompanies(presetOptions);
         if (Array.isArray(presetVentureCompanies)) {

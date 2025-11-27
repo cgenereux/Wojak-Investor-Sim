@@ -4,6 +4,12 @@
   const between = shared.between || ((lo, hi) => lo + rng() * (hi - lo));
   const clampValue = shared.clampValue || ((value, min, max) => Math.max(min, Math.min(max, value)));
 
+  const sampleRange = (range, fallbackMin, fallbackMax) => {
+    if (Array.isArray(range) && range.length >= 2) return between(range[0], range[1]);
+    if (typeof range === 'number') return range;
+    return between(fallbackMin, fallbackMax);
+  };
+
   function computeHypergrowthFairValue(company, applyNoise = true) {
     const fin = company.getStageFinancials();
     const ps = fin.ps || 6;
@@ -30,6 +36,39 @@
       base *= between(0.9, 1.15);
     }
     return base;
+  }
+
+  function applyPmfLoss(company, dtYears) {
+    if (!company || !Number.isFinite(dtYears) || dtYears <= 0) return false;
+    const prob = company.pmfLossProbPerYear || 0;
+    if (!prob || prob <= 0) return false;
+
+    if (!company.hyperPmfState) {
+      company.hyperPmfState = { active: false, elapsed: 0, durationYears: 0, declineRate: 0 };
+    }
+    const state = company.hyperPmfState;
+
+    if (!state.active) {
+      const trigger = rng() < prob * dtYears;
+      if (trigger) {
+        state.active = true;
+        state.elapsed = 0;
+        state.durationYears = Math.max(0.25, sampleRange(company.pmfDeclineDurationYears, 2, 3));
+        state.declineRate = sampleRange(company.pmfDeclineRateRange, -0.4, -0.25);
+      }
+    }
+
+    if (state.active) {
+      const factor = Math.pow(1 + state.declineRate, dtYears);
+      company.currentValuation = Math.max(1, company.currentValuation * factor);
+      state.elapsed += dtYears;
+      if (state.elapsed >= state.durationYears) {
+        state.active = false;
+        state.declineRate = 0;
+      }
+      return true;
+    }
+    return false;
   }
 
   function advanceHypergrowthPreGate(company, dtYears) {
@@ -144,6 +183,7 @@
     }
 
     advancePreGate(dtYears) {
+      applyPmfLoss(this.company, dtYears);
       advanceHypergrowthPreGate(this.company, dtYears);
     }
 
