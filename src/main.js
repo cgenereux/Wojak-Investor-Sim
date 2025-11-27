@@ -1086,7 +1086,7 @@ async function loadCompaniesData() {
         if (Array.isArray(presetVentureCompanies)) {
             ventureCompanies.push(...presetVentureCompanies);
         }
-        const hardTechCompanies = await generateBinaryHardTechCompanies(1, presetOptions);
+        const hardTechCompanies = await generateBinaryHardTechCompanies(3, presetOptions);
         if (Array.isArray(hardTechCompanies)) {
             ventureCompanies.push(...hardTechCompanies);
         }
@@ -1585,6 +1585,10 @@ function clamp(value, min, max) {
 function convertVentureCompanyToPublic(event) {
     if (!sim || !ventureSim || !event) return;
     const ipoDate = new Date(currentDate);
+    const viewedVentureId = (typeof window.getCurrentVentureCompanyId === 'function')
+        ? window.getCurrentVentureCompanyId()
+        : null;
+
     let ventureCompany = null;
     if (event.companyRef) {
         ventureCompany = event.companyRef;
@@ -1603,6 +1607,21 @@ function convertVentureCompanyToPublic(event) {
         sim.adoptVentureCompany(ventureCompany, ipoDate);
     }
 
+    // Keep local reference in sync with sim companies (especially before next tick)
+    if (sim && Array.isArray(sim.companies)) {
+        companies = sim.companies;
+    }
+
+    const wasViewingThisVenture = !!viewedVentureId && (
+        viewedVentureId === event.companyId ||
+        viewedVentureId === (ventureCompany && ventureCompany.id) ||
+        viewedVentureId === (ventureCompany && ventureCompany.name)
+    );
+
+    const publicCompany = Array.isArray(companies)
+        ? companies.find(c => c && (c.id === ventureCompany.id || c.name === ventureCompany.name))
+        : null;
+
     const unitsOwned = event.playerEquity || 0;
     if (unitsOwned > 0) {
         const targetName = ventureCompany.name;
@@ -1613,6 +1632,15 @@ function convertVentureCompanyToPublic(event) {
             portfolio.push({ companyName: targetName, unitsOwned: unitsOwned });
         }
         renderPortfolio();
+    }
+
+    // Teleport from VC detail to public listing if the player was viewing this company
+    if (wasViewingThisVenture && publicCompany) {
+        if (typeof hideVentureCompanyDetail === 'function') {
+            hideVentureCompanyDetail({ skipHistory: true });
+        }
+        showCompanyDetail(publicCompany);
+        showToast(`${publicCompany.name} just IPO'd — jumping to the public listing.`, { tone: 'info', duration: 5000 });
     }
 }
 

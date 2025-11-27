@@ -61,6 +61,7 @@
     "post_gate_margin": [0.18, 0.3],
     "max_failures_before_collapse": 1,
     "binary_success": false,
+    "private_listing_window": { "from": 1990, "to": 2002 },
     "rounds": ["seed","series_a","series_b","series_c","series_d","series_e","series_f","pre_ipo"]
   }
 }

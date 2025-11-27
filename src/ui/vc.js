@@ -425,13 +425,40 @@ function updateVentureDetail(companyId) {
 
     // destroyVentureChart({ valuation: true, financial: false }); // Don't destroy blindly!
 
-    let history = (detail.history && detail.history.length > 0)
-        ? detail.history.slice()
-        : [{ x: Date.now(), y: valuation }];
+    const listingWindow = detail.listing_window || detail.listingWindow || null;
+    const listingFromTs = listingWindow && listingWindow.from ? new Date(listingWindow.from).getTime() : NaN;
+    const listingCutoff = Number.isFinite(listingFromTs) ? listingFromTs : null;
+
+    const normalizeHistory = (hist) => {
+        if (!Array.isArray(hist) || hist.length === 0) return [];
+        return hist
+            .map(point => {
+                const x = typeof point.x === 'number'
+                    ? point.x
+                    : (point && point.x ? new Date(point.x).getTime() : NaN);
+                const y = point ? point.y : NaN;
+                if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+                return { ...point, x, y };
+            })
+            .filter(Boolean)
+            .sort((a, b) => a.x - b.x);
+    };
+
+    const baseHistory = normalizeHistory(detail.history);
+    let history = baseHistory.length > 0 ? baseHistory.slice() : [{ x: Date.now(), y: valuation }];
+
+    if (listingCutoff) {
+        const trimmed = history.filter(point => point.x >= listingCutoff);
+        if (trimmed.length > 0) {
+            history = trimmed;
+        }
+    }
+
     history.sort((a, b) => a.x - b.x);
     if (history.length === 1) {
         const dayMs = 24 * 60 * 60 * 1000;
-        history.unshift({ x: history[0].x - dayMs, y: history[0].y });
+        const anchorX = listingCutoff ? listingCutoff : history[0].x - dayMs;
+        history.unshift({ x: anchorX, y: history[0].y, stage: history[0].stage });
     }
     const suggestedMin = valuation > 0 ? valuation * 0.8 : 0;
     const suggestedMax = valuation > 0 ? valuation * 1.2 : 1;
@@ -591,6 +618,11 @@ window.hideVentureCompanyDetail = hideVentureCompanyDetail;
 window.refreshVentureCompaniesList = refreshVentureCompaniesList;
 window.refreshVentureDetailView = refreshVentureDetailView;
 window.showVentureCompanyDetail = showVentureCompanyDetail;
+window.getCurrentVentureCompanyId = () => currentVentureCompanyId;
+window.isViewingVentureCompany = (companyId) => {
+    if (!companyId) return false;
+    return currentVentureCompanyId === companyId;
+};
 
 function ensureVCInit() {
     if (typeof netWorth !== 'undefined') {

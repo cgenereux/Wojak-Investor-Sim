@@ -1,33 +1,78 @@
 {
   "companies": [
     {
-      "name": "Apex Fusion Works",
+      "name": "Helion Dynamics",
       "sector": "Energy",
-      "description": "Building compact fusion cores for terrestrial grids.",
+      "description": "Compact fusion reactors targeting commercial power generation.",
       "funding_round": "Series B",
       "gate_stage": "series_f",
       "ipo_stage": "pre_ipo",
       "founders": [
-        { "name": "Elias Rahman", "degree": "PhD", "school": "MIT" },
-        { "name": "Jordan Cooper", "degree": "PhD", "school": "Princeton" }
+        { "name": "Marcus Chen", "degree": "PhD", "school": "MIT" },
+        { "name": "Elena Vasquez", "degree": "PhD", "school": "Imperial College" }
       ],
-      "mission": "Delivering compact fusion cores that drop into existing grids.",
-      "founding_location": "Austin, TX",
-      "valuation_usd": 22000000,
+      "mission": "Building fusion reactors that can replace natural gas peaker plants.",
+      "founding_location": "Seattle, WA",
+      "valuation_usd": 24000000,
       "hypergrowth_window_years": 2.5,
-      "hypergrowth_total_multiplier": 12,
-      "private_listing_window": { "from": 1992, "to": 2000 },
+      "hypergrowth_total_multiplier": 18,
+      "private_listing_window": { "from": 2022, "to": 2032 },
       "pipelineTemplate": [
         {
-          "id": "fusion_flagship",
-          "label": "Compact Fusion Core Program",
-          "full_revenue_usd": 35000000000,
+          "id": "fusion_core",
+          "label": "Commercial Fusion Reactor",
+          "full_revenue_usd": 50000000000,
           "stages": [
-            { "id": "plasma_confinement", "name": "Plasma Confinement", "duration_days": 600, "success_prob": 0.5, "value_realization": 0.1, "cost_usd": 140000000, "max_retries": 2 },
-            { "id": "neutron_shielding", "name": "Neutron Shielding", "duration_days": 660, "depends_on": "plasma_confinement", "success_prob": 0.55, "value_realization": 0.2, "cost_usd": 180000000, "max_retries": 2 },
-            { "id": "grid_integration", "name": "Grid Integration Demo", "duration_days": 720, "depends_on": "neutron_shielding", "success_prob": 0.6, "value_realization": 0.25, "cost_usd": 200000000, "max_retries": 1 },
-            { "id": "regulatory_stack", "name": "Regulatory Stack", "duration_days": 540, "depends_on": "grid_integration", "success_prob": 0.7, "value_realization": 0.25, "cost_usd": 160000000, "max_retries": 1 },
-            { "id": "production_ramp", "name": "Production Ramp", "duration_days": 540, "depends_on": "regulatory_stack", "success_prob": 0.85, "value_realization": 0.2, "cost_usd": 140000000, "max_retries": 1, "commercialises_revenue": true }
+            {
+              "id": "net_energy",
+              "name": "Net Energy Gain Demonstration",
+              "duration_days": 1200,
+              "success_prob": 0.45,
+              "value_realization": 0.1,
+              "cost_usd": 150000000,
+              "max_retries": 1
+            },
+            {
+              "id": "sustained_burn",
+              "name": "Sustained Plasma Burn",
+              "duration_days": 700,
+              "depends_on": "net_energy",
+              "success_prob": 0.57,
+              "value_realization": 0.14,
+              "cost_usd": 180000000,
+              "max_retries": 1
+            },
+            {
+              "id": "power_conversion",
+              "name": "Power Conversion Demo",
+              "duration_days": 600,
+              "depends_on": "sustained_burn",
+              "success_prob": 0.63,
+              "value_realization": 0.23,
+              "cost_usd": 200000000,
+              "max_retries": 2
+            },
+            {
+              "id": "pilot_plant",
+              "name": "Integrated Pilot Plant",
+              "duration_days": 700,
+              "depends_on": "power_conversion",
+              "success_prob": 0.68,
+              "value_realization": 0.43,
+              "cost_usd": 220000000,
+              "max_retries": 3
+            },
+            {
+              "id": "commercial_demo",
+              "name": "Commercial Demonstration",
+              "duration_days": 600,
+              "depends_on": "pilot_plant",
+              "success_prob": 0.83,
+              "value_realization": 0.7,
+              "cost_usd": 180000000,
+              "max_retries": 3,
+              "commercialises_revenue": true
+            }
           ]
         }
       ]
