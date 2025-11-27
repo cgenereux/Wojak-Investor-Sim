@@ -810,7 +810,12 @@
           this.currentDate = nextDate;
         }
       }
+      const pipelineBoost = Array.isArray(this.products)
+        ? this.products.reduce((s, p) => s + (typeof p.realisedRevenuePerYear === 'function' ? p.realisedRevenuePerYear() : 0), 0)
+        : 0;
+      this.maybeTriggerProductHypergrowth(pipelineBoost);
       this.progressCompanyClock(dtDays, currentDate);
+      this.applyProductHypergrowth(dtDays / DAYS_PER_YEAR, pipelineBoost);
       if (this.pendingHardTechFailure) {
         const failureEvent = this.pendingHardTechFailure;
         this.pendingHardTechFailure = null;

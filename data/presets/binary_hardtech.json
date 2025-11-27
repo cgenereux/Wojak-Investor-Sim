@@ -8,15 +8,26 @@
       "gate_stage": "series_f",
       "ipo_stage": "pre_ipo",
       "founders": [
-        { "name": "Marcus Chen", "degree": "PhD", "school": "MIT" },
-        { "name": "Elena Vasquez", "degree": "PhD", "school": "Imperial College" }
+        {
+          "name": "Marcus Chen",
+          "degree": "PhD",
+          "school": "MIT"
+        },
+        {
+          "name": "Elena Vasquez",
+          "degree": "PhD",
+          "school": "Imperial College"
+        }
       ],
       "mission": "Building fusion reactors that can replace natural gas peaker plants.",
       "founding_location": "Seattle, WA",
       "valuation_usd": 24000000,
       "hypergrowth_window_years": 2.5,
       "hypergrowth_total_multiplier": 18,
-      "private_listing_window": { "from": 2022, "to": 2032 },
+      "private_listing_window": {
+        "from": 2022,
+        "to": 2032
+      },
       "pipelineTemplate": [
         {
           "id": "fusion_core",
@@ -85,26 +96,175 @@
       "gate_stage": "series_f",
       "ipo_stage": "pre_ipo",
       "founders": [
-        { "name": "Henrik Svensson", "degree": "MS", "school": "KTH" },
-        { "name": "Patricia Li", "degree": "MS", "school": "Caltech" }
+        {
+          "name": "Henrik Svensson",
+          "degree": "MS",
+          "school": "KTH"
+        },
+        {
+          "name": "Patricia Li",
+          "degree": "MS",
+          "school": "Caltech"
+        }
       ],
       "mission": "Making heavy-lift launches routine for deep-space infrastructure.",
       "founding_location": "Long Beach, CA",
       "valuation_usd": 28000000,
       "hypergrowth_window_years": 2.2,
       "hypergrowth_total_multiplier": 10,
-      "private_listing_window": { "from": 1994, "to": 2004 },
+      "private_listing_window": {
+        "from": 1994,
+        "to": 2004
+      },
       "pipelineTemplate": [
         {
           "id": "odin_heavylift",
           "label": "Heavy-Lift Platform",
           "full_revenue_usd": 28000000000,
           "stages": [
-            { "id": "first_stage_reuse", "name": "First-Stage Reuse", "duration_days": 540, "success_prob": 0.5, "value_realization": 0.12, "cost_usd": 120000000, "max_retries": 2 },
-            { "id": "heavy_payload_demo", "name": "Heavy Payload Demo", "duration_days": 660, "depends_on": "first_stage_reuse", "success_prob": 0.55, "value_realization": 0.22, "cost_usd": 160000000, "max_retries": 2 },
-            { "id": "rapid_refly", "name": "Rapid Reflight Ops", "duration_days": 720, "depends_on": "heavy_payload_demo", "success_prob": 0.6, "value_realization": 0.22, "cost_usd": 200000000, "max_retries": 1 },
-            { "id": "human_rating", "name": "Human-Rating & Safety", "duration_days": 540, "depends_on": "rapid_refly", "success_prob": 0.65, "value_realization": 0.24, "cost_usd": 170000000, "max_retries": 1 },
-            { "id": "industrial_ops", "name": "Industrial Ops Ramp", "duration_days": 540, "depends_on": "human_rating", "success_prob": 0.8, "value_realization": 0.2, "cost_usd": 130000000, "max_retries": 1, "commercialises_revenue": true }
+            {
+              "id": "first_stage_reuse",
+              "name": "First-Stage Reuse",
+              "duration_days": 540,
+              "success_prob": 0.5,
+              "value_realization": 0.12,
+              "cost_usd": 120000000,
+              "max_retries": 2
+            },
+            {
+              "id": "heavy_payload_demo",
+              "name": "Heavy Payload Demo",
+              "duration_days": 660,
+              "depends_on": "first_stage_reuse",
+              "success_prob": 0.55,
+              "value_realization": 0.22,
+              "cost_usd": 160000000,
+              "max_retries": 2
+            },
+            {
+              "id": "rapid_refly",
+              "name": "Rapid Reflight Ops",
+              "duration_days": 720,
+              "depends_on": "heavy_payload_demo",
+              "success_prob": 0.6,
+              "value_realization": 0.22,
+              "cost_usd": 200000000,
+              "max_retries": 1
+            },
+            {
+              "id": "human_rating",
+              "name": "Human-Rating & Safety",
+              "duration_days": 540,
+              "depends_on": "rapid_refly",
+              "success_prob": 0.65,
+              "value_realization": 0.24,
+              "cost_usd": 170000000,
+              "max_retries": 1
+            },
+            {
+              "id": "industrial_ops",
+              "name": "Industrial Ops Ramp",
+              "duration_days": 540,
+              "depends_on": "human_rating",
+              "success_prob": 0.8,
+              "value_realization": 0.2,
+              "cost_usd": 130000000,
+              "max_retries": 1,
+              "commercialises_revenue": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Beep Boop Robotics",
+      "sector": "Industrial",
+      "description": "Home robots that handle everyday chores with reliable autonomy.",
+      "funding_round": "Series A",
+      "gate_stage": "series_e",
+      "ipo_stage": "pre_ipo",
+      "founders": [
+        {
+          "name": "Priya Raman",
+          "degree": "MS",
+          "school": "CMU"
+        },
+        {
+          "name": "Evan Brooks",
+          "degree": "BS",
+          "school": "Georgia Tech"
+        }
+      ],
+      "mission": "Put a safe, useful robot in every home to do the chores you hate.",
+      "founding_location": "San Francisco, CA",
+      "valuation_usd": 18000000,
+      "hypergrowth_window_years": 3,
+      "hypergrowth_total_multiplier": 8,
+      "private_listing_window": {
+        "from": 1992,
+        "to": 1994
+      },
+      "pipelineTemplate": [
+        {
+          "id": "home_bot",
+          "label": "Household Robot Platform",
+          "full_revenue_usd": 12000000000,
+          "hypergrowth": {
+            "target_multiplier": 4.5,
+            "growth_rate": 0.5,
+            "duration_years": 3
+          },
+          "stages": [
+            {
+              "id": "navigation",
+              "name": "Home Navigation",
+              "duration_days": 320,
+              "success_prob": 0.65,
+              "value_realization": 0.12,
+              "cost_usd": 75000000,
+              "max_retries": 2
+            },
+            {
+              "id": "manipulation",
+              "name": "Safe Manipulation",
+              "duration_days": 380,
+              "depends_on": "navigation",
+              "success_prob": 0.6,
+              "value_realization": 0.18,
+              "cost_usd": 90000000,
+              "max_retries": 2
+            },
+            {
+              "id": "appliance_integration",
+              "name": "Appliance Integration",
+              "duration_days": 300,
+              "depends_on": "manipulation",
+              "success_prob": 0.68,
+              "value_realization": 0.2,
+              "cost_usd": 60000000,
+              "max_retries": 2
+            },
+            {
+              "id": "pilot_programs",
+              "name": "Pilot Programs",
+              "duration_days": 280,
+              "depends_on": "appliance_integration",
+              "success_prob": 0.7,
+              "value_realization": 0.18,
+              "cost_usd": 55000000,
+              "max_retries": 2
+            },
+            {
+              "id": "mass_production",
+              "name": "Mass Production & Launch",
+              "duration_days": 360,
+              "depends_on": "pilot_programs",
+              "success_prob": 0.78,
+              "value_realization": 0.32,
+              "cost_usd": 80000000,
+              "max_retries": 2,
+              "commercialises_revenue": true
+            }
           ]
         }
       ]
@@ -117,26 +277,82 @@
       "gate_stage": "series_e",
       "ipo_stage": "pre_ipo",
       "founders": [
-        { "name": "Carla Alvarez", "degree": "PhD", "school": "Stanford" },
-        { "name": "Rachel Yoon", "degree": "PhD", "school": "UW" }
+        {
+          "name": "Carla Alvarez",
+          "degree": "PhD",
+          "school": "Stanford"
+        },
+        {
+          "name": "Rachel Yoon",
+          "degree": "PhD",
+          "school": "UW"
+        }
       ],
       "mission": "Building reliable high-bandwidth brain-computer interfaces.",
       "founding_location": "Seattle, WA",
       "valuation_usd": 20000000,
       "hypergrowth_window_years": 2.8,
       "hypergrowth_total_multiplier": 15,
-      "private_listing_window": { "from": 1996, "to": 2006 },
+      "private_listing_window": {
+        "from": 1996,
+        "to": 2006
+      },
       "pipelineTemplate": [
         {
           "id": "bmi_program",
           "label": "Neural Interface Program",
           "full_revenue_usd": 25000000000,
           "stages": [
-            { "id": "biocompatibility", "name": "Biocompatibility Trials", "duration_days": 540, "success_prob": 0.55, "value_realization": 0.1, "cost_usd": 100000000, "max_retries": 2 },
-            { "id": "signal_fidelity", "name": "Signal Fidelity", "duration_days": 600, "depends_on": "biocompatibility", "success_prob": 0.55, "value_realization": 0.2, "cost_usd": 140000000, "max_retries": 2 },
-            { "id": "clinical_pilot", "name": "Clinical Pilot", "duration_days": 660, "depends_on": "signal_fidelity", "success_prob": 0.6, "value_realization": 0.25, "cost_usd": 180000000, "max_retries": 1 },
-            { "id": "reg_clearance", "name": "Regulatory Clearance", "duration_days": 540, "depends_on": "clinical_pilot", "success_prob": 0.7, "value_realization": 0.25, "cost_usd": 150000000, "max_retries": 1 },
-            { "id": "manufacturing_ramp", "name": "Manufacturing Ramp", "duration_days": 540, "depends_on": "reg_clearance", "success_prob": 0.85, "value_realization": 0.2, "cost_usd": 130000000, "max_retries": 1, "commercialises_revenue": true }
+            {
+              "id": "biocompatibility",
+              "name": "Biocompatibility Trials",
+              "duration_days": 540,
+              "success_prob": 0.55,
+              "value_realization": 0.1,
+              "cost_usd": 100000000,
+              "max_retries": 2
+            },
+            {
+              "id": "signal_fidelity",
+              "name": "Signal Fidelity",
+              "duration_days": 600,
+              "depends_on": "biocompatibility",
+              "success_prob": 0.55,
+              "value_realization": 0.2,
+              "cost_usd": 140000000,
+              "max_retries": 2
+            },
+            {
+              "id": "clinical_pilot",
+              "name": "Clinical Pilot",
+              "duration_days": 660,
+              "depends_on": "signal_fidelity",
+              "success_prob": 0.6,
+              "value_realization": 0.25,
+              "cost_usd": 180000000,
+              "max_retries": 1
+            },
+            {
+              "id": "reg_clearance",
+              "name": "Regulatory Clearance",
+              "duration_days": 540,
+              "depends_on": "clinical_pilot",
+              "success_prob": 0.7,
+              "value_realization": 0.25,
+              "cost_usd": 150000000,
+              "max_retries": 1
+            },
+            {
+              "id": "manufacturing_ramp",
+              "name": "Manufacturing Ramp",
+              "duration_days": 540,
+              "depends_on": "reg_clearance",
+              "success_prob": 0.85,
+              "value_realization": 0.2,
+              "cost_usd": 130000000,
+              "max_retries": 1,
+              "commercialises_revenue": true
+            }
           ]
         }
       ]
@@ -149,11 +365,56 @@
         "label": "Flagship Hard-Tech Program",
         "full_revenue_usd": 30000000000,
         "stages": [
-          { "id": "concept_validation", "name": "Concept Validation", "duration_days": 720, "success_prob": 0.55, "value_realization": 0.1, "cost_usd": 120000000, "max_retries": 2 },
-          { "id": "prototype_build", "name": "Prototype Build", "duration_days": 900, "depends_on": "concept_validation", "success_prob": 0.5, "value_realization": 0.2, "cost_usd": 180000000, "max_retries": 2 },
-          { "id": "pilot_demo", "name": "Pilot Demonstration", "duration_days": 720, "depends_on": "prototype_build", "success_prob": 0.6, "value_realization": 0.25, "cost_usd": 220000000, "max_retries": 1 },
-          { "id": "regulatory_clearance", "name": "Regulatory Clearance", "duration_days": 540, "depends_on": "pilot_demo", "success_prob": 0.7, "value_realization": 0.25, "cost_usd": 150000000, "max_retries": 1 },
-          { "id": "commercial_ramp", "name": "Commercial Ramp", "duration_days": 540, "depends_on": "regulatory_clearance", "success_prob": 0.85, "value_realization": 0.2, "cost_usd": 120000000, "max_retries": 1, "commercialises_revenue": true }
+          {
+            "id": "concept_validation",
+            "name": "Concept Validation",
+            "duration_days": 720,
+            "success_prob": 0.55,
+            "value_realization": 0.1,
+            "cost_usd": 120000000,
+            "max_retries": 2
+          },
+          {
+            "id": "prototype_build",
+            "name": "Prototype Build",
+            "duration_days": 900,
+            "depends_on": "concept_validation",
+            "success_prob": 0.5,
+            "value_realization": 0.2,
+            "cost_usd": 180000000,
+            "max_retries": 2
+          },
+          {
+            "id": "pilot_demo",
+            "name": "Pilot Demonstration",
+            "duration_days": 720,
+            "depends_on": "prototype_build",
+            "success_prob": 0.6,
+            "value_realization": 0.25,
+            "cost_usd": 220000000,
+            "max_retries": 1
+          },
+          {
+            "id": "regulatory_clearance",
+            "name": "Regulatory Clearance",
+            "duration_days": 540,
+            "depends_on": "pilot_demo",
+            "success_prob": 0.7,
+            "value_realization": 0.25,
+            "cost_usd": 150000000,
+            "max_retries": 1
+          },
+          {
+            "id": "commercial_ramp",
+            "name": "Commercial Ramp",
+            "duration_days": 540,
+            "depends_on": "regulatory_clearance",
+            "success_prob": 0.85,
+            "value_realization": 0.2,
+            "cost_usd": 120000000,
+            "max_retries": 1,
+            "commercialises_revenue": true
+          }
         ]
       }
     ]

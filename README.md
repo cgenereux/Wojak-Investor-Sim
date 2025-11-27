@@ -86,9 +86,7 @@
     2. Preset Helpers & Rosters: Formalize the API, migrate existing companies to preset + overrides, and document the schema so new entries are easy to author.
     3. Polish & test & improve macro events -- this needs a lot of testing and polish
     4. Need to test that the game works with 8 players
-    5. Add a news feed to show news of things like macro events and maybe IPOs but probably just macro events
     6. Pause button + time slider on company pages
-    7. Need to make sure bankrupt companies don't stay in your portfolio forever
     8. Fix those couple PostHog analytics that don't work currently
     10. Monthly incomes in multiplayer (maybe $100/month) -- optional for players to enable -- maybe won't have this in v1.0
     11. Log curve option for multiplayer

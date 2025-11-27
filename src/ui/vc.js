@@ -63,6 +63,10 @@ function renderVentureCompanies(companiesData, formatLargeNumber, formatCurrency
     (companiesData || []).forEach(company => {
         const companyDiv = document.createElement('div');
         companyDiv.classList.add('company-box');
+        if (company.sector) {
+            const sectorClass = `sector-${(company.sector || '').toLowerCase()}`;
+            companyDiv.classList.add(sectorClass);
+        }
         companyDiv.dataset.companyId = company.id;
 
         const valuationRaw = typeof company.valuation !== 'undefined' ? company.valuation : company.valuation_usd;
@@ -503,7 +507,7 @@ function updateVentureDetail(companyId) {
                     pointRadius: 0,
                     pointHoverBackgroundColor: '#3b82f6',
                     pointHoverBorderWidth: 0,
-                    pointHoverRadius: 6,
+                    pointHoverRadius: 0,
                     fill: true,
                     parsing: false
                 }]
@@ -528,6 +532,12 @@ function updateVentureDetail(companyId) {
                 transitions: {
                     active: {
                         animation: { duration: 0 }
+                    }
+                },
+                elements: {
+                    point: {
+                        hoverRadius: 0,
+                        hoverBorderWidth: 0
                     }
                 },
                 scales: {
@@ -839,6 +849,16 @@ function renderVentureFinancialChart(company) {
                             }
                         },
                         itemSort: (a, b) => a.datasetIndex - b.datasetIndex
+                    }
+                },
+                transitions: {
+                    active: {
+                        animation: { duration: 0 }
+                    }
+                },
+                elements: {
+                    bar: {
+                        hoverBorderWidth: 0
                     }
                 },
                 scales: {

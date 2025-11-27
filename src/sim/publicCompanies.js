@@ -44,7 +44,8 @@
       id: cloneId,
       label: template.label || template.id || 'Product',
       full_revenue_usd: Number(template.full_revenue_usd || template.fullVal || 0),
-      stages: Array.isArray(template.stages) ? template.stages.map(stage => ({ ...stage })) : []
+      stages: Array.isArray(template.stages) ? template.stages.map(stage => ({ ...stage })) : [],
+      hypergrowth: template.hypergrowth ? { ...template.hypergrowth } : null
     };
   };
 
@@ -230,6 +231,10 @@
       this.startYear = gameStartYear;
       this.ageDays = 0;
       this.history = [];
+      this.hypergrowthActive = false;
+      this.hypergrowthTargetRevenue = 0;
+      this.hypergrowthRate = 0;
+      this.hypergrowthRemainingDays = 0;
       this.financialHistory = [];
       this.currentYearRevenue = 0;
       this.currentYearProfit = 0;
@@ -554,6 +559,46 @@
       const next = this.baseRevenue + amount;
       this.baseRevenue = Number.isFinite(cap) ? Math.min(next, cap) : next;
     }
+
+    maybeTriggerProductHypergrowth(pipelineBoost = 0) {
+      if (this.hypergrowthActive) return;
+      if (!Array.isArray(this.products) || this.products.length === 0) return;
+      const trigger = this.products.find(p => {
+        if (!p || !p.hypergrowth || p._hypergrowthTriggered) return false;
+        return typeof p.isCommercialised === 'function' ? p.isCommercialised() : false;
+      });
+      if (!trigger) return;
+      const cfg = trigger.hypergrowth || {};
+      const targetMult = Number.isFinite(cfg.target_multiplier) ? cfg.target_multiplier : 3;
+      const rate = Number.isFinite(cfg.growth_rate) ? cfg.growth_rate : 0.35;
+      const durationYears = Number.isFinite(cfg.duration_years) ? cfg.duration_years : 3;
+      const currentRunRate = Math.max(1, this.baseRevenue + pipelineBoost);
+      this.hypergrowthActive = true;
+      this.hypergrowthTargetRevenue = currentRunRate * Math.max(1.1, targetMult);
+      this.hypergrowthRate = Math.max(0.01, rate);
+      this.hypergrowthRemainingDays = Math.max(90, durationYears * 365);
+      trigger._hypergrowthTriggered = true;
+    }
+
+    applyProductHypergrowth(dtYears, pipelineBoost = 0) {
+      if (!this.hypergrowthActive) return;
+      const currentRun = Math.max(1, this.baseRevenue + pipelineBoost);
+      const grown = currentRun * Math.pow(1 + this.hypergrowthRate, dtYears);
+      const target = Math.max(currentRun, this.hypergrowthTargetRevenue || currentRun);
+      const nextRun = Math.min(target, grown);
+      const nextBase = Math.max(0, nextRun - pipelineBoost);
+      if (nextBase > this.baseRevenue) {
+        this.baseRevenue = nextBase;
+      }
+      if (this.phase === 'private' && Number.isFinite(this.revenue)) {
+        this.revenue = Math.max(this.revenue, nextRun);
+      }
+      this.hypergrowthRemainingDays = Math.max(0, this.hypergrowthRemainingDays - dtYears * 365);
+      if (this.hypergrowthRemainingDays <= 0 || nextRun >= target * 0.999) {
+        this.hypergrowthActive = false;
+        this.hypergrowthRemainingDays = 0;
+      }
+    }
   }
 
   class Company extends PhaseCompany {
@@ -662,17 +707,21 @@
         this.multFreeze = this.multCurve.value(ageYears, mNowTmp);
       }
 
+      const pipelineBoost = this.products.reduce((s, p) => s + p.realisedRevenuePerYear(), 0);
+      this.maybeTriggerProductHypergrowth(pipelineBoost);
+
       const epsMicro = Random.gaussian(this.rng || random);
       const vol = this.micro_sig * this.volMult;
       this.micro += (this.micro_mu + this.micro_k * (1 - this.micro)) * dtYears
         + vol * Math.sqrt(dtYears) * epsMicro;
       this.micro = Math.max(0.1, Math.min(5, this.micro));
 
+      this.applyProductHypergrowth(dtYears, pipelineBoost);
+
       const sectorFactor = this.macroEnv.getValue(this.sector);
       const revenueMultiplier = this.macroEnv.getRevenueMultiplier
         ? this.macroEnv.getRevenueMultiplier(this.sector)
         : 1;
-      const pipelineBoost = this.products.reduce((s, p) => s + p.realisedRevenuePerYear(), 0);
       const coreAnnual = ((this.baseRevenue + pipelineBoost) * sectorFactor * this.micro * this.revMult) - this.flatRev;
       const effectiveAnnual = coreAnnual * revenueMultiplier;
       const revenueThisTick = effectiveAnnual * dtYears;

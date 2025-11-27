@@ -217,6 +217,8 @@
       this.label = c.label || c.id;
       this.fullVal = c.full_revenue_usd;
       this.stages = c.stages.map(s => new Stage(s));
+      this.hypergrowth = c.hypergrowth ? { ...c.hypergrowth } : null;
+      this._hypergrowthTriggered = false;
     }
 
     unlockedValue () {
