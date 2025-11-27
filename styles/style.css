@@ -941,8 +941,8 @@ button.speed-active:hover {
 }
 
 .companies-grid .company-box:not(.bankrupt).sector-banking {
-    background: #eef7ff;
-    border-color: #d7ebff;
+    background: #fff7df;
+    border-color: #f3d27a;
 }
 
 .companies-grid .company-box:not(.bankrupt).sector-retail,
@@ -953,8 +953,8 @@ button.speed-active:hover {
 
 .companies-grid .company-box:not(.bankrupt).sector-airlines,
 .companies-grid .company-box:not(.bankrupt).sector-aerospace {
-    background: #f0f8ff;
-    border-color: #d8ecff;
+    background: #f7f1e8;
+    border-color: #d9c0a3;
 }
 
 .companies-grid .company-box:not(.bankrupt).sector-automotive,
@@ -969,6 +969,11 @@ button.speed-active:hover {
     border-color: #d8ead6;
 }
 
+.companies-grid .company-box:not(.bankrupt).sector-manufacturing {
+    background: #f7f1e8;
+    border-color: #d9c0a3;
+}
+
 .companies-grid .company-box:not(.bankrupt).sector-realestate {
     background: #f6f3ff;
     border-color: #e3dbff;
@@ -981,15 +986,16 @@ button.speed-active:hover {
 
 .portfolio-list .portfolio-item.sector-tech { background: #eaf3ff; border-color: #d4e6ff; }
 .portfolio-list .portfolio-item.sector-biotech { background: #fff0f6; border-color: #ffd6e8; }
-.portfolio-list .portfolio-item.sector-banking { background: #eef7ff; border-color: #d7ebff; }
+.portfolio-list .portfolio-item.sector-banking { background: #fff7df; border-color: #f3d27a; }
 .portfolio-list .portfolio-item.sector-retail,
 .portfolio-list .portfolio-item.sector-staples { background: #fff7ec; border-color: #ffe7c7; }
 .portfolio-list .portfolio-item.sector-airlines,
-.portfolio-list .portfolio-item.sector-aerospace { background: #f0f8ff; border-color: #d8ecff; }
+.portfolio-list .portfolio-item.sector-aerospace { background: #f7f1e8; border-color: #d9c0a3; }
 .portfolio-list .portfolio-item.sector-automotive,
 .portfolio-list .portfolio-item.sector-industrial { background: #f4f7f0; border-color: #dde5d4; }
 .portfolio-list .portfolio-item.sector-defense,
 .portfolio-list .portfolio-item.sector-energy { background: #f4f8f3; border-color: #d8ead6; }
+.portfolio-list .portfolio-item.sector-manufacturing { background: #f7f1e8; border-color: #d9c0a3; }
 .portfolio-list .portfolio-item.sector-realestate { background: #f6f3ff; border-color: #e3dbff; }
 .portfolio-list .portfolio-item.sector-web { background: #f0f5ff; border-color: #d9e5ff; }
 

@@ -29,6 +29,27 @@
   const QUARTER_DAYS = DAYS_PER_YEAR / 4;
   const YEAR_MS = VC_DAY_MS * DAYS_PER_YEAR;
 
+  function coerceDate(value, isEnd = false) {
+    if (value == null) return null;
+    const asNumber = Number(value);
+    if (Number.isFinite(asNumber) && String(value).trim() !== '') {
+      const year = Math.trunc(asNumber);
+      return isEnd
+        ? new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999))
+        : new Date(Date.UTC(year, 0, 1, 0, 0, 0, 0));
+    }
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  function normalizeListingWindow(windowLike) {
+    if (!windowLike || typeof windowLike !== 'object') return null;
+    const from = coerceDate(windowLike.from ?? windowLike.start ?? windowLike.start_year, false);
+    const to = coerceDate(windowLike.to ?? windowLike.end ?? windowLike.end_year, true);
+    if (!from && !to) return null;
+    return { from, to };
+  }
+
   const VC_STAGE_CONFIG = [
     { id: 'seed', label: 'Seed', successProb: 0.92, preMoneyMultiplier: [1.6, 2.3], raiseFraction: [0.20, 0.35], monthsToNextRound: [10, 16] },
     { id: 'series_a', label: 'Series A', successProb: 0.88, preMoneyMultiplier: [1.5, 2.2], raiseFraction: [0.20, 0.32], monthsToNextRound: [10, 16] },
@@ -191,6 +212,9 @@
       this.targetStageIndex = Math.max(0, Math.min(targetIdx, this.roundDefinitions.length - 1));
 
       this.currentValuation = Math.max(1, Number(config.valuation_usd) || 10_000_000);
+      this.listingWindow = normalizeListingWindow(
+        config.private_listing_window || config.listing_window || config.listingWindow || null
+      );
       this.status = 'raising';
       this.daysSinceRound = 0;
       this.playerEquity = 0;
@@ -219,6 +243,7 @@
       this.currentYearRevenue = 0;
       this.currentYearProfit = 0;
       this.startDate = new Date(start);
+      this.currentDate = new Date(start);
       this.lastYearRecorded = this.startDate.getUTCFullYear();
       this.stageChanged = false;
       this.consecutiveFails = 0;
@@ -690,13 +715,34 @@
       return 'Raising';
     }
 
+    isListableOnDate(date = null) {
+      if (!this.listingWindow) return true;
+      const ref = date
+        ? new Date(date)
+        : (this.currentDate ? new Date(this.currentDate) : null);
+      if (!ref || Number.isNaN(ref.getTime())) return true;
+      const { from, to } = this.listingWindow;
+      if (from && ref < from) return false;
+      if (to && ref > to) return false;
+      return true;
+    }
+
     getPlayerValuation() {
       if (this.status === 'failed' || this.status === 'exited') return 0;
       const equityValue = this.playerEquity ? this.playerEquity * this.currentValuation : 0;
       return equityValue > 0 ? equityValue : 0;
     }
 
+    hasPlayerPosition() {
+      if (this.playerEquity > 0 || this.pendingCommitment > 0) return true;
+      if (!this.playerEquityMap) return false;
+      return Object.values(this.playerEquityMap).some(v => Number.isFinite(v) && v > 0);
+    }
+
     leadRound(playerId = null) {
+      if (!this.isListableOnDate()) {
+        return { success: false, reason: 'Not currently listed.' };
+      }
       if (!this.currentRound || this.status !== 'raising') {
         return { success: false, reason: 'Not currently raising.' };
       }
@@ -718,6 +764,9 @@
     }
 
     commitInvestment(equityFraction = 0, playerId = null) {
+      if (!this.isListableOnDate()) {
+        return { success: false, reason: 'Not currently listed.' };
+      }
       if (!this.currentRound || this.status !== 'raising') {
         return { success: false, reason: 'Not currently raising.' };
       }
@@ -755,6 +804,12 @@
       if (!this.isPrivatePhase) return [];
       if (this.status === 'failed' || this.status === 'exited') return [];
       this.stageChanged = false;
+      if (currentDate) {
+        const nextDate = new Date(currentDate);
+        if (!Number.isNaN(nextDate.getTime())) {
+          this.currentDate = nextDate;
+        }
+      }
       this.progressCompanyClock(dtDays, currentDate);
       if (this.pendingHardTechFailure) {
         const failureEvent = this.pendingHardTechFailure;
@@ -954,9 +1009,10 @@
       return events;
     }
 
-    getSummary() {
+    getSummary(currentDate = null) {
       const cash = Number.isFinite(this.cash) ? this.cash : 0;
       const debt = Number.isFinite(this.debt) ? this.debt : 0;
+      const listed = this.isListableOnDate(currentDate);
       return {
         id: this.id,
         name: this.name,
@@ -979,11 +1035,18 @@
         runwayDays: isFinite(this.cachedRunwayDays) ? this.cachedRunwayDays : null,
         daysSinceRound: this.daysSinceRound,
         daysSinceLastRaise: this.daysSinceLastRaise,
-        playerEquityById: { ...(this.playerEquityMap || {}) }
+        playerEquityById: { ...(this.playerEquityMap || {}) },
+        is_listed: listed,
+        listing_window: this.listingWindow
+          ? {
+              from: this.listingWindow.from ? this.listingWindow.from.toISOString() : null,
+              to: this.listingWindow.to ? this.listingWindow.to.toISOString() : null
+            }
+          : null
       };
     }
 
-    getDetail() {
+    getDetail(currentDate = null) {
       const cash = Number.isFinite(this.cash) ? this.cash : 0;
       const debt = Number.isFinite(this.debt) ? this.debt : 0;
       const round = this.currentRound;
@@ -1005,6 +1068,7 @@
         )
       );
       const nextStage = rounds.length && stageIndex + 1 < rounds.length ? rounds[stageIndex + 1] : null;
+      const listed = this.isListableOnDate(currentDate);
       return {
         id: this.id,
         name: this.name,
@@ -1060,7 +1124,14 @@
           playerCommitAmount: round.playerCommitAmount || 0,
           playerCommitEquity: round.playerCommitEquity || 0
         } : null,
-        rounds
+        rounds,
+        is_listed: listed,
+        listing_window: this.listingWindow
+          ? {
+              from: this.listingWindow.from ? this.listingWindow.from.toISOString() : null,
+              to: this.listingWindow.to ? this.listingWindow.to.toISOString() : null
+            }
+          : null
       };
     }
 
@@ -1167,6 +1238,13 @@
             playerCommitAmount: round.playerCommitAmount || 0,
             playerCommitEquity: round.playerCommitEquity || 0
           }
+          : null,
+        is_listed: this.isListableOnDate(this.currentDate),
+        listing_window: this.listingWindow
+          ? {
+              from: this.listingWindow.from ? this.listingWindow.from.toISOString() : null,
+              to: this.listingWindow.to ? this.listingWindow.to.toISOString() : null
+            }
           : null
       };
     }
@@ -1208,6 +1286,7 @@
           finance: cfg.finance,
           costs: cfg.costs,
           archetype: cfg.archetype,
+          private_listing_window: cfg.private_listing_window || cfg.listing_window || cfg.listingWindow || cfg.listing_window,
           pipeline: Array.isArray(cfg.pipeline) ? cfg.pipeline : [],
           events: Array.isArray(cfg.events) ? cfg.events : []
         }, startDate, this.rngFn));
@@ -1255,6 +1334,10 @@
       if (!company) {
         return { success: false, reason: 'Company not found.' };
       }
+      const now = this.lastTick ? new Date(this.lastTick) : null;
+      if (!company.isListableOnDate(now)) {
+        return { success: false, reason: 'Not currently listed.' };
+      }
       return company.leadRound(playerId);
     }
 
@@ -1263,18 +1346,30 @@
       if (!company) {
         return { success: false, reason: 'Company not found.' };
       }
+      const now = this.lastTick ? new Date(this.lastTick) : null;
+      if (!company.isListableOnDate(now)) {
+        return { success: false, reason: 'Not currently listed.' };
+      }
       return company.commitInvestment(equityFraction, playerId);
     }
 
-    getCompanySummaries() {
+    getCompanySummaries(currentDate = null) {
+      const now = currentDate ? new Date(currentDate) : (this.lastTick ? new Date(this.lastTick) : new Date());
       return this.companies
-        .filter(company => !company.exited)
-        .map(company => company.getSummary());
+        .filter(company => {
+          if (company.exited) return false;
+          const listed = company.isListableOnDate(now);
+          return listed || company.hasPlayerPosition();
+        })
+        .map(company => company.getSummary(now));
     }
 
-    getCompanyDetail(companyId) {
+    getCompanyDetail(companyId, currentDate = null) {
       const company = this.getCompanyById(companyId);
-      return company ? company.getDetail() : null;
+      if (!company) return null;
+      const now = currentDate ? new Date(currentDate) : (this.lastTick ? new Date(this.lastTick) : null);
+      if (!company.isListableOnDate(now) && !company.hasPlayerPosition()) return null;
+      return company.getDetail(now);
     }
 
     extractCompany(companyId) {
@@ -1305,12 +1400,13 @@
 
     exportState(options = {}) {
       const detail = options.detail || false;
+      const now = this.lastTick ? new Date(this.lastTick) : null;
       return {
         seed: this.seed ?? null,
         lastTick: this.lastTick ? this.lastTick.toISOString() : null,
         companies: detail
-          ? this.companies.map(c => c.getDetail())
-          : this.companies.map(c => c.getSummary())
+          ? this.companies.map(c => c.getDetail(now))
+          : this.companies.map(c => c.getSummary(now))
       };
     }
 

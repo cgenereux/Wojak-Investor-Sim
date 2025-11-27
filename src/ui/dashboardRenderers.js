@@ -4,6 +4,7 @@
     tech: 'sector-tech',
     biotech: 'sector-biotech',
     banking: 'sector-banking',
+    manufacturing: 'sector-manufacturing',
     retail: 'sector-retail',
     'consumer staples': 'sector-staples',
     airlines: 'sector-airlines',
@@ -83,14 +84,20 @@
     } else if (currentSort === 'ipoDateDesc') {
       filtered.sort((x, y) => ((y.ipoDate instanceof Date ? y.ipoDate.getTime() : 0) - (x.ipoDate instanceof Date ? x.ipoDate.getTime() : 0)));
     } else if (currentSort === 'sector') {
+      const sectorOrder = ['biotech', 'tech', 'web', 'retail', 'banking', 'airlines', 'transportation'];
       filtered.sort((a, b) => {
         const sa = (a.sector || '').toLowerCase();
         const sb = (b.sector || '').toLowerCase();
+        const ia = sectorOrder.indexOf(sa);
+        const ib = sectorOrder.indexOf(sb);
         if (sa === sb) {
           ensureCompanyQueueIndex(a, state);
           ensureCompanyQueueIndex(b, state);
           return (a.__queueIndex || 0) - (b.__queueIndex || 0);
         }
+        if (ia >= 0 && ib >= 0) return ia - ib;
+        if (ia >= 0) return -1;
+        if (ib >= 0) return 1;
         return sa.localeCompare(sb);
       });
     } else if (currentSort === 'ipoQueue') {

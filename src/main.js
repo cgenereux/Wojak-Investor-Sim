@@ -227,6 +227,51 @@ window.addEventListener('popstate', (event) => {
     applyHistoryState(event.state || { view: VIEW_MARKET });
 });
 
+// --- Keyboard Navigation ---
+let lastPointerTarget = null;
+const TYPING_TAGS = ['INPUT', 'TEXTAREA', 'SELECT', 'OPTION'];
+
+function isTypingContext(el) {
+    if (!el || !(el instanceof HTMLElement)) return false;
+    if (el.isContentEditable) return true;
+    const tag = (el.tagName || '').toUpperCase();
+    return TYPING_TAGS.includes(tag);
+}
+
+function getKeyboardClickTarget() {
+    const active = document.activeElement;
+    if (active && active !== document.body && active !== document.documentElement) return active;
+    if (lastPointerTarget && lastPointerTarget !== document.body && lastPointerTarget !== document.documentElement) return lastPointerTarget;
+    return null;
+}
+
+document.addEventListener('pointermove', (event) => {
+    const target = event?.target;
+    if (target && target instanceof Element) {
+        lastPointerTarget = target;
+    }
+}, true);
+
+document.addEventListener('keydown', (event) => {
+    if (event.defaultPrevented) return;
+    const target = event.target;
+    if (isTypingContext(target)) return;
+
+    if (event.code === 'Space') {
+        const clickTarget = getKeyboardClickTarget();
+        if (clickTarget) {
+            event.preventDefault();
+            clickTarget.click();
+        }
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        const navFn = event.key === 'ArrowLeft' ? history.back : history.forward;
+        if (typeof navFn === 'function') {
+            event.preventDefault();
+            navFn.call(history);
+        }
+    }
+});
+
 function maybeTrackDecadeNetWorth(dateLike, players = null) {
     const year = dateLike instanceof Date ? dateLike.getUTCFullYear() : new Date(dateLike).getUTCFullYear();
     if (!Number.isFinite(year)) return;
@@ -399,7 +444,7 @@ const jsConfetti = new JSConfetti();
 let currentSpeed = 1;
 let wasAutoPaused = false;
 let isGameReady = false;
-let currentSort = 'ipoQueue';
+let currentSort = 'sector';
 let currentFilter = 'all';
 const DRIP_STORAGE_KEY = 'wojak_drip_enabled';
 let dripEnabled = false;
@@ -2578,10 +2623,8 @@ function closeVentureTab(options = {}) {
     }
 }
 
-// --- Event Listeners ---
-companiesGrid.addEventListener('click', (event) => {
-    const companyBox = event.target.closest('.company-box');
-    if (!companyBox) return;
+function resolveCompanyFromBox(companyBox) {
+    if (!companyBox) return null;
     const decode = (value = '') => {
         try { return decodeURIComponent(value); } catch (err) { return value || ''; }
     };
@@ -2605,7 +2648,48 @@ companiesGrid.addEventListener('click', (event) => {
             company = companies.find(c => c.name === fallbackName);
         }
     }
-    if (company) showCompanyDetail(company);
+    return company || null;
+}
+
+function openCompanyFromBox(companyBox) {
+    const company = resolveCompanyFromBox(companyBox);
+    if (company) {
+        showCompanyDetail(company);
+        return true;
+    }
+    return false;
+}
+
+let suppressNextCompanyClick = false;
+let suppressCompanyClickUntil = 0;
+
+// --- Event Listeners ---
+// Handle company selection on pointerdown so tick-driven rerenders don't drop the click.
+companiesGrid.addEventListener('pointerdown', (event) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    const companyBox = event.target.closest('.company-box');
+    if (!companyBox) return;
+    if (openCompanyFromBox(companyBox)) {
+        suppressNextCompanyClick = true;
+        const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        suppressCompanyClickUntil = now + 750;
+    }
+});
+
+companiesGrid.addEventListener('click', (event) => {
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    if (suppressNextCompanyClick && now > suppressCompanyClickUntil) {
+        suppressNextCompanyClick = false;
+        suppressCompanyClickUntil = 0;
+    }
+    if (suppressNextCompanyClick && now <= suppressCompanyClickUntil) {
+        suppressNextCompanyClick = false;
+        suppressCompanyClickUntil = 0;
+        return;
+    }
+    const companyBox = event.target.closest('.company-box');
+    if (!companyBox) return;
+    openCompanyFromBox(companyBox);
 });
 backBtn.addEventListener('click', hideCompanyDetail);
 buyBtn.addEventListener('click', () => { if (activeCompanyDetail) buy(activeCompanyDetail.name, investmentAmountInput.value); });

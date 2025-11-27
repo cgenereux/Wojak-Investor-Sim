@@ -13,7 +13,8 @@
         { "name": "Kevin Lin" }
       ],
       "mission": "Empowering anyone to buy and sell online through the power of auctions.",
-      "founding_location": "San Francisco, CA"
+      "founding_location": "San Francisco, CA",
+      "private_listing_window": { "from": 1990, "to": 1998 }
     },
     {
       "name": "CyberWorks",
@@ -27,7 +28,8 @@
         { "name": "Alex Ortega" }
       ],
       "mission": "Securing electronic commerce in the Internet age.",
-      "founding_location": "Palo Alto, CA"
+      "founding_location": "Palo Alto, CA",
+      "private_listing_window": { "from": 1991, "to": 1999 }
     },
     {
       "name": "StreamCast",
@@ -41,7 +43,8 @@
         { "name": "Julio Rivera" }
       ],
       "mission": "Live broadcasting for the Internet age.",
-      "founding_location": "San Francisco, CA"
+      "founding_location": "San Francisco, CA",
+      "private_listing_window": { "from": 1993, "to": 2001 }
     }
   ],
   "defaults": {

@@ -313,7 +313,8 @@
                 post_gate_multiple_decay_years: pickRangeLocal(defaults.post_gate_multiple_decay_years, 5, 9),
                 post_gate_margin: pickRangeLocal(defaults.post_gate_margin, 0.18, 0.3),
                 max_failures_before_collapse: entry.max_failures_before_collapse ?? defaults.max_failures_before_collapse ?? 2,
-                rounds: entry.rounds || defaults.rounds || DEFAULT_VC_ROUNDS
+                rounds: entry.rounds || defaults.rounds || DEFAULT_VC_ROUNDS,
+                private_listing_window: entry.private_listing_window || defaults.private_listing_window || null
             };
         });
         return results;
@@ -600,13 +601,17 @@
     async function generateBinaryHardTechCompanies(count = 1, options = {}) {
         const { randBetween, randIntBetween, makeId } = buildRandomTools(options);
         const data = await loadPresetJson(BINARY_HARDTECH_DATA_PATH, options);
+        const defaults = data?.defaults || {};
         const rosterSource = Array.isArray(data?.roster)
             ? data.roster.slice()
             : (Array.isArray(data?.companies) ? data.companies.slice() : []);
-        const pipelineTemplate = Array.isArray(data?.defaults?.pipelineTemplate)
-            ? data.defaults.pipelineTemplate
+        const defaultPipelineTemplate = Array.isArray(defaults?.pipelineTemplate)
+            ? defaults.pipelineTemplate
             : [];
-        if (rosterSource.length === 0 || pipelineTemplate.length === 0) return [];
+        if (rosterSource.length === 0) return [];
+        const hasAnyPipelineTemplate = defaultPipelineTemplate.length > 0
+            || rosterSource.some(entry => Array.isArray(entry?.pipelineTemplate) && entry.pipelineTemplate.length > 0);
+        if (!hasAnyPipelineTemplate) return [];
         const roster = [...rosterSource];
         const companies = [];
         while (companies.length < count && roster.length > 0) {
@@ -614,12 +619,16 @@
             const entry = roster.splice(idx, 1)[0];
             const valuation = randBetween(15_000_000, 40_000_000);
             const id = makeId(`preset_hardtech_${slugify(entry.name)}`, companies.length);
-            const pipelineScale = randBetween(0.8, 1.4);
+            const pipelineSource = Array.isArray(entry?.pipelineTemplate) && entry.pipelineTemplate.length
+                ? entry.pipelineTemplate
+                : defaultPipelineTemplate;
+            if (!pipelineSource.length) continue;
+            const pipelineScale = Number.isFinite(entry?.pipeline_scale) ? entry.pipeline_scale : randBetween(0.8, 1.4);
             const pipelineIdPrefix = `${id}_binary`;
-            const pipeline = clonePipelineTemplate(pipelineTemplate, pipelineScale, pipelineIdPrefix).map(p => ({
-                ...p,
-                label: `${p.label} (${entry.name})`
-            }));
+            const pipeline = clonePipelineTemplate(pipelineSource, pipelineScale, pipelineIdPrefix).map(p => {
+                const labelSuffix = entry.name ? ` (${entry.name})` : '';
+                return { ...p, label: `${p.label}${labelSuffix}` };
+            });
             const initialRevenue = randBetween(2_000_000, 6_000_000);
             const baseBusiness = {
                 revenue_process: {
@@ -674,6 +683,7 @@
                 post_gate_multiple_decay_years: randBetween(6, 11),
                 post_gate_margin: randBetween(0.2, 0.35),
                 max_failures_before_collapse: 1,
+                private_listing_window: entry.private_listing_window || defaults.private_listing_window || null,
                 base_business: baseBusiness,
                 finance,
                 costs,
