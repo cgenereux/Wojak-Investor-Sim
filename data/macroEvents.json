@@ -23,5 +23,32 @@
     "Novel airborne pathogen spreads across 30 states in weeks.",
     "Deadly virus traced to livestock sparks nationwide quarantine measures; travel restrictions imposed."
     ]
+  },
+  {
+    "id": "global_recession",
+    "label": "Global Recession",
+    "chance": 0.3,
+    "start_year_range": [1990, 2045],
+    "impact_days_range": [360, 720],
+    "recovery_days_range": [240, 480],
+    "global_multiplier_range": [0.8, 0.9],
+    "valuation_compression_range": [0.85, 0.95],
+    "sector_impacts": [
+      { "sector": "Retail", "min_multiplier": [0.7, 0.85] },
+      { "sector": "Banking", "min_multiplier": [0.65, 0.85] },
+      { "sector": "Tech", "min_multiplier": [0.8, 0.95] }
+    ],
+    "effects": [
+      { "type": "macro_mu_delta", "value": -0.03 },
+      { "type": "revenue_multiplier", "multiplier": 0.88 },
+      { "type": "volatility_multiplier", "multiplier": 1.6 },
+      { "type": "interest_rate_shift", "delta": 0.01 }
+    ],
+    "polarity": "negative",
+    "descriptions": [
+      "Global demand cools; layoffs and spending cuts ripple across industries.",
+      "Credit tightens as rates rise and risk appetite fades.",
+      "A mild recession sets in, pressuring earnings and valuations."
+    ]
   }
 ]

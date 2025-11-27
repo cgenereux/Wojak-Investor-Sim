@@ -17,11 +17,14 @@
     ScheduledEvent
   } = shared;
 
+  // Shared baseline interest; can be overridden via finance configs or future macro hooks.
+  const GLOBAL_BASE_INTEREST_RATE = 0.07;
+
   const QUARTER_DAYS = 365 / 4;
   const MAX_QUARTER_HISTORY = 100;
   const PRODUCT_RETIRE_DELAY_DAYS = Math.round(2.5 * 365);
 
-  const DEFAULT_STRUCT_BIAS_RANGE = [0.6, 1.8];
+  const DEFAULT_STRUCT_BIAS_RANGE = [0.65, 1.65];
   const DEFAULT_STRUCT_BIAS_HALFLIFE = 8;
 
   const buildStructBiasState = (cfg = {}, rngFn = random) => {
@@ -666,7 +669,7 @@
       const fin = cfg.finance || {};
       this.cash = fin.starting_cash_usd ?? 0;
       this.debt = fin.starting_debt_usd ?? 0;
-      this.intRate = fin.interest_rate_annual ?? 0.05;
+      this.intRate = fin.interest_rate_annual ?? GLOBAL_BASE_INTEREST_RATE;
       this.payoutRatio = null;
       this.targetYield = null;
       this.pendingDividendRemaining = 0;
@@ -977,7 +980,7 @@
       const fin = cfg.finance || {};
       this.cash = fin.starting_cash_usd ?? between(80_000_000, 140_000_000);
       this.debt = fin.starting_debt_usd ?? 0;
-      this.intRate = fin.interest_rate_annual ?? 0.06;
+      this.intRate = fin.interest_rate_annual ?? GLOBAL_BASE_INTEREST_RATE;
 
       const cost = cfg.costs || {};
       this.opexFixed = cost.opex_fixed_usd ?? 25_000_000;

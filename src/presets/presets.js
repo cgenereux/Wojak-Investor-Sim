@@ -1,4 +1,5 @@
 (function (global) {
+    const GLOBAL_BASE_INTEREST_RATE = 0.07;
     const shared = global.SimShared || {};
     const defaultRng = typeof shared.random === 'function' ? shared.random : Math.random;
     const buildRandomTools = (options = {}) => {
@@ -269,7 +270,7 @@
                 finance: {
                     starting_cash_usd: baseRevenue * startingCashRatio,
                     starting_debt_usd: baseRevenue * startingDebtRatio,
-                    interest_rate_annual: financeDefaults.interest_rate_annual ?? 0.05
+                    interest_rate_annual: financeDefaults.interest_rate_annual ?? GLOBAL_BASE_INTEREST_RATE ?? 0.07
                 },
                 pipeline: [],
                 events: []
@@ -396,7 +397,7 @@
                 finance: {
                     starting_cash_usd: baseRevenue * (financeDefaults.starting_cash_ratio ?? 0.04),
                     starting_debt_usd: baseRevenue * (financeDefaults.starting_debt_ratio ?? 0.08),
-                    interest_rate_annual: financeDefaults.interest_rate_annual ?? 0.05
+                    interest_rate_annual: financeDefaults.interest_rate_annual ?? GLOBAL_BASE_INTEREST_RATE ?? 0.07
                 },
                 costs: {
                     opex_fixed_usd: pickRangeLocal(costDefaults.opex_fixed_usd, 150_000_000, 300_000_000),
@@ -470,7 +471,7 @@
                 finance: {
                     starting_cash_usd: baseRevenue * (financeDefaults.starting_cash_ratio ?? 0.06),
                     starting_debt_usd: baseRevenue * (financeDefaults.starting_debt_ratio ?? 0.01),
-                    interest_rate_annual: financeDefaults.interest_rate_annual ?? 0.05
+                    interest_rate_annual: financeDefaults.interest_rate_annual ?? GLOBAL_BASE_INTEREST_RATE ?? 0.07
                 },
                 costs: {
                     opex_fixed_usd: pickRangeLocal(costDefaults.opex_fixed_usd, 220_000_000, 480_000_000),
@@ -569,7 +570,7 @@
             const finance = {
                 starting_cash_usd: initialRevenue * randBetween(6, 12),
                 starting_debt_usd: 0,
-                interest_rate_annual: 0.06
+                interest_rate_annual: GLOBAL_BASE_INTEREST_RATE ?? 0.07
             };
             const costs = {
                 opex_fixed_usd: randBetween(30_000_000, 60_000_000),

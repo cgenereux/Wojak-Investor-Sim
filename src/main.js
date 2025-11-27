@@ -95,6 +95,7 @@ if (typeof window !== 'undefined' && window.innerWidth <= 768) {
 
 const DEFAULT_WOJAK_SRC = 'wojaks/wojak.png';
 const MALDING_WOJAK_SRC = 'wojaks/malding-wojak.png';
+const GLOBAL_BASE_INTEREST_RATE = 0.07; // shared baseline; can be adjusted by macro events later
 
 function trackEvent(eventName, props = {}) {
     if (window.posthog) {
@@ -496,7 +497,7 @@ if (wojakImage) {
 // --- Banking State ---
 let totalBorrowed = 0;
 let lastInterestDate = new Date(currentDate);
-const ANNUAL_INTEREST_RATE = 0.07;
+const ANNUAL_INTEREST_RATE = GLOBAL_BASE_INTEREST_RATE;
 
 // --- Global Game Constants ---
 const GAME_END_YEAR = 2050;
@@ -823,6 +824,9 @@ function applyTick(tick) {
             companies.push(newComp);
         }
     });
+
+    // Update synthetic equal-weight index after applying company snapshots
+    updateIndexCompany(new Date(tickTs));
     if (Array.isArray(tick.players) && tick.players.length) {
         const me = tick.players.find(p => (serverPlayer && p.id === serverPlayer.id) || (clientPlayerId && p.id === clientPlayerId)) || tick.players[0];
         if (me) updatePlayerFromServer(me);
@@ -1163,7 +1167,7 @@ function formatLargeNumber(num, precision = 2) {
 }
 function formatDate(date) { return date.toISOString().split('T')[0]; }
 
-
+// --- Synthetic Equal-Weight Index (testing-only) ---
 function updateDisplay() {
     let publicAssets = 0;
     portfolio.forEach(holding => {

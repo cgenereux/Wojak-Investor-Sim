@@ -122,13 +122,13 @@
       };
       this.eventManager = eventManager || null;
 
-      const buildBiasState = (range = [0.9, 1.1], halfLifeYears = 12) => {
+      const buildBiasState = (range = [0.9, 1.1], halfLifeYears = 12, sigmaFactor = 0.3) => {
         const [lo, hi] = Array.isArray(range) && range.length >= 2 ? range : [0.9, 1.1];
         const lower = Math.max(0.2, Math.min(lo, hi));
         const upper = Math.max(lower + 0.05, Math.max(lo, hi));
         const k = Math.log(2) / Math.max(0.25, halfLifeYears);
         const span = Math.max(0.01, upper - lower);
-        const sigma = span * 0.3;
+        const sigma = span * sigmaFactor;
         const value = lower + random() * span;
         return { value, lower, upper, k, sigma };
       };
@@ -142,14 +142,14 @@
 
       this.stepBias = stepBias;
 
-      this.marketBiasState = buildBiasState([0.85, 1.2], 14);
+      this.marketBiasState = buildBiasState([0.8, 1.3], 14, 0.4);
       this.sectorBiasStates = {};
 
       this.idxs = {};
       sectorsSet.forEach(sec => {
         const p = this.sectorPresets[sec] || this.defaultParams;
         this.idxs[sec] = { value: 1, mu: p.mu, sigma: p.sigma };
-        this.sectorBiasStates[sec] = buildBiasState([0.7, 1.4], 10);
+        this.sectorBiasStates[sec] = buildBiasState([0.75, 1.5], 10, 0.35);
       });
 
       if (!this.idxs.DEFAULT) {
@@ -158,7 +158,7 @@
           mu: this.defaultParams.mu,
           sigma: this.defaultParams.sigma
         };
-        this.sectorBiasStates.DEFAULT = buildBiasState([0.7, 1.4], 10);
+        this.sectorBiasStates.DEFAULT = buildBiasState([0.75, 1.5], 10, 0.35);
       }
 
       this.events = [];
@@ -187,7 +187,7 @@
         this.idxs[sector] = { value: 1, mu: p.mu, sigma: p.sigma };
         this.sectorBiasStates[sector] = this.sectorBiasStates.DEFAULT
           ? { ...this.sectorBiasStates.DEFAULT }
-          : { value: 1, lower: 0.7, upper: 1.4, k: Math.log(2) / 10, sigma: 0.21 };
+          : buildBiasState([0.75, 1.5], 10, 0.35);
       }
     }
 
@@ -212,8 +212,16 @@
     }
 
     getRevenueMultiplier(sector) {
-      if (!this.eventManager) return 1;
-      return this.eventManager.getRevenueMultiplier(sector);
+      const eventMult = this.eventManager ? this.eventManager.getRevenueMultiplier(sector) : 1;
+      const biasMult = this.eventManager && typeof this.eventManager.getRevenueBiasMultiplier === 'function'
+        ? this.eventManager.getRevenueBiasMultiplier(sector)
+        : 1;
+      const market = this.marketBiasState ? this.marketBiasState.value : 1;
+      const sectorState = this.sectorBiasStates[sector] || this.sectorBiasStates.DEFAULT;
+      const sectorBias = sectorState ? sectorState.value : 1;
+      // Constrain revenue influence so it nudges ~±25% at extremes.
+      const revBias = clampValue(market * sectorBias * biasMult, 0.75, 1.25);
+      return revBias * eventMult;
     }
   }
 

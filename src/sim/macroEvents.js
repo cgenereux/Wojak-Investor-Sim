@@ -30,6 +30,7 @@
       this.activeEvents = [];
       this.definitionMap = {};
       this.currentDate = new Date(baseYear, 0, 1);
+      this.globalInterestShift = 0;
       (definitions || []).forEach(def => {
         if (!def || !def.id) return;
         this.definitionMap[def.id] = def;
@@ -145,6 +146,18 @@
       }, 0);
     }
 
+    getInterestRateShift() {
+      if (!this.activeEvents.length) return 0;
+      return this.activeEvents.reduce((acc, event) => {
+        event.effects.forEach(effect => {
+          if (effect.type === 'interest_rate_shift' && typeof effect.delta === 'number') {
+            acc += effect.delta;
+          }
+        });
+        return acc;
+      }, 0);
+    }
+
     getVolatilityMultiplier() {
       if (!this.activeEvents.length) return 1;
       return this.activeEvents.reduce((mult, event) => {
@@ -180,6 +193,19 @@
           referenceDate: ref,
           baseMin: event.valuationMinMultiplier || 1,
           sectorImpacts: []
+        });
+      }, 1);
+    }
+
+    getRevenueBiasMultiplier(sector) {
+      if (!this.activeEvents.length) return 1;
+      const ref = this.currentDate || new Date();
+      return this.activeEvents.reduce((mult, event) => {
+        return mult * this.computeEventMultiplier(event, {
+          sector,
+          referenceDate: ref,
+          baseMin: event.globalMinMultiplier,
+          sectorImpacts: event.sectorImpacts
         });
       }, 1);
     }
