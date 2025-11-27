@@ -115,9 +115,9 @@
       this.defaultParams = { mu: 0.12, sigma: 0.15 };
       this.sectorPresets = {
         Biotech:        { mu: 0.08, sigma: 0.25 },
-        Semiconductor:  { mu: 0.10, sigma: 0.30 },
+        Semiconductor:  { mu: 0.13, sigma: 0.30 },
         Tech:           { mu: 0.165, sigma: 0.22 },
-        Banking:        { mu: 0.15, sigma: 0.18 },
+        Banking:        { mu: 0.125, sigma: 0.18 },
         Retail:         { mu: 0.12, sigma: 0.10 }
       };
       this.eventManager = eventManager || null;

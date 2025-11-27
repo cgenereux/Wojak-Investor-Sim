@@ -150,6 +150,12 @@
         return (meta.createdAgeDays || 0) < (oldestMeta.createdAgeDays || 0) ? product : oldestSoFar;
       }, null);
       if (!oldest) return;
+      if (typeof oldest.realisedRevenuePerYear === 'function' && typeof this.company.bumpBaseRevenue === 'function') {
+        const carry = Math.max(0, Number(oldest.realisedRevenuePerYear()) || 0);
+        if (carry > 0) {
+          this.company.bumpBaseRevenue(carry * 0.6);
+        }
+      }
       const idx = this.company.products.indexOf(oldest);
       if (idx >= 0) {
         this.company.products.splice(idx, 1);
@@ -193,6 +199,12 @@
           product.__planMeta = meta;
         }
         if (meta.completedAgeDays && now - meta.completedAgeDays >= PRODUCT_RETIRE_DELAY_DAYS) {
+          if (typeof product.realisedRevenuePerYear === 'function' && typeof this.company.bumpBaseRevenue === 'function') {
+            const carry = Math.max(0, Number(product.realisedRevenuePerYear()) || 0);
+            if (carry > 0) {
+              this.company.bumpBaseRevenue(carry * 0.6);
+            }
+          }
           const idx = this.company.products.indexOf(product);
           if (idx >= 0) {
             this.company.products.splice(idx, 1);
@@ -418,6 +430,12 @@
       this.displayCap = 0;
       this.bankrupt = true;
       this.recordHistoryPoint(gameDate, 0);
+      this.pendingDividendRemaining = 0;
+      this.dividendInstallmentsLeft = 0;
+      this.dividendAccumulatorDays = 0;
+      if (Array.isArray(this.products)) {
+        this.products.length = 0;
+      }
     }
 
     getFinancialTable() {
@@ -529,6 +547,13 @@
     get isPublicPhase() {
       return this.phase === 'public';
     }
+
+    bumpBaseRevenue(amount) {
+      if (!Number.isFinite(amount) || amount <= 0) return;
+      const cap = Number.isFinite(this.initialBaseRevenue) ? this.initialBaseRevenue * 3 : Infinity;
+      const next = this.baseRevenue + amount;
+      this.baseRevenue = Number.isFinite(cap) ? Math.min(next, cap) : next;
+    }
   }
 
   class Company extends PhaseCompany {
@@ -538,6 +563,7 @@
 
       const rp = cfg.base_business.revenue_process;
       this.baseRevenue = between(rp.initial_revenue_usd.min, rp.initial_revenue_usd.max);
+      this.initialBaseRevenue = this.baseRevenue;
 
       const mc = cfg.base_business.margin_curve;
       const mu = cfg.base_business.multiple_curve;

@@ -127,6 +127,13 @@
       const ipoLabel = company.ipoDate instanceof Date
         ? `${company.ipoDate.getFullYear()}`
         : '';
+      const isDoingRnd = !company.bankrupt && Array.isArray(company.products) && company.products.some(p => {
+        if (!p || !p.stages) return false;
+        // "Conducting R&D" if any stage exists and not all completed
+        const stages = Array.isArray(p.stages) ? p.stages : [];
+        const allDone = stages.length > 0 && stages.every(s => s && s.completed);
+        return !allDone;
+      });
       const companyId = company.id || company.name || '';
       const queueIndex = company.__queueIndex || 0;
       const safeId = escapeHtml(companyId);
@@ -144,6 +151,7 @@
                 <div class="company-valuation" data-company-cap="${safeId}">${safeCap}</div>
                 <div class="company-sector${sectorClass ? ` ${sectorClass}` : ''}">${safeSector}</div>
             </div>
+            ${isDoingRnd ? `<div class="company-rnd-flag">Conducting R&amp;D…</div>` : ''}
         </div>`;
     }).join('');
 

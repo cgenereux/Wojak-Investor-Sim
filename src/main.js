@@ -568,8 +568,11 @@ const macroEventNotifiedIds = new Set();
 const ENABLE_LOCAL_BANKRUPTCY_TEST = false;
 const BANKRUPTCY_TEST_DELAY_MS = 12000;
 const HOLDING_PURGE_DELAY_MS = 9000;
+const BANKRUPT_CLEANUP_BASE_MS = 120000; // 2 minutes at 1x speed
 let bankruptcyTestTimer = null;
 const holdingsPurgeTimers = new Map();
+const bankruptCleanupTimers = new Map();
+const delistedBankruptIds = new Set();
 
 function initMatchContext(seedOverride = null) {
     if (!matchSeed) {
@@ -771,6 +774,9 @@ function applyTick(tick) {
     }
     let activeFinancialChanged = false;
     tick.companies.forEach(update => {
+        if (delistedBankruptIds.has(update.id) && update.bankrupt) {
+            return; // keep delisted bankrupts out of the client list
+        }
         let existing = companies.find(c => c.id === update.id);
         if (existing) {
             const prevHistory = Array.isArray(existing.history) ? existing.history.slice() : [];
@@ -1034,6 +1040,51 @@ function scheduleLocalBankruptHoldingPurge(company) {
         }
     }, HOLDING_PURGE_DELAY_MS);
     holdingsPurgeTimers.set(company.name, timer);
+}
+
+function markBankruptCompaniesForCleanup(companiesList = []) {
+    const speedFactor = Math.max(0.25, currentSpeed || 1);
+    const ttlMs = BANKRUPT_CLEANUP_BASE_MS / speedFactor;
+    const now = Date.now();
+    companiesList.forEach(company => {
+        if (!company || !company.id) return;
+        if (bankruptCleanupTimers.has(company.id)) return;
+        bankruptCleanupTimers.set(company.id, now + ttlMs);
+    });
+    // Periodically prune bankrupt companies after TTL
+    if (!markBankruptCompaniesForCleanup._interval) {
+        markBankruptCompaniesForCleanup._interval = setInterval(() => {
+            const cutoff = Date.now();
+            const pendingRemoval = [];
+            bankruptCleanupTimers.forEach((expireTs, companyId) => {
+                if (expireTs <= cutoff) {
+                    pendingRemoval.push(companyId);
+                }
+            });
+            if (pendingRemoval.length === 0) return;
+            pendingRemoval.forEach(companyId => {
+                bankruptCleanupTimers.delete(companyId);
+                delistedBankruptIds.add(companyId);
+                if (Array.isArray(companies)) {
+                    for (let i = companies.length - 1; i >= 0; i--) {
+                        if (companies[i] && (companies[i].id === companyId)) {
+                            companies.splice(i, 1);
+                        }
+                    }
+                }
+                if (sim && Array.isArray(sim.companies) && sim.companies !== companies) {
+                    for (let i = sim.companies.length - 1; i >= 0; i--) {
+                        if (sim.companies[i] && (sim.companies[i].id === companyId)) {
+                            sim.companies.splice(i, 1);
+                        }
+                    }
+                }
+            });
+            renderCompanies(true);
+            renderPortfolio();
+            updateDisplay();
+        }, 5000);
+    }
 }
 
 function ensureVentureSimulation(force = false) {
@@ -1881,12 +1932,17 @@ function gameLoop() {
         refreshVentureDetailView();
     }
 
-    if (!isServerAuthoritative) {
-        (sim?.companies || []).forEach(company => {
-            if (company && company.bankrupt) {
+    const bankruptNow = [];
+    (sim?.companies || []).forEach(company => {
+        if (company && company.bankrupt) {
+            bankruptNow.push(company);
+            if (!isServerAuthoritative) {
                 scheduleLocalBankruptHoldingPurge(company);
             }
-        });
+        }
+    });
+    if (bankruptNow.length) {
+        markBankruptCompaniesForCleanup(bankruptNow);
     }
 
     // --- Dividend payout to player (quarterly events) ---

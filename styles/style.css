@@ -876,6 +876,19 @@ button.speed-active:hover {
     pointer-events: none;
 }
 
+.company-rnd-flag {
+    position: absolute;
+    right: 8px;
+    bottom: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #ec4899;
+    background: rgba(236, 72, 153, 0.08);
+    padding: 2px 6px;
+    border-radius: 4px;
+    pointer-events: none;
+}
+
 .company-info,
 .portfolio-info {
     font-size: 14px;
