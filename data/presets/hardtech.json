@@ -167,7 +167,7 @@
     {
       "id": "general_biotech_program",
       "label": "Biotech Program",
-      "full_revenue_usd": 30000000000,
+      "full_revenue_usd": 11000000000,
       "stages": [
         {
           "id": "phase_1",
@@ -214,8 +214,8 @@
   ],
   "defaults": {
     "structural_bias": {
-      "min": 0.2,
-      "max": 6,
+      "min": 0.5,
+      "max": 2,
       "half_life_years": 25
     },
     "margin_curve": {
@@ -224,8 +224,8 @@
         0.15
       ],
       "terminal_profit_margin": [
-        0.5,
-        0.7
+        0.2,
+        0.3
       ],
       "years_to_mature": [
         10,

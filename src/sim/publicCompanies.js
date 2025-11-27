@@ -646,9 +646,9 @@
       const revenueMultiplier = this.macroEnv.getRevenueMultiplier
         ? this.macroEnv.getRevenueMultiplier(this.sector)
         : 1;
-      const coreAnnual = this.baseRevenue * sectorFactor * this.micro * this.revMult - this.flatRev;
-      const pipelineAnnual = this.products.reduce((s, p) => s + p.realisedRevenuePerYear(), 0);
-      const effectiveAnnual = (coreAnnual + pipelineAnnual) * revenueMultiplier;
+      const pipelineBoost = this.products.reduce((s, p) => s + p.realisedRevenuePerYear(), 0);
+      const coreAnnual = ((this.baseRevenue + pipelineBoost) * sectorFactor * this.micro * this.revMult) - this.flatRev;
+      const effectiveAnnual = coreAnnual * revenueMultiplier;
       const revenueThisTick = effectiveAnnual * dtYears;
 
       let marginNow;
