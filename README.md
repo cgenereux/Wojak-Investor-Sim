@@ -73,7 +73,7 @@
 
   - Public presets: hard tech (biotech-style pipelines), steady megacorps, product rotators (managed product catalog), each with sector defaults and IPO windows (data/presets/*.json, src/presets/presets.js).
   - Venture presets: 1990s hypergrowth web companies, binary hard-tech ventures; product catalogs in data/productCatalogs/core.json.
-  - Legacy company JSONs still load for single-player but are filtered in favor of presets (data/legacy-companies/*, src/main.js:loadCompaniesData).
+  - Legacy company JSONs are archived under legacy/data/legacy-companies and no longer load in the main flow (src/main.js:loadCompaniesData).
 
   Analytics & Debug
 

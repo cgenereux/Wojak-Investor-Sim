@@ -609,6 +609,11 @@ function refreshVentureCompaniesList() {
     if (typeof getVentureCompanySummaries !== 'function') return;
     const summaries = getVentureCompanySummaries();
     renderVentureCompanies(summaries, vcFormatLargeNumber, vcFormatCurrency);
+    if (document.body.classList.contains('vc-active') && typeof window.markVentureListingsSeen === 'function') {
+        window.markVentureListingsSeen();
+    } else if (typeof window.updateVentureBadge === 'function') {
+        window.updateVentureBadge();
+    }
 }
 
 function refreshVentureDetailView() {

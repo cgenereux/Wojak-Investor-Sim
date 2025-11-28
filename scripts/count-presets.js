@@ -2,15 +2,15 @@ const fs = require('fs');
 const path = require('path');
 
 const PUBLIC_PRESETS = [
-  'data/presets/hardtech.json',
-  'data/presets/megacorp.json',
-  'data/presets/product_rotator.json',
+  'legacy/data/presets/hardtech.json',
+  'legacy/data/presets/megacorp.json',
+  'legacy/data/presets/product_rotator.json',
   'data/presets/tech.json',
-  'data/presets/banking.json'
+  'legacy/data/presets/banking.json'
 ];
 const PRIVATE_PRESETS = [
   'data/presets/hypergrowth.json',
-  'data/presets/binary_hardtech.json'
+  'legacy/data/presets/binary_hardtech.json'
 ];
 
 function readJson(relPath) {

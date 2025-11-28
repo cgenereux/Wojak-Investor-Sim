@@ -58,6 +58,30 @@ body.vc-active.vc-detail-active #vc-detail-view {
     display: inline-block;
 }
 
+.vc-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background-color: #ef4444;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    box-shadow: 0 0 0 2px #fff;
+    pointer-events: none;
+}
+
+.vc-badge.show {
+    display: inline-flex;
+}
+
 .tooltip-text {
     visibility: hidden;
     width: 220px;

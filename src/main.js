@@ -25,6 +25,7 @@ const macroEventsDisplay = document.getElementById('macroEventsDisplay');
 const buyMaxBtn = document.getElementById('buyMaxBtn');
 const sellMaxBtn = document.getElementById('sellMaxBtn');
 const vcBtn = document.getElementById('vcBtn');
+const vcBadge = document.getElementById('vcBadge');
 const vcView = document.getElementById('vc-view');
 const backToMainBtn = document.getElementById('back-to-main-btn');
 const dripToggle = document.getElementById('dripToggle');
@@ -566,6 +567,8 @@ let disconnectButtonEl = null;
 const emittedDecadeKeys = new Set();
 const bankruptNotifiedIds = new Set();
 const macroEventNotifiedIds = new Set();
+const seenVentureIds = new Set();
+let unseenVentureCount = 0;
 const ENABLE_LOCAL_BANKRUPTCY_TEST = false;
 const BANKRUPTCY_TEST_DELAY_MS = 12000;
 const HOLDING_PURGE_DELAY_MS = 9000;
@@ -710,6 +713,8 @@ function hydrateFromSnapshot(snapshot) {
             window.ventureSim = ventureSim;
         }
     }
+
+    updateVentureBadge();
 
     // Refresh active detail view if open
     if (activeCompanyDetail) {
@@ -944,6 +949,9 @@ function applyTick(tick) {
         if (document.body.classList.contains('vc-detail-active') && typeof refreshVentureDetailView === 'function') {
             refreshVentureDetailView();
         }
+        if (!document.body.classList.contains('vc-active')) {
+            updateVentureBadge();
+        }
     }
 }
 
@@ -1106,23 +1114,57 @@ function ensureVentureSimulation(force = false) {
     }
 }
 
+function getVentureListingIds() {
+    const source = typeof getVentureCompanySummaries === 'function'
+        ? getVentureCompanySummaries()
+        : (Array.isArray(ventureCompanies) ? ventureCompanies : []);
+    return source
+        .map(entry => entry && (entry.id || entry.name))
+        .filter(Boolean);
+}
+
+function setVentureBadgeCount(count = 0) {
+    unseenVentureCount = Math.max(0, Number.isFinite(count) ? count : 0);
+    if (!vcBadge) return;
+    if (vcBtn && vcBtn.disabled) {
+        vcBadge.textContent = '';
+        vcBadge.classList.remove('show');
+        return;
+    }
+    if (unseenVentureCount > 0) {
+        vcBadge.textContent = unseenVentureCount > 99 ? '99+' : String(unseenVentureCount);
+        vcBadge.classList.add('show');
+    } else {
+        vcBadge.textContent = '';
+        vcBadge.classList.remove('show');
+    }
+}
+
+function markVentureListingsSeen() {
+    getVentureListingIds().forEach(id => seenVentureIds.add(id));
+    setVentureBadgeCount(0);
+}
+
+function updateVentureBadge() {
+    const unseen = getVentureListingIds().filter(id => !seenVentureIds.has(id));
+    setVentureBadgeCount(unseen.length);
+}
+
+function resetVentureBadgeState() {
+    seenVentureIds.clear();
+    setVentureBadgeCount(0);
+}
+
 async function loadCompaniesData() {
     try {
         initMatchContext();
-        const [companiesResponse, ventureCompaniesResponse, macroEventsResponse] = await Promise.all([
-            fetch('data/legacy-companies/companies.json'),
-            fetch('data/legacy-companies/venture_companies.json'),
-            fetch('data/macroEvents.json')
-        ]);
+        resetVentureBadgeState();
+        const macroEventsResponse = await fetch('data/macroEvents.json');
+        if (!macroEventsResponse.ok) { throw new Error(`HTTP error! status: ${macroEventsResponse.status} for macroEvents.json`); }
 
-        if (!companiesResponse.ok) { throw new Error(`HTTP error! status: ${companiesResponse.status} for companies.json`); }
-        if (!ventureCompaniesResponse.ok) { throw new Error(`HTTP error! status: ${ventureCompaniesResponse.status} for venture_companies.json`); }
-
-        const rawCompanies = await companiesResponse.json();
-        ventureCompanies = await ventureCompaniesResponse.json();
-        const macroEvents = macroEventsResponse.ok ? await macroEventsResponse.json() : [];
-        if (!Array.isArray(ventureCompanies)) ventureCompanies = [];
-        let filteredCompanies = []; // temporarily ignore legacy companies
+        ventureCompanies = [];
+        const macroEvents = await macroEventsResponse.json();
+        let filteredCompanies = [];
         const presetOptions = matchRngFn ? { rng: matchRngFn } : {};
         const presetClassicCompanies = await generateClassicCorpsCompanies(presetOptions);
         if (Array.isArray(presetClassicCompanies)) {
@@ -1141,6 +1183,7 @@ async function loadCompaniesData() {
             ventureCompanies.push(...hardTechCompanies);
         }
         ensureVentureSimulation(true);
+        updateVentureBadge();
         const simOptions = matchRngFn ? { macroEvents, seed: matchSeed, rng: matchRngFn } : { macroEvents };
         return new Simulation(filteredCompanies, simOptions);
     } catch (error) {
@@ -1589,10 +1632,11 @@ function updateNetWorth() {
         vcBtn.disabled = false;
         vcBtn.parentElement.classList.remove('disabled');
         ensureVentureSimulation();
-
+        updateVentureBadge();
     } else {
         vcBtn.disabled = true;
         vcBtn.parentElement.classList.add('disabled');
+        setVentureBadgeCount(0);
     }
 }
 
@@ -1929,6 +1973,11 @@ function gameLoop() {
         renderPortfolio();
     } else if (typeof refreshVentureDetailView === 'function' && document.body.classList.contains('vc-detail-active')) {
         refreshVentureDetailView();
+    }
+    if (document.body.classList.contains('vc-active')) {
+        markVentureListingsSeen();
+    } else {
+        updateVentureBadge();
     }
 
     const bankruptNow = [];
@@ -2717,6 +2766,7 @@ function openVentureTab(options = {}) {
         formatLargeNumber,
         formatLargeNumber
     );
+    markVentureListingsSeen();
     if (!skipHistory && typeof pushViewState === 'function') {
         pushViewState(VIEW_VC, {});
     }
@@ -3160,6 +3210,8 @@ window.leadVentureRound = leadVentureRound;
 window.getVentureCompanyDetail = (companyId) => ventureSim ? ventureSim.getCompanyDetail(companyId) : null;
 window.getVentureCompanySummaries = () => ventureSim ? ventureSim.getCompanySummaries() : [];
 window.ensureVentureSimulation = ensureVentureSimulation;
+window.markVentureListingsSeen = markVentureListingsSeen;
+window.updateVentureBadge = updateVentureBadge;
 
 setMillionaireBtn.addEventListener('click', () => {
     if (isServerAuthoritative) {

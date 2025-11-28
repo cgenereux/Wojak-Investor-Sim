@@ -37,10 +37,8 @@
     const HARDTECH_DATA_PATH = 'data/presets/hardtech_merged.json';
     const MEGACORP_DATA_PATH = 'data/presets/megacorp.json';
     const HYPERGROWTH_DATA_PATH = 'data/presets/hypergrowth.json';
-    const PRODUCT_ROTATOR_DATA_PATH = 'data/presets/product_rotator.json';
     const TECH_DATA_PATH = 'data/presets/tech.json';
     const BINARY_HARDTECH_DATA_PATH = 'data/presets/hardtech_merged.json';
-    const PRODUCT_CATALOG_DATA_PATH = 'data/productCatalogs/core.json';
     const BANKING_DATA_PATH = 'data/presets/banking.json';
     const CLASSIC_CORPS_DATA_PATH = 'data/presets/classic_corps.json';
 
