@@ -5,7 +5,6 @@ const PUBLIC_PRESETS = [
   'legacy/data/presets/hardtech.json',
   'legacy/data/presets/megacorp.json',
   'legacy/data/presets/product_rotator.json',
-  'data/presets/tech.json',
   'legacy/data/presets/banking.json'
 ];
 const PRIVATE_PRESETS = [

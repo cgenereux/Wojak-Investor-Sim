@@ -34,13 +34,13 @@
     const HARDTECH_VC_ROUNDS = ['series_b', 'series_c', 'series_d', 'pre_ipo'];
 
     const PRESET_JSON_CACHE = {};
-    const HARDTECH_DATA_PATH = 'data/presets/hardtech_merged.json';
+    const HARDTECH_DATA_PATH = 'data/presets/hard_tech.json';
     const MEGACORP_DATA_PATH = 'data/presets/megacorp.json';
     const HYPERGROWTH_DATA_PATH = 'data/presets/hypergrowth.json';
-    const TECH_DATA_PATH = 'data/presets/tech.json';
-    const BINARY_HARDTECH_DATA_PATH = 'data/presets/hardtech_merged.json';
+    const TECH_DATA_PATH = 'legacy/data/presets/tech_companies.json';
+    const BINARY_HARDTECH_DATA_PATH = 'data/presets/hard_tech.json';
     const BANKING_DATA_PATH = 'data/presets/banking.json';
-    const CLASSIC_CORPS_DATA_PATH = 'data/presets/classic_corps.json';
+    const CLASSIC_CORPS_DATA_PATH = 'data/presets/classic.json';
 
     let fs = null;
     let pathModule = null;

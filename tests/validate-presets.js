@@ -2,9 +2,8 @@ const fs = require('fs');
 const path = require('path');
 
 const PRESET_FILES = [
-  { path: 'data/presets/hardtech.json', kind: 'public' },
-  { path: 'data/presets/megacorp.json', kind: 'public' },
-  { path: 'data/presets/product_rotator.json', kind: 'public' },
+  { path: 'data/presets/hard_tech.json', kind: 'public' },
+  { path: 'data/presets/classic.json', kind: 'public' },
   { path: 'data/presets/hypergrowth.json', kind: 'venture' }
 ];
 
