@@ -322,11 +322,12 @@ const {
     generateBinaryHardTechCompanies,
     generateTechPresetCompanies,
     generateBankingPresetCompanies,
+    generateClassicCorpsCompanies,
     DEFAULT_VC_ROUNDS,
     HARDTECH_VC_ROUNDS
 } = PresetGenerators;
 
-if (!generateHardTechPresetCompanies || !generateSteadyMegacorpCompanies || !generateHypergrowthPresetCompanies || !generateBinaryHardTechCompanies) {
+if (!generateHardTechPresetCompanies || !generateSteadyMegacorpCompanies || !generateHypergrowthPresetCompanies || !generateBinaryHardTechCompanies || !generateClassicCorpsCompanies) {
     throw new Error('PresetGenerators failed to load. Ensure presets.js is included before main.js.');
 }
 
@@ -814,7 +815,14 @@ function applyTick(tick) {
             }
         } else {
             // New company arrived from the server; instantiate properly
-            const newComp = new CompanyModule.Company({ id: update.id, static: { name: update.name, sector: update.sector }, base_business: { revenue_process: { initial_revenue_usd: { min: 0, max: 0 } }, margin_curve: {}, multiple_curve: {} } }, getMacroEnv());
+            const ipoDate = update.ipoDate ? new Date(update.ipoDate) : null;
+            const startYear = ipoDate && !Number.isNaN(ipoDate.getTime()) ? ipoDate.getFullYear() : 1990;
+            const newComp = new CompanyModule.Company(
+                { id: update.id, static: { name: update.name, sector: update.sector }, base_business: { revenue_process: { initial_revenue_usd: { min: 0, max: 0 } }, margin_curve: {}, multiple_curve: {} } },
+                getMacroEnv(),
+                startYear,
+                ipoDate
+            );
             newComp.syncFromSnapshot(update);
             if (!Array.isArray(newComp.history)) newComp.history = [];
             newComp.history.push({ x: tickTs, y: update.marketCap || 0 });
@@ -1116,21 +1124,13 @@ async function loadCompaniesData() {
         if (!Array.isArray(ventureCompanies)) ventureCompanies = [];
         let filteredCompanies = []; // temporarily ignore legacy companies
         const presetOptions = matchRngFn ? { rng: matchRngFn } : {};
+        const presetClassicCompanies = await generateClassicCorpsCompanies(presetOptions);
+        if (Array.isArray(presetClassicCompanies)) {
+            filteredCompanies.push(...presetClassicCompanies);
+        }
         const presetHardTechCompanies = await generateHardTechPresetCompanies(3, presetOptions);
         if (Array.isArray(presetHardTechCompanies)) {
             filteredCompanies.push(...presetHardTechCompanies);
-        }
-        const presetBankingCompanies = await generateBankingPresetCompanies(2, presetOptions);
-        if (Array.isArray(presetBankingCompanies)) {
-            filteredCompanies.push(...presetBankingCompanies);
-        }
-        const presetTechCompanies = await generateTechPresetCompanies(2, presetOptions);
-        if (Array.isArray(presetTechCompanies)) {
-            filteredCompanies.push(...presetTechCompanies);
-        }
-        const presetMegacorpCompanies = await generateSteadyMegacorpCompanies(4, presetOptions);
-        if (Array.isArray(presetMegacorpCompanies)) {
-            filteredCompanies.push(...presetMegacorpCompanies);
         }
         const presetVentureCompanies = await generateHypergrowthPresetCompanies(presetOptions);
         if (Array.isArray(presetVentureCompanies)) {

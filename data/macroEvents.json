@@ -19,23 +19,23 @@
     ],
     "polarity": "negative",
     "descriptions": [
-    "A highly contagious influenza strain overwhelms hospitals nationwide.",
-    "Novel airborne pathogen spreads across 30 states in weeks.",
-    "Deadly virus traced to livestock sparks nationwide quarantine measures; travel restrictions imposed."
+    "A highly contagious influenza strain has quickly set in, overwhelming US hospitals.",
+    "A novel airborne pathogen has spread across 30 states in weeks.",
+    "A livestock-borne virus is spreading nationwide; quarantine measures going into effect."
     ]
   },
   {
     "id": "global_recession",
-    "label": "Global Recession",
-    "chance": 0.3,
-    "start_year_range": [1990, 2045],
+    "label": "Warning: National Recession",
+    "chance": 0.9,
+    "start_year_range": [1992, 2045],
     "impact_days_range": [360, 720],
     "recovery_days_range": [240, 480],
     "global_multiplier_range": [0.8, 0.9],
-    "valuation_compression_range": [0.85, 0.95],
+    "valuation_compression_range": [0.55, 0.8],
     "sector_impacts": [
       { "sector": "Retail", "min_multiplier": [0.7, 0.85] },
-      { "sector": "Banking", "min_multiplier": [0.65, 0.85] },
+      { "sector": "Banking", "min_multiplier": [0.45, 0.65] },
       { "sector": "Tech", "min_multiplier": [0.8, 0.95] }
     ],
     "effects": [
@@ -46,9 +46,8 @@
     ],
     "polarity": "negative",
     "descriptions": [
-      "Global demand cools; layoffs and spending cuts ripple across industries.",
-      "Credit tightens as rates rise and risk appetite fades.",
-      "A mild recession sets in, pressuring earnings and valuations."
+      "Consumer demand is cooling as layoffs and spending cuts spread across industries.",
+      "A moderate recession is setting in, pressuring earnings and valuations."
     ]
   }
 ]

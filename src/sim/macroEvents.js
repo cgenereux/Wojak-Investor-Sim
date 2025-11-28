@@ -4,6 +4,7 @@
   const randBetween = (min, max, rngFn = getRng()) => rngFn() * (max - min) + min;
   const randIntBetween = (min, max) => Math.floor(randBetween(min, max + 1));
   const DAY_MS = 24 * 60 * 60 * 1000;
+  const MIN_MACRO_EVENT_GAP_DAYS = 120;
 
   const pickFromRange = (range, fallback) => {
     if (Array.isArray(range) && range.length >= 2) {
@@ -37,6 +38,7 @@
         const instance = this.createInstance(def);
         if (instance) this.events.push(instance);
       });
+      this.enforceEventSpacing();
     }
 
     createInstance(def = {}, options = {}) {
@@ -244,6 +246,27 @@
       this.events.push(instance);
       this.activeEvents.push(instance);
       return instance;
+    }
+
+    enforceEventSpacing(minGapDays = MIN_MACRO_EVENT_GAP_DAYS) {
+      if (!Array.isArray(this.events) || this.events.length < 2) return;
+      const gapMs = Math.max(0, minGapDays) * DAY_MS;
+      const sorted = [...this.events].sort((a, b) => a.startDate - b.startDate);
+      let lastEnd = null;
+      sorted.forEach(evt => {
+        if (!evt || !evt.startDate || !evt.endDate) return;
+        if (lastEnd) {
+          const earliestStart = new Date(lastEnd.getTime() + gapMs);
+          if (evt.startDate < earliestStart) {
+            const durationDays = evt.totalDays || Math.max(1, Math.ceil((evt.endDate - evt.startDate) / DAY_MS));
+            evt.startDate = earliestStart;
+            evt.endDate = new Date(evt.startDate.getTime() + durationDays * DAY_MS);
+            evt.totalDays = durationDays;
+          }
+        }
+        lastEnd = evt.endDate;
+      });
+      this.events = sorted;
     }
   }
 

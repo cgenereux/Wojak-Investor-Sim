@@ -34,14 +34,15 @@
     const HARDTECH_VC_ROUNDS = ['series_b', 'series_c', 'series_d', 'pre_ipo'];
 
     const PRESET_JSON_CACHE = {};
-    const HARDTECH_DATA_PATH = 'data/presets/hardtech.json';
+    const HARDTECH_DATA_PATH = 'data/presets/hardtech_merged.json';
     const MEGACORP_DATA_PATH = 'data/presets/megacorp.json';
     const HYPERGROWTH_DATA_PATH = 'data/presets/hypergrowth.json';
     const PRODUCT_ROTATOR_DATA_PATH = 'data/presets/product_rotator.json';
     const TECH_DATA_PATH = 'data/presets/tech.json';
-    const BINARY_HARDTECH_DATA_PATH = 'data/presets/binary_hardtech.json';
+    const BINARY_HARDTECH_DATA_PATH = 'data/presets/hardtech_merged.json';
     const PRODUCT_CATALOG_DATA_PATH = 'data/productCatalogs/core.json';
     const BANKING_DATA_PATH = 'data/presets/banking.json';
+    const CLASSIC_CORPS_DATA_PATH = 'data/presets/classic_corps.json';
 
     let fs = null;
     let pathModule = null;
@@ -120,7 +121,16 @@
         const { randBetween, randIntBetween, makeId } = buildRandomTools(options);
         const pickRangeLocal = (range, fallbackMin, fallbackMax) => pickRange(range, fallbackMin, fallbackMax, randBetween);
         const data = await loadPresetJson(HARDTECH_DATA_PATH, options);
-        const rosterSource = Array.isArray(data?.roster) ? data.roster.slice() : [];
+        const mergedGroups = Array.isArray(data?.groups) ? data.groups.filter(g => (g.type || '').toLowerCase() === 'public') : [];
+        let rosterSource;
+        let defaults = {};
+        if (mergedGroups.length > 0) {
+            rosterSource = mergedGroups.flatMap(g => Array.isArray(g.roster) ? g.roster.map(r => ({ ...r, __group: g })) : []);
+            defaults = data?.defaults?.public || {};
+        } else {
+            rosterSource = Array.isArray(data?.roster) ? data.roster.slice() : [];
+            defaults = data?.defaults || {};
+        }
         if (rosterSource.length === 0) return [];
         const picked = [];
         while (picked.length < count && rosterSource.length > 0) {
@@ -128,8 +138,7 @@
             picked.push(rosterSource.splice(idx, 1)[0]);
         }
         const companies = [];
-        const defaults = data?.defaults || {};
-        const pipelineTemplate = Array.isArray(data?.pipelineTemplate) ? data.pipelineTemplate : [];
+        const pipelineTemplate = Array.isArray(data?.pipelineTemplate) ? data.pipelineTemplate : (defaults.pipelineTemplate || []);
         const structuralBiasDefaults = defaults.structural_bias || { min: 0.2, max: 6, half_life_years: 25 };
         const marginDefaults = defaults.margin_curve || {};
         const multipleDefaults = defaults.multiple_curve || {};
@@ -273,7 +282,8 @@
                     interest_rate_annual: financeDefaults.interest_rate_annual ?? GLOBAL_BASE_INTEREST_RATE ?? 0.07
                 },
                 pipeline: [],
-                events: []
+                events: [],
+                post_success_mode: entry.post_success_mode || 'instant'
             };
             companies.push(company);
         });
@@ -484,6 +494,89 @@
         });
     }
 
+    async function generateClassicCorpsCompanies(options = {}) {
+        const { randBetween, randIntBetween, makeId } = buildRandomTools(options);
+        const pickRangeLocal = (range, fallbackMin, fallbackMax) => pickRange(range, fallbackMin, fallbackMax, randBetween);
+        const data = await loadPresetJson(CLASSIC_CORPS_DATA_PATH, options);
+        const groups = Array.isArray(data?.groups) ? data.groups : [];
+        const companies = [];
+
+        groups.forEach(group => {
+            const roster = Array.isArray(group?.roster) ? group.roster.slice() : [];
+            if (!roster.length) return;
+            const defaults = group?.defaults || {};
+            const structuralBiasDefaults = defaults.structural_bias || { min: 0.6, max: 1.8, half_life_years: 10 };
+            const marginDefaults = defaults.margin_curve || {};
+            const multipleDefaults = defaults.multiple_curve || {};
+            const financeDefaults = defaults.finance || {};
+            const costDefaults = defaults.costs || {};
+            const ipoDefault = defaults.ipo_window || { from: 1980, to: 1990 };
+            const pickCount = Math.min(group.pick || roster.length, roster.length);
+            const picked = [];
+            while (picked.length < pickCount && roster.length > 0) {
+                const idx = randIntBetween(0, roster.length);
+                picked.push(roster.splice(idx, 1)[0]);
+            }
+            picked.forEach((entry, idx) => {
+                const name = entry.name || `${group.label || 'Corp'} ${idx + 1}`;
+                const id = makeId(`classic_${slugify(group.id || group.label || 'corp')}_${slugify(name)}`, idx);
+                const baseRevenue = pickRangeLocal(defaults.base_revenue_usd, 1_000_000_000, 5_000_000_000);
+                const ipoRange = entry.ipo_window || ipoDefault;
+                const startMargin = pickRangeLocal(marginDefaults.start_profit_margin, 0.05, 0.1);
+                const terminalMargin = pickRangeLocal(marginDefaults.terminal_profit_margin, 0.12, 0.25);
+                const initialPs = pickRangeLocal(multipleDefaults.initial_ps_ratio ?? multipleDefaults.initial_pe_ratio, 1.2, 6);
+                const terminalPe = pickRangeLocal(multipleDefaults.terminal_pe_ratio, 10, 18);
+                companies.push({
+                    id,
+                    static: {
+                        name,
+                        sector: entry.sector || defaults.sector || 'General',
+                        founders: (entry.founders || []).map(f => ({ ...f })),
+                        mission: entry.mission || defaults.mission || '',
+                        founding_location: entry.founding_location || defaults.founding_location || '',
+                        ipo_window: ipoRange,
+                        ipo_instantly: entry.ipo_instantly ?? defaults.ipo_instantly ?? false
+                    },
+                    sentiment: {
+                        structural_bias: { ...structuralBiasDefaults }
+                    },
+                    base_business: {
+                        revenue_process: {
+                            initial_revenue_usd: {
+                                min: baseRevenue * 0.8,
+                                max: baseRevenue * 1.2
+                            }
+                        },
+                        margin_curve: {
+                            start_profit_margin: startMargin,
+                            terminal_profit_margin: terminalMargin,
+                            years_to_mature: pickRangeLocal(marginDefaults.years_to_mature, 8, 12)
+                        },
+                        multiple_curve: {
+                            initial_ps_ratio: initialPs,
+                            terminal_pe_ratio: terminalPe,
+                            years_to_converge: pickRangeLocal(multipleDefaults.years_to_converge, 8, 14)
+                        }
+                    },
+                    finance: {
+                        starting_cash_usd: baseRevenue * (financeDefaults.starting_cash_ratio ?? 0.04),
+                        starting_debt_usd: baseRevenue * (financeDefaults.starting_debt_ratio ?? 0.02),
+                        interest_rate_annual: financeDefaults.interest_rate_annual ?? GLOBAL_BASE_INTEREST_RATE ?? 0.07
+                    },
+                    costs: {
+                        opex_fixed_usd: pickRangeLocal(costDefaults.opex_fixed_usd, 20_000_000, 80_000_000),
+                        opex_variable_ratio: pickRangeLocal(costDefaults.opex_variable_ratio, 0.1, 0.2),
+                        rd_base_ratio: pickRangeLocal(costDefaults.rd_base_ratio, 0.02, 0.06)
+                    },
+                    pipeline: [],
+                    events: []
+                });
+            });
+        });
+
+        return companies;
+    }
+
     const hardTechRoster = [
         {
             name: 'Apex Fusion Works',
@@ -520,10 +613,16 @@
     async function generateBinaryHardTechCompanies(count = 1, options = {}) {
         const { randBetween, randIntBetween, makeId } = buildRandomTools(options);
         const data = await loadPresetJson(BINARY_HARDTECH_DATA_PATH, options);
-        const defaults = data?.defaults || {};
-        const rosterSource = Array.isArray(data?.roster)
-            ? data.roster.slice()
-            : (Array.isArray(data?.companies) ? data.companies.slice() : []);
+        const defaults = data?.defaults?.private || data?.defaults || {};
+        const mergedGroups = Array.isArray(data?.groups) ? data.groups.filter(g => (g.type || '').toLowerCase() === 'private') : [];
+        let rosterSource;
+        if (mergedGroups.length > 0) {
+            rosterSource = mergedGroups.flatMap(g => Array.isArray(g.roster) ? g.roster.map(r => ({ ...r, __group: g })) : []);
+        } else {
+            rosterSource = Array.isArray(data?.roster)
+                ? data.roster.slice()
+                : (Array.isArray(data?.companies) ? data.companies.slice() : []);
+        }
         const defaultPipelineTemplate = Array.isArray(defaults?.pipelineTemplate)
             ? defaults.pipelineTemplate
             : [];
@@ -577,6 +676,11 @@
                 opex_variable_ratio: randBetween(0.18, 0.32),
                 rd_base_ratio: randBetween(0.05, 0.1)
             };
+            const listingWindow = entry.private_listing_window
+                || entry.listing_window
+                || defaults.private_listing_window
+                || defaults.listing_window
+                || defaults.private_listing_window;
             companies.push({
                 id,
                 name: entry.name,
@@ -607,7 +711,10 @@
                 finance,
                 costs,
                 pipeline,
-                rounds: HARDTECH_VC_ROUNDS
+                rounds: HARDTECH_VC_ROUNDS,
+                post_success_mode: entry.post_success_mode || 'ramp',
+                expected_revenue_target: entry.expected_revenue_target || [baseBusiness.revenue_process.initial_revenue_usd.max * 8, baseBusiness.revenue_process.initial_revenue_usd.max * 15],
+                private_listing_window: listingWindow
             });
         }
         return companies;
@@ -621,6 +728,7 @@
         generateProductRotatorCompanies,
         generateTechPresetCompanies,
         generateBankingPresetCompanies,
+        generateClassicCorpsCompanies,
         DEFAULT_VC_ROUNDS,
         HARDTECH_VC_ROUNDS
     };

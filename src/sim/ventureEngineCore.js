@@ -12,6 +12,7 @@
     withRandomSource,
     SeededRandom
   } = shared;
+  const FAST_LISTING = 1; //!!process.env.FAST_LISTING;
   const { Company } = companyModule;
   const {
     computeHypergrowthFairValue,
@@ -215,6 +216,16 @@
       this.listingWindow = normalizeListingWindow(
         config.private_listing_window || config.listing_window || config.listingWindow || null
       );
+      if (this.listingWindow && this.listingWindow.from && this.listingWindow.to) {
+        const fromYear = this.listingWindow.from.getUTCFullYear();
+        const toYear = this.listingWindow.to.getUTCFullYear();
+        const targetYear = FAST_LISTING
+          ? startDate.getUTCFullYear()
+          : Math.max(fromYear, Math.min(toYear, Math.trunc(between(fromYear, toYear + 1))));
+        this.targetListingDate = new Date(Date.UTC(targetYear, 0, 1));
+      } else {
+        this.targetListingDate = null;
+      }
       this.status = 'raising';
       this.daysSinceRound = 0;
       this.playerEquity = 0;
@@ -377,6 +388,11 @@
       this.revenue = revenue;
       this.profit = profit;
       this.marketCap = this.currentValuation;
+
+      if (this.targetListingDate && (!this.currentDate || this.currentDate < this.targetListingDate)) {
+        this.currentDate = new Date(this.targetListingDate);
+        this.startDate = new Date(this.targetListingDate);
+      }
     }
 
     recordHistory(date) {
@@ -605,6 +621,7 @@
       if (this.status === 'failed' || this.status === 'exited' || this.status === 'ipo' || this.status === 'ipo_pending') {
         return false;
       }
+      if (!this.isActiveOnDate()) return false;
       return this.strategy.shouldStartNextRound(this);
     }
 
@@ -720,15 +737,17 @@
     }
 
     isListableOnDate(date = null) {
-      if (!this.listingWindow) return true;
+      // Listing windows are used to pick a target listing year; they no longer block interactions.
+      return true;
+    }
+
+    isActiveOnDate(date = null) {
+      if (!this.targetListingDate) return true;
       const ref = date
         ? new Date(date)
         : (this.currentDate ? new Date(this.currentDate) : null);
       if (!ref || Number.isNaN(ref.getTime())) return true;
-      const { from, to } = this.listingWindow;
-      if (from && ref < from) return false;
-      if (to && ref > to) return false;
-      return true;
+      return ref >= this.targetListingDate;
     }
 
     getPlayerValuation() {
@@ -1051,7 +1070,8 @@
               from: this.listingWindow.from ? this.listingWindow.from.toISOString() : null,
               to: this.listingWindow.to ? this.listingWindow.to.toISOString() : null
             }
-          : null
+          : null,
+        target_listing_date: this.targetListingDate ? this.targetListingDate.toISOString() : null
       };
     }
 
@@ -1329,6 +1349,10 @@
       if (dtDays <= 0) return [];
       const events = [];
       this.companies.forEach(company => {
+        if (!company.isActiveOnDate(currentDate)) {
+          company.currentDate = new Date(currentDate);
+          return;
+        }
         const companyEvents = company.advance(dtDays, currentDate);
         if (company.stageChanged) {
           this.stageUpdateFlag = true;
@@ -1376,8 +1400,8 @@
       return this.companies
         .filter(company => {
           if (company.exited) return false;
-          const listed = company.isListableOnDate(now);
-          return listed || company.hasPlayerPosition();
+          if (!company.isActiveOnDate(now) && !company.hasPlayerPosition()) return false;
+          return true;
         })
         .map(company => company.getSummary(now));
     }
@@ -1386,7 +1410,7 @@
       const company = this.getCompanyById(companyId);
       if (!company) return null;
       const now = currentDate ? new Date(currentDate) : (this.lastTick ? new Date(this.lastTick) : null);
-      if (!company.isListableOnDate(now) && !company.hasPlayerPosition()) return null;
+      if (!company.isActiveOnDate(now) && !company.hasPlayerPosition()) return null;
       return company.getDetail(now);
     }
 
