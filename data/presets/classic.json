@@ -1,5 +1,4 @@
 {
-  "$schema": "https://example.com/classic-corps.schema.json",
   "groups": [
     {
       "id": "banks_classic",

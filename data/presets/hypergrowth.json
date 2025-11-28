@@ -1,5 +1,4 @@
 {
-  "$schema": "https://example.com/hypergrowth-web.schema.json",
   "companies": [
     {
       "name": "eBuy",

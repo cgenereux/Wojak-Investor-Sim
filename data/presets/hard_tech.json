@@ -1,5 +1,4 @@
 {
-  "$schema": "https://example.com/hardtech-merged.schema.json",
   "defaults": {
     "public": {
       "structural_bias": { "min": 0.5, "max": 2, "half_life_years": 25 },
