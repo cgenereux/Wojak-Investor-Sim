@@ -463,6 +463,8 @@ const DEFAULT_WS_ORIGIN = isLocal
     : 'wss://wojak-backend.graysand-55f0f3f9.eastus2.azurecontainerapps.io';
 
 const DEFAULT_BACKEND_URL = DEFAULT_WS_ORIGIN.replace(/^ws/, 'http');
+const CLIENT_QUARTER_HISTORY_CAP = 160; // 40 years of quarters
+const CLIENT_FINANCIAL_HISTORY_CAP = 40; // 40 annual entries
 let lastNameTaken = false;
 let wsGeneration = 0;
 let latestServerPlayers = [];
@@ -729,6 +731,8 @@ function hydrateFromSnapshot(snapshot) {
 
 function mergeFinancialData(existing, update) {
     let changed = false;
+    let quarterChanged = false;
+    let annualChanged = false;
     if (update.quarterHistory && Array.isArray(update.quarterHistory)) {
         if (!existing.quarterHistory) existing.quarterHistory = [];
         update.quarterHistory.forEach(item => {
@@ -737,13 +741,20 @@ function mergeFinancialData(existing, update) {
                 const prev = existing.quarterHistory[idx];
                 const altered = prev.revenue !== item.revenue || prev.profit !== item.profit;
                 existing.quarterHistory[idx] = item;
-                if (altered) changed = true;
+                if (altered) {
+                    changed = true;
+                    quarterChanged = true;
+                }
             } else {
                 existing.quarterHistory.push(item);
                 changed = true;
+                quarterChanged = true;
             }
         });
         existing.quarterHistory.sort((a, b) => (a.year - b.year) || (a.quarter - b.quarter));
+        if (existing.quarterHistory.length > CLIENT_QUARTER_HISTORY_CAP) {
+            existing.quarterHistory = existing.quarterHistory.slice(existing.quarterHistory.length - CLIENT_QUARTER_HISTORY_CAP);
+        }
     }
     if (update.financialHistory && Array.isArray(update.financialHistory)) {
         if (!existing.financialHistory) existing.financialHistory = [];
@@ -753,14 +764,23 @@ function mergeFinancialData(existing, update) {
                 const prev = existing.financialHistory[idx];
                 const altered = prev.revenue !== item.revenue || prev.profit !== item.profit || prev.cash !== item.cash || prev.debt !== item.debt;
                 existing.financialHistory[idx] = item;
-                if (altered) changed = true;
+                if (altered) {
+                    changed = true;
+                    annualChanged = true;
+                }
             } else {
                 existing.financialHistory.push(item);
                 changed = true;
+                annualChanged = true;
             }
         });
         existing.financialHistory.sort((a, b) => a.year - b.year);
+        if (existing.financialHistory.length > CLIENT_FINANCIAL_HISTORY_CAP) {
+            existing.financialHistory = existing.financialHistory.slice(existing.financialHistory.length - CLIENT_FINANCIAL_HISTORY_CAP);
+        }
     }
+    if (quarterChanged) existing.newQuarterlyData = true;
+    if (annualChanged) existing.newAnnualData = true;
     return changed;
 }
 
@@ -786,6 +806,8 @@ function applyTick(tick) {
         let existing = companies.find(c => c.id === update.id);
         if (existing) {
             const prevHistory = Array.isArray(existing.history) ? existing.history.slice() : [];
+            const prevQuarterHistory = Array.isArray(existing.quarterHistory) ? existing.quarterHistory.slice() : [];
+            const prevFinancialHistory = Array.isArray(existing.financialHistory) ? existing.financialHistory.slice() : [];
             existing.syncFromSnapshot(update);
             // Always append the latest market cap to history for live charts
             if (!Array.isArray(existing.history)) existing.history = [];
@@ -809,14 +831,20 @@ function applyTick(tick) {
             } else {
                 last.y = update.marketCap;
             }
+            const mergedFinancial = mergeFinancialData(existing, {
+                quarterHistory: prevQuarterHistory,
+                financialHistory: prevFinancialHistory
+            });
             // Fallback display cap if missing
             if (!Number.isFinite(existing.displayCap) || existing.displayCap <= 0) {
                 existing.displayCap = Number(update.marketCap) || 0;
             }
-            if (existing.newAnnualData || existing.newQuarterlyData) {
-                if (activeCompanyDetail && (activeCompanyDetail.id === existing.id || activeCompanyDetail.name === existing.name)) {
-                    activeFinancialChanged = true;
-                }
+            if (
+                (existing.newAnnualData || existing.newQuarterlyData || mergedFinancial) &&
+                activeCompanyDetail &&
+                (activeCompanyDetail.id === existing.id || activeCompanyDetail.name === existing.name)
+            ) {
+                activeFinancialChanged = true;
             }
         } else {
             // New company arrived from the server; instantiate properly

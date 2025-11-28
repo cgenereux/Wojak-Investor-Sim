@@ -22,8 +22,13 @@ const PORT = process.env.PORT || 4000;
 const ANNUAL_INTEREST_RATE = 0.07;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const BANKRUPT_PURGE_DELAY_MS = 9000;
+const GAME_START_YEAR = 1990;
 const GAME_END_YEAR = 2050;
 const MAX_CONNECTIONS = Number(process.env.MAX_CONNECTIONS || 50);
+const SNAPSHOT_HISTORY_LIMIT = 1000;
+const SNAPSHOT_QUARTER_LIMIT = 120;
+const TICK_HISTORY_LIMIT = 1;
+const TICK_QUARTER_LIMIT = 40;
 
 const app = fastify({ logger: false });
 
@@ -86,6 +91,40 @@ function createPlayer(id) {
   };
 }
 
+function pickIpoDate(config = {}, rngFn = Math.random, startYear = GAME_START_YEAR) {
+  const rand = typeof rngFn === 'function' ? rngFn : Math.random;
+  const staticCfg = config.static || {};
+  if (staticCfg.ipo_instantly) {
+    return new Date(Date.UTC(startYear, 0, 1));
+  }
+  let from = Number(staticCfg?.ipo_window?.from);
+  let to = Number(staticCfg?.ipo_window?.to);
+  if (!Number.isFinite(from) || !Number.isFinite(to)) {
+    from = startYear + 1;
+    to = startYear + 6;
+  }
+  if (to < from) [from, to] = [to, from];
+  const year = Math.floor(rand() * (to - from + 1) + from);
+  const day = Math.floor(rand() * 365) + 1;
+  const date = new Date(Date.UTC(year, 0, 1));
+  date.setUTCDate(day);
+  return date;
+}
+
+function ensureIpoMetadata(companies = [], rngFn = Math.random, startYear = GAME_START_YEAR) {
+  companies.forEach(cfg => {
+    if (!cfg || typeof cfg !== 'object') return;
+    if (!cfg.static) cfg.static = {};
+    if (!cfg.static.ipo_window || !Number.isFinite(cfg.static.ipo_window.from) || !Number.isFinite(cfg.static.ipo_window.to)) {
+      const fallbackYear = startYear + 1;
+      cfg.static.ipo_window = { from: fallbackYear, to: fallbackYear + 4 };
+    }
+    if (!cfg.ipoDate) {
+      cfg.ipoDate = pickIpoDate(cfg, rngFn, startYear);
+    }
+  });
+}
+
 async function buildMatch(seed = Date.now()) {
   const rng = new SeededRandom(seed);
   const rngFn = () => rng.random();
@@ -93,11 +132,12 @@ async function buildMatch(seed = Date.now()) {
   const pubs = [];
   pubs.push(...await Presets.generateClassicCorpsCompanies(presetOpts));
   pubs.push(...await Presets.generateHardTechPresetCompanies(3, presetOpts));
+  ensureIpoMetadata(pubs, rngFn, GAME_START_YEAR);
   const ventures = [
     ...(await Presets.generateHypergrowthPresetCompanies(presetOpts)),
     ...await Presets.generateBinaryHardTechCompanies(1, presetOpts)
   ];
-  const sim = new Simulation(pubs, { seed, rng: rngFn, macroEvents: macroEvents || [] });
+  const sim = new Simulation(pubs, { seed, rng: rngFn, macroEvents: macroEvents || [], startYear: GAME_START_YEAR });
   const ventureSim = new VentureSimulation(ventures, sim.lastTick, { seed, rng: rngFn });
   sim._ventureSim = ventureSim;
   return {
@@ -163,7 +203,7 @@ function startTickLoop(session) {
       companies: session.sim.companies.map(c => {
         if (typeof c.toSnapshot === 'function') {
           // Send minimal price history but deeper financial/quarterly history for charts
-          return c.toSnapshot({ historyLimit: 1, quarterLimit: 40 });
+          return c.toSnapshot({ historyLimit: TICK_HISTORY_LIMIT, quarterLimit: TICK_QUARTER_LIMIT });
         }
         return {
           id: c.id,
@@ -545,7 +585,11 @@ function handleVentureEventsSession(session, events) {
 }
 
 function buildSnapshot(session) {
-  const simState = session.sim.exportState({ detail: false, historyLimit: 1000, quarterLimit: 100 });
+  const simState = session.sim.exportState({
+    detail: false,
+    historyLimit: SNAPSHOT_HISTORY_LIMIT,
+    quarterLimit: SNAPSHOT_QUARTER_LIMIT
+  });
   // simState.companies is already formatted by exportState -> toSnapshot
   return {
     type: 'snapshot',
