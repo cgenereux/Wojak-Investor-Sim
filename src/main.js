@@ -838,8 +838,6 @@ function applyTick(tick) {
         }
     });
 
-    // Update synthetic equal-weight index after applying company snapshots
-    updateIndexCompany(new Date(tickTs));
     if (Array.isArray(tick.players) && tick.players.length) {
         const me = tick.players.find(p => (serverPlayer && p.id === serverPlayer.id) || (clientPlayerId && p.id === clientPlayerId)) || tick.players[0];
         if (me) updatePlayerFromServer(me);
