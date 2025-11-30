@@ -744,6 +744,14 @@ function initVC() {
             }
         });
     }
+    if (vcInvestmentOptionsEl) {
+        vcInvestmentOptionsEl.addEventListener('click', (evt) => {
+            const btn = evt.target.closest('.vc-option-buy');
+            if (!btn) return;
+            const pct = parseFloat(btn.dataset.pct);
+            handleVenturePurchase(pct);
+        });
+    }
 }
 
 window.hideVentureCompanyDetail = hideVentureCompanyDetail;
@@ -1078,42 +1086,6 @@ function handleVenturePurchase(pct) {
     release();
 }
 
-function initVC() {
-    if (backToVcListBtn) {
-        backToVcListBtn.addEventListener('click', exitVentureToHome);
-    }
-    if (vcLeadRoundBtn) {
-        vcLeadRoundBtn.addEventListener('click', () => {
-            if (!currentVentureCompanyId || typeof leadVentureRound !== 'function') return;
-            const result = leadVentureRound(currentVentureCompanyId);
-            refreshVentureDetailView();
-            if (!vcLeadRoundNoteEl) return;
-            if (!result.success) {
-                vcLeadRoundNoteEl.textContent = result.reason || 'Unable to lead this round right now.';
-                vcLeadRoundNoteEl.classList.add('negative');
-                vcLeadRoundNoteEl.classList.remove('positive');
-            } else {
-                const equityPct = (result.equityOffered || 0) * 100;
-                vcLeadRoundNoteEl.textContent = `Successfully led the round! Acquired ${equityPct.toFixed(1)}% equity.`;
-                vcLeadRoundNoteEl.classList.add('positive');
-                vcLeadRoundNoteEl.classList.remove('negative');
-            }
-        });
-    }
-    if (vcInvestmentOptionsEl) {
-        vcInvestmentOptionsEl.addEventListener('click', (evt) => {
-            const btn = evt.target.closest('.vc-option-buy');
-            if (!btn) return;
-            const pct = parseFloat(btn.dataset.pct);
-            handleVenturePurchase(pct);
-        });
-    }
-}
 
-function ensureVCInit() {
-    if (typeof initVC === 'function') {
-        initVC();
-    }
-}
 
 document.addEventListener('DOMContentLoaded', ensureVCInit);
