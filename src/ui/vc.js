@@ -91,43 +91,43 @@ function renderVentureCompanies(companiesData, formatLargeNumber, formatCurrency
             return (a.name || '').localeCompare(b.name || '');
         })
         .forEach(company => {
-        const isFailed = (company.status || '').toLowerCase() === 'failed';
-        const companyDiv = document.createElement('div');
-        companyDiv.classList.add('company-box');
-        if (isFailed) {
-            companyDiv.classList.add('bankrupt');
-        }
-        if (company.sector) {
-            const sectorClass = `sector-${(company.sector || '').toLowerCase()}`;
-            companyDiv.classList.add(sectorClass);
-        }
-        companyDiv.dataset.companyId = company.id;
+            const isFailed = (company.status || '').toLowerCase() === 'failed';
+            const companyDiv = document.createElement('div');
+            companyDiv.classList.add('company-box');
+            if (isFailed) {
+                companyDiv.classList.add('bankrupt');
+            }
+            if (company.sector) {
+                const sectorClass = `sector-${(company.sector || '').toLowerCase()}`;
+                companyDiv.classList.add(sectorClass);
+            }
+            companyDiv.dataset.companyId = company.id;
 
-        const valuationRaw = typeof company.valuation !== 'undefined' ? company.valuation : company.valuation_usd;
-        const valuationDisplay = isFailed ? 'Bankrupt' : vcFormatLargeNumber(valuationRaw || 0, 1);
-        const stageDisplay = company.stageLabel || company.funding_round || 'N/A';
-        const statusDisplay = (company.status || '').toLowerCase() === 'failed' ? 'Status: Bankrupt' : '';
-        const playerStake = company.playerEquityPercent && company.playerEquityPercent > 0
-            ? `Your Stake: ${company.playerEquityPercent.toFixed(2)}%`
-            : '';
-        const isDoingRnd = !!company.isDoingRnd;
-        let listingYear = null;
-        if (Number.isFinite(company.history_third_ts)) {
-            const d = new Date(company.history_third_ts);
-            if (!isNaN(d.getTime())) listingYear = d.getFullYear();
-        } else if (Number.isFinite(company.history_start_ts)) {
-            const d = new Date(company.history_start_ts);
-            if (!isNaN(d.getTime())) listingYear = d.getFullYear();
-        } else if (company.target_listing_date) {
-            const d = new Date(company.target_listing_date);
-            if (!isNaN(d.getTime())) listingYear = d.getFullYear();
-        } else if (company.listing_window && (company.listing_window.from || company.listing_window.to)) {
-            const raw = company.listing_window.from || company.listing_window.to;
-            const d = new Date(raw);
-            if (!isNaN(d.getTime())) listingYear = d.getFullYear();
-        }
+            const valuationRaw = typeof company.valuation !== 'undefined' ? company.valuation : company.valuation_usd;
+            const valuationDisplay = isFailed ? 'Bankrupt' : vcFormatLargeNumber(valuationRaw || 0, 1);
+            const stageDisplay = company.stageLabel || company.funding_round || 'N/A';
+            const statusDisplay = (company.status || '').toLowerCase() === 'failed' ? 'Status: Bankrupt' : '';
+            const playerStake = company.playerEquityPercent && company.playerEquityPercent > 0
+                ? `Your Stake: ${company.playerEquityPercent.toFixed(2)}%`
+                : '';
+            const isDoingRnd = !!company.isDoingRnd;
+            let listingYear = null;
+            if (Number.isFinite(company.history_third_ts)) {
+                const d = new Date(company.history_third_ts);
+                if (!isNaN(d.getTime())) listingYear = d.getFullYear();
+            } else if (Number.isFinite(company.history_start_ts)) {
+                const d = new Date(company.history_start_ts);
+                if (!isNaN(d.getTime())) listingYear = d.getFullYear();
+            } else if (company.target_listing_date) {
+                const d = new Date(company.target_listing_date);
+                if (!isNaN(d.getTime())) listingYear = d.getFullYear();
+            } else if (company.listing_window && (company.listing_window.from || company.listing_window.to)) {
+                const raw = company.listing_window.from || company.listing_window.to;
+                const d = new Date(raw);
+                if (!isNaN(d.getTime())) listingYear = d.getFullYear();
+            }
 
-        companyDiv.innerHTML = `
+            companyDiv.innerHTML = `
             ${listingYear ? `<div class="company-ipo-badge">${listingYear}</div>` : ''}
             <div class="company-name">${company.name}</div>
             <div class="company-info">
@@ -139,9 +139,9 @@ function renderVentureCompanies(companiesData, formatLargeNumber, formatCurrency
             ${isDoingRnd ? '<div class="company-rnd-flag">Conducting R&amp;D…</div>' : ''}
         `;
 
-        companyDiv.addEventListener('click', () => showVentureCompanyDetail(company.id));
-        ventureCompaniesGrid.appendChild(companyDiv);
-    });
+            companyDiv.addEventListener('click', () => showVentureCompanyDetail(company.id));
+            ventureCompaniesGrid.appendChild(companyDiv);
+        });
 }
 
 function buildRoundInfo(detail) {
@@ -311,7 +311,7 @@ function getVCTooltipHandler(context) {
         tooltipEl.style.fontFamily = 'Inter, sans-serif';
         tooltipEl.style.fontSize = '14px';
         tooltipEl.style.whiteSpace = 'nowrap';
-        tooltipEl.style.zIndex = '100';
+        tooltipEl.style.zIndex = '2000';
         tooltipEl.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
         const arrow = document.createElement('div');
         arrow.className = 'chartjs-tooltip-arrow';
@@ -580,9 +580,10 @@ function updateVentureDetail(companyId) {
                     tension: 0,
                     stepped: 'before',
                     pointRadius: 0,
+                    pointHitRadius: 20,
                     pointHoverBackgroundColor: '#3b82f6',
                     pointHoverBorderWidth: 0,
-                    pointHoverRadius: 0,
+                    pointHoverRadius: 6,
                     fill: true,
                     parsing: false
                 }]
@@ -611,7 +612,9 @@ function updateVentureDetail(companyId) {
                 },
                 elements: {
                     point: {
-                        hoverRadius: 0,
+                        radius: 0,
+                        hitRadius: 20,
+                        hoverRadius: 6,
                         hoverBorderWidth: 0
                     }
                 },
@@ -988,7 +991,7 @@ function computeVenturePackageAmount(detail, pct) {
     return equityFraction * postMoney;
 }
 
-  function handleVenturePurchase(pct) {
+function handleVenturePurchase(pct) {
     if (venturePurchaseLock) return;
     venturePurchaseLock = true;
     let unlocked = false;
@@ -1033,6 +1036,9 @@ function computeVenturePackageAmount(detail, pct) {
             vcLeadRoundNoteEl.classList.remove('negative');
             vcLeadRoundNoteEl.classList.add('positive');
         }
+        if (typeof showToast === 'function') {
+            showToast(`Investment requested for ${pct.toFixed(2)}% equity!`, { tone: 'success' });
+        }
         release();
         return;
     }
@@ -1064,6 +1070,9 @@ function computeVenturePackageAmount(detail, pct) {
         vcLeadRoundNoteEl.textContent = `Committed ${vcFormatCurrency(amount)} for ${(pct).toFixed(2)}%.`;
         vcLeadRoundNoteEl.classList.remove('negative');
         vcLeadRoundNoteEl.classList.add('positive');
+    }
+    if (typeof showToast === 'function') {
+        showToast(`Successfully invested ${vcFormatCurrency(amount)} for ${(pct).toFixed(2)}% equity!`, { tone: 'success' });
     }
     refreshVentureDetailView();
     release();
