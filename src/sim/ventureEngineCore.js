@@ -12,7 +12,7 @@
     withRandomSource,
     SeededRandom
   } = shared;
-  const FAST_LISTING = 1; //!!process.env.FAST_LISTING;
+  const FAST_LISTING = false // !!process.env.FAST_LISTING; // 1;
   const { Company } = companyModule;
   const {
     computeHypergrowthFairValue,
@@ -1041,6 +1041,31 @@
       const cash = Number.isFinite(this.cash) ? this.cash : 0;
       const debt = Number.isFinite(this.debt) ? this.debt : 0;
       const listed = this.isListableOnDate(currentDate);
+      let historyStartTs = null;
+      let historyThirdTs = null;
+      if (Array.isArray(this.history) && this.history.length) {
+        const xs = this.history
+          .map(point => {
+            if (!point) return NaN;
+            if (Number.isFinite(point.x)) return point.x;
+            if (point.x) {
+              const t = new Date(point.x).getTime();
+              return Number.isFinite(t) ? t : NaN;
+            }
+            return NaN;
+          })
+          .filter(Number.isFinite)
+          .sort((a, b) => a - b);
+        if (xs.length) {
+          historyStartTs = xs[0];
+          historyThirdTs = xs[Math.min(2, xs.length - 1)];
+        }
+      }
+      const isDoingRnd = Array.isArray(this.products) && this.products.some(p => {
+        if (!p || !p.stages) return false;
+        const stages = Array.isArray(p.stages) ? p.stages : [];
+        return stages.length > 0 && !stages.every(s => s && s.completed);
+      });
       return {
         id: this.id,
         name: this.name,
@@ -1065,6 +1090,9 @@
         daysSinceLastRaise: this.daysSinceLastRaise,
         playerEquityById: { ...(this.playerEquityMap || {}) },
         is_listed: listed,
+        history_start_ts: historyStartTs,
+        history_third_ts: historyThirdTs,
+        isDoingRnd,
         listing_window: this.listingWindow
           ? {
             from: this.listingWindow.from ? this.listingWindow.from.toISOString() : null,

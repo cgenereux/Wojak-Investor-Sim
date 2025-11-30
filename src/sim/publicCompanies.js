@@ -24,8 +24,9 @@
   const MAX_QUARTER_HISTORY = 100;
   const PRODUCT_RETIRE_DELAY_DAYS = Math.round(2.5 * 365);
 
-  const DEFAULT_STRUCT_BIAS_RANGE = [0.65, 1.65];
+  const DEFAULT_STRUCT_BIAS_RANGE = [0.67, 1.57];
   const DEFAULT_STRUCT_BIAS_HALFLIFE = 8;
+  const DEFAULT_STRUCT_BIAS_SIGMA = 0.21;
 
   const buildStructBiasState = (cfg = {}, rngFn = random) => {
     const halfLifeYears = Number.isFinite(cfg.structural_bias_half_life_years)
@@ -55,7 +56,7 @@
     upper = clampValue(upper, lower + 0.05, 10);
 
     const span = Math.max(0.01, upper - lower);
-    const sigma = Number(cfg.sigma ?? cfg.volatility ?? cfg.structural_bias_sigma) || span * 0.25;
+    const sigma = Number(cfg.sigma ?? cfg.volatility ?? cfg.structural_bias_sigma) || DEFAULT_STRUCT_BIAS_SIGMA;
     const k = Math.log(2) / Math.max(0.25, halfLifeYears);
     const initial = clampValue(lower + between(0, 1, rngFn) * span, lower, upper);
     return { value: initial, lower, upper, sigma, k };

@@ -77,14 +77,32 @@ function renderVentureCompanies(companiesData, formatLargeNumber, formatCurrency
         const playerStake = company.playerEquityPercent && company.playerEquityPercent > 0
             ? `Your Stake: ${company.playerEquityPercent.toFixed(2)}%`
             : '';
+        const isDoingRnd = !!company.isDoingRnd;
+        let listingYear = null;
+        if (Number.isFinite(company.history_third_ts)) {
+            const d = new Date(company.history_third_ts);
+            if (!isNaN(d.getTime())) listingYear = d.getFullYear();
+        } else if (Number.isFinite(company.history_start_ts)) {
+            const d = new Date(company.history_start_ts);
+            if (!isNaN(d.getTime())) listingYear = d.getFullYear();
+        } else if (company.target_listing_date) {
+            const d = new Date(company.target_listing_date);
+            if (!isNaN(d.getTime())) listingYear = d.getFullYear();
+        } else if (company.listing_window && (company.listing_window.from || company.listing_window.to)) {
+            const raw = company.listing_window.from || company.listing_window.to;
+            const d = new Date(raw);
+            if (!isNaN(d.getTime())) listingYear = d.getFullYear();
+        }
 
         companyDiv.innerHTML = `
+            ${listingYear ? `<div class="company-ipo-badge">${listingYear}</div>` : ''}
             <div class="company-name">${company.name}</div>
             <div class="company-info">
                 <div class="company-valuation">Valuation: ${valuationDisplay}</div>
                 <div class="company-stage">Stage: ${stageDisplay}</div>
                 ${playerStake ? `<div class="company-note">${playerStake}</div>` : ''}
             </div>
+            ${isDoingRnd ? '<div class="company-rnd-flag">Conducting R&amp;D…</div>' : ''}
         `;
 
         companyDiv.addEventListener('click', () => showVentureCompanyDetail(company.id));

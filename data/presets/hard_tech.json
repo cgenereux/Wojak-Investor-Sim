@@ -151,7 +151,7 @@
           "phase": "private",
           "post_success_mode": "ramp",
           "expected_revenue_target": [6000000000, 12000000000],
-          "name": "NeuroLink Systems",
+          "name": "NeuroSync",
           "sector": "BioTech",
           "description": "Implantable BMI hardware for clinical and defense.",
           "funding_round": "Series B",
