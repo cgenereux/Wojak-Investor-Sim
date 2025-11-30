@@ -62,7 +62,30 @@ function renderVentureCompanies(companiesData, formatLargeNumber, formatCurrency
     if (!ventureCompaniesGrid) return;
     ventureCompaniesGrid.innerHTML = '';
 
-    (companiesData || []).forEach(company => {
+    const getListingTs = (company) => {
+        if (Number.isFinite(company.history_third_ts)) return company.history_third_ts;
+        if (Number.isFinite(company.history_start_ts)) return company.history_start_ts;
+        if (company.target_listing_date) {
+            const t = new Date(company.target_listing_date).getTime();
+            if (Number.isFinite(t)) return t;
+        }
+        if (company.listing_window && (company.listing_window.from || company.listing_window.to)) {
+            const raw = company.listing_window.from || company.listing_window.to;
+            const t = new Date(raw).getTime();
+            if (Number.isFinite(t)) return t;
+        }
+        return Number.POSITIVE_INFINITY;
+    };
+
+    (companiesData || [])
+        .slice()
+        .sort((a, b) => {
+            const ta = getListingTs(a);
+            const tb = getListingTs(b);
+            if (ta !== tb) return ta - tb;
+            return (a.name || '').localeCompare(b.name || '');
+        })
+        .forEach(company => {
         const companyDiv = document.createElement('div');
         companyDiv.classList.add('company-box');
         if (company.sector) {
