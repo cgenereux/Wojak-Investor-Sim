@@ -29,6 +29,7 @@
   const DAYS_PER_YEAR = 365;
   const QUARTER_DAYS = DAYS_PER_YEAR / 4;
   const YEAR_MS = VC_DAY_MS * DAYS_PER_YEAR;
+  const VENTURE_FAIL_TTL_MS = 120000;
 
   function coerceDate(value, isEnd = false) {
     if (value == null) return null;
@@ -576,6 +577,9 @@
       this.playerEquity = 0;
       this.currentValuation = 0;
       this.status = 'failed';
+      const failDate = currentDate ? new Date(currentDate) : (this.lastTick ? new Date(this.lastTick) : new Date());
+      this.failedAt = failDate;
+      this.failedAtWall = Date.now();
       this.lastEventNote = 'Pipeline failure collapsed the program.';
       this.stageChanged = true;
       this.currentRound = null;
@@ -914,6 +918,9 @@
           this.playerEquityMap = {};
           this.currentValuation = 0;
           this.status = 'failed';
+          const failDate = currentDate ? new Date(currentDate) : (this.lastTick ? new Date(this.lastTick) : new Date());
+          this.failedAt = failDate;
+          this.failedAtWall = Date.now();
           this.lastEventNote = `${closingRound.stageLabel} round collapsed twice. Operations halted.`;
           this.currentRound = null;
           this.stageChanged = true;
@@ -1043,6 +1050,7 @@
       const listed = this.isListableOnDate(currentDate);
       let historyStartTs = null;
       let historyThirdTs = null;
+      let failedAtTs = null;
       if (Array.isArray(this.history) && this.history.length) {
         const xs = this.history
           .map(point => {
@@ -1061,6 +1069,11 @@
           historyThirdTs = xs[Math.min(2, xs.length - 1)];
         }
       }
+      if (this.failedAt instanceof Date) {
+        const t = this.failedAt.getTime();
+        if (Number.isFinite(t)) failedAtTs = t;
+      }
+      const failedAtWall = Number.isFinite(this.failedAtWall) ? this.failedAtWall : null;
       const isDoingRnd = Array.isArray(this.products) && this.products.some(p => {
         if (!p || !p.stages) return false;
         const stages = Array.isArray(p.stages) ? p.stages : [];
@@ -1092,6 +1105,8 @@
         is_listed: listed,
         history_start_ts: historyStartTs,
         history_third_ts: historyThirdTs,
+        failed_at: failedAtTs,
+        failed_at_wall: failedAtWall,
         isDoingRnd,
         listing_window: this.listingWindow
           ? {
@@ -1425,8 +1440,23 @@
 
     getCompanySummaries(currentDate = null) {
       const now = currentDate ? new Date(currentDate) : (this.lastTick ? new Date(this.lastTick) : new Date());
+      const cutoffWall = Date.now() - VENTURE_FAIL_TTL_MS;
+
+      // Prune only long-dead failures from the master list
+      this.companies = this.companies.filter(company => {
+        if (!company) return false;
+        if (company.status === 'failed') {
+          const failedAtWall = Number.isFinite(company.failedAtWall) ? company.failedAtWall : NaN;
+          if (Number.isFinite(failedAtWall) && failedAtWall <= cutoffWall) {
+            return false;
+          }
+        }
+        return true;
+      });
+
       return this.companies
         .filter(company => {
+          if (!company) return false;
           if (company.exited) return false;
           if (!company.isActiveOnDate(now) && !company.hasPlayerPosition()) return false;
           return true;

@@ -86,8 +86,12 @@ function renderVentureCompanies(companiesData, formatLargeNumber, formatCurrency
             return (a.name || '').localeCompare(b.name || '');
         })
         .forEach(company => {
+        const isFailed = (company.status || '').toLowerCase() === 'failed';
         const companyDiv = document.createElement('div');
         companyDiv.classList.add('company-box');
+        if (isFailed) {
+            companyDiv.classList.add('bankrupt');
+        }
         if (company.sector) {
             const sectorClass = `sector-${(company.sector || '').toLowerCase()}`;
             companyDiv.classList.add(sectorClass);
@@ -95,8 +99,9 @@ function renderVentureCompanies(companiesData, formatLargeNumber, formatCurrency
         companyDiv.dataset.companyId = company.id;
 
         const valuationRaw = typeof company.valuation !== 'undefined' ? company.valuation : company.valuation_usd;
-        const valuationDisplay = vcFormatLargeNumber(valuationRaw || 0, 1);
+        const valuationDisplay = isFailed ? 'Bankrupt' : vcFormatLargeNumber(valuationRaw || 0, 1);
         const stageDisplay = company.stageLabel || company.funding_round || 'N/A';
+        const statusDisplay = (company.status || '').toLowerCase() === 'failed' ? 'Status: Bankrupt' : '';
         const playerStake = company.playerEquityPercent && company.playerEquityPercent > 0
             ? `Your Stake: ${company.playerEquityPercent.toFixed(2)}%`
             : '';
@@ -122,6 +127,7 @@ function renderVentureCompanies(companiesData, formatLargeNumber, formatCurrency
             <div class="company-name">${company.name}</div>
             <div class="company-info">
                 <div class="company-valuation">Valuation: ${valuationDisplay}</div>
+                ${statusDisplay ? `<div class="company-stage">${statusDisplay}</div>` : ''}
                 <div class="company-stage">Stage: ${stageDisplay}</div>
                 ${playerStake ? `<div class="company-note">${playerStake}</div>` : ''}
             </div>
