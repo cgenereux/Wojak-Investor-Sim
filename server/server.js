@@ -130,7 +130,7 @@ async function buildMatch(seed = Date.now()) {
   const rngFn = () => rng.random();
   const presetOpts = { rng: rngFn, baseDir: path.join(__dirname, '..') };
   const pubs = [];
-  pubs.push(...await Presets.generateClassicCorpsCompanies(presetOpts));
+  pubs.push(...await Presets.generateClassicCompanies(presetOpts));
   pubs.push(...await Presets.generateHardTechPresetCompanies(3, presetOpts));
   ensureIpoMetadata(pubs, rngFn, GAME_START_YEAR);
   const ventures = [

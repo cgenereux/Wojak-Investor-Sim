@@ -2096,10 +2096,30 @@ button.speed-active:hover {
     gap: 18px;
     z-index: 5;
     border: 1px solid #e2e8f0;
+    overflow-y: auto;
 }
 
 .character-overlay.active {
     display: flex;
+}
+
+#multiplayerModal.character-overlay-open .multiplayer-state {
+    height: 0;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    overflow: hidden;
+}
+
+#multiplayerModal.character-overlay-open .multiplayer-state.active {
+    display: block;
+}
+
+#multiplayerModal.character-overlay-open .mp-join-row,
+#multiplayerModal.character-overlay-open .mp-roster-panel,
+#multiplayerModal.character-overlay-open .mp-waiting-host,
+#multiplayerModal.character-overlay-open .mp-coldstart-hint {
+    display: none;
 }
 
 .character-overlay-header h3 {
@@ -2185,6 +2205,19 @@ button.speed-active:hover {
     background: #1f2937;
     color: #e2e8f0;
     border: 1px solid #334155;
+}
+
+.character-back-locked {
+    cursor: not-allowed;
+    opacity: 1;
+}
+
+.character-back-locked:focus {
+    outline: none;
+}
+
+.character-back-locked:hover {
+    cursor: not-allowed;
 }
 
 .character-option.locked {

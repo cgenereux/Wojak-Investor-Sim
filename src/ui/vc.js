@@ -35,6 +35,7 @@ let ventureFinancialBarChart = null;
 let currentVcChartRange = 80;
 const lastInvestmentOptionsKey = new Map();
 let venturePurchaseLock = false;
+let vcTooltipHandlersAttached = new WeakSet();
 
 function ensureVentureReady() {
     if (typeof ensureVentureSimulation === 'function') {
@@ -44,6 +45,7 @@ function ensureVentureReady() {
 
 function destroyVentureChart(options = { valuation: true, financial: true }) {
     const { valuation, financial } = options || {};
+    hideVCTooltip();
     if (valuation && ventureCompanyDetailChart) {
         ventureCompanyDetailChart.destroy();
         ventureCompanyDetailChart = null;
@@ -326,6 +328,26 @@ function getVCTooltipHandler(context) {
     tooltipEl.style.pointerEvents = 'none';
 }
 
+function hideVCTooltip() {
+    const tooltipEl = document.getElementById('chartjs-tooltip-vc');
+    if (tooltipEl) tooltipEl.style.opacity = 0;
+    [ventureCompanyDetailChart, ventureFinancialBarChart].forEach(chart => {
+        if (chart && chart.tooltip) {
+            chart.tooltip.setActiveElements([], { x: 0, y: 0 });
+            chart.update('none');
+        }
+    });
+}
+
+function attachVCTooltipGuards(chart) {
+    if (!chart || !chart.canvas || vcTooltipHandlersAttached.has(chart.canvas)) return;
+    const handler = () => hideVCTooltip();
+    chart.canvas.addEventListener('mouseleave', handler);
+    chart.canvas.addEventListener('touchend', handler, { passive: true });
+    chart.canvas.addEventListener('touchcancel', handler, { passive: true });
+    vcTooltipHandlersAttached.add(chart.canvas);
+}
+
 function updateVentureDetail(companyId) {
     if (!companyId || typeof getVentureCompanyDetail !== 'function') return;
     const detail = getVentureCompanyDetail(companyId);
@@ -491,6 +513,7 @@ function updateVentureDetail(companyId) {
         ventureCompanyDetailChart.options.scales.y.suggestedMin = suggestedMin;
         ventureCompanyDetailChart.options.scales.y.suggestedMax = suggestedMax;
         ventureCompanyDetailChart.update('none');
+        attachVCTooltipGuards(ventureCompanyDetailChart);
     } else if (vcDetailChartCtx) {
         // Create new chart
         ventureCompanyDetailChart = new Chart(vcDetailChartCtx, {
@@ -552,6 +575,7 @@ function updateVentureDetail(companyId) {
                 }
             }
         });
+        attachVCTooltipGuards(ventureCompanyDetailChart);
     }
 }
 
@@ -599,6 +623,7 @@ function hideVentureCompanyDetail(options = {}) {
     document.body.classList.remove('vc-detail-active');
     currentVentureCompanyId = null;
     destroyVentureChart();
+    hideVCTooltip();
     lastInvestmentOptionsKey.clear();
     if (!skipHistory && typeof window.pushViewState === 'function' && !window.__suppressHistoryPush) {
         window.pushViewState('vc', {});
@@ -880,6 +905,7 @@ function renderVentureFinancialChart(company) {
             }
         });
         // console.log('[VC Debug] Chart created successfully');
+        attachVCTooltipGuards(ventureFinancialBarChart);
     } catch (err) {
         console.error('[VC Debug] Chart creation failed:', err);
     }

@@ -12,7 +12,7 @@ require('../src/presets/presets.js');
 const { SeededRandom } = global.SimShared;
 const {
   generateHardTechPresetCompanies,
-  generateClassicCorpsCompanies,
+  generateClassicCompanies,
   generateHypergrowthPresetCompanies,
   generateBinaryHardTechCompanies
 } = global.PresetGenerators || {};
@@ -26,7 +26,7 @@ const { VentureSimulation } = (global.VentureEngineModule || {});
   const presetOptions = { rng: rngFn, baseDir: path.join(__dirname, '..') };
 
   const publicCompanies = [
-    ...(await generateClassicCorpsCompanies(presetOptions)),
+    ...(await generateClassicCompanies(presetOptions)),
     ...(await generateHardTechPresetCompanies(1, presetOptions))
   ];
   const ventureCompanies = [

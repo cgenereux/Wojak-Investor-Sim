@@ -318,17 +318,14 @@ function maybeTrackDecadeNetWorth(dateLike, players = null) {
 const PresetGenerators = window.PresetGenerators || {};
 const {
     generateHardTechPresetCompanies,
-    generateSteadyMegacorpCompanies,
     generateHypergrowthPresetCompanies,
     generateBinaryHardTechCompanies,
-    generateTechPresetCompanies,
-    generateBankingPresetCompanies,
-    generateClassicCorpsCompanies,
+    generateClassicCompanies,
     DEFAULT_VC_ROUNDS,
     HARDTECH_VC_ROUNDS
 } = PresetGenerators;
 
-if (!generateHardTechPresetCompanies || !generateSteadyMegacorpCompanies || !generateHypergrowthPresetCompanies || !generateBinaryHardTechCompanies || !generateClassicCorpsCompanies) {
+if (!generateHardTechPresetCompanies || !generateHypergrowthPresetCompanies || !generateBinaryHardTechCompanies || !generateClassicCompanies) {
     throw new Error('PresetGenerators failed to load. Ensure presets.js is included before main.js.');
 }
 
@@ -579,6 +576,51 @@ let bankruptcyTestTimer = null;
 const holdingsPurgeTimers = new Map();
 const bankruptCleanupTimers = new Map();
 const delistedBankruptIds = new Set();
+
+function resetClientStateForMultiplayer() {
+    pauseGame();
+    isPaused = true;
+    isGameReady = false;
+    handlingBankruptcy = false;
+    isMillionaire = false;
+    isBillionaire = false;
+    isTrillionaire = false;
+    currentDate = new Date('1990-01-01T00:00:00Z');
+    cash = 0;
+    totalBorrowed = 0;
+    netWorth = 0;
+    netWorthAth = 0;
+    lastDrawdownTriggerAth = 0;
+    portfolio = [];
+    companies = [];
+    sim = null;
+    ventureSim = null;
+    ventureCompanies = [];
+    fallbackMacroEnv = null;
+    matchSeed = null;
+    matchRng = null;
+    matchRngFn = null;
+    activeCompanyDetail = null;
+    latestServerPlayers = [];
+    lastRosterSnapshot = [];
+    resetDecadeTracking();
+    if (playerNetWorthSeries && typeof playerNetWorthSeries.clear === 'function') {
+        playerNetWorthSeries.clear();
+    }
+    netWorthHistory.length = 0;
+    netWorthHistory.push({ x: currentDate.getTime(), y: netWorth });
+    hideCompanyDetail(true);
+    renderPortfolio();
+    renderCompanies(true);
+    updateDisplay();
+    if (netWorthChart && netWorthChart.data && netWorthChart.data.datasets && netWorthChart.data.datasets[0]) {
+        netWorthChart.data.datasets[0].data = netWorthHistory;
+        netWorthChart.update('none');
+    }
+    if (timelineEndPopup) timelineEndPopup.classList.remove('show');
+    if (bankruptcyPopup) bankruptcyPopup.classList.remove('show');
+    if (bankruptcyPopupMultiplayer) bankruptcyPopupMultiplayer.classList.remove('show');
+}
 
 function initMatchContext(seedOverride = null) {
     if (!matchSeed) {
@@ -1192,7 +1234,7 @@ async function loadCompaniesData() {
         const macroEvents = await macroEventsResponse.json();
         let filteredCompanies = [];
         const presetOptions = matchRngFn ? { rng: matchRngFn } : {};
-        const presetClassicCompanies = await generateClassicCorpsCompanies(presetOptions);
+        const presetClassicCompanies = await generateClassicCompanies(presetOptions);
         if (Array.isArray(presetClassicCompanies)) {
             filteredCompanies.push(...presetClassicCompanies);
         }
@@ -1458,39 +1500,39 @@ function refreshNetWorthChartDatasets() {
         Array.from(playerNetWorthSeries.entries()).forEach(([id, data], idx) => {
             if (!Array.isArray(data) || data.length === 0) return;
             const sorted = [...data].sort((a, b) => a.x - b.x);
-        const fallbackPalette = [...BASE_PLAYER_COLORS, ...EXTRA_PLAYER_COLORS];
-        const color = playerColorMap.get(id) || pickColorById(id, fallbackPalette);
-        datasets.push({
-            label: id,
-            data: sorted,
-            borderColor: color,
-            backgroundColor: 'transparent',
-            borderWidth: 2,
-            pointRadius: 0,
-            pointHoverRadius: 6,
-            pointHoverBackgroundColor: color,
-            pointHoverBorderWidth: 0,
-            fill: false,
-            tension: 0.25,
-            cubicInterpolationMode: 'monotone'
+            const fallbackPalette = [...BASE_PLAYER_COLORS, ...EXTRA_PLAYER_COLORS];
+            const color = playerColorMap.get(id) || pickColorById(id, fallbackPalette);
+            datasets.push({
+                label: id,
+                data: sorted,
+                borderColor: color,
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHoverRadius: 6,
+                pointHoverBackgroundColor: color,
+                pointHoverBorderWidth: 0,
+                fill: false,
+                tension: 0.25,
+                cubicInterpolationMode: 'monotone'
+            });
         });
-      });
-      if (datasets.length === 0) {
-        datasets.push({
-            label: 'Net Worth',
-            data: netWorthHistory,
-            borderColor: '#00c742',
-            backgroundColor: 'transparent',
-            borderWidth: 2,
-            pointRadius: 0,
-            pointHoverRadius: 6,
-            pointHoverBackgroundColor: '#00c742',
-            pointHoverBorderWidth: 0,
-            tension: 0.25,
-            fill: false,
-            cubicInterpolationMode: 'monotone'
-        });
-      }
+        if (datasets.length === 0) {
+            datasets.push({
+                label: 'Net Worth',
+                data: netWorthHistory,
+                borderColor: '#00c742',
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHoverRadius: 6,
+                pointHoverBackgroundColor: '#00c742',
+                pointHoverBorderWidth: 0,
+                tension: 0.25,
+                fill: false,
+                cubicInterpolationMode: 'monotone'
+            });
+        }
         netWorthChart.data.datasets = datasets;
         netWorthChart.update();
     } else {
@@ -1934,12 +1976,18 @@ function endGame(reason) {
         ? serverPlayer.netWorth
         : netWorth;
     const matchId = activeSessionId || (isServerAuthoritative ? 'multiplayer' : 'singleplayer_local');
+    const endYear = currentDate instanceof Date ? currentDate.getFullYear() : null;
+    const role = isServerAuthoritative
+        ? ((isPartyHostClient || (clientPlayerId && currentHostId && clientPlayerId === currentHostId)) ? 'host' : 'guest')
+        : 'solo';
     trackEvent('match_ended', {
         final_net_worth: finalNetWorth,
         reason: reason,
         mode: isServerAuthoritative ? 'multiplayer' : 'singleplayer',
         match_id: matchId,
-        player_id: clientPlayerId || null
+        player_id: clientPlayerId || null,
+        role,
+        end_year: Number.isFinite(endYear) ? endYear : null
     });
 
     if (reason === "bankrupt") {
@@ -3205,6 +3253,7 @@ if (characterOptionButtons && characterOptionButtons.length) {
 }
 if (characterCancelBtn) {
     characterCancelBtn.addEventListener('click', () => {
+        if (characterCancelBtn.classList.contains('character-back-locked')) return;
         hideCharacterOverlay();
         pendingPartyAction = null;
     });
@@ -3341,38 +3390,38 @@ async function init() {
         if (!tooltipEl) {
             tooltipEl = document.createElement('div');
             tooltipEl.id = 'chartjs-tooltip';
-        tooltipEl.style.opacity = 1;
-        tooltipEl.style.pointerEvents = 'none';
-        tooltipEl.style.position = 'absolute';
-        tooltipEl.style.transform = 'translate(-50%, 0)';
-        tooltipEl.style.transition = 'all .1s ease';
-        tooltipEl.style.backgroundColor = '#ffffff';
-        tooltipEl.style.borderRadius = '6px';
-        tooltipEl.style.color = '#1e293b';
-        tooltipEl.style.padding = '8px';
-        tooltipEl.style.fontFamily = 'Inter, sans-serif';
-        tooltipEl.style.fontSize = '14px';
-        tooltipEl.style.whiteSpace = 'nowrap';
-        tooltipEl.style.zIndex = '100';
-        tooltipEl.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
-        const arrow = document.createElement('div');
-        arrow.className = 'chartjs-tooltip-arrow';
-        arrow.style.position = 'absolute';
-        arrow.style.top = '-6px';
-        arrow.style.left = '50%';
-        arrow.style.transform = 'translateX(-50%)';
-        arrow.style.width = '0';
-        arrow.style.height = '0';
-        arrow.style.borderLeft = '6px solid transparent';
-        arrow.style.borderRight = '6px solid transparent';
-        arrow.style.borderBottom = '6px solid #ffffff';
-        const content = document.createElement('div');
-        content.className = 'chartjs-tooltip-content';
-        tooltipEl.appendChild(arrow);
-        tooltipEl.appendChild(content);
-        tooltipEl._content = content;
-        document.body.appendChild(tooltipEl);
-    }
+            tooltipEl.style.opacity = 1;
+            tooltipEl.style.pointerEvents = 'none';
+            tooltipEl.style.position = 'absolute';
+            tooltipEl.style.transform = 'translate(-50%, 0)';
+            tooltipEl.style.transition = 'all .1s ease';
+            tooltipEl.style.backgroundColor = '#ffffff';
+            tooltipEl.style.borderRadius = '6px';
+            tooltipEl.style.color = '#1e293b';
+            tooltipEl.style.padding = '8px';
+            tooltipEl.style.fontFamily = 'Inter, sans-serif';
+            tooltipEl.style.fontSize = '14px';
+            tooltipEl.style.whiteSpace = 'nowrap';
+            tooltipEl.style.zIndex = '100';
+            tooltipEl.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+            const arrow = document.createElement('div');
+            arrow.className = 'chartjs-tooltip-arrow';
+            arrow.style.position = 'absolute';
+            arrow.style.top = '-6px';
+            arrow.style.left = '50%';
+            arrow.style.transform = 'translateX(-50%)';
+            arrow.style.width = '0';
+            arrow.style.height = '0';
+            arrow.style.borderLeft = '6px solid transparent';
+            arrow.style.borderRight = '6px solid transparent';
+            arrow.style.borderBottom = '6px solid #ffffff';
+            const content = document.createElement('div');
+            content.className = 'chartjs-tooltip-content';
+            tooltipEl.appendChild(arrow);
+            tooltipEl.appendChild(content);
+            tooltipEl._content = content;
+            document.body.appendChild(tooltipEl);
+        }
 
         // Hide if no tooltip
         const tooltipModel = context.tooltip;
@@ -3422,9 +3471,9 @@ async function init() {
                 ${rows}
             `;
 
-        const content = tooltipEl.querySelector('.chartjs-tooltip-content') || tooltipEl._content || tooltipEl;
-        content.innerHTML = innerHtml;
-    }
+            const content = tooltipEl.querySelector('.chartjs-tooltip-content') || tooltipEl._content || tooltipEl;
+            content.innerHTML = innerHtml;
+        }
 
         const position = context.chart.canvas.getBoundingClientRect();
 

@@ -65,7 +65,7 @@ async function main() {
   const presetOpts = { rng: rngFn, baseDir: path.join(__dirname, '..') };
 
   const publicCompanies = [
-    ...(await Presets.generateClassicCorpsCompanies(presetOpts)),
+    ...(await Presets.generateClassicCompanies(presetOpts)),
     ...(await Presets.generateHardTechPresetCompanies(2, presetOpts))
   ];
   const ventureCompanies = [

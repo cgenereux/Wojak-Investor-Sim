@@ -206,7 +206,7 @@
         });
         return companies;
     }
-
+    /*
     async function generateSteadyMegacorpCompanies(count = 1, options = {}) {
         const { randBetween, randIntBetween, makeId } = buildRandomTools(options);
         const pickRangeLocal = (range, fallbackMin, fallbackMax) => pickRange(range, fallbackMin, fallbackMax, randBetween);
@@ -286,7 +286,7 @@
             companies.push(company);
         });
         return companies;
-    }
+    }*/
 
     async function generateHypergrowthPresetCompanies(options = {}) {
         const { randBetween, makeId } = buildRandomTools(options);
@@ -343,7 +343,7 @@
         // Legacy preset intentionally disabled; kept for backward compatibility.
         return [];
     }
-
+    /*
     async function generateBankingPresetCompanies(count = 1, options = {}) {
         const { randBetween, randIntBetween, makeId } = buildRandomTools(options);
         const pickRangeLocal = (range, fallbackMin, fallbackMax) => pickRange(range, fallbackMin, fallbackMax, randBetween);
@@ -416,8 +416,9 @@
                 events: []
             };
         });
-    }
+    }*/
 
+    /*
     async function generateTechPresetCompanies(count = 1, options = {}) {
         const { randBetween, randIntBetween, makeId } = buildRandomTools(options);
         const pickRangeLocal = (range, fallbackMin, fallbackMax) => pickRange(range, fallbackMin, fallbackMax, randBetween);
@@ -490,9 +491,9 @@
                 events: []
             };
         });
-    }
+    }*/
 
-    async function generateClassicCorpsCompanies(options = {}) {
+    async function generateClassicCompanies(options = {}) {
         const { randBetween, randIntBetween, makeId } = buildRandomTools(options);
         const pickRangeLocal = (range, fallbackMin, fallbackMax) => pickRange(range, fallbackMin, fallbackMax, randBetween);
         const data = await loadPresetJson(CLASSIC_CORPS_DATA_PATH, options);
@@ -574,39 +575,6 @@
 
         return companies;
     }
-
-    const hardTechRoster = [
-        {
-            name: 'Apex Fusion Works',
-            sector: 'Energy',
-            description: 'Building compact fusion cores for terrestrial grids.',
-            funding_round: 'Series B',
-            gate_stage: 'series_f',
-            founders: [{ name: 'Elias Rahman' }, { name: 'Jordan Cooper' }],
-            mission: 'Delivering compact fusion cores that drop into existing grids.',
-            founding_location: 'Austin, TX'
-        },
-        {
-            name: 'Odin Launch Systems',
-            sector: 'Aerospace',
-            description: 'Reusable heavy-lift platform for deep space industry.',
-            funding_round: 'Series C',
-            gate_stage: 'series_f',
-            founders: [{ name: 'Henrik Svensson' }, { name: 'Patricia Li' }],
-            mission: 'Making heavy-lift launches routine for deep-space infrastructure.',
-            founding_location: 'Long Beach, CA'
-        },
-        {
-            name: 'NeuraForge Interfaces',
-            sector: 'BioTech',
-            description: 'High-bandwidth BMI hardware for clinical and defense.',
-            funding_round: 'Series B',
-            gate_stage: 'series_e',
-            founders: [{ name: 'Carla Alvarez' }, { name: 'Rachel Yoon' }],
-            mission: 'Building reliable high-bandwidth brain-computer interfaces.',
-            founding_location: 'Seattle, WA'
-        }
-    ];
 
     async function generateBinaryHardTechCompanies(count = 1, options = {}) {
         const { randBetween, randIntBetween, makeId } = buildRandomTools(options);
@@ -720,13 +688,10 @@
 
     global.PresetGenerators = {
         generateHardTechPresetCompanies,
-        generateSteadyMegacorpCompanies,
         generateHypergrowthPresetCompanies,
         generateBinaryHardTechCompanies,
         generateProductRotatorCompanies,
-        generateTechPresetCompanies,
-        generateBankingPresetCompanies,
-        generateClassicCorpsCompanies,
+        generateClassicCompanies,
         DEFAULT_VC_ROUNDS,
         HARDTECH_VC_ROUNDS
     };

@@ -96,6 +96,7 @@
             console.warn('Manual disconnect set; skipping WS connect');
             return;
         }
+        const wasServerAuthoritative = isServerAuthoritative;
         const baseBackend = activeBackendUrl || window.WOJAK_BACKEND_URL || DEFAULT_WS_ORIGIN || '';
         const backendUrl = normalizeHttpUrl(baseBackend) || '';
         if (!backendUrl) {
@@ -104,6 +105,9 @@
         }
         const session = activeSessionId || localStorage.getItem(SESSION_ID_KEY) || 'default';
         activeSessionId = session;
+        if (!wasServerAuthoritative && typeof resetClientStateForMultiplayer === 'function') {
+            resetClientStateForMultiplayer();
+        }
         isServerAuthoritative = true;
         ensureConnectionBanner();
         setConnectionStatus('Connecting...', 'warn');
@@ -420,20 +424,19 @@
                 startPartyBtn.textContent = 'Started';
             }
             hideMultiplayerModal();
-            // Host-only to avoid duplicate match_started events
             const isHostClient = isPartyHostClient || (clientPlayerId && msg.hostId && clientPlayerId === msg.hostId);
-            if (isHostClient) {
-                const playerNames = Array.isArray(latestServerPlayers)
-                    ? latestServerPlayers.map(p => p?.id || p?.name).filter(Boolean)
-                    : [];
-                trackEvent('match_started', {
-                    mode: 'multiplayer',
-                    player_count: playerNames.length,
-                    player_names: playerNames,
-                    match_id: activeSessionId || 'default',
-                    host_id: msg.hostId || null
-                });
-            }
+            const playerNames = Array.isArray(latestServerPlayers)
+                ? latestServerPlayers.map(p => p?.id || p?.name).filter(Boolean)
+                : [];
+            trackEvent('match_started', {
+                mode: 'multiplayer',
+                role: isHostClient ? 'host' : 'guest',
+                player_id: clientPlayerId || null,
+                player_count: playerNames.length,
+                player_names: playerNames,
+                match_id: activeSessionId || 'default',
+                host_id: msg.hostId || null
+            });
             return;
         }
         if (msg.type === 'command_result') {
@@ -494,22 +497,27 @@
             if (netWorthChart) netWorthChart.update();
             return;
         }
-        if (msg.type === 'end') {
-            const finalNetWorth = (serverPlayer && typeof serverPlayer.netWorth === 'number') ? serverPlayer.netWorth : netWorth;
-            const playersRaw = Array.isArray(latestServerPlayers) ? latestServerPlayers : [];
-            const playerNames = playersRaw.map(p => p?.id || p?.name).filter(Boolean);
-            const reason = msg.reason || 'session_end';
-            const isIdleEnd = reason === 'idle_timeout' || reason === 'client_idle';
-            const isManualKill = reason === 'manual_kill';
-            trackEvent('match_ended', {
-                mode: 'multiplayer',
-                final_net_worth: finalNetWorth,
-                reason,
-                match_id: activeSessionId || 'default',
-                player_id: clientPlayerId || null,
-                player_count: playerNames.length || null,
-                player_names: playerNames
-            });
+            if (msg.type === 'end') {
+                const finalNetWorth = (serverPlayer && typeof serverPlayer.netWorth === 'number') ? serverPlayer.netWorth : netWorth;
+                const playersRaw = Array.isArray(latestServerPlayers) ? latestServerPlayers : [];
+                const playerNames = playersRaw.map(p => p?.id || p?.name).filter(Boolean);
+                const reason = msg.reason || 'session_end';
+                const isIdleEnd = reason === 'idle_timeout' || reason === 'client_idle';
+                const isManualKill = reason === 'manual_kill';
+                const isHostClient = isPartyHostClient || (clientPlayerId && currentHostId && clientPlayerId === currentHostId);
+                const endYear = Number.isFinite(msg.year) ? msg.year : (currentDate instanceof Date ? currentDate.getFullYear() : null);
+                trackEvent('match_ended', {
+                    mode: 'multiplayer',
+                    final_net_worth: finalNetWorth,
+                    reason,
+                    match_id: activeSessionId || 'default',
+                    player_id: clientPlayerId || null,
+                    role: isHostClient ? 'host' : 'guest',
+                    end_year: Number.isFinite(endYear) ? endYear : null,
+                    player_count: playerNames.length || null,
+                    player_names: playerNames,
+                    host_id: currentHostId || null
+                });
             if (isIdleEnd || isManualKill) {
                 const idleSecs = Number.isFinite(msg.idleSeconds) ? msg.idleSeconds : lastIdleWarningSeconds;
                 handleIdleExit(isManualKill ? 'manual_kill' : 'idle_timeout', idleSecs);
@@ -892,6 +900,12 @@
         }
     }
 
+    function setCharacterBackLocked(locked) {
+        if (!characterCancelBtn) return;
+        characterCancelBtn.classList.toggle('character-back-locked', !!locked);
+        characterCancelBtn.setAttribute('aria-disabled', locked ? 'true' : 'false');
+    }
+
     function showCharacterOverlay(nextAction) {
         if (!characterOverlay) {
             if (typeof nextAction === 'function') nextAction();
@@ -900,13 +914,20 @@
         pendingPartyAction = nextAction;
         characterOptionButtons.forEach(btn => btn.classList.remove('selected'));
         updateCharacterLocksFromServer(latestServerPlayers || []);
+        const lockBack = !isPartyHostClient && typeof nextAction !== 'function';
+        setCharacterBackLocked(lockBack);
+        const modalEl = document.getElementById('multiplayerModal');
+        if (modalEl) modalEl.classList.add('character-overlay-open');
         characterOverlay.classList.add('active');
     }
 
     function hideCharacterOverlay() {
+        const modalEl = document.getElementById('multiplayerModal');
+        if (modalEl) modalEl.classList.remove('character-overlay-open');
         if (!characterOverlay) return;
         characterOverlay.classList.remove('active');
         characterOptionButtons.forEach(btn => btn.classList.remove('selected'));
+        setCharacterBackLocked(false);
     }
 
     function sendStartGameIfReady() {

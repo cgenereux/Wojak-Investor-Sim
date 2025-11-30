@@ -10,7 +10,7 @@ require('../src/presets/presets.js');
 const { SeededRandom } = global.SimShared || {};
 const {
   generateHardTechPresetCompanies,
-  generateClassicCorpsCompanies
+  generateClassicCompanies
 } = global.PresetGenerators || {};
 
 async function buildSim(seed) {
@@ -18,7 +18,7 @@ async function buildSim(seed) {
   const rngFn = () => rng.random();
   const presetOpts = { rng: rngFn, baseDir: require('path').join(__dirname, '..') };
   const companies = [
-    ...(await generateClassicCorpsCompanies(presetOpts)),
+    ...(await generateClassicCompanies(presetOpts)),
     ...(await generateHardTechPresetCompanies(1, presetOpts))
   ];
   const sim = new global.Simulation(companies, { seed, rng: rngFn, macroEvents: [] });

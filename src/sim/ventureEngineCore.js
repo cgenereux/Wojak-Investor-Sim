@@ -1067,9 +1067,9 @@
         is_listed: listed,
         listing_window: this.listingWindow
           ? {
-              from: this.listingWindow.from ? this.listingWindow.from.toISOString() : null,
-              to: this.listingWindow.to ? this.listingWindow.to.toISOString() : null
-            }
+            from: this.listingWindow.from ? this.listingWindow.from.toISOString() : null,
+            to: this.listingWindow.to ? this.listingWindow.to.toISOString() : null
+          }
           : null,
         target_listing_date: this.targetListingDate ? this.targetListingDate.toISOString() : null
       };
@@ -1083,11 +1083,11 @@
       const daysRemaining = round ? Math.max(0, round.durationDays - this.daysSinceRound) : 0;
       const rounds = Array.isArray(this.roundDefinitions)
         ? this.roundDefinitions.map((r, idx) => ({
-            id: r.id,
-            label: r.label,
-            stageLabel: r.label,
-            index: idx
-          }))
+          id: r.id,
+          label: r.label,
+          stageLabel: r.label,
+          index: idx
+        }))
         : [];
       const stageIndex = Math.max(
         0,
@@ -1157,9 +1157,9 @@
         is_listed: listed,
         listing_window: this.listingWindow
           ? {
-              from: this.listingWindow.from ? this.listingWindow.from.toISOString() : null,
-              to: this.listingWindow.to ? this.listingWindow.to.toISOString() : null
-            }
+            from: this.listingWindow.from ? this.listingWindow.from.toISOString() : null,
+            to: this.listingWindow.to ? this.listingWindow.to.toISOString() : null
+          }
           : null
       };
     }
@@ -1280,9 +1280,9 @@
         is_listed: this.isListableOnDate(this.currentDate),
         listing_window: this.listingWindow
           ? {
-              from: this.listingWindow.from ? this.listingWindow.from.toISOString() : null,
-              to: this.listingWindow.to ? this.listingWindow.to.toISOString() : null
-            }
+            from: this.listingWindow.from ? this.listingWindow.from.toISOString() : null,
+            to: this.listingWindow.to ? this.listingWindow.to.toISOString() : null
+          }
           : null
       };
     }
