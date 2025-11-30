@@ -919,6 +919,15 @@ button.speed-active:hover {
     cursor: not-allowed;
 }
 
+.vc-empty-state {
+    text-align: left;
+    color: #4b5563;
+    font-weight: 500;
+    font-size: 18px;
+    padding: 8px 0;
+    white-space: nowrap;
+}
+
 .company-valuation,
 .portfolio-value {
     color: #000;

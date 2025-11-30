@@ -61,6 +61,10 @@ function renderVentureCompanies(companiesData, formatLargeNumber, formatCurrency
 
     if (!ventureCompaniesGrid) return;
     ventureCompaniesGrid.innerHTML = '';
+    if (Array.isArray(companiesData) && companiesData.length === 0) {
+        ventureCompaniesGrid.innerHTML = '<div class="vc-empty-state">No venture capital investment opportunities right now.</div>';
+        return;
+    }
 
     const getListingTs = (company) => {
         if (Number.isFinite(company.history_third_ts)) return company.history_third_ts;
