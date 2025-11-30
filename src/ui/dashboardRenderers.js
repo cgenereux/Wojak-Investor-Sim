@@ -91,6 +91,9 @@
         const ia = sectorOrder.indexOf(sa);
         const ib = sectorOrder.indexOf(sb);
         if (sa === sb) {
+          const aIpo = (a.ipoDate instanceof Date) ? a.ipoDate.getTime() : 0;
+          const bIpo = (b.ipoDate instanceof Date) ? b.ipoDate.getTime() : 0;
+          if (aIpo !== bIpo) return bIpo - aIpo; // newest first within sector
           ensureCompanyQueueIndex(a, state);
           ensureCompanyQueueIndex(b, state);
           return (a.__queueIndex || 0) - (b.__queueIndex || 0);
