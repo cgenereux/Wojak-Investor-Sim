@@ -29,6 +29,7 @@ body.vc-active.vc-detail-active #vc-view {
     padding: 20px 24px 24px;
     position: relative;
     transform: translateY(-6%);
+    transition: none;
 }
 
 .vc-close-btn {
