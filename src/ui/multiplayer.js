@@ -66,7 +66,6 @@
         }
         if (wsHeartbeat) { clearInterval(wsHeartbeat); wsHeartbeat = null; }
         isServerAuthoritative = false;
-        resetCharacterToDefault();
         refreshJoinUi();
         setConnectionStatus('Offline', 'warn');
         setBannerButtonsVisible(false);

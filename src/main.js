@@ -473,6 +473,9 @@ try {
     storedPlayerName = localStorage.getItem('wojak_player_name') || null;
     const storedChar = localStorage.getItem(SELECTED_CHARACTER_KEY);
     if (storedChar) selectedCharacter = storedChar;
+    if (selectedCharacter) {
+        applySelectedCharacter({ character: selectedCharacter });
+    }
 } catch (err) {
     console.warn('Unable to read DRIP setting:', err);
 }

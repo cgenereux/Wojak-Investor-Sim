@@ -19,6 +19,7 @@ const vcDetailChartCtx = vcDetailChartCanvas ? vcDetailChartCanvas.getContext('2
 const vcFinancialHistoryContainer = document.getElementById('vcFinancialHistoryContainer');
 
 let currentVentureCompanyId = null;
+let vcInitialized = false;
 let vcFormatLargeNumber = (value, precision = 2) => {
     if (value === null || value === undefined) return '$0';
     const abs = Math.abs(value);
@@ -681,6 +682,18 @@ function hideVentureCompanyDetail(options = {}) {
     }
 }
 
+function exitVentureToHome() {
+    if (typeof closeVentureTab === 'function') {
+        closeVentureTab();
+        return;
+    }
+    hideVentureCompanyDetail({ skipHistory: true });
+    document.body.classList.remove('vc-active');
+    if (typeof window.pushViewState === 'function') {
+        window.pushViewState('market', {});
+    }
+}
+
 function refreshVentureCompaniesList() {
     if (typeof getVentureCompanySummaries !== 'function') return;
     const summaries = getVentureCompanySummaries();
@@ -698,8 +711,10 @@ function refreshVentureDetailView() {
 }
 
 function initVC() {
+    if (vcInitialized) return;
+    vcInitialized = true;
     if (backToVcListBtn) {
-        backToVcListBtn.addEventListener('click', hideVentureCompanyDetail);
+        backToVcListBtn.addEventListener('click', exitVentureToHome);
     }
     if (vcLeadRoundBtn) {
         vcLeadRoundBtn.addEventListener('click', () => {
@@ -1056,7 +1071,7 @@ function computeVenturePackageAmount(detail, pct) {
 
 function initVC() {
     if (backToVcListBtn) {
-        backToVcListBtn.addEventListener('click', hideVentureCompanyDetail);
+        backToVcListBtn.addEventListener('click', exitVentureToHome);
     }
     if (vcLeadRoundBtn) {
         vcLeadRoundBtn.addEventListener('click', () => {
