@@ -3205,6 +3205,14 @@ if (multiplayerModal) {
         if (event.target === multiplayerModal) hideMultiplayerModal();
     });
 }
+const ventureModal = document.getElementById('vc-view');
+if (ventureModal) {
+    ventureModal.addEventListener('click', (event) => {
+        if (event.target === ventureModal) {
+            closeVentureTab({ skipHistory: true });
+        }
+    });
+}
 const PARTY_CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 function generatePartyCode() {
     let code = '';

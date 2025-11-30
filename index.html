@@ -223,28 +223,28 @@
         </div>
 
         <!-- VC View -->
-        <div id="vc-view" class="view">
-            <div class="detail-header">
-                <div class="detail-title-row" style="align-items: center;">
-                    <img src="wojaks/brainjak.jpg" alt="Brainjack"
-                        style="height: 146px; width: auto; margin-right: 24px;">
-                    <div>
-                        <h2 class="detail-title" style="margin-bottom: 6px;">Venture Capital</h2>
-                        <p style="margin: 0; color: #555; font-size: 16px;">Invest in the hottest companies at low
-                            valuations</p>
+        <div id="vc-view" class="view vc-modal">
+            <div class="vc-modal-panel">
+                <div class="detail-header">
+                    <div class="detail-title-row" style="align-items: center;">
+                        <img src="wojaks/brainjak.jpg" alt="Brainjack"
+                            style="height: 146px; width: auto; margin-right: 24px;">
+                        <div>
+                            <h2 class="detail-title" style="margin-bottom: 6px;">Venture Capital Investments</h2>
+                            <p style="margin: 0; color: #555; font-size: 16px;">Invest in the hottest companies at low
+                                valuations</p>
+                        </div>
                     </div>
-                    <!-- <img src="wojaks/brainjak_purple.jpg" alt="Purple Brainjack"
-                        style="height: 146px; width: auto; margin-left: 24px; transform: scaleX(-1);"> -->
+                    <button id="back-to-main-btn" class="vc-close-btn" aria-label="Close venture modal">×</button>
                 </div>
-                <button id="back-to-main-btn" style="margin-top: 12px;">← Back to Market</button>
-            </div>
-            <div id="vc-content">
+                <div id="vc-content">
 
-                <div class="venture-market-section">
-                    <div class="venture-market-header">
-                        <h2 class="section-title">Market</h2>
+                    <div class="venture-market-section">
+                        <div class="venture-market-header">
+                            <h2 class="section-title">Market</h2>
+                        </div>
+                        <div class="companies-grid" id="ventureCompaniesGrid"></div>
                     </div>
-                    <div class="companies-grid" id="ventureCompaniesGrid"></div>
                 </div>
             </div>
         </div>
