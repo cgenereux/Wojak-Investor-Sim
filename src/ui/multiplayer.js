@@ -496,27 +496,27 @@
             if (netWorthChart) netWorthChart.update();
             return;
         }
-            if (msg.type === 'end') {
-                const finalNetWorth = (serverPlayer && typeof serverPlayer.netWorth === 'number') ? serverPlayer.netWorth : netWorth;
-                const playersRaw = Array.isArray(latestServerPlayers) ? latestServerPlayers : [];
-                const playerNames = playersRaw.map(p => p?.id || p?.name).filter(Boolean);
-                const reason = msg.reason || 'session_end';
-                const isIdleEnd = reason === 'idle_timeout' || reason === 'client_idle';
-                const isManualKill = reason === 'manual_kill';
-                const isHostClient = isPartyHostClient || (clientPlayerId && currentHostId && clientPlayerId === currentHostId);
-                const endYear = Number.isFinite(msg.year) ? msg.year : (currentDate instanceof Date ? currentDate.getFullYear() : null);
-                trackEvent('match_ended', {
-                    mode: 'multiplayer',
-                    final_net_worth: finalNetWorth,
-                    reason,
-                    match_id: activeSessionId || 'default',
-                    player_id: clientPlayerId || null,
-                    role: isHostClient ? 'host' : 'guest',
-                    end_year: Number.isFinite(endYear) ? endYear : null,
-                    player_count: playerNames.length || null,
-                    player_names: playerNames,
-                    host_id: currentHostId || null
-                });
+        if (msg.type === 'end') {
+            const finalNetWorth = (serverPlayer && typeof serverPlayer.netWorth === 'number') ? serverPlayer.netWorth : netWorth;
+            const playersRaw = Array.isArray(latestServerPlayers) ? latestServerPlayers : [];
+            const playerNames = playersRaw.map(p => p?.id || p?.name).filter(Boolean);
+            const reason = msg.reason || 'session_end';
+            const isIdleEnd = reason === 'idle_timeout' || reason === 'client_idle';
+            const isManualKill = reason === 'manual_kill';
+            const isHostClient = isPartyHostClient || (clientPlayerId && currentHostId && clientPlayerId === currentHostId);
+            const endYear = Number.isFinite(msg.year) ? msg.year : (currentDate instanceof Date ? currentDate.getFullYear() : null);
+            trackEvent('match_ended', {
+                mode: 'multiplayer',
+                final_net_worth: finalNetWorth,
+                reason,
+                match_id: activeSessionId || 'default',
+                player_id: clientPlayerId || null,
+                role: isHostClient ? 'host' : 'guest',
+                end_year: Number.isFinite(endYear) ? endYear : null,
+                player_count: playerNames.length || null,
+                player_names: playerNames,
+                host_id: currentHostId || null
+            });
             if (isIdleEnd || isManualKill) {
                 const idleSecs = Number.isFinite(msg.idleSeconds) ? msg.idleSeconds : lastIdleWarningSeconds;
                 handleIdleExit(isManualKill ? 'manual_kill' : 'idle_timeout', idleSecs);
@@ -799,6 +799,11 @@
         startGameSent = false;
         isPartyHostClient = false;
         hasJoinedPartyAsGuest = false;
+        // Fix: Clear default 'wojak' so we don't auto-claim it on connect
+        if (selectedCharacter === 'wojak') {
+            selectedCharacter = null;
+            try { localStorage.removeItem(SELECTED_CHARACTER_KEY); } catch (e) { }
+        }
         lastKnownHostLabel = '';
         matchStarted = false;
         manualDisconnect = false;

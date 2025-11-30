@@ -205,6 +205,7 @@
     emptyPortfolioMsg.style.display = 'none';
 
     const existingItems = new Map();
+    const processedKeys = new Set();
     portfolioList.querySelectorAll('.portfolio-item').forEach(item => {
       const key = item.dataset.portfolioKey || item.querySelector('.company-name').textContent;
       existingItems.set(key, item);
@@ -218,6 +219,7 @@
       const currentValue = company.marketCap * holding.unitsOwned;
       const formattedValue = currencyFormatter.format(currentValue);
       const key = `public:${holding.companyName}`;
+      processedKeys.add(key);
       if (existingItems.has(key)) {
         const item = existingItems.get(key);
         item.querySelector('.portfolio-value').textContent = formattedValue;
@@ -249,6 +251,7 @@
       const formattedValue = hasEquity ? currencyFormatter.format(equityValue) : (hasPending ? currencyFormatter.format(pendingValue) : '');
       const pendingLabel = (!isInFlight && hasPending) ? `Committed: ${currencyFormatter.format(pendingCommitment)}` : '';
       const key = `private:${summary.id}`;
+      processedKeys.add(key);
       const stakeLabel = hasEquity ? `${detail.playerEquityPercent.toFixed(2)}% stake` : 'Stake pending';
       const stageLabel = detail.stageLabel || summary.stageLabel || 'Private';
       const nameLabel = isInFlight ? `${summary.name} (${stageLabel}) (In Flight)` : `${summary.name} (${stageLabel})`;
@@ -294,6 +297,7 @@
       Object.entries(serverPlayer.ventureCommitments).forEach(([vcId, amount]) => {
         if (!amount || amount <= 0) return;
         const key = `private:${vcId}`;
+        if (processedKeys.has(key)) return; // Prevent duplicates
         const nameLabel = `${vcId} (Private) (In Flight)`;
         if (existingItems.has(key)) {
           const item = existingItems.get(key);
@@ -342,5 +346,5 @@
     renderPortfolio
   };
 })(typeof globalThis !== 'undefined'
-    ? globalThis
-    : (typeof window !== 'undefined' ? window : this));
+  ? globalThis
+  : (typeof window !== 'undefined' ? window : this));

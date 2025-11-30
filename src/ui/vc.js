@@ -553,7 +553,14 @@ function updateVentureDetail(companyId) {
     history.sort((a, b) => a.x - b.x);
     if (history.length === 1) {
         const dayMs = 24 * 60 * 60 * 1000;
-        const anchorX = listingCutoff ? listingCutoff : history[0].x - dayMs;
+        let anchorX = listingCutoff ? listingCutoff : history[0].x - dayMs;
+        if (detail.startDate && Number.isFinite(detail.startDate)) {
+            anchorX = detail.startDate;
+        }
+        // Ensure we don't go before start date
+        if (detail.startDate && anchorX < detail.startDate) {
+            anchorX = detail.startDate;
+        }
         history.unshift({ x: anchorX, y: history[0].y, stage: history[0].stage });
     }
     const suggestedMin = valuation > 0 ? valuation * 0.8 : 0;
@@ -1006,7 +1013,9 @@ function handleVenturePurchase(pct) {
     const release = () => {
         if (!unlocked) {
             unlocked = true;
-            venturePurchaseLock = false;
+            setTimeout(() => {
+                venturePurchaseLock = false;
+            }, 500);
         }
     };
     if (!currentVentureCompanyId || !Number.isFinite(pct) || pct <= 0) {

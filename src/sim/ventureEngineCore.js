@@ -1198,6 +1198,7 @@
         } : null,
         rounds,
         is_listed: listed,
+        startDate: this.startDate ? this.startDate.getTime() : null,
         listing_window: this.listingWindow
           ? {
             from: this.listingWindow.from ? this.listingWindow.from.toISOString() : null,

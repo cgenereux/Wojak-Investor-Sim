@@ -749,6 +749,19 @@ function hydrateFromSnapshot(snapshot) {
                         if (typeof snap.valuation === 'number') {
                             comp.currentValuation = snap.valuation;
                         }
+                        // Restore Date objects
+                        if (comp.startDate && !(comp.startDate instanceof Date)) {
+                            comp.startDate = new Date(comp.startDate);
+                        }
+                        if (comp.currentDate && !(comp.currentDate instanceof Date)) {
+                            comp.currentDate = new Date(comp.currentDate);
+                        }
+                        if (comp.failedAt && !(comp.failedAt instanceof Date)) {
+                            comp.failedAt = new Date(comp.failedAt);
+                        }
+                        if (comp.targetListingDate && !(comp.targetListingDate instanceof Date)) {
+                            comp.targetListingDate = new Date(comp.targetListingDate);
+                        }
                         // Ensure history is restored if available
                         if (snap.history) comp.history = snap.history.slice();
                         if (snap.financialHistory) comp.financialHistory = snap.financialHistory.slice();
@@ -1699,7 +1712,7 @@ function updateNetWorth() {
         setTimeout(() => { jsConfetti.addConfetti({ emojis: ['🌌', '🥇', '🔮'], confettiNumber: 100, emojiSize: 30, }); }, 2000);
     }
 
-    if (netWorth >= 1000000) {
+    if (netWorth >= 1000000 || isMillionaire) {
         vcBtn.disabled = false;
         vcBtn.parentElement.classList.remove('disabled');
         ensureVentureSimulation();
