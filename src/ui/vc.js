@@ -529,10 +529,13 @@ function updateVentureDetail(companyId) {
         if (!Array.isArray(hist) || hist.length === 0) return [];
         return hist
             .map(point => {
-                const x = typeof point.x === 'number'
-                    ? point.x
-                    : (point && point.x ? new Date(point.x).getTime() : NaN);
-                const y = point ? point.y : NaN;
+                let x = NaN;
+                if (point) {
+                    if (typeof point.x === 'number') x = point.x;
+                    else if (typeof point.x === 'string' && !isNaN(Number(point.x))) x = Number(point.x);
+                    else if (point.x) x = new Date(point.x).getTime();
+                }
+                const y = point ? Number(point.y) : NaN;
                 if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
                 return { ...point, x, y };
             })

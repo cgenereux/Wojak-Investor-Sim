@@ -217,13 +217,9 @@
       this.listingWindow = normalizeListingWindow(
         config.private_listing_window || config.listing_window || config.listingWindow || null
       );
+      // Use the defined private listing window for target date
       if (this.listingWindow && this.listingWindow.from && this.listingWindow.to) {
-        const fromYear = this.listingWindow.from.getUTCFullYear();
-        const toYear = this.listingWindow.to.getUTCFullYear();
-        const targetYear = FAST_LISTING
-          ? startDate.getUTCFullYear()
-          : Math.max(fromYear, Math.min(toYear, Math.trunc(between(fromYear, toYear + 1))));
-        this.targetListingDate = new Date(Date.UTC(targetYear, 0, 1));
+        this.targetListingDate = new Date(this.listingWindow.to);
       } else {
         this.targetListingDate = null;
       }
@@ -257,6 +253,17 @@
       this.startDate = new Date(start);
       this.currentDate = new Date(start);
       this.lastYearRecorded = this.startDate.getUTCFullYear();
+
+      // Use the defined private listing window for start date
+      if (this.listingWindow && this.listingWindow.from) {
+        this.startDate = new Date(this.listingWindow.from);
+        // Ensure currentDate respects the new start date
+        if (this.currentDate < this.startDate) {
+          this.currentDate = new Date(this.startDate);
+        }
+      }
+
+
       this.stageChanged = false;
       this.consecutiveFails = 0;
       this.maxFailuresBeforeCollapse = Math.max(1, Number(config.max_failures_before_collapse || 2));
@@ -390,29 +397,18 @@
       this.profit = profit;
       this.marketCap = this.currentValuation;
 
-      if (this.targetListingDate && (!this.currentDate || this.currentDate < this.targetListingDate)) {
-        this.currentDate = new Date(this.targetListingDate);
-        this.startDate = new Date(this.targetListingDate);
-      }
+
     }
 
-    recordHistory(date) {
-      if (!date) return;
-      const timestamp = date && date.getTime ? date.getTime() : 0;
-
-      let stageLabel = 'Pre-Seed';
-      if (Array.isArray(this.roundDefinitions) && this.roundDefinitions.length > 0) {
-        const idx = Math.max(0, Math.min(this.stageIndex ?? 0, this.roundDefinitions.length - 1));
-        stageLabel = this.roundDefinitions[idx]?.label || stageLabel;
-      }
-
+    recordHistory(gameDate) {
+      if (!gameDate) return;
+      const stamp = gameDate.getTime();
       const last = this.history[this.history.length - 1];
-      if (last && last.x === timestamp) {
+      if (!last || last.x !== stamp) {
+        this.history.push({ x: stamp, y: this.currentValuation, stage: this.currentStage ? this.currentStage.label : 'N/A' });
+      } else {
         last.y = this.currentValuation;
-        last.stage = stageLabel;
-        return;
       }
-      this.history.push({ x: timestamp, y: this.currentValuation, stage: stageLabel });
     }
 
     accumulateFinancials(dtDays, currentDate) {
@@ -746,12 +742,16 @@
     }
 
     isActiveOnDate(date = null) {
-      if (!this.targetListingDate) return true;
       const ref = date
         ? new Date(date)
         : (this.currentDate ? new Date(this.currentDate) : null);
       if (!ref || Number.isNaN(ref.getTime())) return true;
-      return ref >= this.targetListingDate;
+
+      // Must be after start date
+      if (this.startDate && ref < this.startDate) return false;
+
+      if (!this.targetListingDate) return true;
+      return ref < this.targetListingDate;
     }
 
     getPlayerValuation() {

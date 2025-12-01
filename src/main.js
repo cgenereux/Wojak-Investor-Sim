@@ -466,6 +466,17 @@ let lastNameTaken = false;
 let wsGeneration = 0;
 let latestServerPlayers = [];
 let lastRosterSnapshot = [];
+
+let wojakManager = null;
+let handlingBankruptcy = false;
+if (wojakImage) {
+    wojakManager = wojakFactory.createWojakManager({
+        imageElement: wojakImage,
+        defaultSrc: DEFAULT_WOJAK_SRC,
+        maldingSrc: MALDING_WOJAK_SRC,
+        getNetWorth: () => netWorth
+    });
+}
 try {
     const stored = localStorage.getItem(DRIP_STORAGE_KEY);
     if (stored === 'true') dripEnabled = true;
@@ -487,16 +498,7 @@ let netWorth = cash;
 let netWorthHistory = [{ x: currentDate.getTime(), y: netWorth }];
 let netWorthAth = netWorth;
 let lastDrawdownTriggerAth = 0;
-let wojakManager = null;
-let handlingBankruptcy = false;
-if (wojakImage) {
-    wojakManager = wojakFactory.createWojakManager({
-        imageElement: wojakImage,
-        defaultSrc: DEFAULT_WOJAK_SRC,
-        maldingSrc: MALDING_WOJAK_SRC,
-        getNetWorth: () => netWorth
-    });
-}
+
 
 // --- Banking State ---
 let totalBorrowed = 0;
@@ -763,7 +765,17 @@ function hydrateFromSnapshot(snapshot) {
                             comp.targetListingDate = new Date(comp.targetListingDate);
                         }
                         // Ensure history is restored if available
-                        if (snap.history) comp.history = snap.history.slice();
+                        if (Array.isArray(snap.history)) {
+                            comp.history = snap.history.map(pt => {
+                                if (!pt) return pt;
+                                let x = pt.x;
+                                if (typeof x === 'string') {
+                                    if (!isNaN(Number(x))) x = Number(x);
+                                    else x = new Date(x).getTime();
+                                }
+                                return { ...pt, x, y: Number(pt.y) };
+                            });
+                        }
                         if (snap.financialHistory) comp.financialHistory = snap.financialHistory.slice();
                         if (snap.quarterHistory) comp.quarterHistory = snap.quarterHistory.slice();
                     }
