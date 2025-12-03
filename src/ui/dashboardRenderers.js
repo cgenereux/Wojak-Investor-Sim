@@ -184,9 +184,30 @@
       emptyPortfolioMsg,
       currencyFormatter = { format: (value) => `$${value}` },
       serverPlayer = null,
-      isServerAuthoritative = false
+      isServerAuthoritative = false,
+      playerId = null
     } = options;
     if (!portfolioList || !emptyPortfolioMsg) return;
+
+    const activePlayerId = playerId || (serverPlayer && serverPlayer.id) || null;
+    const pickPlayerEquityFraction = (detail, vcId) => {
+      if (serverPlayer && serverPlayer.ventureHoldings && Number.isFinite(serverPlayer.ventureHoldings[vcId])) {
+        return serverPlayer.ventureHoldings[vcId];
+      }
+      if (activePlayerId && detail && detail.playerEquityById && Number.isFinite(detail.playerEquityById[activePlayerId])) {
+        return detail.playerEquityById[activePlayerId];
+      }
+      return (detail && Number.isFinite(detail.playerEquity)) ? detail.playerEquity : 0;
+    };
+    const pickPlayerPendingCommitment = (detail, vcId) => {
+      if (serverPlayer && serverPlayer.ventureCommitments && Number.isFinite(serverPlayer.ventureCommitments[vcId])) {
+        return serverPlayer.ventureCommitments[vcId];
+      }
+      if (activePlayerId && detail && detail.pendingCommitments && Number.isFinite(detail.pendingCommitments[activePlayerId])) {
+        return detail.pendingCommitments[activePlayerId];
+      }
+      return (detail && Number.isFinite(detail.pendingCommitment)) ? detail.pendingCommitment : 0;
+    };
 
     const hasPublicHoldings = portfolio.length > 0;
     const ventureSummaries = ventureSim ? ventureSim.getCompanySummaries() : [];
@@ -194,7 +215,9 @@
       if (!summary || !ventureSim) return false;
       const detail = ventureSim.getCompanyDetail(summary.id);
       if (!detail) return false;
-      return (detail.playerEquity || 0) > 0 || (detail.pendingCommitment || 0) > 0;
+      const equityFraction = pickPlayerEquityFraction(detail, summary.id);
+      const pending = pickPlayerPendingCommitment(detail, summary.id);
+      return equityFraction > 0 || pending > 0;
     }) || (!!serverPlayer && isServerAuthoritative && serverPlayer.ventureCommitments && Object.keys(serverPlayer.ventureCommitments).length > 0);
 
     if (!hasPublicHoldings && !hasPrivateHoldings) {
@@ -241,18 +264,21 @@
       if (!summary || !ventureSim) return;
       const detail = ventureSim.getCompanyDetail(summary.id);
       if (!detail) return;
-      const hasEquity = (detail.playerEquity || 0) > 0;
-      const pendingCommitment = detail.pendingCommitment || 0;
+      const valuation = Number.isFinite(detail?.valuation) ? detail.valuation : (Number.isFinite(summary?.valuation) ? summary.valuation : 0);
+      const equityFraction = pickPlayerEquityFraction(detail, summary.id);
+      const pendingCommitment = pickPlayerPendingCommitment(detail, summary.id);
+      const hasEquity = equityFraction > 0;
       const hasPending = pendingCommitment > 0;
       const isInFlight = hasPending && !hasEquity;
       if (!hasEquity && !hasPending) return;
-      const equityValue = hasEquity ? detail.playerEquity * detail.valuation : 0;
+      const equityValue = hasEquity ? equityFraction * valuation : 0;
       const pendingValue = !hasEquity && hasPending ? pendingCommitment : 0;
       const formattedValue = hasEquity ? currencyFormatter.format(equityValue) : (hasPending ? currencyFormatter.format(pendingValue) : '');
       const pendingLabel = (!isInFlight && hasPending) ? `Committed: ${currencyFormatter.format(pendingCommitment)}` : '';
       const key = `private:${summary.id}`;
       processedKeys.add(key);
-      const stakeLabel = hasEquity ? `${detail.playerEquityPercent.toFixed(2)}% stake` : 'Stake pending';
+      const playerEquityPct = equityFraction * 100;
+      const stakeLabel = hasEquity ? `${playerEquityPct.toFixed(2)}% stake` : 'Stake pending';
       const stageLabel = detail.stageLabel || summary.stageLabel || 'Private';
       const nameLabel = isInFlight ? `${summary.name} (${stageLabel}) (In Flight)` : `${summary.name} (${stageLabel})`;
       const sectorClass = getSectorClass(detail.sector || summary.sector);
@@ -292,44 +318,71 @@
       }
     });
 
-    // Server-authoritative fallback: show commitments even if ventureSim is missing them
-    if (isServerAuthoritative && serverPlayer && serverPlayer.ventureCommitments) {
-      Object.entries(serverPlayer.ventureCommitments).forEach(([vcId, amount]) => {
-        if (!amount || amount <= 0) return;
+    // Server-authoritative fallback: show commitments/equity even if ventureSim is missing them
+    if (isServerAuthoritative && serverPlayer) {
+      const holdingsEntries = serverPlayer.ventureHoldings ? Object.entries(serverPlayer.ventureHoldings) : [];
+      holdingsEntries.forEach(([vcId, pct]) => {
+        const pctNum = Number(pct) || 0;
+        if (pctNum <= 0) return;
         const key = `private:${vcId}`;
-        if (processedKeys.has(key)) return; // Prevent duplicates
-        const nameLabel = `${vcId} (Private) (In Flight)`;
-        if (existingItems.has(key)) {
-          const item = existingItems.get(key);
-          const nameEl = item.querySelector('.company-name');
-          if (nameEl) nameEl.textContent = nameLabel;
-          const valueEl = item.querySelector('.portfolio-value');
-          if (valueEl) valueEl.textContent = currencyFormatter.format(amount);
-          const valueRow = item.querySelector('.portfolio-value-row');
-          if (valueRow) valueRow.style.display = 'block';
-          const pendingEl = item.querySelector('.portfolio-pending');
-          if (pendingEl) {
-            pendingEl.textContent = '';
-            pendingEl.style.display = 'none';
-          }
-          const stakeEl = item.querySelector('.portfolio-stake');
-          if (stakeEl) stakeEl.textContent = 'Stake pending';
-          existingItems.delete(key);
-          return;
-        }
+        if (processedKeys.has(key)) return;
+        const nameLabel = `${vcId} (Private)`;
+        const stakeLabel = `${(pctNum * 100).toFixed(2)}% stake`;
+        const value = (serverPlayer.ventureEquity && serverPlayer.ventureEquity > 0)
+          ? (serverPlayer.ventureEquity / Math.max(1, holdingsEntries.length))
+          : 0;
+        const valueStr = value > 0 ? currencyFormatter.format(value) : '';
         newPortfolioHtml.push(`
           <div class="portfolio-item" data-portfolio-type="private" data-venture-id="${vcId}" data-portfolio-key="${key}">
               <div class="company-name">${nameLabel}</div>
               <div class="portfolio-info">
-                  <div class="portfolio-value-row" style="display:block">
-                      Value: <span class="portfolio-value">${currencyFormatter.format(amount)}</span>
+                  <div class="portfolio-value-row" style="display:${valueStr ? 'block' : 'none'}">
+                      Value: <span class="portfolio-value">${valueStr}</span>
                   </div>
-                  <span class="portfolio-stake">Stake pending</span>
+                  <span class="portfolio-stake">${stakeLabel}</span>
                   <span class="portfolio-pending" style="display:none"></span>
               </div>
           </div>
         `);
       });
+      if (serverPlayer.ventureCommitments) {
+        Object.entries(serverPlayer.ventureCommitments).forEach(([vcId, amount]) => {
+          if (!amount || amount <= 0) return;
+          const key = `private:${vcId}`;
+          if (processedKeys.has(key)) return; // Prevent duplicates
+          const nameLabel = `${vcId} (Private) (In Flight)`;
+          if (existingItems.has(key)) {
+            const item = existingItems.get(key);
+            const nameEl = item.querySelector('.company-name');
+            if (nameEl) nameEl.textContent = nameLabel;
+            const valueEl = item.querySelector('.portfolio-value');
+            if (valueEl) valueEl.textContent = currencyFormatter.format(amount);
+            const valueRow = item.querySelector('.portfolio-value-row');
+            if (valueRow) valueRow.style.display = 'block';
+            const pendingEl = item.querySelector('.portfolio-pending');
+            if (pendingEl) {
+              pendingEl.textContent = '';
+              pendingEl.style.display = 'none';
+            }
+            const stakeEl = item.querySelector('.portfolio-stake');
+            if (stakeEl) stakeEl.textContent = 'Stake pending';
+            existingItems.delete(key);
+            return;
+          }
+          newPortfolioHtml.push(`
+            <div class="portfolio-item" data-portfolio-type="private" data-venture-id="${vcId}" data-portfolio-key="${key}">
+                <div class="company-name">${nameLabel}</div>
+                <div class="portfolio-info">
+                    <div class="portfolio-value-row" style="display:block">
+                        Value: <span class="portfolio-value">${currencyFormatter.format(amount)}</span>
+                    </div>
+                    <span class="portfolio-stake">Stake pending</span>
+                    <span class="portfolio-pending" style="display:none"></span>
+                </div>
+            </div>
+          `);
+        });
+      }
     }
 
     if (newPortfolioHtml.length > 0) {

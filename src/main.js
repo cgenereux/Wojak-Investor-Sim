@@ -1316,12 +1316,13 @@ function updateDisplay() {
             publicAssets += value;
         }
     });
+    const activePlayerId = (serverPlayer && serverPlayer.id) || clientPlayerId || 'local_player';
     const privateAssets = (isServerAuthoritative && serverPlayer && typeof serverPlayer.ventureEquity === 'number')
         ? serverPlayer.ventureEquity
-        : (ventureSim ? ventureSim.getPlayerHoldingsValue() : 0);
+        : (ventureSim ? ventureSim.getPlayerHoldingsValue(activePlayerId) : 0);
     const pendingCommitments = (isServerAuthoritative && serverPlayer && typeof serverPlayer.ventureCommitmentsValue === 'number')
         ? serverPlayer.ventureCommitmentsValue
-        : (ventureSim ? ventureSim.getPendingCommitments() : 0);
+        : (ventureSim ? ventureSim.getPendingCommitments(activePlayerId) : 0);
     const equityValue = publicAssets + privateAssets + pendingCommitments;
     const localTotalAssets = cash + equityValue;
 
@@ -1487,6 +1488,7 @@ function renderCompanies(force = false) {
 }
 
 function renderPortfolio() {
+    const activePlayerId = (serverPlayer && serverPlayer.id) || clientPlayerId || 'local_player';
     renderPortfolioUI({
         portfolio,
         companies,
@@ -1495,7 +1497,8 @@ function renderPortfolio() {
         emptyPortfolioMsg,
         currencyFormatter,
         serverPlayer,
-        isServerAuthoritative
+        isServerAuthoritative,
+        playerId: activePlayerId
     });
 }
 
@@ -1657,13 +1660,14 @@ function parseUserAmount(input) {
 
 // --- Game Logic ---
 function updateNetWorth() {
+    const activePlayerId = (serverPlayer && serverPlayer.id) || clientPlayerId || 'local_player';
     if (serverPlayer && isServerAuthoritative) {
         const publicValue = portfolio.reduce((sum, holding) => {
             const company = companies.find(c => c.name === holding.companyName);
             return sum + (company ? company.marketCap * holding.unitsOwned : 0);
         }, 0);
-        const privateValue = typeof serverPlayer.ventureEquity === 'number' ? serverPlayer.ventureEquity : (ventureSim ? ventureSim.getPlayerHoldingsValue() : 0);
-        const pendingCommitments = typeof serverPlayer.ventureCommitmentsValue === 'number' ? serverPlayer.ventureCommitmentsValue : (ventureSim ? ventureSim.getPendingCommitments() : 0);
+        const privateValue = typeof serverPlayer.ventureEquity === 'number' ? serverPlayer.ventureEquity : (ventureSim ? ventureSim.getPlayerHoldingsValue(activePlayerId) : 0);
+        const pendingCommitments = typeof serverPlayer.ventureCommitmentsValue === 'number' ? serverPlayer.ventureCommitmentsValue : (ventureSim ? ventureSim.getPendingCommitments(activePlayerId) : 0);
         const displayCash = typeof serverPlayer.cash === 'number' ? serverPlayer.cash : cash;
         const displayDebt = typeof serverPlayer.debt === 'number' ? serverPlayer.debt : totalBorrowed;
         netWorth = displayCash + publicValue + privateValue + pendingCommitments - displayDebt;
@@ -1672,8 +1676,8 @@ function updateNetWorth() {
             const company = companies.find(c => c.name === holding.companyName);
             return sum + (company ? company.marketCap * holding.unitsOwned : 0);
         }, 0);
-        const ventureHoldingsValue = ventureSim ? ventureSim.getPlayerHoldingsValue() : 0;
-        const pendingCommitments = ventureSim ? ventureSim.getPendingCommitments() : 0;
+        const ventureHoldingsValue = ventureSim ? ventureSim.getPlayerHoldingsValue(activePlayerId) : 0;
+        const pendingCommitments = ventureSim ? ventureSim.getPendingCommitments(activePlayerId) : 0;
         netWorth = cash + totalHoldingsValue + ventureHoldingsValue + pendingCommitments - totalBorrowed;
     }
     netWorthHistory.push({ x: currentDate.getTime(), y: netWorth });
@@ -1862,6 +1866,7 @@ function removeVentureSpinoutFromMarket(name) {
 function handleVentureEvents(events) {
     if (!events || events.length === 0) return;
     let needsRefresh = false;
+    const activePlayerId = (serverPlayer && serverPlayer.id) || clientPlayerId || 'local_player';
     events.forEach(event => {
         if (event.type === 'venture_ipo') {
             convertVentureCompanyToPublic(event);
@@ -1876,6 +1881,22 @@ function handleVentureEvents(events) {
             if (event.refund && event.refund > 0) {
                 cash += event.refund;
             }
+            needsRefresh = true;
+        } else if (event.type === 'venture_round_closed') {
+            // Ensure local/server player mirrors the granted equity and clears pending commit
+            if (event.playerId && event.playerId === activePlayerId) {
+                if (serverPlayer) {
+                    if (!serverPlayer.ventureHoldings) serverPlayer.ventureHoldings = {};
+                    if (event.playerEquity && event.playerEquity > 0) {
+                        serverPlayer.ventureHoldings[event.companyId] = event.playerEquity;
+                    }
+                    if (serverPlayer.ventureCommitments) {
+                        delete serverPlayer.ventureCommitments[event.companyId];
+                    }
+                }
+                needsRefresh = true;
+            }
+            // Always refresh UI on close so stakes show up even if local sim missed the map
             needsRefresh = true;
         }
     });
@@ -1936,6 +1957,7 @@ function updateBankingDisplay() {
     const maxBorrowing = getMaxBorrowing();
     const displayCash = isServerAuthoritative && serverPlayer ? serverPlayer.cash : cash;
     const displayDebt = isServerAuthoritative && serverPlayer ? serverPlayer.debt : totalBorrowed;
+    const activePlayerId = (serverPlayer && serverPlayer.id) || clientPlayerId || 'local_player';
     bankingCashDisplay.textContent = currencyFormatter.format(displayCash);
     bankingCashDisplay.className = `stat-value ${displayCash >= 0 ? 'positive' : 'negative'}`;
     let totalAssets = displayCash;
@@ -1945,10 +1967,10 @@ function updateBankingDisplay() {
     });
     const privateAssets = (isServerAuthoritative && serverPlayer && typeof serverPlayer.ventureEquity === 'number')
         ? serverPlayer.ventureEquity
-        : (ventureSim ? ventureSim.getPlayerHoldingsValue() : 0);
+        : (ventureSim ? ventureSim.getPlayerHoldingsValue(activePlayerId) : 0);
     const pendingCommitments = (isServerAuthoritative && serverPlayer && typeof serverPlayer.ventureCommitmentsValue === 'number')
         ? serverPlayer.ventureCommitmentsValue
-        : (ventureSim ? ventureSim.getPendingCommitments() : 0);
+        : (ventureSim ? ventureSim.getPendingCommitments(activePlayerId) : 0);
     totalAssets += privateAssets + pendingCommitments;
     if (isServerAuthoritative && serverPlayer) {
         totalAssets = serverPlayer.netWorth + serverPlayer.debt;
@@ -2247,7 +2269,8 @@ function leadVentureRound(companyId) {
         return { success: false, reason: "Insufficient cash to lead this round." };
     }
 
-    const result = ventureSim.leadRound(companyId);
+    const investorId = clientPlayerId || 'local_player';
+    const result = ventureSim.leadRound(companyId, investorId);
     if (!result.success) {
         return result;
     }

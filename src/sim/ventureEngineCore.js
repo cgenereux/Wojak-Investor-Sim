@@ -229,6 +229,7 @@
       this.playerEquityMap = {};
       this.playerInvested = 0;
       this.pendingCommitment = 0;
+      this.pendingCommitments = config.pendingCommitments || {}; // Map<playerId, amount>
       this.cash = Number(config.starting_cash_usd ?? 0);
       this.debt = Number(config.starting_debt_usd ?? 0);
       this.raiseTriggerCash = 0;
@@ -710,7 +711,9 @@
         successProb: typeof stage.successProb === 'number' ? stage.successProb : 0.85,
         durationDays,
         runwayMonths,
+        runwayMonths,
         playerCommitted: false,
+        playerCommitments: {}, // Map<playerId, amount>
         openedOn: new Date(currentDate || this.startDate || new Date('1990-01-01T00:00:00Z')),
         fairValue: fairValue,
         pipelineStage: pipelineStageName,
@@ -749,14 +752,21 @@
 
       // Must be after start date
       if (this.startDate && ref < this.startDate) return false;
-
-      if (!this.targetListingDate) return true;
-      return ref < this.targetListingDate;
+      // Keep active even after target listing date so rounds can resolve/IPO
+      return true;
     }
 
-    getPlayerValuation() {
+    getPlayerValuation(playerId = null) {
       if (this.status === 'failed' || this.status === 'exited') return 0;
-      const equityValue = this.playerEquity ? this.playerEquity * this.currentValuation : 0;
+      if (playerId && this.playerEquityMap && Number.isFinite(this.playerEquityMap[playerId])) {
+        const pct = this.playerEquityMap[playerId] || 0;
+        return pct > 0 && this.currentValuation ? pct * this.currentValuation : 0;
+      }
+      const equityFromMap = this.playerEquityMap
+        ? Object.values(this.playerEquityMap).filter(Number.isFinite).reduce((sum, val) => sum + val, 0)
+        : 0;
+      const equityFraction = equityFromMap > 0 ? equityFromMap : (this.playerEquity || 0);
+      const equityValue = equityFraction > 0 && this.currentValuation ? equityFraction * this.currentValuation : 0;
       return equityValue > 0 ? equityValue : 0;
     }
 
@@ -816,6 +826,16 @@
       round.playerCommitted = true;
       round.playerCommitEquity = existingEquity + equityUsed;
       round.playerCommitAmount = (round.playerCommitAmount || 0) + amount;
+
+      // Track per-player commitment
+      if (playerId) {
+        round.playerCommitments = round.playerCommitments || {};
+        round.playerCommitments[playerId] = (round.playerCommitments[playerId] || 0) + amount;
+
+        this.pendingCommitments = this.pendingCommitments || {};
+        this.pendingCommitments[playerId] = (this.pendingCommitments[playerId] || 0) + amount;
+      }
+
       round.commitPlayerId = playerId || round.commitPlayerId || null;
       this.lastCommitPlayerId = playerId || this.lastCommitPlayerId || null;
       this.pendingCommitment = (this.pendingCommitment || 0) + amount;
@@ -896,19 +916,31 @@
       const dilutedEquity = this.playerEquity * (preMoney / postMoney);
 
       if (!success && roundFailuresEnabled) {
-        const refundAmount = closingRound.playerCommitted ? (closingRound.playerCommitAmount || 0) : 0;
-        if (refundAmount > 0) {
-          this.pendingCommitment = Math.max(0, this.pendingCommitment - refundAmount);
+        const commitments = closingRound.playerCommitments || {};
+        const singlePlayerId = closingRound.commitPlayerId || this.lastCommitPlayerId;
+
+        // Handle legacy single-player case
+        if (Object.keys(commitments).length === 0 && singlePlayerId) {
+          commitments[singlePlayerId] = Number(closingRound.playerCommitAmount) || 0;
         }
-        const failEvent = {
-          companyId: this.id,
-          name: this.name,
-          valuation: this.currentValuation,
-          revenue: this.revenue,
-          profit: this.profit,
-          refund: refundAmount,
-          playerId: closingRound.commitPlayerId || this.lastCommitPlayerId || null
-        };
+
+        const refundEvents = [];
+        Object.entries(commitments).forEach(([pid, amount]) => {
+          if (amount <= 0) return;
+
+          // Update global pending (though it will be cleared)
+          this.pendingCommitment = Math.max(0, this.pendingCommitment - amount);
+
+          refundEvents.push({
+            companyId: this.id,
+            name: this.name,
+            valuation: this.currentValuation,
+            revenue: this.revenue,
+            profit: this.profit,
+            refund: amount,
+            playerId: pid
+          });
+        });
 
         this.consecutiveFails = (this.consecutiveFails || 0) + 1;
         const collapse = this.consecutiveFails >= this.maxFailuresBeforeCollapse;
@@ -926,13 +958,17 @@
           this.stageChanged = true;
           this.playerInvested = 0;
           this.pendingCommitment = 0;
+          this.pendingCommitments = {};
           this.updateFinancialsFromValuation();
           this.recordHistory(currentDate);
           this.postGateMode = false;
           this.postGatePending = false;
           this.hypergrowthActive = false;
-          failEvent.type = 'venture_failed';
-          events.push(failEvent);
+
+          refundEvents.forEach(evt => {
+            evt.type = 'venture_failed';
+            events.push(evt);
+          });
           return events;
         }
 
@@ -940,13 +976,17 @@
         this.currentValuation = Math.max(1, preMoney * haircut);
         this.lastEventNote = `${closingRound.stageLabel} round slipped; valuation reset to $${Math.round(this.currentValuation).toLocaleString()}.`;
         this.pendingCommitment = 0;
+        this.pendingCommitments = {};
         this.currentRound = null;
         this.stageChanged = false;
         this.updateFinancialsFromValuation();
         this.recordHistory(currentDate);
         this.generateRound(currentDate);
-        failEvent.type = 'venture_round_failed';
-        events.push(failEvent);
+
+        refundEvents.forEach(evt => {
+          evt.type = 'venture_round_failed';
+          events.push(evt);
+        });
         return events;
       }
 
@@ -960,34 +1000,48 @@
 
       let updatedEquity = dilutedEquity;
       if (closingRound.playerCommitted) {
-        const recipientId = closingRound.commitPlayerId || this.lastCommitPlayerId || null;
-        if (recipientId) {
-          this.playerEquityMap[recipientId] = (this.playerEquityMap[recipientId] || 0) + (committedEquity || equityOffered);
+        // Distribute equity to all investors
+        const commitments = closingRound.playerCommitments || {};
+        const singlePlayerId = closingRound.commitPlayerId || this.lastCommitPlayerId;
+
+        // Handle legacy single-player case if map is empty but flag is set
+        if (Object.keys(commitments).length === 0 && singlePlayerId) {
+          commitments[singlePlayerId] = Number(closingRound.playerCommitAmount) || 0;
         }
+
+        Object.entries(commitments).forEach(([pid, amount]) => {
+          if (amount <= 0) return;
+          const fractionOfRound = amount / (closingRound.playerCommitAmount || 1);
+          const equityShare = (committedEquity || equityOffered) * fractionOfRound;
+
+          this.playerEquityMap[pid] = (this.playerEquityMap[pid] || 0) + equityShare;
+
+          // Emit event for each investor
+          events.push({
+            type: 'venture_round_closed',
+            companyId: this.id,
+            name: this.name,
+            valuation: this.currentValuation,
+            revenue: this.revenue,
+            profit: this.profit,
+            equityGranted: equityShare,
+            playerEquity: this.playerEquityMap[pid],
+            playerId: pid,
+            invested: amount,
+            stageLabel: closingRound.stageLabel
+          });
+        });
+
         updatedEquity += (committedEquity || equityOffered);
         this.playerInvested += this.pendingCommitment || 0;
-        this.pendingCommitment = 0;
-      }
-      const totalEquityFromMap = this.playerEquityMap
-        ? Object.values(this.playerEquityMap).reduce((sum, v) => sum + (Number.isFinite(v) ? v : 0), 0)
-        : updatedEquity;
-      this.playerEquity = Number.isFinite(totalEquityFromMap) && totalEquityFromMap > 0 ? totalEquityFromMap : updatedEquity;
 
-      if (closingRound.playerCommitted && closingRound.commitPlayerId) {
-        events.push({
-          type: 'venture_round_closed',
-          companyId: this.id,
-          name: this.name,
-          valuation: this.currentValuation,
-          revenue: this.revenue,
-          profit: this.profit,
-          equityGranted: equityOffered,
-          playerEquity: this.playerEquityMap ? this.playerEquityMap[closingRound.commitPlayerId] : this.playerEquity,
-          playerId: closingRound.commitPlayerId,
-          invested: committedAmount,
-          stageLabel: closingRound.stageLabel
-        });
+        // Clear pending commitments
+        this.pendingCommitment = 0;
+        this.pendingCommitments = {};
       }
+
+      // Maintain legacy single-player equity tracking alongside per-player maps
+      this.playerEquity = updatedEquity;
 
       this.currentValuation = postMoney;
       this.updateFinancialsFromValuation();
@@ -1159,6 +1213,7 @@
         playerEquityPercent: this.playerEquity * 100,
         playerInvested: this.playerInvested,
         pendingCommitment: this.pendingCommitment || 0,
+        pendingCommitments: this.pendingCommitments || {},
         lastEventNote: this.lastEventNote,
         revenue: this.revenue,
         profit: this.profit,
@@ -1369,6 +1424,7 @@
           costs: cfg.costs,
           archetype: cfg.archetype,
           private_listing_window: cfg.private_listing_window || cfg.listing_window || cfg.listingWindow || cfg.listing_window,
+          pendingCommitments: cfg.pendingCommitments || {},
           pipeline: Array.isArray(cfg.pipeline) ? cfg.pipeline : [],
           events: Array.isArray(cfg.events) ? cfg.events : []
         }, startDate, this.rngFn));
@@ -1482,12 +1538,18 @@
       return null;
     }
 
-    getPlayerHoldingsValue() {
-      return this.companies.reduce((sum, company) => sum + company.getPlayerValuation(), 0);
+    getPlayerHoldingsValue(playerId = null) {
+      return this.companies.reduce((sum, company) => sum + company.getPlayerValuation(playerId), 0);
     }
 
-    getPendingCommitments() {
-      return this.companies.reduce((sum, company) => sum + (company.pendingCommitment || 0), 0);
+    getPendingCommitments(playerId = null) {
+      return this.companies.reduce((sum, company) => {
+        if (!company) return sum;
+        if (playerId && company.pendingCommitments && Number.isFinite(company.pendingCommitments[playerId])) {
+          return sum + company.pendingCommitments[playerId];
+        }
+        return sum + (company.pendingCommitment || 0);
+      }, 0);
     }
 
     finalizeIPO(companyId) {

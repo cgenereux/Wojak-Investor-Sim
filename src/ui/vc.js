@@ -1068,7 +1068,8 @@ function handleVenturePurchase(pct) {
         return;
     }
     if (ventureSim && typeof ventureSim.invest === 'function') {
-        const result = ventureSim.invest(currentVentureCompanyId, equityFraction, (typeof clientPlayerId !== 'undefined' ? clientPlayerId : 'local_player'));
+        const investorId = (typeof clientPlayerId !== 'undefined' && clientPlayerId) ? clientPlayerId : 'local_player';
+        const result = ventureSim.invest(currentVentureCompanyId, equityFraction, investorId);
         if (!result?.success) {
             if (vcLeadRoundNoteEl) {
                 vcLeadRoundNoteEl.textContent = result?.reason || 'Investment failed.';

@@ -343,10 +343,24 @@ app.get('/session/:id', async (req, res) => {
 });
 
 function serializePlayer(player, sim) {
+  // Ensure venture holdings/commitments stay in sync with the sim (covers reconnect/resync)
+  if (sim && sim._ventureSim && player && player.id) {
+    const holdings = {};
+    const commitments = {};
+    sim._ventureSim.companies.forEach(vc => {
+      if (!vc) return;
+      const pct = vc.playerEquityMap ? (vc.playerEquityMap[player.id] || 0) : 0;
+      if (Number.isFinite(pct) && pct > 0) holdings[vc.id] = pct;
+      const commit = vc.pendingCommitments ? (vc.pendingCommitments[player.id] || 0) : 0;
+      if (Number.isFinite(commit) && commit > 0) commitments[vc.id] = commit;
+    });
+    player.ventureHoldings = holdings;
+    player.ventureCommitments = commitments;
+  }
   const holdings = player.holdings || {};
   const equity = computeEquity(sim, holdings);
-  const ventureValue = computeVentureEquity(sim._ventureSim, player.ventureHoldings || {});
-  const commitments = computeVentureCommitments(player.ventureCommitments || {});
+  const ventureValue = computeVentureEquity(sim._ventureSim, player.ventureHoldings || {}, player.id);
+  const commitments = computeVentureCommitments(player.ventureCommitments || {}, sim._ventureSim, player.id);
   const netWorth = player.cash + equity + ventureValue + commitments - player.debt;
   const bankrupt = netWorth < 0 && player.debt > 0;
   player.bankrupt = bankrupt;
@@ -379,11 +393,14 @@ function computeEquity(sim, holdings) {
   return equity;
 }
 
-function computeVentureEquity(ventureSim, ventureHoldings) {
+function computeVentureEquity(ventureSim, ventureHoldings, playerId = null) {
   let value = 0;
   if (!ventureSim || !ventureSim.companies) return value;
   ventureSim.companies.forEach(vc => {
-    const pct = ventureHoldings[vc.id] || 0;
+    let pct = ventureHoldings ? (ventureHoldings[vc.id] || 0) : 0;
+    if ((!pct || pct <= 0) && playerId && vc && vc.playerEquityMap && Number.isFinite(vc.playerEquityMap[playerId])) {
+      pct = vc.playerEquityMap[playerId] || 0;
+    }
     if (pct > 0 && vc.currentValuation) {
       value += pct * vc.currentValuation;
     }
@@ -391,18 +408,26 @@ function computeVentureEquity(ventureSim, ventureHoldings) {
   return value;
 }
 
-function computeVentureCommitments(commitments) {
+function computeVentureCommitments(commitments, ventureSim = null, playerId = null) {
   let total = 0;
   Object.values(commitments || {}).forEach(v => {
     if (Number.isFinite(v)) total += v;
   });
+  if (ventureSim && playerId) {
+    ventureSim.companies.forEach(vc => {
+      if (!vc || !vc.pendingCommitments) return;
+      if (commitments && Number.isFinite(commitments[vc.id])) return;
+      const v = vc.pendingCommitments[playerId];
+      if (Number.isFinite(v)) total += v;
+    });
+  }
   return total;
 }
 
 function maxBorrowable(sim, player) {
   const equity = computeEquity(sim, player.holdings || {});
-  const ventureValue = computeVentureEquity(sim._ventureSim, player.ventureHoldings || {});
-  const commitments = computeVentureCommitments(player.ventureCommitments || {});
+  const ventureValue = computeVentureEquity(sim._ventureSim, player.ventureHoldings || {}, player.id);
+  const commitments = computeVentureCommitments(player.ventureCommitments || {}, sim._ventureSim, player.id);
   const netWorth = player.cash + equity + ventureValue + commitments - player.debt;
   const cap = Math.max(0, netWorth) * 5;
   return Math.max(0, cap - player.debt);
@@ -538,6 +563,10 @@ function handleVentureEventsSession(session, events) {
       const player = playerId ? session.players.get(playerId) : null;
       if (player && evt.companyId) {
         const invested = Number(evt.invested) || 0;
+        const equityPct = Number.isFinite(evt.playerEquity) ? evt.playerEquity : (Number.isFinite(evt.equityGranted) ? evt.equityGranted : null);
+        if (Number.isFinite(equityPct) && equityPct > 0) {
+          player.ventureHoldings[evt.companyId] = equityPct;
+        }
         if (invested > 0) {
           player.ventureCashInvested[evt.companyId] = (player.ventureCashInvested[evt.companyId] || 0) + invested;
           player.ventureCommitments[evt.companyId] = Math.max(0, (player.ventureCommitments[evt.companyId] || 0) - invested);
@@ -571,7 +600,9 @@ function handleVentureEventsSession(session, events) {
         session.sim.adoptVentureCompany(ventureCompany, session.sim.lastTick);
         // Transfer ownership to public holdings
         session.players.forEach(p => {
-          const pct = p.ventureHoldings ? (p.ventureHoldings[evt.companyId] || 0) : 0;
+          const directPct = p.ventureHoldings ? (p.ventureHoldings[evt.companyId] || 0) : 0;
+          const mapPct = ventureCompany.playerEquityMap ? (ventureCompany.playerEquityMap[p.id] || 0) : 0;
+          const pct = Math.max(directPct, mapPct);
           if (pct > 0) {
             p.holdings[ventureCompany.id] = (p.holdings[ventureCompany.id] || 0) + pct;
             delete p.ventureHoldings[evt.companyId];
