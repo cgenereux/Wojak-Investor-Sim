@@ -118,11 +118,10 @@
         {
           "phase": "private",
           "post_success_mode": "ramp",
-          "expected_revenue_target": [15000000000, 35000000000],
           "name": "Helion Dynamics",
           "sector": "Energy",
           "description": "Compact fusion reactors targeting commercial power generation.",
-          "funding_round": "Series B",
+          "funding_round": "seed",
           "gate_stage": "series_c",
           "ipo_stage": "pre_ipo",
           "founders": [ { "name": "Marcus Chen", "degree": "PhD", "school": "MIT" }, { "name": "Elena Vasquez", "degree": "PhD", "school": "Imperial College" } ],
@@ -130,7 +129,7 @@
           "founding_location": "Seattle, WA",
           "valuation_usd": 24000000,
           "hypergrowth_window_years": 2.5,
-          "hypergrowth_total_multiplier": 18,
+          "hypergrowth_revenue_growth_rate": 1.2,
           "private_listing_window": { "from": 1985, "to": 1985 },
           "pipelineTemplate": [
             {
@@ -138,11 +137,11 @@
               "label": "Commercial Fusion Reactor",
               "full_revenue_usd": 50000000000,
               "stages": [
-                { "id": "net_energy", "name": "Net Energy Gain Demonstration", "duration_days": 1200, "success_prob": 0.42, "value_realization": 0.18, "cost_usd": 300000000, "max_retries": 2 },
-                { "id": "breakeven", "name": "Sustained Breakeven", "duration_days": 900, "depends_on": "net_energy", "success_prob": 0.5, "value_realization": 0.22, "cost_usd": 250000000, "max_retries": 2 },
-                { "id": "grid_integration", "name": "Grid Integration", "duration_days": 720, "depends_on": "breakeven", "success_prob": 0.6, "value_realization": 0.25, "cost_usd": 220000000, "max_retries": 1 },
-                { "id": "regulatory_clearance", "name": "Regulatory Clearance", "duration_days": 540, "depends_on": "grid_integration", "success_prob": 0.65, "value_realization": 0.2, "cost_usd": 180000000, "max_retries": 1 },
-                { "id": "commercial_ramp", "name": "Commercial Ramp", "duration_days": 540, "depends_on": "regulatory_clearance", "success_prob": 0.8, "value_realization": 0.15, "cost_usd": 150000000, "max_retries": 1, "commercialises_revenue": true }
+                { "id": "net_energy", "name": "Net Energy Gain Demonstration", "duration_days": 1200, "success_prob": 0.99, "value_realization": 0.1, "cost_usd": 300000000, "max_retries": 2 },
+                { "id": "breakeven", "name": "Sustained Breakeven", "duration_days": 900, "depends_on": "net_energy", "success_prob": 0.99, "value_realization": 0.2, "cost_usd": 250000000, "max_retries": 2 },
+                { "id": "grid_integration", "name": "Grid Integration", "duration_days": 720, "depends_on": "breakeven", "success_prob": 0.99, "value_realization": 0.35, "cost_usd": 220000000, "max_retries": 1 },
+                { "id": "regulatory_clearance", "name": "Regulatory Clearance", "duration_days": 540, "depends_on": "grid_integration", "success_prob": 0.99, "value_realization": 0.5, "cost_usd": 180000000, "max_retries": 1 },
+                { "id": "commercial_ramp", "name": "Commercial Ramp", "duration_days": 540, "depends_on": "regulatory_clearance", "success_prob": 0.99, "value_realization": 0.7, "cost_usd": 150000000, "max_retries": 1, "commercialises_revenue": true }
               ]
             }
           ]
@@ -150,7 +149,6 @@
         {
           "phase": "private",
           "post_success_mode": "ramp",
-          "expected_revenue_target": [6000000000, 12000000000],
           "name": "NeuroSync",
           "sector": "BioTech",
           "description": "Implantable BMI hardware for clinical and defense.",
@@ -162,13 +160,12 @@
           "founding_location": "San Jose, CA",
           "valuation_usd": 22000000,
           "hypergrowth_window_years": 2.2,
-          "hypergrowth_total_multiplier": 15,
+          "hypergrowth_revenue_growth_rate": 1.0,
           "private_listing_window": { "from": 2021, "to": 2032 }
         },
         {
           "phase": "private",
           "post_success_mode": "ramp",
-          "expected_revenue_target": [12000000000, 20000000000],
           "name": "AeroForge Materials",
           "sector": "Aerospace",
           "description": "High-temperature composites for hypersonic flight.",
@@ -180,13 +177,12 @@
           "founding_location": "Los Angeles, CA",
           "valuation_usd": 20000000,
           "hypergrowth_window_years": 2.8,
-          "hypergrowth_total_multiplier": 16,
+          "hypergrowth_revenue_growth_rate": 1.1,
           "private_listing_window": { "from": 2023, "to": 2035 }
         },
         {
           "phase": "private",
           "post_success_mode": "ramp",
-          "expected_revenue_target": [12000000000, 18000000000],
           "name": "Beep Boop Robotics",
           "sector": "Industrial",
           "description": "Home robots that handle everyday chores with reliable autonomy.",
@@ -198,7 +194,7 @@
           "founding_location": "San Francisco, CA",
           "valuation_usd": 18000000,
           "hypergrowth_window_years": 3,
-          "hypergrowth_total_multiplier": 8,
+          "hypergrowth_revenue_growth_rate": 0.7,
           "private_listing_window": { "from": 1992, "to": 1994 },
           "pipelineTemplate": [
             {

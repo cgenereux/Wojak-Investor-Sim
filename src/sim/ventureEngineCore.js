@@ -64,7 +64,7 @@
     { id: 'ipo', label: 'IPO', successProb: 1 }
   ];
 
-  const normalizeStageId = (id) => (id || '').toString().trim().toLowerCase();
+  const normalizeStageId = (id) => (id || '').toString().trim().toLowerCase().replace(/\s+/g, '_');
   const ROUND_DEFINITION_MAP = VC_STAGE_CONFIG.reduce((map, stage) => {
     const key = normalizeStageId(stage.id);
     map[key] = Object.assign({ durationDays: null }, stage);
@@ -285,7 +285,19 @@
       this.gateStageId = this.roundDefinitions[this.gateStageIndex]?.id || gateLabel;
 
       this.hypergrowthWindowYears = Math.max(Number(config.hypergrowth_window_years || 2), 0.25);
-      this.hypergrowthTotalMultiplier = Math.max(Number(config.hypergrowth_total_multiplier || 3), 1.5);
+      // New: revenue growth rate instead of total multiplier
+      // Backwards compat: derive rate from multiplier if rate not specified
+      if (config.hypergrowth_revenue_growth_rate != null) {
+        this.hypergrowthRevenueGrowthRate = Math.max(Number(config.hypergrowth_revenue_growth_rate), 0.1);
+      } else if (config.hypergrowth_total_multiplier != null) {
+        // Derive annual rate from total multiplier: rate = multiplier^(1/years) - 1
+        const multiplier = Math.max(Number(config.hypergrowth_total_multiplier), 1.5);
+        this.hypergrowthRevenueGrowthRate = Math.pow(multiplier, 1 / this.hypergrowthWindowYears) - 1;
+      } else {
+        this.hypergrowthRevenueGrowthRate = 0.5; // Default 50% annual growth
+      }
+      // Keep for backwards compat but derive from rate
+      this.hypergrowthTotalMultiplier = Math.pow(1 + this.hypergrowthRevenueGrowthRate, this.hypergrowthWindowYears);
       this.longRunRevenueCeiling = Math.max(Number(config.long_run_revenue_ceiling_usd || this.currentValuation * 40), this.currentValuation);
       this.longRunGrowthRate = Math.max(Number(config.long_run_growth_rate || 0.3), 0.05);
       this.longRunGrowthFloor = Math.max(Number(config.long_run_growth_floor || 0.05), 0.01);
@@ -306,6 +318,7 @@
       this.hypergrowthActive = false;
       this.hypergrowthElapsedYears = 0;
       this.hypergrowthTargetRevenue = null;
+      this.hypergrowthStartMargin = null; // Set when entering post-gate mode
       this.postGateStartDate = null;
       this.hypergrowthEndDate = null;
       this.currentMultiple = this.postGateInitialMultiple;
@@ -480,10 +493,17 @@
 
     advancePostGateRevenue(dtYears) {
       if (this.hypergrowthActive) {
-        const annualFactor = Math.pow(this.hypergrowthTotalMultiplier, 1 / Math.max(this.hypergrowthWindowYears, 0.25));
-        const growthFactor = Math.pow(annualFactor, dtYears);
+        // Use revenue growth rate directly
+        const growthFactor = Math.pow(1 + this.hypergrowthRevenueGrowthRate, dtYears);
         this.revenue *= growthFactor;
         this.hypergrowthElapsedYears += dtYears;
+
+        // Interpolate margin from start to post-gate over the hypergrowth window
+        const marginProgress = Math.min(1, this.hypergrowthElapsedYears / this.hypergrowthWindowYears);
+        const startMargin = this.hypergrowthStartMargin ?? -0.2;
+        const currentMargin = startMargin + (this.postGateMargin - startMargin) * marginProgress;
+        this.profit = this.revenue * currentMargin;
+
         if (this.hypergrowthElapsedYears >= this.hypergrowthWindowYears || this.revenue >= this.hypergrowthTargetRevenue) {
           this.revenue = Math.min(this.revenue, this.hypergrowthTargetRevenue || this.revenue);
           this.hypergrowthActive = false;
@@ -496,6 +516,8 @@
         const effectiveRate = Math.max(this.longRunGrowthFloor, baseRate * decay);
         const growthFactor = Math.pow(1 + effectiveRate, dtYears);
         this.revenue *= growthFactor;
+        // Post-hypergrowth: margin is at post-gate level
+        this.profit = this.revenue * this.postGateMargin;
       }
       if (this.revenue > this.longRunRevenueCeiling) {
         this.revenue = this.longRunRevenueCeiling;
@@ -661,13 +683,18 @@
         baselineRevenue = Math.max(this.currentValuation / Math.max(baselineMultiple, 1), 1_000_000);
       }
       this.revenue = Math.max(1, baselineRevenue);
-      const target = this.revenue * this.hypergrowthTotalMultiplier;
+      // Store starting margin for interpolation during hypergrowth
+      const currentStageFinancials = this.getStageFinancials();
+      this.hypergrowthStartMargin = currentStageFinancials.margin ?? -0.2;
+      // Target revenue based on growth rate over window
+      const target = this.revenue * Math.pow(1 + this.hypergrowthRevenueGrowthRate, this.hypergrowthWindowYears);
       this.hypergrowthTargetRevenue = Math.min(this.longRunRevenueCeiling, target);
       if (this.hypergrowthTargetRevenue < this.revenue) {
         this.hypergrowthTargetRevenue = this.revenue;
         this.hypergrowthActive = false;
       }
-      this.profit = this.revenue * this.postGateMargin;
+      // Start with interpolated margin (beginning of hypergrowth)
+      this.profit = this.revenue * this.hypergrowthStartMargin;
       this.currentMultiple = baselineMultiple;
       this.lastFairValue = Math.max(1, this.revenue * this.currentMultiple);
     }
@@ -687,9 +714,19 @@
       const multiplierRange = Array.isArray(stage.preMoneyMultiplier) && stage.preMoneyMultiplier.length >= 2
         ? stage.preMoneyMultiplier
         : [1.05, 1.25];
-      const minFairValue = prevValuation * multiplierRange[0];
-      const maxFairValue = prevValuation * multiplierRange[1];
-      const fairValue = clampValue(baseFairValue, minFairValue, maxFairValue);
+
+      let fairValue;
+      if (this.archetype === 'hardtech') {
+        // Hard-tech: let pipeline (value_realization) drive valuation
+        // Floor at 50% of previous to prevent catastrophic down rounds
+        const minFloor = prevValuation * 0.5;
+        fairValue = Math.max(baseFairValue, minFloor);
+      } else {
+        // Hypergrowth: clamp to previous valuation * multiplier range
+        const minFairValue = prevValuation * multiplierRange[0];
+        const maxFairValue = prevValuation * multiplierRange[1];
+        fairValue = clampValue(baseFairValue, minFairValue, maxFairValue);
+      }
       const preMoney = fairValue;
       const raiseAmount = Math.max(500_000, fairValue * raiseFraction);
       const postMoney = preMoney + raiseAmount;
@@ -1436,7 +1473,7 @@
           binary_success: cfg.binary_success,
           gate_stage: cfg.gate_stage,
           hypergrowth_window_years: cfg.hypergrowth_window_years,
-          hypergrowth_total_multiplier: cfg.hypergrowth_total_multiplier,
+          hypergrowth_revenue_growth_rate: cfg.hypergrowth_revenue_growth_rate,
           long_run_revenue_ceiling_usd: cfg.long_run_revenue_ceiling_usd,
           long_run_growth_rate: cfg.long_run_growth_rate,
           long_run_growth_floor: cfg.long_run_growth_floor,

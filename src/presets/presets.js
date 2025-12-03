@@ -317,7 +317,7 @@
                 binary_success: entry.binary_success ?? defaults.binary_success ?? false,
                 gate_stage: entry.gate_stage || defaults.gate_stage || 'series_c',
                 hypergrowth_window_years: pickRangeLocal(defaults.hypergrowth_window_years, 2, 4),
-                hypergrowth_total_multiplier: pickRangeLocal(defaults.hypergrowth_total_multiplier, 6, 12),
+                hypergrowth_revenue_growth_rate: pickRangeLocal(defaults.hypergrowth_revenue_growth_rate, 0.5, 1.5),
                 long_run_revenue_ceiling_usd: valuation * longRunRevenueMultiplier,
                 long_run_growth_rate: pickRangeLocal(defaults.long_run_growth_rate, 0.45, 0.7),
                 long_run_growth_floor: pickRangeLocal(defaults.long_run_growth_floor, 0.08, 0.18),
@@ -662,7 +662,7 @@
                 archetype: 'hardtech',
                 gate_stage: entry.gate_stage || 'series_f',
                 hypergrowth_window_years: randBetween(1.5, 3.5),
-                hypergrowth_total_multiplier: randBetween(10, 25),
+                hypergrowth_revenue_growth_rate: randBetween(0.8, 2.0),
                 long_run_revenue_ceiling_usd: valuation * randBetween(35, 70),
                 long_run_growth_rate: randBetween(0.25, 0.45),
                 long_run_growth_floor: randBetween(0.05, 0.12),
@@ -679,7 +679,6 @@
                 pipeline,
                 rounds: HARDTECH_VC_ROUNDS,
                 post_success_mode: entry.post_success_mode || 'ramp',
-                expected_revenue_target: entry.expected_revenue_target || [baseBusiness.revenue_process.initial_revenue_usd.max * 8, baseBusiness.revenue_process.initial_revenue_usd.max * 15],
                 private_listing_window: listingWindow
             });
         }

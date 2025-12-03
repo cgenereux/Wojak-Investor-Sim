@@ -23,7 +23,7 @@
       base = forwardE * impliedPE;
     }
     if (applyNoise) {
-      base *= between(0.9, 1.15);
+      base *= between(0.7, 1.3);
     }
     return Math.max(1, base);
   }
@@ -33,7 +33,7 @@
     const optionPV = company.products.reduce((sum, product) => sum + (typeof product.expectedValue === 'function' ? product.expectedValue() : 0), 0);
     let base = Math.max(1, unlockedPV + optionPV);
     if (applyNoise) {
-      base *= between(0.9, 1.15);
+      base *= between(0.7, 1.3);
     }
     return base;
   }
