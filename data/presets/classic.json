@@ -28,7 +28,7 @@
           "opex_variable_ratio": [0.08, 0.16],
           "rd_base_ratio": [0.02, 0.04]
         },
-        "ipo_window": { "from": 1975, "to": 1988 },
+        "ipo_window": { "from": 1970, "to": 1988 },
         "sector": "Banking"
       },
       "roster": [
@@ -37,7 +37,7 @@
           "mission": "Preserving wealth across generations through disciplined investment banking.",
           "founders": [ { "name": "Theodore Hargrove III" }, { "name": "Edmund Whitmore" } ],
           "founding_location": "New York, NY",
-          "ipo_window": { "from": 1979, "to": 1987 },
+          "ipo_window": { "from": 1974, "to": 1987 },
           "sector": "Banking"
         },
         {
@@ -45,7 +45,7 @@
           "mission": "Anchoring American commerce with trusted lending and capital markets.",
           "founders": [ { "name": "James Sterling" }, { "name": "Catherine Aldrich" } ],
           "founding_location": "New York, NY",
-          "ipo_window": { "from": 1976, "to": 1982 },
+          "ipo_window": { "from": 1971, "to": 1982 },
           "sector": "Banking"
         },
         {
@@ -53,7 +53,7 @@
           "mission": "Advising the world's leading institutions on mergers, acquisitions, and strategy.",
           "founders": [ { "name": "Charles Wainwright" }, { "name": "Henry Wainwright" } ],
           "founding_location": "Boston, MA",
-          "ipo_window": { "from": 1969, "to": 1981 },
+          "ipo_window": { "from": 1964, "to": 1981 },
           "sector": "Banking"
         }
       ]
@@ -85,14 +85,14 @@
           "opex_variable_ratio": [0.12, 0.22],
           "rd_base_ratio": [0.06, 0.1]
         },
-        "ipo_window": { "from": 1984, "to": 1992 },
+        "ipo_window": { "from": 1979, "to": 1992 },
         "sector": "Tech"
       },
       "roster": [
         {
           "name": "Orion Microsystems",
           "sector": "Tech",
-          "ipo_window": { "from": 1985, "to": 1990 },
+          "ipo_window": { "from": 1980, "to": 1990 },
           "founders": [ { "name": "Clara Thompson" }, { "name": "Rajiv Desai" } ],
           "mission": "Building dependable operating systems and software for every desk.",
           "founding_location": "Redmond, WA"
@@ -100,7 +100,7 @@
         {
           "name": "Pioneer Devices",
           "sector": "Tech",
-          "ipo_window": { "from": 1984, "to": 1989 },
+          "ipo_window": { "from": 1979, "to": 1989 },
           "founders": [ { "name": "Miguel Alvarez" }, { "name": "Hannah Park" } ],
           "mission": "Designing iconic consumer hardware with seamless ecosystems.",
           "founding_location": "Cupertino, CA"
@@ -108,7 +108,7 @@
         {
           "name": "Summit Systems",
           "sector": "Tech",
-          "ipo_window": { "from": 1986, "to": 1991 },
+          "ipo_window": { "from": 1981, "to": 1991 },
           "founders": [ { "name": "Grace Ito" }, { "name": "Daniel Cho" } ],
           "mission": "Delivering enterprise databases and middleware that never sleep.",
           "founding_location": "San Jose, CA"
@@ -137,7 +137,7 @@
           "starting_debt_ratio": 0.0,
           "interest_rate_annual": 0.07
         },
-        "ipo_window": { "from": 1980, "to": 1990 }
+        "ipo_window": { "from": 1975, "to": 1990 }
       },
       "roster": [
         {
@@ -146,7 +146,7 @@
           "sector": "Retail",
           "mission": "Modernizing retail supply chains with smart checkout and logistics automation.",
           "founding_location": "Bentonville, AR",
-          "ipo_window": { "from": 1979, "to": 1981 }
+          "ipo_window": { "from": 1974, "to": 1981 }
         },
         {
           "name": "Ryan’s Repair & Supply",
@@ -154,7 +154,7 @@
           "sector": "Retail",
           "mission": "Supplying the tools and materials homeowners trust.",
           "founding_location": "New York, NY",
-          "ipo_window": { "from": 1981, "to": 1983 }
+          "ipo_window": { "from": 1976, "to": 1983 }
         },
         {
           "name": "GlobalMart",
@@ -162,14 +162,14 @@
           "sector": "Retail",
           "mission": "Empowering homeowners with reliable tools, materials, and service to get every project done right.",
           "founding_location": "Seattle, WA",
-          "ipo_window": { "from": 1980, "to": 1982 }
+          "ipo_window": { "from": 1975, "to": 1982 }
         },
         {
           "name": "SkyBridge Air",
           "mission": "Linking global hubs with reliable long-haul service.",
           "founders": [ { "name": "Amelia Carter" }, { "name": "Diego Alvarez" } ],
           "founding_location": "Atlanta, GA",
-          "ipo_window": { "from": 1982, "to": 1986 },
+          "ipo_window": { "from": 1977, "to": 1986 },
           "sector": "Airlines"
         },
         {
@@ -177,7 +177,7 @@
           "mission": "Making premium transcontinental flights affordable.",
           "founders": [ { "name": "Joe Smhoe" }, { "name": "Sarah Collins" } ],
           "founding_location": "Seattle, WA",
-          "ipo_window": { "from": 1985, "to": 1989 },
+          "ipo_window": { "from": 1980, "to": 1989 },
           "sector": "Airlines"
         },
         {
@@ -185,7 +185,7 @@
           "mission": "Delivering reliable regional lift along the Pacific Rim.",
           "founders": [ { "name": "Kenji Morita" }, { "name": "Sara Delgado" } ],
           "founding_location": "San Francisco, CA",
-          "ipo_window": { "from": 1981, "to": 1985 },
+          "ipo_window": { "from": 1976, "to": 1985 },
           "sector": "Airlines"
         },
         {
@@ -193,7 +193,7 @@
           "mission": "Building dependable, efficient cars and trucks for working families.",
           "founders": [ { "name": "Carl Nguyen" }, { "name": "Dana Ruiz" } ],
           "founding_location": "Detroit, MI",
-          "ipo_window": { "from": 1984, "to": 1987 },
+          "ipo_window": { "from": 1979, "to": 1987 },
           "sector": "Automotive"
         },
         {
@@ -201,7 +201,7 @@
           "mission": "Scaling biologics manufacturing for frontline therapies.",
           "founders": [ { "name": "Dr. Priya Malhotra" }, { "name": "Evan Brooks" } ],
           "founding_location": "Cambridge, MA",
-          "ipo_window": { "from": 1983, "to": 1987 },
+          "ipo_window": { "from": 1978, "to": 1987 },
           "sector": "Biotech"
         },
         {
@@ -209,7 +209,7 @@
           "mission": "Developing and distributing life-saving pharmaceuticals.",
           "founders": [ { "name": "Dr. Lena Romero" }, { "name": "Marcus Lee" } ],
           "founding_location": "San Diego, CA",
-          "ipo_window": { "from": 1982, "to": 1986 },
+          "ipo_window": { "from": 1977, "to": 1986 },
           "sector": "Biotech"
         },
         {
@@ -217,7 +217,7 @@
           "mission": "Acquiring, developing, and managing commercial hubs across the U.S.",
           "founders": [ { "name": "Darren Whitfield" }, { "name": "Melanie Ortiz" } ],
           "founding_location": "New York, NY",
-          "ipo_window": { "from": 1983, "to": 1987 },
+          "ipo_window": { "from": 1978, "to": 1987 },
           "sector": "Real Estate"
         },
         {
@@ -225,7 +225,7 @@
           "mission": "Engineering advanced avionics and defense platforms for allied forces.",
           "founders": [ { "name": "Colin Hart" }, { "name": "Rebecca Lin" } ],
           "founding_location": "Fort Worth, TX",
-          "ipo_window": { "from": 1982, "to": 1986 },
+          "ipo_window": { "from": 1977, "to": 1986 },
           "sector": "Defense"
         },
         {
@@ -233,7 +233,7 @@
           "mission": "Building next-gen aircraft and space systems for the US military.",
           "founders": [ { "name": "Angela Marston" }, { "name": "Victor Delgado" } ],
           "founding_location": "St. Louis, MO",
-          "ipo_window": { "from": 1983, "to": 1988 },
+          "ipo_window": { "from": 1978, "to": 1988 },
           "sector": "Aerospace"
         }
       ]

@@ -22,13 +22,14 @@ const PORT = process.env.PORT || 4000;
 const ANNUAL_INTEREST_RATE = 0.07;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const BANKRUPT_PURGE_DELAY_MS = 9000;
-const GAME_START_YEAR = 1990;
+const GAME_START_YEAR = 1985;
 const GAME_END_YEAR = 2050;
 const MAX_CONNECTIONS = Number(process.env.MAX_CONNECTIONS || 50);
 const SNAPSHOT_HISTORY_LIMIT = 1000;
 const SNAPSHOT_QUARTER_LIMIT = 120;
 const TICK_HISTORY_LIMIT = 1;
 const TICK_QUARTER_LIMIT = 40;
+const GAME_START_DATE = new Date(Date.UTC(GAME_START_YEAR, 0, 1));
 
 const app = fastify({ logger: false });
 
@@ -175,12 +176,12 @@ function startTickLoop(session) {
       return;
     }
     // Client-idle check handled by separate timer; this remains the tick driver.
-    const currentYear = session.sim.lastTick ? session.sim.lastTick.getUTCFullYear() : 1990;
+    const currentYear = session.sim.lastTick ? session.sim.lastTick.getUTCFullYear() : GAME_START_YEAR;
     if (currentYear >= GAME_END_YEAR) {
       endSession(session);
       return;
     }
-    const current = session.sim.lastTick || new Date('1990-01-01T00:00:00Z');
+    const current = session.sim.lastTick || GAME_START_DATE;
     const next = new Date(current.getTime() + session.sim.dtDays * MS_PER_DAY);
     if (next.getUTCFullYear() > GAME_END_YEAR) {
       next.setUTCFullYear(GAME_END_YEAR, 0, 1);

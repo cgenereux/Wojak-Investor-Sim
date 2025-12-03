@@ -85,6 +85,11 @@
             co = new Company(config, this.macroEnv, this.startYear, config.ipoDate);
           }
           co.rng = this.rngFn;
+          // If the company already went bankrupt during pre-start simulation, skip listing it entirely.
+          if (co.bankrupt) {
+            config.isLive = true;
+            return;
+          }
           if (config.initialHistory) {
             const normalizedHistory = (config.initialHistory.history || []).slice().sort((a, b) => a.x - b.x);
             if (normalizedHistory.length === 1) {

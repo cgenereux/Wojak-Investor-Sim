@@ -96,6 +96,8 @@ if (typeof window !== 'undefined' && window.innerWidth <= 768) {
 
 const DEFAULT_WOJAK_SRC = 'wojaks/wojak.png';
 const MALDING_WOJAK_SRC = 'wojaks/malding-wojak.png';
+const GAME_START_YEAR = 1985;
+const GAME_START_DATE = new Date(Date.UTC(GAME_START_YEAR, 0, 1));
 const GLOBAL_BASE_INTEREST_RATE = 0.07; // shared baseline; can be adjusted by macro events later
 
 function trackEvent(eventName, props = {}) {
@@ -432,7 +434,7 @@ const borrowBtn = document.getElementById('borrowBtn');
 const repayBtn = document.getElementById('repayBtn');
 
 // --- Game State ---
-let currentDate = new Date('1990-01-01T00:00:00Z');
+let currentDate = new Date(GAME_START_DATE);
 let isPaused = false;
 let gameInterval;
 let activeCompanyDetail = null;
@@ -590,7 +592,7 @@ function resetClientStateForMultiplayer() {
     isMillionaire = false;
     isBillionaire = false;
     isTrillionaire = false;
-    currentDate = new Date('1990-01-01T00:00:00Z');
+    currentDate = new Date(GAME_START_DATE);
     cash = 0;
     totalBorrowed = 0;
     netWorth = 0;
@@ -694,7 +696,7 @@ function hydrateFromSnapshot(snapshot) {
         const vcModule = window.VentureEngineModule || {};
         const VCompanyCtor = vcModule.VentureCompany;
         if (typeof VentureSimulation !== 'undefined' && typeof VCompanyCtor === 'function') {
-            const startDate = snapshot.lastTick ? new Date(snapshot.lastTick) : new Date('1990-01-01T00:00:00Z');
+            const startDate = snapshot.lastTick ? new Date(snapshot.lastTick) : new Date(GAME_START_DATE);
             const ventureOpts = matchRngFn ? { rng: matchRngFn, seed: matchSeed } : {};
             ventureSim = new VentureSimulation([], startDate, ventureOpts);
 
