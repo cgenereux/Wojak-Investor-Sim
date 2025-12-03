@@ -273,7 +273,8 @@
       for (const st of this.stages) {
         if (!st.completed) break;
         if (!st.succeeded) { factor = 0; break; }
-        factor += st.value_realization;
+        // Use absolute value_realization (not cumulative) - each stage represents total % of value unlocked
+        factor = st.value_realization;
       }
       return this.fullVal * factor;
     }

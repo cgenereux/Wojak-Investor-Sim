@@ -28,7 +28,7 @@
       ],
       "mission": "Securing electronic commerce in the Internet age.",
       "founding_location": "Palo Alto, CA",
-      "private_listing_window": { "from": 1991, "to": 1999 }
+      "private_listing_window": { "from": 1985, "to": 1985 }
     },
     {
       "name": "StreamCast",
@@ -49,7 +49,10 @@
   "defaults": {
     "valuation_usd": [6000000, 18000000],
     "hypergrowth_window_years": [2, 4],
-    "hypergrowth_revenue_growth_rate": [0.5, 1.5],
+    "hypergrowth_initial_growth_rate": [0.6, 1.2],
+    "hypergrowth_terminal_growth_rate": [0.1, 0.25],
+    "hypergrowth_initial_margin": [-0.4, -0.1],
+    "hypergrowth_terminal_margin": [0.15, 0.3],
     "long_run_revenue_ceiling_multiplier": [20, 40],
     "long_run_growth_rate": [0.45, 0.7],
     "long_run_growth_floor": [0.08, 0.18],

@@ -213,7 +213,19 @@
       }
       this.targetStageIndex = Math.max(0, Math.min(targetIdx, this.roundDefinitions.length - 1));
 
-      this.currentValuation = Math.max(1, Number(config.valuation_usd) || 10_000_000);
+      // For hard-tech, compute initial valuation from pipeline expectedValue
+      // (no stages completed yet, so it's all option value)
+      if (this.archetype === 'hardtech' && Array.isArray(this.products) && this.products.length > 0) {
+        const pipelineValue = this.products.reduce((sum, p) => {
+          return sum + (typeof p.expectedValue === 'function' ? p.expectedValue() : 0);
+        }, 0);
+        // Use pipeline value if meaningful, otherwise fall back to config
+        this.currentValuation = pipelineValue > 100_000
+          ? pipelineValue * between(0.9, 1.1)
+          : Math.max(1, Number(config.valuation_usd) || 10_000_000);
+      } else {
+        this.currentValuation = Math.max(1, Number(config.valuation_usd) || 10_000_000);
+      }
       this.listingWindow = normalizeListingWindow(
         config.private_listing_window || config.listing_window || config.listingWindow || null
       );
@@ -285,19 +297,32 @@
       this.gateStageId = this.roundDefinitions[this.gateStageIndex]?.id || gateLabel;
 
       this.hypergrowthWindowYears = Math.max(Number(config.hypergrowth_window_years || 2), 0.25);
-      // New: revenue growth rate instead of total multiplier
-      // Backwards compat: derive rate from multiplier if rate not specified
+
+      // Hypergrowth growth rate: initial → terminal (decaying over window)
+      // Backwards compat: derive from old params if new ones not specified
+      let defaultInitialRate = 0.8;
+      let defaultTerminalRate = 0.15;
       if (config.hypergrowth_revenue_growth_rate != null) {
-        this.hypergrowthRevenueGrowthRate = Math.max(Number(config.hypergrowth_revenue_growth_rate), 0.1);
+        // Old single rate param - use as initial, decay to 20% of it
+        defaultInitialRate = Math.max(Number(config.hypergrowth_revenue_growth_rate), 0.1);
+        defaultTerminalRate = defaultInitialRate * 0.2;
       } else if (config.hypergrowth_total_multiplier != null) {
-        // Derive annual rate from total multiplier: rate = multiplier^(1/years) - 1
+        // Even older multiplier param - derive rate
         const multiplier = Math.max(Number(config.hypergrowth_total_multiplier), 1.5);
-        this.hypergrowthRevenueGrowthRate = Math.pow(multiplier, 1 / this.hypergrowthWindowYears) - 1;
-      } else {
-        this.hypergrowthRevenueGrowthRate = 0.5; // Default 50% annual growth
+        defaultInitialRate = Math.pow(multiplier, 1 / this.hypergrowthWindowYears) - 1;
+        defaultTerminalRate = defaultInitialRate * 0.2;
       }
-      // Keep for backwards compat but derive from rate
-      this.hypergrowthTotalMultiplier = Math.pow(1 + this.hypergrowthRevenueGrowthRate, this.hypergrowthWindowYears);
+      this.hypergrowthInitialGrowthRate = Math.max(Number(config.hypergrowth_initial_growth_rate ?? defaultInitialRate), 0.05);
+      this.hypergrowthTerminalGrowthRate = Math.max(Number(config.hypergrowth_terminal_growth_rate ?? defaultTerminalRate), 0.01);
+
+      // Hypergrowth margin: initial → terminal (improving over window)
+      // Default initial from stage financials, terminal from post_gate_margin
+      this.hypergrowthInitialMargin = config.hypergrowth_initial_margin ?? null; // null = use stage margin at gate
+      this.hypergrowthTerminalMargin = config.hypergrowth_terminal_margin ?? null; // null = use post_gate_margin
+
+      // Keep for backwards compat
+      this.hypergrowthRevenueGrowthRate = this.hypergrowthInitialGrowthRate;
+      this.hypergrowthTotalMultiplier = Math.pow(1 + this.hypergrowthInitialGrowthRate, this.hypergrowthWindowYears);
       this.longRunRevenueCeiling = Math.max(Number(config.long_run_revenue_ceiling_usd || this.currentValuation * 40), this.currentValuation);
       this.longRunGrowthRate = Math.max(Number(config.long_run_growth_rate || 0.3), 0.05);
       this.longRunGrowthFloor = Math.max(Number(config.long_run_growth_floor || 0.05), 0.01);
@@ -493,15 +518,19 @@
 
     advancePostGateRevenue(dtYears) {
       if (this.hypergrowthActive) {
-        // Use revenue growth rate directly
-        const growthFactor = Math.pow(1 + this.hypergrowthRevenueGrowthRate, dtYears);
+        // Interpolate growth rate: initial → terminal over hypergrowth window
+        const progress = Math.min(1, this.hypergrowthElapsedYears / this.hypergrowthWindowYears);
+        const currentGrowthRate = this.hypergrowthInitialGrowthRate +
+          (this.hypergrowthTerminalGrowthRate - this.hypergrowthInitialGrowthRate) * progress;
+        const growthFactor = Math.pow(1 + currentGrowthRate, dtYears);
         this.revenue *= growthFactor;
         this.hypergrowthElapsedYears += dtYears;
 
-        // Interpolate margin from start to post-gate over the hypergrowth window
+        // Interpolate margin: initial → terminal over hypergrowth window
         const marginProgress = Math.min(1, this.hypergrowthElapsedYears / this.hypergrowthWindowYears);
         const startMargin = this.hypergrowthStartMargin ?? -0.2;
-        const currentMargin = startMargin + (this.postGateMargin - startMargin) * marginProgress;
+        const endMargin = this.hypergrowthEndMargin ?? this.postGateMargin;
+        const currentMargin = startMargin + (endMargin - startMargin) * marginProgress;
         this.profit = this.revenue * currentMargin;
 
         if (this.hypergrowthElapsedYears >= this.hypergrowthWindowYears || this.revenue >= this.hypergrowthTargetRevenue) {
@@ -683,11 +712,15 @@
         baselineRevenue = Math.max(this.currentValuation / Math.max(baselineMultiple, 1), 1_000_000);
       }
       this.revenue = Math.max(1, baselineRevenue);
-      // Store starting margin for interpolation during hypergrowth
+
+      // Resolve hypergrowth margins: initial → terminal over window
       const currentStageFinancials = this.getStageFinancials();
-      this.hypergrowthStartMargin = currentStageFinancials.margin ?? -0.2;
-      // Target revenue based on growth rate over window
-      const target = this.revenue * Math.pow(1 + this.hypergrowthRevenueGrowthRate, this.hypergrowthWindowYears);
+      this.hypergrowthStartMargin = this.hypergrowthInitialMargin ?? currentStageFinancials.margin ?? -0.2;
+      this.hypergrowthEndMargin = this.hypergrowthTerminalMargin ?? this.postGateMargin;
+
+      // Target revenue based on initial growth rate over window (approximate)
+      const avgRate = (this.hypergrowthInitialGrowthRate + this.hypergrowthTerminalGrowthRate) / 2;
+      const target = this.revenue * Math.pow(1 + avgRate, this.hypergrowthWindowYears);
       this.hypergrowthTargetRevenue = Math.min(this.longRunRevenueCeiling, target);
       if (this.hypergrowthTargetRevenue < this.revenue) {
         this.hypergrowthTargetRevenue = this.revenue;
@@ -1473,7 +1506,10 @@
           binary_success: cfg.binary_success,
           gate_stage: cfg.gate_stage,
           hypergrowth_window_years: cfg.hypergrowth_window_years,
-          hypergrowth_revenue_growth_rate: cfg.hypergrowth_revenue_growth_rate,
+          hypergrowth_initial_growth_rate: cfg.hypergrowth_initial_growth_rate,
+          hypergrowth_terminal_growth_rate: cfg.hypergrowth_terminal_growth_rate,
+          hypergrowth_initial_margin: cfg.hypergrowth_initial_margin,
+          hypergrowth_terminal_margin: cfg.hypergrowth_terminal_margin,
           long_run_revenue_ceiling_usd: cfg.long_run_revenue_ceiling_usd,
           long_run_growth_rate: cfg.long_run_growth_rate,
           long_run_growth_floor: cfg.long_run_growth_floor,
