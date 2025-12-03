@@ -221,10 +221,13 @@
       if (this.listingWindow && this.listingWindow.from && this.listingWindow.to) {
         this.targetListingDate = new Date(this.listingWindow.to);
       } else {
-        this.targetListingDate = null;
-      }
-      this.status = 'raising';
-      this.daysSinceRound = 0;
+      this.targetListingDate = null;
+    }
+    this.status = 'raising';
+    this.raiseOnProgress = config.raise_on_progress ?? config.hardtech_raise_on_progress ?? (this.archetype === 'hardtech');
+    // When raising on pipeline progress, allow the first round to start immediately.
+    this.pendingRaiseFromProgress = !!this.raiseOnProgress;
+    this.daysSinceRound = 0;
       this.playerEquity = 0;
       this.playerEquityMap = {};
       this.playerInvested = 0;
@@ -727,6 +730,10 @@
         return;
       }
       this.currentRound = nextRound;
+      if (this.raiseOnProgress) {
+        this.pendingRaiseFromProgress = false;
+        this.hasPipelineUpdate = false;
+      }
       this.daysSinceRound = 0;
       this.status = 'raising';
     }
@@ -894,9 +901,11 @@
       if (!closingRound.playerCommitted && !autoBackersInterested) {
         successChance = 0;
       }
-      const roundFailuresEnabled = false;
+      const roundFailuresEnabled = this.raiseOnProgress || false;
       let success;
-      if (!roundFailuresEnabled) {
+      if (this.raiseOnProgress && closingRound.stageReadyToResolve) {
+        success = true;
+      } else if (!roundFailuresEnabled) {
         success = true;
       } else if (closingRound.playerCommitted && !autoBackersInterested) {
         success = true; // only the player kept this round alive
@@ -981,7 +990,9 @@
         this.stageChanged = false;
         this.updateFinancialsFromValuation();
         this.recordHistory(currentDate);
-        this.generateRound(currentDate);
+        if (!this.raiseOnProgress) {
+          this.generateRound(currentDate);
+        }
 
         refundEvents.forEach(evt => {
           evt.type = 'venture_round_failed';
@@ -1092,7 +1103,12 @@
       const displayValuation = this.currentValuation;
       const cashNote = Math.round(raiseAmountUsed).toLocaleString();
       this.stageChanged = true;
-      this.generateRound(currentDate);
+      if (!this.raiseOnProgress) {
+        this.generateRound(currentDate);
+      } else {
+        // Allow the next stage to trigger a new raise immediately after a successful round.
+        this.pendingRaiseFromProgress = true;
+      }
       const nextStageLabel = this.currentStage ? this.currentStage.label : 'Next round';
       this.lastEventNote = `${previousStageLabel} round closed; +$${cashNote} cash, valuation now $${displayValuation.toLocaleString()}. Next: ${nextStageLabel}.`;
       return events;
@@ -1240,12 +1256,13 @@
         })),
         round: round ? {
           stageLabel: round.stageLabel,
+          pipelineStage: round.pipelineStage || round.stageLabel || null,
           raiseAmount: round.raiseAmount,
           preMoney: round.preMoney,
           postMoney: round.postMoney,
           equityOffered: round.equityOffered,
           successProb: round.successProb,
-          durationDays: round.durationDays || null,
+          durationDays: Number.isFinite(round.durationDays) ? round.durationDays : null,
           daysRemaining,
           playerCommitted: round.playerCommitted,
           playerCommitAmount: round.playerCommitAmount || 0,

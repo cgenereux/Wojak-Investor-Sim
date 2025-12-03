@@ -116,6 +116,9 @@
     }
     if (stageCompleted) {
       company.hasPipelineUpdate = true;
+      if (company.raiseOnProgress) {
+        company.pendingRaiseFromProgress = true;
+      }
       if (company.currentRound) {
         const lastStage = company.getLastCompletedHardTechStage();
         if (lastStage) {
@@ -198,6 +201,7 @@
       if (company.status === 'failed' || company.status === 'exited' || company.status === 'ipo' || company.status === 'ipo_pending') return false;
       if (company.currentRound) return false;
       const nextStage = company.getNextHardTechStage();
+      if (company.raiseOnProgress && !company.pendingRaiseFromProgress) return false;
       return company.status === 'raising' && !!nextStage;
     }
 
@@ -226,6 +230,9 @@
       const company = this.company;
       const round = company.currentRound;
       if (!round) return false;
+      if (company.raiseOnProgress) {
+        return !!round.stageReadyToResolve;
+      }
       if (round.stageReadyToResolve) return true;
       if (Number.isFinite(round.durationDays) && company.daysSinceRound >= round.durationDays) {
         return true;

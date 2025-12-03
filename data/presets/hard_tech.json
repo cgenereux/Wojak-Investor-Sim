@@ -131,7 +131,7 @@
           "valuation_usd": 24000000,
           "hypergrowth_window_years": 2.5,
           "hypergrowth_total_multiplier": 18,
-          "private_listing_window": { "from": 2022, "to": 2032 },
+          "private_listing_window": { "from": 1985, "to": 1985 },
           "pipelineTemplate": [
             {
               "id": "fusion_core",
@@ -173,7 +173,7 @@
           "sector": "Aerospace",
           "description": "High-temperature composites for hypersonic flight.",
           "funding_round": "Series B",
-          "gate_stage": "series_f",
+          "gate_stage": "pre_ipo",
           "ipo_stage": "pre_ipo",
           "founders": [ { "name": "Liang Zhao", "degree": "PhD", "school": "Caltech" }, { "name": "Maya Klein", "degree": "PhD", "school": "ETH Zurich" } ],
           "mission": "Enabling reliable hypersonic platforms with advanced composites.",

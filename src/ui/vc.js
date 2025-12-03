@@ -159,6 +159,17 @@ function buildRoundInfo(detail) {
         let info = 'No active funding round.';
         let chance = 'Success Chance: N/A';
         let timer = 'Next round timing TBD';
+        // Estimate next round timing from the first incomplete stage, if present.
+        const firstOpenStage = Array.isArray(detail.products)
+            ? detail.products.flatMap(p => Array.isArray(p.stages) ? p.stages : []).find(s => s && !s.completed)
+            : null;
+        if (firstOpenStage && (firstOpenStage.duration_days || firstOpenStage.durationDays)) {
+            const days = Number(firstOpenStage.duration_days || firstOpenStage.durationDays) || 0;
+            const months = Math.max(1, Math.ceil(days / 30));
+            const label = firstOpenStage.name || firstOpenStage.id || 'Next stage';
+            info = `Pipeline: ${label}`;
+            timer = `Next round in: ~${months} months`;
+        }
         if (detail.status === 'IPO Ready') {
             info = 'IPO paperwork in progress. No additional rounds required.';
             chance = 'Success Chance: 100%';
@@ -180,11 +191,19 @@ function buildRoundInfo(detail) {
     const { round } = detail;
     let info = round.pipelineStage ? `Pipeline: ${round.pipelineStage}` : '';
     let chance = '';
-    const daysRemaining = Number.isFinite(round.daysRemaining)
-        ? round.daysRemaining
-        : (Number.isFinite(round.durationDays) ? Math.max(0, round.durationDays - (detail.daysSinceRound || 0)) : 0);
-    const monthsRemaining = Math.max(0, daysRemaining / 30);
-    let timer = `Next round in: ${Math.max(0, Math.ceil(monthsRemaining))} months`;
+    const totalDays = Number.isFinite(round.durationDays) ? round.durationDays : null;
+    let daysRemaining = Number.isFinite(round.daysRemaining) ? round.daysRemaining : null;
+    if (daysRemaining === null && totalDays !== null) {
+        daysRemaining = Math.max(0, totalDays - (detail.daysSinceRound || 0));
+    }
+    const monthsRemaining = daysRemaining !== null ? Math.max(0, daysRemaining / 30) : null;
+    let timer;
+    if (monthsRemaining !== null) {
+        const displayMonths = Math.max(1, Math.ceil(monthsRemaining));
+        timer = `Next round in: ${displayMonths} month${displayMonths === 1 ? '' : 's'}`;
+    } else {
+        timer = 'Next round timing TBD';
+    }
 
     if (detail.status === 'IPO Ready') {
         info = 'IPO paperwork in progress. No additional rounds required.';
