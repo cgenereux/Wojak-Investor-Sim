@@ -123,7 +123,7 @@
           "sector": "Energy",
           "description": "Compact fusion reactors targeting commercial power generation.",
           "funding_round": "Series B",
-          "gate_stage": "series_f",
+          "gate_stage": "series_c",
           "ipo_stage": "pre_ipo",
           "founders": [ { "name": "Marcus Chen", "degree": "PhD", "school": "MIT" }, { "name": "Elena Vasquez", "degree": "PhD", "school": "Imperial College" } ],
           "mission": "Building fusion reactors that can replace natural gas peaker plants.",

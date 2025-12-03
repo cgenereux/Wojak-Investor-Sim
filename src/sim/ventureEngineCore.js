@@ -1193,7 +1193,17 @@
       const debt = Number.isFinite(this.debt) ? this.debt : 0;
       const round = this.currentRound;
       const stage = this.currentStage;
-      const daysRemaining = round ? Math.max(0, round.durationDays - this.daysSinceRound) : 0;
+      let daysRemaining = round ? Math.max(0, round.durationDays - this.daysSinceRound) : 0;
+      if (round && this.raiseOnProgress) {
+        const activeStage = this.getNextHardTechStage();
+        if (activeStage) {
+          const stageDuration = Number.isFinite(activeStage.duration_days) ? activeStage.duration_days : round.durationDays;
+          const stageElapsed = Number.isFinite(activeStage.elapsed) ? activeStage.elapsed : 0;
+          if (Number.isFinite(stageDuration)) {
+            daysRemaining = Math.max(0, stageDuration - stageElapsed);
+          }
+        }
+      }
       const rounds = Array.isArray(this.roundDefinitions)
         ? this.roundDefinitions.map((r, idx) => ({
           id: r.id,
