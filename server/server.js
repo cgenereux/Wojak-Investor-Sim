@@ -893,11 +893,17 @@ server.on('upgrade', (req, socket, head) => {
 });
 
 wss.on('connection', async (ws, req, url) => {
+  // Buffer any early messages that might arrive before session setup completes.
+  const bufferedMessages = [];
+  const bufferMessage = (data) => bufferedMessages.push(data);
+  ws.on('message', bufferMessage);
+
   if (getTotalClientCount() >= MAX_CONNECTIONS) {
     try {
       ws.send(JSON.stringify({ type: 'error', error: 'server_full' }));
       ws.close(4009, 'server_full');
     } catch (err) { /* ignore */ }
+    ws.removeListener('message', bufferMessage);
     return;
   }
   const sessionId = url.searchParams.get('session') || 'default';
@@ -907,6 +913,7 @@ wss.on('connection', async (ws, req, url) => {
   if (!session) {
     if (role === 'guest') {
       ws.close(4004, 'Session not found');
+      ws.removeListener('message', bufferMessage);
       return;
     }
     session = await buildMatch();
@@ -922,6 +929,7 @@ wss.on('connection', async (ws, req, url) => {
       ws.send(JSON.stringify({ type: 'error', error: 'invalid_name' }));
       ws.close(4006, 'invalid_name');
     } catch (err) { /* ignore */ }
+    ws.removeListener('message', bufferMessage);
     return;
   }
   const lowerPid = playerId.toLowerCase();
@@ -958,6 +966,7 @@ wss.on('connection', async (ws, req, url) => {
         ws.send(JSON.stringify({ type: 'error', error: 'match_started' }));
         ws.close(4010, 'match_started');
       } catch (err) { /* ignore */ }
+      ws.removeListener('message', bufferMessage);
       return;
     }
     if (socketsWithSameId.length > 0) {
@@ -965,6 +974,7 @@ wss.on('connection', async (ws, req, url) => {
         ws.send(JSON.stringify({ type: 'error', error: 'name_taken' }));
         ws.close(4005, 'name_taken');
       } catch (err) { /* ignore */ }
+      ws.removeListener('message', bufferMessage);
       return;
     }
   }
@@ -1005,21 +1015,7 @@ wss.on('connection', async (ws, req, url) => {
     }, SESSION_IDLE_CHECK_MS);
   }
 
-  // Send initial snapshot
-  ws.send(JSON.stringify({
-    type: 'snapshot',
-    ...buildSnapshot(session),
-    player: serializePlayer(player, session.sim),
-    ticks: session.tickBuffer.slice()
-  }));
-  // Notify everyone of the updated roster
-  broadcastPlayers(session);
-
-  if (session.started) {
-    startTickLoop(session);
-  }
-
-  ws.on('message', (data) => {
+  const handleIncomingMessage = (data) => {
     let msg;
     try {
       msg = JSON.parse(data.toString());
@@ -1045,7 +1041,29 @@ wss.on('connection', async (ws, req, url) => {
       error: result.ok ? undefined : result.error,
       player: serializePlayer(p, session.sim)
     }));
-  });
+  };
+
+  // Swap the temporary buffer listener for the real handler now that setup is done.
+  ws.removeListener('message', bufferMessage);
+  ws.on('message', handleIncomingMessage);
+
+  // Send initial snapshot
+  ws.send(JSON.stringify({
+    type: 'snapshot',
+    ...buildSnapshot(session),
+    player: serializePlayer(player, session.sim),
+    ticks: session.tickBuffer.slice()
+  }));
+  // Replay any messages that arrived during session setup (e.g. early set_character)
+  if (bufferedMessages.length) {
+    bufferedMessages.splice(0).forEach(handleIncomingMessage);
+  }
+  // Notify everyone of the updated roster
+  broadcastPlayers(session);
+
+  if (session.started) {
+    startTickLoop(session);
+  }
 
   ws.on('close', () => {
     session.clients.delete(ws);
