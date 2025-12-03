@@ -167,7 +167,7 @@ function buildRoundInfo(detail) {
             const days = Number(firstOpenStage.duration_days || firstOpenStage.durationDays) || 0;
             const months = Math.max(1, Math.ceil(days / 30));
             const label = firstOpenStage.name || firstOpenStage.id || 'Next stage';
-            info = `Pipeline: ${label}`;
+            info = '';
             timer = `Next round in: ~${months} months`;
         }
         if (detail.status === 'IPO Ready') {
@@ -189,7 +189,7 @@ function buildRoundInfo(detail) {
     }
 
     const { round } = detail;
-    let info = round.pipelineStage ? `Pipeline: ${round.pipelineStage}` : '';
+    let info = '';
     let chance = '';
     const totalDays = Number.isFinite(round.durationDays) ? round.durationDays : null;
     let daysRemaining = Number.isFinite(round.daysRemaining) ? round.daysRemaining : null;
@@ -295,7 +295,7 @@ function renderInvestmentOptions(detail, companyId = null) {
     }).join('');
 
     if (vcRoundDilutionEl) {
-        vcRoundDilutionEl.textContent = `${resolvedNextLabel} Dilution: ${dilutionPct.toFixed(2)}%`;
+        vcRoundDilutionEl.textContent = `Dilution: ${dilutionPct.toFixed(2)}%`;
     }
     const titleEl = vcInvestmentOptionsEl?.closest('.investment-panel')?.querySelector('.investment-title');
     if (titleEl) {

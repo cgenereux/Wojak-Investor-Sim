@@ -1282,7 +1282,9 @@ async function loadCompaniesData() {
         }
         ensureVentureSimulation(true);
         updateVentureBadge();
-        const simOptions = matchRngFn ? { macroEvents, seed: matchSeed, rng: matchRngFn } : { macroEvents };
+        const simOptions = matchRngFn
+            ? { macroEvents, seed: matchSeed, rng: matchRngFn, startYear: GAME_START_YEAR }
+            : { macroEvents, startYear: GAME_START_YEAR };
         return new Simulation(filteredCompanies, simOptions);
     } catch (error) {
         console.error("Could not load data:", error);
