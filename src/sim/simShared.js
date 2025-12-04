@@ -94,11 +94,11 @@
   }
 
   const sectorMicro = {
-    Biotech:       { mu: +0.026, sigma: 0.29 },
-    Semiconductor: { mu: +0.05, sigma: 0.25 },
-    Banking:       { mu: +0.02, sigma: 0.15 },
-    Retail:        { mu: +0.013, sigma: 0.12 },
-    DEFAULT:       { mu: +0.026, sigma: 0.16 }
+    Biotech:       { mu: +0.026, sigma: 0.145 },
+    Semiconductor: { mu: +0.05, sigma: 0.125 },
+    Banking:       { mu: +0.02, sigma: 0.075 },
+    Retail:        { mu: +0.013, sigma: 0.06 },
+    DEFAULT:       { mu: +0.026, sigma: 0.08 }
   };
 
   const sectorMargin = {

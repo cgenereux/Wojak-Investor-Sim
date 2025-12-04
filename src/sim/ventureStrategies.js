@@ -29,10 +29,12 @@
   }
 
   function computeHardTechFairValue(company, applyNoise = true) {
-    // Valuation = fullVal × value_realization from completed stages
-    // No probability weighting - just realized value
-    const unlockedPV = company.products.reduce((sum, product) => sum + (typeof product.unlockedValue === 'function' ? product.unlockedValue() : 0), 0);
-    let base = Math.max(1, unlockedPV);
+    // unlockedValue = fullVal × value_realization = unlocked REVENUE potential
+    // To convert to valuation, apply a P/S multiple
+    const unlockedRevenue = company.products.reduce((sum, product) => sum + (typeof product.unlockedValue === 'function' ? product.unlockedValue() : 0), 0);
+    const stageFin = typeof company.getStageFinancials === 'function' ? company.getStageFinancials() : null;
+    const ps = (stageFin && stageFin.ps) ? stageFin.ps : 6;
+    let base = Math.max(1, unlockedRevenue * ps);
     if (applyNoise) {
       base *= between(0.9, 1.1);
     }
