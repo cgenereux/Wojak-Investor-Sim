@@ -232,34 +232,77 @@
     },
     {
       "id": "classic_2010s",
-      "label": "2010s Cloud & Bio",
+      "label": "2010s",
       "pick": 2,
       "defaults": { "ipo_window": { "from": 2010, "to": 2019 } },
       "roster": [
+          {
+          "name": "Nebula Stream",
+          "mission": "Unifying enterprise data silos into a single, intelligent cloud infrastructure.",
+          "founders": [ { "name": "Jessica Wu" }, { "name": "David Chen" } ],
+          "founding_location": "San Francisco, CA",
+          "sector": "Tech"
+        }
       ]
     },
     {
       "id": "classic_2020s",
-      "label": "2020s Resilience",
-      "pick": 2,
+      "label": "2020s",
+      "pick": 1,
       "defaults": { "ipo_window": { "from": 2020, "to": 2029 } },
       "roster": [
+        {
+          "name": "Verdant Power Solutions",
+          "mission": "Stabilizing the grid with next-generation solid-state battery storage.",
+          "founders": [ { "name": "Lars Jensen" }, { "name": "Priya Patel" } ],
+          "founding_location": "Austin, TX",
+          "sector": "Energy"
+        }
+        
       ]
     },
     {
       "id": "classic_2030s",
       "label": "2030s Frontier Defense",
-      "pick": 1,
+      "pick": 2,
       "defaults": { "ipo_window": { "from": 2030, "to": 2039 } },
       "roster": [
+        {
+          "name": "Aegis Autonomous",
+          "mission": "Deploying unmanned perimeter defense systems for sovereign territories.",
+          "founders": [ { "name": "Col. Robert Haze (Ret)" }, { "name": "Wei Zhang" } ],
+          "founding_location": "Denver, CO",
+          "sector": "Defense"
+        },
+        {
+          "name": "OrbitCore Fabrication",
+          "mission": "Manufacturing zero-gravity alloys and fiber optics in low earth orbit.",
+          "founders": [ { "name": "Elara Vance" }, { "name": "Kenji Sato" } ],
+          "founding_location": "Mojave, CA",
+          "sector": "Aerospace"
+        }
       ]
     },
     {
       "id": "classic_2040s",
-      "label": "2040s Offworld Flight",
-      "pick": 1,
-      "defaults": { "ipo_window": { "from": 2040, "to": 2049 } },
+      "label": "2040s",
+      "pick": 2,
+      "defaults": { "ipo_window": { "from": 2038, "to": 2046 } },
       "roster": [
+        {
+          "name": "Helios Deep Space",
+          "mission": "Establishing permanent heavy-cargo logistics bridges to Mars.",
+          "founders": [ { "name": "Xavier Solamon" }, { "name": "Lyra Belmonte" } ],
+          "founding_location": "Boca Chica, TX",
+          "sector": "Aerospace"
+        },
+        {
+          "name": "TerraFirma Habitats",
+          "mission": "Designing self-sustaining biospheres for hostile interplanetary environments.",
+          "founders": [ { "name": "Dr. Aris Thorne" }, { "name": "Maya Okafor" } ],
+          "founding_location": "Cape Canaveral, FL",
+          "sector": "Real Estate"
+        }
       ]
     }
   ]

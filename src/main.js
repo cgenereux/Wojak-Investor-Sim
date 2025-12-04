@@ -1268,7 +1268,7 @@ async function loadCompaniesData() {
         if (Array.isArray(presetClassicCompanies)) {
             filteredCompanies.push(...presetClassicCompanies);
         }
-        const presetHardTechCompanies = await generatePublicHardTechPresetCompanies(3, presetOptions);
+        const presetHardTechCompanies = await generatePublicHardTechPresetCompanies(null, presetOptions);
         if (Array.isArray(presetHardTechCompanies)) {
             filteredCompanies.push(...presetHardTechCompanies);
         }
@@ -1276,7 +1276,7 @@ async function loadCompaniesData() {
         if (Array.isArray(presetVentureCompanies)) {
             ventureCompanies.push(...presetVentureCompanies);
         }
-        const hardTechCompanies = await generatePrivateHardTechCompanies(3, presetOptions);
+        const hardTechCompanies = await generatePrivateHardTechCompanies(null, presetOptions);
         if (Array.isArray(hardTechCompanies)) {
             ventureCompanies.push(...hardTechCompanies);
         }

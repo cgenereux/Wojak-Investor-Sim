@@ -439,31 +439,54 @@
         return companies;
     }
 
-    async function generatePublicHardTechPresetCompanies(count = 1, options = {}) {
-        const { randBetween, randIntBetween, makeId } = buildRandomTools(options);
-        const pickRangeLocal = (range, fallbackMin, fallbackMax) => pickRange(range, fallbackMin, fallbackMax, randBetween);
-        const data = await loadPresetJson(HARDTECH_DATA_PATH, options);
-        const mergedGroups = Array.isArray(data?.groups) ? data.groups.filter(g => (g.type || '').toLowerCase() === 'public') : [];
-        let rosterSource;
-        let defaults = {};
-        if (mergedGroups.length > 0) {
-            rosterSource = mergedGroups.flatMap(g => Array.isArray(g.roster) ? g.roster.map(r => ({ ...r, __group: g })) : []);
-            defaults = data?.defaults?.public || {};
-        } else {
-            rosterSource = Array.isArray(data?.roster) ? data.roster.slice() : [];
-            defaults = data?.defaults || {};
+  async function generatePublicHardTechPresetCompanies(count = null, options = {}) {
+    const { randBetween, randIntBetween, makeId } = buildRandomTools(options);
+    const pickRangeLocal = (range, fallbackMin, fallbackMax) => pickRange(range, fallbackMin, fallbackMax, randBetween);
+    const data = await loadPresetJson(HARDTECH_DATA_PATH, options);
+    const mergedGroups = Array.isArray(data?.groups) ? data.groups.filter(g => (g.type || '').toLowerCase() === 'public') : [];
+    const useGroupPick = count == null;
+    let defaults = mergedGroups.length > 0 ? (data?.defaults?.public || {}) : (data?.defaults || {});
+
+    // Pick entries
+    let picked = [];
+    if (mergedGroups.length > 0) {
+      if (useGroupPick) {
+        mergedGroups.forEach(group => {
+          const roster = Array.isArray(group.roster) ? group.roster.map(r => ({ ...r, __group: group })) : [];
+          if (!roster.length) return;
+          const target = Math.min(
+            roster.length,
+            Math.max(0, Math.floor(Number(group.pick) || roster.length))
+          );
+          const rosterCopy = [...roster];
+          for (let i = 0; i < target && rosterCopy.length > 0; i++) {
+            const idx = randIntBetween(0, rosterCopy.length);
+            picked.push(rosterCopy.splice(idx, 1)[0]);
+          }
+        });
+      } else {
+        let rosterSource = mergedGroups.flatMap(g => Array.isArray(g.roster) ? g.roster.map(r => ({ ...r, __group: g })) : []);
+        const target = Math.min(Math.max(0, Math.floor(count)), rosterSource.length);
+        while (picked.length < target && rosterSource.length > 0) {
+          const idx = randIntBetween(0, rosterSource.length);
+          picked.push(rosterSource.splice(idx, 1)[0]);
         }
-        if (rosterSource.length === 0) return [];
-        const picked = [];
-        while (picked.length < count && rosterSource.length > 0) {
-            const idx = randIntBetween(0, rosterSource.length);
-            picked.push(rosterSource.splice(idx, 1)[0]);
-        }
-        const companies = [];
-        const pipelineTemplate = Array.isArray(data?.pipelineTemplate) ? data.pipelineTemplate : (defaults.pipelineTemplate || []);
-        const structuralBiasDefaults = defaults.structural_bias || { min: 0.2, max: 6, half_life_years: 25 };
-        const marginDefaults = defaults.margin_curve || {};
-        const multipleDefaults = defaults.multiple_curve || {};
+      }
+    } else {
+      const rosterSource = Array.isArray(data?.roster) ? data.roster.slice() : [];
+      if (rosterSource.length === 0) return [];
+      const target = useGroupPick ? rosterSource.length : Math.min(Math.max(0, Math.floor(count)), rosterSource.length);
+      while (picked.length < target && rosterSource.length > 0) {
+        const idx = randIntBetween(0, rosterSource.length);
+        picked.push(rosterSource.splice(idx, 1)[0]);
+      }
+    }
+    if (picked.length === 0) return [];
+    const companies = [];
+    const pipelineTemplate = Array.isArray(data?.pipelineTemplate) ? data.pipelineTemplate : (defaults.pipelineTemplate || []);
+    const structuralBiasDefaults = defaults.structural_bias || { min: 0.2, max: 6, half_life_years: 25 };
+    const marginDefaults = defaults.margin_curve || {};
+    const multipleDefaults = defaults.multiple_curve || {};
         const initialRevenueConfig = defaults.initial_revenue_usd || {};
         const pipelineScaleRange = defaults.pipeline_scale || [0.75, 1.25];
         const ipoInstantDefault = defaults.ipo_instantly ?? false;
@@ -531,24 +554,25 @@
         return companies;
     }
 
-    async function generatePrivateHardTechCompanies(count = 1, options = {}) {
+    async function generatePrivateHardTechCompanies(count = null, options = {}) {
         const { randBetween, randIntBetween, makeId } = buildRandomTools(options);
         const pickRangeLocal = (range, fallbackMin, fallbackMax) => pickRange(range, fallbackMin, fallbackMax, randBetween);
         const data = await loadPresetJson(HARDTECH_DATA_PATH, options);
         const defaults = data?.defaults?.private || data?.defaults || {};
         const mergedGroups = Array.isArray(data?.groups) ? data.groups.filter(g => (g.type || '').toLowerCase() === 'private') : [];
-        const rosterSource = mergedGroups.length > 0
-            ? mergedGroups.flatMap(g => Array.isArray(g.roster) ? g.roster.map(r => ({ ...r, __group: g })) : [])
-            : [];
         const defaultPipelineTemplate = Array.isArray(defaults?.pipelineTemplate)
             ? defaults.pipelineTemplate
             : [];
-        if (rosterSource.length === 0 || defaultPipelineTemplate.length === 0) return [];
-        const roster = [...rosterSource];
+        if (defaultPipelineTemplate.length === 0) return [];
+        const useGroupPick = count == null;
         const companies = [];
-        while (companies.length < count && roster.length > 0) {
-            const idx = randIntBetween(0, roster.length);
-            const entry = roster.splice(idx, 1)[0];
+
+        const pickFromRoster = (roster, targetCount) => {
+            const rosterCopy = [...roster];
+            const target = Math.min(Math.max(0, targetCount), rosterCopy.length);
+            for (let i = 0; i < target && rosterCopy.length > 0; i++) {
+                const idx = randIntBetween(0, rosterCopy.length);
+                const entry = rosterCopy.splice(idx, 1)[0];
             const valuation = randBetween(15_000_000, 40_000_000);
             const id = makeId(`preset_hardtech_${slugify(entry.name || 'hardtech')}`, companies.length);
             const pipelineSource = Array.isArray(entry?.pipelineTemplate) && entry.pipelineTemplate.length
@@ -632,6 +656,25 @@
                 post_success_mode: entry.post_success_mode || 'ramp'
             });
         }
+        };
+
+        if (mergedGroups.length > 0) {
+            if (useGroupPick) {
+                mergedGroups.forEach(group => {
+                    const roster = Array.isArray(group.roster) ? group.roster.map(r => ({ ...r, __group: group })) : [];
+                    if (!roster.length) return;
+                    const target = Math.min(
+                        roster.length,
+                        Math.max(0, Math.floor(Number(group.pick) || roster.length))
+                    );
+                    pickFromRoster(roster, target);
+                });
+            } else {
+                const rosterSource = mergedGroups.flatMap(g => Array.isArray(g.roster) ? g.roster.map(r => ({ ...r, __group: g })) : []);
+                pickFromRoster(rosterSource, Math.min(Math.max(0, Math.floor(count)), rosterSource.length));
+            }
+        }
+
         return companies;
     }
 
