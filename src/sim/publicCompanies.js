@@ -900,7 +900,7 @@
       this.accumulateYear(revenueThisTick, netIncome, gameDate);
 
       let plannedDividend = 0;
-      if (this.debt <= 0 && Array.isArray(this.financialHistory) && this.financialHistory.length >= 3) {
+      if (this.debt <= 0 && Array.isArray(this.financialHistory) && this.financialHistory.length >= 1) {
         const lastFour = this.financialHistory.slice(-4);
         const avgFour = lastFour.length > 0
           ? lastFour.reduce((s, e) => s + (Number.isFinite(e?.profit) ? e.profit : 0), 0) / lastFour.length
