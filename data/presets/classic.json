@@ -3,9 +3,9 @@
     "structural_bias": { "min": 0.5, "max": 2, "half_life_years": 15 },
     "base_revenue_usd": [200000000, 400000000],
     "margin_curve": {
-      "start_profit_margin": [0.05, 0.15],
-      "terminal_profit_margin": [0.12, 0.21],
-      "years_to_mature": [25, 50]
+      "start_profit_margin": [0.8, 0.17],
+      "terminal_profit_margin": [0.20, 0.26],
+      "years_to_mature": [25, 45]
     },
     "multiple_curve": {
       "initial_pe_ratio": [8, 15],
@@ -68,7 +68,7 @@
       "label": "1970s",
       "pick": 4,
       "pick_by_sector": { "Banking": 2, "Retail": 1, "Automotive": 1 },
-      "defaults": { "ipo_window": { "from": 1965, "to": 1979 } },
+      "defaults": { "ipo_window": { "from": 1964, "to": 1979 } },
       "roster": [
         {
           "name": "Wainwright Brothers",
@@ -161,7 +161,7 @@
         {
           "name": "Orion Microsystems",
           "sector": "Tech",
-          "ipo_window": { "from": 1990, "to": 1997 },
+          "ipo_window": { "from": 1982, "to": 1995 },
           "founders": [ { "name": "Clara Thompson" }, { "name": "Rajiv Desai" } ],
           "mission": "Building dependable operating systems and software for every desk.",
           "founding_location": "Redmond, WA"
@@ -169,7 +169,6 @@
         {
           "name": "Pioneer Devices",
           "sector": "Tech",
-          "ipo_window": { "from": 1991, "to": 1998 },
           "founders": [ { "name": "Miguel Alvarez" }, { "name": "Hannah Park" } ],
           "mission": "Designing iconic consumer hardware with seamless ecosystems.",
           "founding_location": "Cupertino, CA"
