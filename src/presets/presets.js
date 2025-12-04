@@ -614,7 +614,12 @@
                 const marginDefaults = effectiveDefaults.margin_curve || {};
                 const multipleDefaults = effectiveDefaults.multiple_curve || {};
                 const financeDefaults = effectiveDefaults.finance || {};
-                const costDefaults = effectiveDefaults.costs || {};
+                const laggedBudgetDefaults = effectiveDefaults.lagged_budget || { enabled: true, lookback_years: 3, time_adjustment_multiplier: 1 };
+                const useLaggedBudget = !!laggedBudgetDefaults.enabled;
+                const baseCostDefaults = effectiveDefaults.costs || {};
+                const costDefaults = useLaggedBudget
+                    ? { ...baseCostDefaults, opex_fixed_usd: 0, opex_variable_ratio: 0 }
+                    : baseCostDefaults;
                 const ipoFallback = effectiveDefaults.ipo_window || ipoDefault;
 
                 const name = entry.name || `${group.label || 'Corp'} ${idx + 1}`;
@@ -625,16 +630,19 @@
                 const terminalMargin = pickRangeLocal(marginDefaults.terminal_profit_margin, 0.12, 0.25);
                 const initialPs = pickRangeLocal(multipleDefaults.initial_ps_ratio ?? multipleDefaults.initial_pe_ratio, 1.2, 6);
                 const terminalPe = pickRangeLocal(multipleDefaults.terminal_pe_ratio, 10, 18);
+                const startingCashUsd = baseRevenue * (financeDefaults.starting_cash_ratio ?? 0);
+                const startingDebtUsd = baseRevenue * (financeDefaults.starting_debt_ratio ?? 0);
+                const sharedInterestRate = GLOBAL_BASE_INTEREST_RATE ?? 0.07;
                 companies.push({
                     id,
                     static: {
                         name,
-                        sector: entry.sector || defaults.sector || 'General',
+                        sector: entry.sector || effectiveDefaults.sector || 'General',
                         founders: (entry.founders || []).map(f => ({ ...f })),
-                        mission: entry.mission || defaults.mission || '',
-                        founding_location: entry.founding_location || defaults.founding_location || '',
+                        mission: entry.mission || effectiveDefaults.mission || '',
+                        founding_location: entry.founding_location || effectiveDefaults.founding_location || '',
                         ipo_window: ipoRange,
-                        ipo_instantly: entry.ipo_instantly ?? defaults.ipo_instantly ?? false
+                        ipo_instantly: entry.ipo_instantly ?? effectiveDefaults.ipo_instantly ?? false
                     },
                     sentiment: {
                         structural_bias: { ...structuralBiasDefaults }
@@ -655,12 +663,17 @@
                             initial_ps_ratio: initialPs,
                             terminal_pe_ratio: terminalPe,
                             years_to_converge: pickRangeLocal(multipleDefaults.years_to_converge, 8, 14)
+                        },
+                        lagged_budget: {
+                            enabled: laggedBudgetDefaults.enabled ?? true,
+                            lookback_years: laggedBudgetDefaults.lookback_years ?? 3,
+                            time_adjustment_multiplier: laggedBudgetDefaults.time_adjustment_multiplier ?? 1
                         }
                     },
                     finance: {
-                        starting_cash_usd: baseRevenue * (financeDefaults.starting_cash_ratio ?? 0.04),
-                        starting_debt_usd: baseRevenue * (financeDefaults.starting_debt_ratio ?? 0.02),
-                        interest_rate_annual: financeDefaults.interest_rate_annual ?? GLOBAL_BASE_INTEREST_RATE ?? 0.07
+                        starting_cash_usd: startingCashUsd,
+                        starting_debt_usd: startingDebtUsd,
+                        interest_rate_annual: sharedInterestRate
                     },
                     costs: {
                         opex_fixed_usd: pickRangeLocal(costDefaults.opex_fixed_usd, 20_000_000, 80_000_000),

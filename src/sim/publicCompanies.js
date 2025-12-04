@@ -542,6 +542,25 @@
       return series;
     }
 
+    getTrailingRevenueAverage(years = 3) {
+      const windowYears = Math.max(1, Math.floor(years));
+      const revenues = [];
+      const history = Array.isArray(this.financialHistory) ? this.financialHistory : [];
+      const take = Math.min(windowYears, history.length);
+      for (let i = history.length - take; i < history.length; i++) {
+        const rev = history[i]?.revenue;
+        if (Number.isFinite(rev)) revenues.push(rev);
+      }
+      if (this.currentYearRevenue > 0) {
+        revenues.push(this.currentYearRevenue);
+      }
+      if (revenues.length === 0) {
+        return Math.max(0, this.baseRevenue || 0);
+      }
+      const sum = revenues.reduce((s, v) => s + v, 0);
+      return sum / revenues.length;
+    }
+
     getFinancialTableHTML() {
       const data = this.getFinancialTable();
       if (!data || data.length === 0) return '<p>No annual data available yet</p>';
@@ -682,6 +701,14 @@
       this.opexFixed = cost.opex_fixed_usd ?? 5_000_000;
       this.opexVar = cost.opex_variable_ratio ?? 0.15;
       this.rdBaseRatio = cost.rd_base_ratio ?? 0.05;
+      const laggedBudgetCfg = (cfg.base_business && cfg.base_business.lagged_budget) || {};
+      this.laggedBudget = {
+        enabled: !!laggedBudgetCfg.enabled,
+        lookbackYears: Number.isFinite(laggedBudgetCfg.lookback_years) ? laggedBudgetCfg.lookback_years : 3,
+        timeAdjustmentMultiplier: Number.isFinite(laggedBudgetCfg.time_adjustment_multiplier)
+          ? laggedBudgetCfg.time_adjustment_multiplier
+          : 1
+      };
 
       this.revMult = 1;
       this.volMult = 1;
@@ -783,15 +810,37 @@
         const downPenalty = Math.max(0, 1 - cycle);
         marginNow = Math.max(0.01, base + sizeKick - 0.15 * downPenalty);
       }
-      const grossProfit = revenueThisTick * marginNow;
-
       this.rdOpex = 0;
-      const opex = this.opexFixed * dtYears + this.opexVar * grossProfit;
       const rdPipeline = this.products.reduce((s, p) => s + p.expectedValue(), 0);
       const rdBurn = this.rdOpex + this.rdBaseRatio * rdPipeline * dtYears;
 
       const interest = this.debt * this.intRate * dtYears;
-      const netIncome = grossProfit - opex - rdBurn - interest;
+      const useLaggedBudget = this.laggedBudget && this.laggedBudget.enabled;
+      let netIncome;
+      if (useLaggedBudget) {
+        const lookbackYears = Math.max(1, Math.floor(this.laggedBudget.lookbackYears || 3));
+        const tam = Number.isFinite(this.laggedBudget.timeAdjustmentMultiplier)
+          ? this.laggedBudget.timeAdjustmentMultiplier
+          : 1;
+        const trailingAvg = this.getTrailingRevenueAverage(lookbackYears);
+        const sectorMu = (this.macroEnv && typeof this.macroEnv.getMu === 'function')
+          ? this.macroEnv.getMu(this.sector)
+          : null;
+        // Mu comes in as a rate (0.x) or possibly a multiplier (1.x); normalize to rate and apply a gentle uplift.
+        const muRate = Number.isFinite(sectorMu)
+          ? (sectorMu > 1 ? sectorMu - 1 : Math.max(0, sectorMu))
+          : 0;
+        const muFactor = clampValue(Math.pow(1 + muRate * 0.7, 1.5), 0.7, 1.6);
+        const budgetedSize = trailingAvg * tam * muFactor;
+        const marginForBudget = clampValue(marginNow, 0, 0.99);
+        // Budgeted expenses are annual-scale; scale by dtYears to keep units consistent with per-tick revenue.
+        const totalExpensesUSD = budgetedSize * (1 - marginForBudget) * dtYears;
+        netIncome = revenueThisTick - totalExpensesUSD - rdBurn - interest;
+      } else {
+        const grossProfit = revenueThisTick * marginNow;
+        const opex = this.opexFixed * dtYears + this.opexVar * grossProfit;
+        netIncome = grossProfit - opex - rdBurn - interest;
+      }
 
       this.cash += netIncome;
       if (this.cash < 0) { this.debt += -this.cash; this.cash = 0; }
