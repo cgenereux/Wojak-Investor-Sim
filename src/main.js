@@ -2622,6 +2622,7 @@ function renderCompanyFinancialHistory(company) {
     // Helper functions for financial data (Client-side implementation)
     function getCompanyYoySeries(company, limit = 8) {
         if (!Array.isArray(company.quarterHistory) || company.quarterHistory.length === 0) return [];
+        const QUARTER_DAYS = 365 / 4; // ~91 days
         const ordered = company.quarterHistory.slice().sort((a, b) => {
             if (a.year === b.year) return a.quarter - b.quarter;
             return a.year - b.year;
@@ -2634,8 +2635,12 @@ function renderCompanyFinancialHistory(company) {
             const start = Math.max(0, i - 3);
             let count = 0;
             for (let j = start; j <= i; j++) {
-                revenue += ordered[j].revenue;
-                profit += ordered[j].profit;
+                const q = ordered[j];
+                // Scale partial quarters to full-quarter equivalents for display
+                const days = q.days || QUARTER_DAYS;
+                const scale = days < QUARTER_DAYS ? (QUARTER_DAYS / days) : 1;
+                revenue += q.revenue * scale;
+                profit += q.profit * scale;
                 count++;
             }
 

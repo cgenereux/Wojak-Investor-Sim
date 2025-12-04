@@ -372,6 +372,9 @@
                 const name = entry.name || `${group.label || 'Corp'} ${idx + 1}`;
                 const id = makeId(`classic_${slugify(group.id || group.label || 'corp')}_${slugify(name)}`, idx);
                 const baseRevenue = pickRangeLocal(effectiveDefaults.base_revenue_usd, 1_000_000_000, 5_000_000_000);
+                if (sectorKey === 'tech') {
+                    console.log(`[ClassicGen] Tech company "${name}": sectorDefaults.base_revenue_usd =`, sectorDefaults.base_revenue_usd, `effectiveDefaults.base_revenue_usd =`, effectiveDefaults.base_revenue_usd, `baseRevenue =`, baseRevenue);
+                }
                 const ipoRange = entry.ipo_window || ipoFallback;
                 const startMargin = pickRangeLocal(marginDefaults.start_profit_margin, 0.05, 0.1);
                 const terminalMargin = pickRangeLocal(marginDefaults.terminal_profit_margin, 0.12, 0.25);

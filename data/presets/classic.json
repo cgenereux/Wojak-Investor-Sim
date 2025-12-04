@@ -1,16 +1,16 @@
 {
   "defaults": {
     "structural_bias": { "min": 0.5, "max": 2, "half_life_years": 15 },
-    "base_revenue_usd": [600000000, 2000000000],
+    "base_revenue_usd": [200000000, 400000000],
     "margin_curve": {
-      "start_profit_margin": [0.03, 0.1],
+      "start_profit_margin": [0.05, 0.15],
       "terminal_profit_margin": [0.12, 0.21],
-      "years_to_mature": [7, 10]
+      "years_to_mature": [25, 50]
     },
     "multiple_curve": {
       "initial_pe_ratio": [8, 15],
       "terminal_pe_ratio": [12, 15],
-      "years_to_converge": [22, 34]
+      "years_to_converge": [20, 40]
     },
     "costs": {
       "opex_variable_ratio": [0.08, 0.16],
@@ -24,8 +24,8 @@
       "structural_bias": { "min": 0.4, "max": 2, "half_life_years": 25 },
       "base_revenue_usd": [1200000000, 4000000000],
       "margin_curve": {
-        "start_profit_margin": [0.08, 0.12],
-        "terminal_profit_margin": [0.16, 0.22],
+        "start_profit_margin": [0.12, 0.16],
+        "terminal_profit_margin": [0.17, 0.23],
         "years_to_mature": [40, 60]
       },
       "multiple_curve": {
@@ -35,7 +35,6 @@
         "years_to_converge": [40, 60]
       },
       "costs": {
-        "opex_fixed_usd": [15000000, 30000000],
         "opex_variable_ratio": [0.08, 0.16],
         "rd_base_ratio": [0.02, 0.04]
       },
@@ -44,11 +43,11 @@
     },
     "Tech": {
       "structural_bias": { "min": 0.6, "max": 3, "half_life_years": 18 },
-      "base_revenue_usd": [1500000000, 7000000000],
+      "base_revenue_usd": [150000000, 700000000],
       "margin_curve": {
-        "start_profit_margin": [0.1, 0.16],
+        "start_profit_margin": [0.10, 0.16],
         "terminal_profit_margin": [0.22, 0.32],
-        "years_to_mature": [6, 10]
+        "years_to_mature": [15, 30]
       },
       "multiple_curve": {
         "initial_ps_ratio": [4.5, 7.5],
@@ -66,17 +65,16 @@
   "groups": [
     {
       "id": "classic_1970s",
-      "label": "1970s Foundations",
-      "pick": 3,
-      "pick_by_sector": { "Banking": 1, "Retail": 1, "Automotive": 1 },
-      "defaults": { "ipo_window": { "from": 1970, "to": 1979 } },
+      "label": "1970s",
+      "pick": 4,
+      "pick_by_sector": { "Banking": 2, "Retail": 1, "Automotive": 1 },
+      "defaults": { "ipo_window": { "from": 1965, "to": 1979 } },
       "roster": [
         {
           "name": "Wainwright Brothers",
           "mission": "Advising the world's leading institutions on mergers, acquisitions, and strategy.",
           "founders": [ { "name": "Charles Wainwright" }, { "name": "Henry Wainwright" } ],
           "founding_location": "Boston, MA",
-          "ipo_window": { "from": 1972, "to": 1979 },
           "sector": "Banking"
         },
         {
@@ -84,55 +82,80 @@
           "founders": [ { "name": "Ryan Smith", "degree": "BS", "school": "University of Illinois" } ],
           "sector": "Retail",
           "mission": "Supplying the tools and materials homeowners trust.",
-          "founding_location": "New York, NY",
-          "ipo_window": { "from": 1974, "to": 1980 }
+          "founding_location": "New York, NY"
         },
         {
           "name": "Atlas Motor Works",
           "mission": "Building dependable, efficient cars and trucks for working families.",
           "founders": [ { "name": "Carl Nguyen" }, { "name": "Dana Ruiz" } ],
           "founding_location": "Detroit, MI",
-          "ipo_window": { "from": 1976, "to": 1982 },
           "sector": "Automotive"
-        }
-      ]
-    },
-    {
-      "id": "classic_1980s",
-      "label": "1980s Deregulation",
-      "pick": 2,
-      "defaults": { "ipo_window": { "from": 1980, "to": 1989 } },
-      "roster": [
+        },
         {
           "name": "Sterling National Bank",
           "mission": "Anchoring American commerce with trusted lending and capital markets.",
           "founders": [ { "name": "James Sterling" }, { "name": "Catherine Aldrich" } ],
           "founding_location": "New York, NY",
-          "ipo_window": { "from": 1981, "to": 1988 },
           "sector": "Banking"
         },
+        {
+          "name": "Hargrove & Sons",
+          "mission": "Preserving wealth across generations through disciplined investment banking.",
+          "founders": [ { "name": "Theodore Hargrove III" }, { "name": "Edmund Whitmore" } ],
+          "founding_location": "New York, NY",
+          "sector": "Banking"
+        }
+      ]
+    },
+    {
+      "id": "classic_1980s",
+      "label": "1980s",
+      "pick": 3,
+      "pick_by_sector": { "Airlines": 1, "Retail":2},
+      "defaults": { "ipo_window": { "from": 1978, "to": 1989 } },
+      "roster": [
         {
           "name": "SmartCart Holdings",
           "founders": [ { "name": "Linda Harris", "degree": "MBA", "school": "Harvard" } ],
           "sector": "Retail",
           "mission": "Modernizing retail supply chains with smart checkout and logistics automation.",
-          "founding_location": "Bentonville, AR",
-          "ipo_window": { "from": 1982, "to": 1989 }
+          "founding_location": "Bentonville, AR"
         },
         {
           "name": "Pacific Crest Airlines",
           "mission": "Delivering reliable regional lift along the Pacific Rim.",
           "founders": [ { "name": "Kenji Morita" }, { "name": "Sara Delgado" } ],
           "founding_location": "San Francisco, CA",
-          "ipo_window": { "from": 1983, "to": 1991 },
           "sector": "Airlines"
+        },
+        {
+          "name": "Joe's Airways",
+          "mission": "Making premium transcontinental flights affordable.",
+          "founders": [ { "name": "Joe Smhoe" }, { "name": "Sarah Collins" } ],
+          "founding_location": "Seattle, WA",
+          "sector": "Airlines"
+        },
+        {
+          "name": "SkyBridge Air",
+          "mission": "Linking global hubs with reliable long-haul service.",
+          "founders": [ { "name": "Amelia Carter" }, { "name": "Diego Alvarez" } ],
+          "founding_location": "Atlanta, GA",
+          "ipo_window": { "from": 2001, "to": 2009 },
+          "sector": "Airlines"
+        },
+        {
+          "name": "GlobalMart",
+          "founders": [ { "name": "Sandra Osei", "degree": "MBA", "school": "Wharton" } ],
+          "sector": "Retail",
+          "mission": "Empowering homeowners with reliable tools, materials, and service to get every project done right.",
+          "founding_location": "Seattle, WA"
         }
       ]
     },
     {
       "id": "classic_1990s",
-      "label": "1990s PC Boom",
-      "pick": 2,
+      "label": "1990s",
+      "pick_by_sector": { "Tech": 2, "Real Estate": 1, "Defense": 1},
       "defaults": { "ipo_window": { "from": 1990, "to": 1999 } },
       "roster": [
         {
@@ -158,39 +181,53 @@
           "founders": [ { "name": "Grace Ito" }, { "name": "Daniel Cho" } ],
           "mission": "Delivering enterprise databases and middleware that never sleep.",
           "founding_location": "San Jose, CA"
+        },
+        {
+          "name": "American Real Estate",
+          "mission": "Acquiring, developing, and managing commercial hubs across the U.S.",
+          "founders": [ { "name": "Darren Whitfield" }, { "name": "Melanie Ortiz" } ],
+          "founding_location": "New York, NY",
+          "ipo_window": { "from": 1975, "to": 1994},
+          "sector": "Real Estate"
+        },
+        {
+          "name": "Lockmere Systems",
+          "mission": "Engineering advanced avionics and defense platforms for allied forces.",
+          "founders": [ { "name": "Colin Hart" }, { "name": "Rebecca Lin" } ],
+          "founding_location": "Fort Worth, TX",
+          "ipo_window": { "from": 1975, "to": 2000},
+          "sector": "Defense"
         }
       ]
     },
     {
       "id": "classic_2000s",
       "label": "2000s Globalization",
-      "pick": 3,
+      "pick": 2,
       "pick_by_sector": { "Banking": 1, "Retail": 1, "Airlines": 1 },
       "defaults": { "ipo_window": { "from": 2000, "to": 2009 } },
       "roster": [
         {
-          "name": "Hargrove & Sons",
-          "mission": "Preserving wealth across generations through disciplined investment banking.",
-          "founders": [ { "name": "Theodore Hargrove III" }, { "name": "Edmund Whitmore" } ],
-          "founding_location": "New York, NY",
-          "ipo_window": { "from": 1999, "to": 2007 },
-          "sector": "Banking"
+          "name": "Genova Therapeutics",
+          "mission": "Scaling biologics manufacturing for frontline therapies.",
+          "founders": [ { "name": "Dr. Priya Malhotra" }, { "name": "Evan Brooks" } ],
+          "founding_location": "Cambridge, MA",
+          "sector": "Biotech"
         },
         {
-          "name": "GlobalMart",
-          "founders": [ { "name": "Sandra Osei", "degree": "MBA", "school": "Wharton" } ],
-          "sector": "Retail",
-          "mission": "Empowering homeowners with reliable tools, materials, and service to get every project done right.",
-          "founding_location": "Seattle, WA",
-          "ipo_window": { "from": 2000, "to": 2008 }
+          "name": "Regeneron Therapeutics",
+          "mission": "Developing and distributing life-saving pharmaceuticals.",
+          "founders": [ { "name": "Dr. Lena Romero" }, { "name": "Marcus Lee" } ],
+          "founding_location": "San Diego, CA",
+          "sector": "Biotech"
         },
         {
-          "name": "SkyBridge Air",
-          "mission": "Linking global hubs with reliable long-haul service.",
-          "founders": [ { "name": "Amelia Carter" }, { "name": "Diego Alvarez" } ],
-          "founding_location": "Atlanta, GA",
-          "ipo_window": { "from": 2001, "to": 2009 },
-          "sector": "Airlines"
+          "name": "Marston Aerospace",
+          "mission": "Building next-gen aircraft and space systems for the US military.",
+          "founders": [ { "name": "Angela Marston" }, { "name": "Victor Delgado" } ],
+          "founding_location": "St. Louis, MO",
+          "ipo_window": { "from": 1995, "to": 2009 },
+          "sector": "Aerospace"
         }
       ]
     },
@@ -200,22 +237,6 @@
       "pick": 2,
       "defaults": { "ipo_window": { "from": 2010, "to": 2019 } },
       "roster": [
-        {
-          "name": "Genova Therapeutics",
-          "mission": "Scaling biologics manufacturing for frontline therapies.",
-          "founders": [ { "name": "Dr. Priya Malhotra" }, { "name": "Evan Brooks" } ],
-          "founding_location": "Cambridge, MA",
-          "ipo_window": { "from": 2010, "to": 2016 },
-          "sector": "Biotech"
-        },
-        {
-          "name": "Regeneron Pharmaceuticals",
-          "mission": "Developing and distributing life-saving pharmaceuticals.",
-          "founders": [ { "name": "Dr. Lena Romero" }, { "name": "Marcus Lee" } ],
-          "founding_location": "San Diego, CA",
-          "ipo_window": { "from": 2011, "to": 2017 },
-          "sector": "Biotech"
-        }
       ]
     },
     {
@@ -224,22 +245,6 @@
       "pick": 2,
       "defaults": { "ipo_window": { "from": 2020, "to": 2029 } },
       "roster": [
-        {
-          "name": "American Real Estate",
-          "mission": "Acquiring, developing, and managing commercial hubs across the U.S.",
-          "founders": [ { "name": "Darren Whitfield" }, { "name": "Melanie Ortiz" } ],
-          "founding_location": "New York, NY",
-          "ipo_window": { "from": 2020, "to": 2026 },
-          "sector": "Real Estate"
-        },
-        {
-          "name": "Joe's Airways",
-          "mission": "Making premium transcontinental flights affordable.",
-          "founders": [ { "name": "Joe Smhoe" }, { "name": "Sarah Collins" } ],
-          "founding_location": "Seattle, WA",
-          "ipo_window": { "from": 2021, "to": 2027 },
-          "sector": "Airlines"
-        }
       ]
     },
     {
@@ -248,14 +253,6 @@
       "pick": 1,
       "defaults": { "ipo_window": { "from": 2030, "to": 2039 } },
       "roster": [
-        {
-          "name": "Lockmere Systems",
-          "mission": "Engineering advanced avionics and defense platforms for allied forces.",
-          "founders": [ { "name": "Colin Hart" }, { "name": "Rebecca Lin" } ],
-          "founding_location": "Fort Worth, TX",
-          "ipo_window": { "from": 2030, "to": 2036 },
-          "sector": "Defense"
-        }
       ]
     },
     {
@@ -264,14 +261,6 @@
       "pick": 1,
       "defaults": { "ipo_window": { "from": 2040, "to": 2049 } },
       "roster": [
-        {
-          "name": "Marston Aerospace",
-          "mission": "Building next-gen aircraft and space systems for the US military.",
-          "founders": [ { "name": "Angela Marston" }, { "name": "Victor Delgado" } ],
-          "founding_location": "St. Louis, MO",
-          "ipo_window": { "from": 2040, "to": 2046 },
-          "sector": "Aerospace"
-        }
       ]
     }
   ]

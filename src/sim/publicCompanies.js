@@ -295,6 +295,7 @@
       this.quarterHistory = [];
       this.currentQuarterRevenue = 0;
       this.currentQuarterProfit = 0;
+      this.currentQuarterDays = 0;
       this.currentQuarterMeta = null;
 
       this.cash = 0;
@@ -360,10 +361,10 @@
       this.newQuarterlyData = true;
     }
 
-    accumulateYear(revenueIncrement, profitIncrement, gameDate) {
+    accumulateYear(revenueIncrement, profitIncrement, gameDate, dtDays = 0) {
       this.currentYearRevenue += revenueIncrement;
       this.currentYearProfit += profitIncrement;
-      this.accumulateQuarter(revenueIncrement, profitIncrement, gameDate);
+      this.accumulateQuarter(revenueIncrement, profitIncrement, gameDate, dtDays);
     }
 
     maybeRecordAnnual(dividend = 0) {
@@ -398,7 +399,7 @@
       return false;
     }
 
-    accumulateQuarter(revenueIncrement = 0, profitIncrement = 0, gameDate = null) {
+    accumulateQuarter(revenueIncrement = 0, profitIncrement = 0, gameDate = null, dtDays = 0) {
       const meta = this.getQuarterMeta(gameDate);
       const sameQuarter = this.currentQuarterMeta &&
         this.currentQuarterMeta.year === meta.year &&
@@ -408,6 +409,7 @@
       }
       this.currentQuarterRevenue += revenueIncrement;
       this.currentQuarterProfit += profitIncrement;
+      this.currentQuarterDays += dtDays;
     }
 
     finalizeQuarter(nextMeta = null) {
@@ -415,11 +417,14 @@
         const hasRevenue = Math.abs(this.currentQuarterRevenue) > 1e-6;
         const hasProfit = Math.abs(this.currentQuarterProfit) > 1e-6;
         if (hasRevenue || hasProfit) {
+          // Store raw values - scaling for partial quarters happens at display time only
+          const daysInQuarter = Math.max(1, this.currentQuarterDays);
           this.quarterHistory.push({
             year: this.currentQuarterMeta.year,
             quarter: this.currentQuarterMeta.quarter,
             revenue: this.currentQuarterRevenue,
-            profit: this.currentQuarterProfit
+            profit: this.currentQuarterProfit,
+            days: daysInQuarter
           });
           this.newQuarterlyData = true;
           if (this.quarterHistory.length > MAX_QUARTER_HISTORY) {
@@ -432,6 +437,7 @@
         : null;
       this.currentQuarterRevenue = 0;
       this.currentQuarterProfit = 0;
+      this.currentQuarterDays = 0;
     }
 
     getQuarterMeta(dateLike) {
@@ -542,7 +548,7 @@
       return series;
     }
 
-    getTrailingRevenueAverage(years = 3) {
+    getTrailingRevenueAverage(years = 3, currentAnnualRevenue = null) {
       const windowYears = Math.max(1, Math.floor(years));
       const revenues = [];
       const history = Array.isArray(this.financialHistory) ? this.financialHistory : [];
@@ -551,10 +557,18 @@
         const rev = history[i]?.revenue;
         if (Number.isFinite(rev)) revenues.push(rev);
       }
-      if (this.currentYearRevenue > 0) {
-        revenues.push(this.currentYearRevenue);
+      // Use the passed-in current annual revenue rate (effectiveAnnual) for the current year
+      // This is more accurate than trying to annualize the partial currentYearRevenue
+      if (Number.isFinite(currentAnnualRevenue) && currentAnnualRevenue > 0) {
+        revenues.push(currentAnnualRevenue);
+      } else if (this.currentYearRevenue > 0) {
+        // Fallback: annualize partial year if no current rate provided
+        const daysIntoYear = Math.max(1, this.ageDays - (this.lastYearEnd || 0));
+        const annualized = this.currentYearRevenue * (365 / Math.min(daysIntoYear, 365));
+        revenues.push(annualized);
       }
       if (revenues.length === 0) {
+        // No history at all - use baseRevenue as last resort
         return Math.max(0, this.baseRevenue || 0);
       }
       const sum = revenues.reduce((s, v) => s + v, 0);
@@ -678,6 +692,9 @@
       const rp = cfg.base_business.revenue_process;
       this.baseRevenue = between(rp.initial_revenue_usd.min, rp.initial_revenue_usd.max);
       this.initialBaseRevenue = this.baseRevenue;
+      if (cfg.static?.sector === 'Tech') {
+        console.log(`[Company] Tech "${cfg.static?.name}" baseRevenue =`, this.baseRevenue);
+      }
 
       const mc = cfg.base_business.margin_curve;
       const mu = cfg.base_business.multiple_curve;
@@ -799,6 +816,10 @@
       const coreAnnual = ((this.baseRevenue + pipelineBoost) * sectorFactor * this.micro * this.revMult) - this.flatRev;
       const effectiveAnnual = coreAnnual * revenueMultiplier;
       const revenueThisTick = effectiveAnnual * dtYears;
+      // Debug: log once per year for Tech companies
+      if (this.sector === 'Tech' && this.ageDays > 0 && this.ageDays % 365 < 15) {
+        console.log(`[Step] Tech "${this.name}" year ${Math.floor(this.ageDays/365)}: baseRevenue=${(this.baseRevenue/1e6).toFixed(0)}M, sectorFactor=${sectorFactor.toFixed(2)}, micro=${this.micro.toFixed(2)}, effectiveAnnual=${(effectiveAnnual/1e6).toFixed(0)}M`);
+      }
 
       let marginNow;
       if (this.marginCurve) {
@@ -822,7 +843,7 @@
         const tam = Number.isFinite(this.laggedBudget.timeAdjustmentMultiplier)
           ? this.laggedBudget.timeAdjustmentMultiplier
           : 1;
-        const trailingAvg = this.getTrailingRevenueAverage(lookbackYears);
+        const trailingAvg = this.getTrailingRevenueAverage(lookbackYears, effectiveAnnual);
         const sectorMu = (this.macroEnv && typeof this.macroEnv.getMu === 'function')
           ? this.macroEnv.getMu(this.sector)
           : null;
@@ -860,9 +881,10 @@
 
       const unlockedPV = this.products.reduce((s, p) => s + p.unlockedValue(), 0);
       const pipelineOption = this.products.reduce((s, p) => s + p.expectedValue(), 0);
-      const forwardE = effectiveAnnual * marginNow;
       const fairPE = this.multCurve.value(ageYears, marginNow);
-      const fairValue = forwardE * fairPE + unlockedPV + pipelineOption;
+      // MultipleCurve transitions from initial_ps_ratio (P/S) to terminal_pe_ratio × margin.
+      // Both ends represent a revenue multiplier, so multiply by revenue (effectiveAnnual), not earnings.
+      const fairValue = effectiveAnnual * fairPE + unlockedPV + pipelineOption;
       const valuationMultiplier = this.macroEnv.getValuationMultiplier
         ? this.macroEnv.getValuationMultiplier(this.sector)
         : 1;
@@ -897,7 +919,7 @@
       this.marketCap = candidateCap;
       this.displayCap = this.marketCap;
 
-      this.accumulateYear(revenueThisTick, netIncome, gameDate);
+      this.accumulateYear(revenueThisTick, netIncome, gameDate, dtDays);
 
       let plannedDividend = 0;
       if (this.debt <= 0 && Array.isArray(this.financialHistory) && this.financialHistory.length >= 1) {
@@ -1143,7 +1165,7 @@
       this.marketCap = Math.max(intrinsicValue, this.cash - this.debt);
       this.displayCap = this.marketCap;
 
-      this.accumulateYear(revenueThisTick, netIncome, gameDate);
+      this.accumulateYear(revenueThisTick, netIncome, gameDate, dtDays);
       this.maybeRecordAnnual(0);
       this.recordHistoryPoint(gameDate);
     }

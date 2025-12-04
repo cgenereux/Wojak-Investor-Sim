@@ -94,11 +94,11 @@
   }
 
   const sectorMicro = {
-    Biotech:       { mu: +0.02, sigma: 0.35 },
-    Semiconductor: { mu: +0.04, sigma: 0.30 },
-    Banking:       { mu: +0.015, sigma: 0.18 },
-    Retail:        { mu: +0.01, sigma: 0.15 },
-    DEFAULT:       { mu: +0.02, sigma: 0.20 }
+    Biotech:       { mu: +0.026, sigma: 0.29 },
+    Semiconductor: { mu: +0.05, sigma: 0.25 },
+    Banking:       { mu: +0.02, sigma: 0.15 },
+    Retail:        { mu: +0.013, sigma: 0.12 },
+    DEFAULT:       { mu: +0.026, sigma: 0.16 }
   };
 
   const sectorMargin = {
@@ -112,13 +112,13 @@
 
   class MacroEnvironment {
     constructor (sectorsSet, eventManager = null) {
-      this.defaultParams = { mu: 0.12, sigma: 0.15 };
+      this.defaultParams = { mu: 0.16, sigma: 0.12 };
       this.sectorPresets = {
-        Biotech:        { mu: 0.08, sigma: 0.25 },
-        Semiconductor:  { mu: 0.13, sigma: 0.30 },
-        Tech:           { mu: 0.165, sigma: 0.22 },
-        Banking:        { mu: 0.125, sigma: 0.18 },
-        Retail:         { mu: 0.12, sigma: 0.10 }
+        Biotech:        { mu: 0.15, sigma: 0.21 },
+        Semiconductor:  { mu: 0.17, sigma: 0.25 },
+        Tech:           { mu: 0.215, sigma: 0.18 },
+        Banking:        { mu: 0.16, sigma: 0.15 },
+        Retail:         { mu: 0.16, sigma: 0.08 }
       };
       this.eventManager = eventManager || null;
 
