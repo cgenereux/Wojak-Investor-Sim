@@ -132,11 +132,11 @@ async function buildMatch(seed = Date.now()) {
   const presetOpts = { rng: rngFn, baseDir: path.join(__dirname, '..') };
   const pubs = [];
   pubs.push(...await Presets.generateClassicCompanies(presetOpts));
-  pubs.push(...await Presets.generateHardTechPresetCompanies(3, presetOpts));
+  pubs.push(...await Presets.generatePublicHardTechPresetCompanies(3, presetOpts));
   ensureIpoMetadata(pubs, rngFn, GAME_START_YEAR);
   const ventures = [
     ...(await Presets.generateHypergrowthPresetCompanies(presetOpts)),
-    ...await Presets.generateBinaryHardTechCompanies(1, presetOpts)
+    ...await Presets.generatePrivateHardTechCompanies(1, presetOpts)
   ];
   const sim = new Simulation(pubs, { seed, rng: rngFn, macroEvents: macroEvents || [], startYear: GAME_START_YEAR });
   const ventureSim = new VentureSimulation(ventures, sim.lastTick, { seed, rng: rngFn });

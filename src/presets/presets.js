@@ -127,98 +127,6 @@
         });
     }
 
-    async function generateHardTechPresetCompanies(count = 1, options = {}) {
-        const { randBetween, randIntBetween, makeId } = buildRandomTools(options);
-        const pickRangeLocal = (range, fallbackMin, fallbackMax) => pickRange(range, fallbackMin, fallbackMax, randBetween);
-        const data = await loadPresetJson(HARDTECH_DATA_PATH, options);
-        const mergedGroups = Array.isArray(data?.groups) ? data.groups.filter(g => (g.type || '').toLowerCase() === 'public') : [];
-        let rosterSource;
-        let defaults = {};
-        if (mergedGroups.length > 0) {
-            rosterSource = mergedGroups.flatMap(g => Array.isArray(g.roster) ? g.roster.map(r => ({ ...r, __group: g })) : []);
-            defaults = data?.defaults?.public || {};
-        } else {
-            rosterSource = Array.isArray(data?.roster) ? data.roster.slice() : [];
-            defaults = data?.defaults || {};
-        }
-        if (rosterSource.length === 0) return [];
-        const picked = [];
-        while (picked.length < count && rosterSource.length > 0) {
-            const idx = randIntBetween(0, rosterSource.length);
-            picked.push(rosterSource.splice(idx, 1)[0]);
-        }
-        const companies = [];
-        const pipelineTemplate = Array.isArray(data?.pipelineTemplate) ? data.pipelineTemplate : (defaults.pipelineTemplate || []);
-        const structuralBiasDefaults = defaults.structural_bias || { min: 0.2, max: 6, half_life_years: 25 };
-        const marginDefaults = defaults.margin_curve || {};
-        const multipleDefaults = defaults.multiple_curve || {};
-        const initialRevenueConfig = defaults.initial_revenue_usd || {};
-        const pipelineScaleRange = defaults.pipeline_scale || [0.75, 1.25];
-        const ipoInstantDefault = defaults.ipo_instantly ?? false;
-
-        picked.forEach((entry, i) => {
-            const name = entry.name || `Biotech Innovator ${i + 1}`;
-            const founders = (entry.founders || []).map(f => ({ ...f }));
-            const id = makeId(`preset_bio_${slugify(name)}`, i);
-            const initialRevenueMin = pickRangeLocal(initialRevenueConfig.min, 1_000_000, 5_000_000);
-            const maxMultiplier = pickRangeLocal(initialRevenueConfig.maxMultiplier, 4, 8);
-            const initialRevenueMax = initialRevenueMin * maxMultiplier;
-            const ipoYear = entry.ipo_window ? randIntBetween(entry.ipo_window.from, entry.ipo_window.to) : randIntBetween(1990, 1993);
-            const currentPipelineScale = pickRangeLocal(pipelineScaleRange, 0.75, 1.25);
-            const ipoInstantly = entry.ipo_instantly ?? ipoInstantDefault;
-
-            let pipeline;
-            if (entry.pipeline && Array.isArray(entry.pipeline)) {
-                pipeline = clonePipelineTemplate(entry.pipeline, currentPipelineScale, `${id}_pipeline`);
-            } else {
-                pipeline = clonePipelineTemplate(pipelineTemplate, currentPipelineScale, `${id}_pipeline`);
-            }
-            pipeline = pipeline.map(p => ({
-                ...p,
-                label: `${p.label} (${name})`
-            }));
-
-            const company = {
-                id,
-                static: {
-                    name,
-                    sector: defaults.sector || 'Biotech',
-                    founders,
-                    mission: entry.mission || defaults.mission || '',
-                    founding_location: entry.founding_location || defaults.founding_location || '',
-                    ipo_window: entry.ipo_window || { from: ipoYear, to: ipoYear },
-                    ipo_instantly: ipoInstantly
-                },
-                sentiment: {
-                    structural_bias: { ...structuralBiasDefaults }
-                },
-                base_business: {
-                    revenue_process: {
-                        initial_revenue_usd: {
-                            min: initialRevenueMin,
-                            max: initialRevenueMax
-                        }
-                    },
-                    margin_curve: {
-                        start_profit_margin: pickRangeLocal(marginDefaults.start_profit_margin, 0.08, 0.15),
-                        terminal_profit_margin: pickRangeLocal(marginDefaults.terminal_profit_margin, 0.5, 0.7),
-                        years_to_mature: pickRangeLocal(marginDefaults.years_to_mature, 10, 14)
-                    },
-                    multiple_curve: {
-                        initial_ps_ratio: pickRangeLocal(multipleDefaults.initial_ps_ratio, 28, 45),
-                        terminal_pe_ratio: pickRangeLocal(multipleDefaults.terminal_pe_ratio, 16, 22),
-                        years_to_converge: pickRangeLocal(multipleDefaults.years_to_converge, 8, 12)
-                    }
-                },
-                finance: {},
-                pipeline,
-                events: []
-            };
-            companies.push(company);
-        });
-        return companies;
-    }
-
     async function generateHypergrowthPresetCompanies(options = {}) {
         const { randBetween, randIntBetween, makeId } = buildRandomTools(options);
         const pickRangeLocal = (range, fallbackMin, fallbackMax) => pickRange(range, fallbackMin, fallbackMax, randBetween);
@@ -528,7 +436,99 @@
         return companies;
     }
 
-    async function generateBinaryHardTechCompanies(count = 1, options = {}) {
+    async function generatePublicHardTechPresetCompanies(count = 1, options = {}) {
+        const { randBetween, randIntBetween, makeId } = buildRandomTools(options);
+        const pickRangeLocal = (range, fallbackMin, fallbackMax) => pickRange(range, fallbackMin, fallbackMax, randBetween);
+        const data = await loadPresetJson(HARDTECH_DATA_PATH, options);
+        const mergedGroups = Array.isArray(data?.groups) ? data.groups.filter(g => (g.type || '').toLowerCase() === 'public') : [];
+        let rosterSource;
+        let defaults = {};
+        if (mergedGroups.length > 0) {
+            rosterSource = mergedGroups.flatMap(g => Array.isArray(g.roster) ? g.roster.map(r => ({ ...r, __group: g })) : []);
+            defaults = data?.defaults?.public || {};
+        } else {
+            rosterSource = Array.isArray(data?.roster) ? data.roster.slice() : [];
+            defaults = data?.defaults || {};
+        }
+        if (rosterSource.length === 0) return [];
+        const picked = [];
+        while (picked.length < count && rosterSource.length > 0) {
+            const idx = randIntBetween(0, rosterSource.length);
+            picked.push(rosterSource.splice(idx, 1)[0]);
+        }
+        const companies = [];
+        const pipelineTemplate = Array.isArray(data?.pipelineTemplate) ? data.pipelineTemplate : (defaults.pipelineTemplate || []);
+        const structuralBiasDefaults = defaults.structural_bias || { min: 0.2, max: 6, half_life_years: 25 };
+        const marginDefaults = defaults.margin_curve || {};
+        const multipleDefaults = defaults.multiple_curve || {};
+        const initialRevenueConfig = defaults.initial_revenue_usd || {};
+        const pipelineScaleRange = defaults.pipeline_scale || [0.75, 1.25];
+        const ipoInstantDefault = defaults.ipo_instantly ?? false;
+
+        picked.forEach((entry, i) => {
+            const name = entry.name || `Biotech Innovator ${i + 1}`;
+            const founders = (entry.founders || []).map(f => ({ ...f }));
+            const id = makeId(`preset_bio_${slugify(name)}`, i);
+            const initialRevenueMin = pickRangeLocal(initialRevenueConfig.min, 1_000_000, 5_000_000);
+            const maxMultiplier = pickRangeLocal(initialRevenueConfig.maxMultiplier, 4, 8);
+            const initialRevenueMax = initialRevenueMin * maxMultiplier;
+            const ipoYear = entry.ipo_window ? randIntBetween(entry.ipo_window.from, entry.ipo_window.to) : randIntBetween(1990, 1993);
+            const currentPipelineScale = pickRangeLocal(pipelineScaleRange, 0.75, 1.25);
+            const ipoInstantly = entry.ipo_instantly ?? ipoInstantDefault;
+
+            let pipeline;
+            if (entry.pipeline && Array.isArray(entry.pipeline)) {
+                pipeline = clonePipelineTemplate(entry.pipeline, currentPipelineScale, `${id}_pipeline`);
+            } else {
+                pipeline = clonePipelineTemplate(pipelineTemplate, currentPipelineScale, `${id}_pipeline`);
+            }
+            pipeline = pipeline.map(p => ({
+                ...p,
+                label: `${p.label} (${name})`
+            }));
+
+            const company = {
+                id,
+                static: {
+                    name,
+                    sector: defaults.sector || 'Biotech',
+                    founders,
+                    mission: entry.mission || defaults.mission || '',
+                    founding_location: entry.founding_location || defaults.founding_location || '',
+                    ipo_window: entry.ipo_window || { from: ipoYear, to: ipoYear },
+                    ipo_instantly: ipoInstantly
+                },
+                sentiment: {
+                    structural_bias: { ...structuralBiasDefaults }
+                },
+                base_business: {
+                    revenue_process: {
+                        initial_revenue_usd: {
+                            min: initialRevenueMin,
+                            max: initialRevenueMax
+                        }
+                    },
+                    margin_curve: {
+                        start_profit_margin: pickRangeLocal(marginDefaults.start_profit_margin, 0.08, 0.15),
+                        terminal_profit_margin: pickRangeLocal(marginDefaults.terminal_profit_margin, 0.5, 0.7),
+                        years_to_mature: pickRangeLocal(marginDefaults.years_to_mature, 10, 14)
+                    },
+                    multiple_curve: {
+                        initial_ps_ratio: pickRangeLocal(multipleDefaults.initial_ps_ratio, 28, 45),
+                        terminal_pe_ratio: pickRangeLocal(multipleDefaults.terminal_pe_ratio, 16, 22),
+                        years_to_converge: pickRangeLocal(multipleDefaults.years_to_converge, 8, 12)
+                    }
+                },
+                finance: {},
+                pipeline,
+                events: []
+            };
+            companies.push(company);
+        });
+        return companies;
+    }
+
+    async function generatePrivateHardTechCompanies(count = 1, options = {}) {
         const { randBetween, randIntBetween, makeId } = buildRandomTools(options);
         const pickRangeLocal = (range, fallbackMin, fallbackMax) => pickRange(range, fallbackMin, fallbackMax, randBetween);
         const data = await loadPresetJson(HARDTECH_DATA_PATH, options);
@@ -632,9 +632,15 @@
         return companies;
     }
 
+    // Backwards compatibility aliases
+    const generateHardTechPresetCompanies = generatePublicHardTechPresetCompanies;
+    const generateBinaryHardTechCompanies = generatePrivateHardTechCompanies;
+
     global.PresetGenerators = {
+        generatePublicHardTechPresetCompanies,
         generateHardTechPresetCompanies,
         generateHypergrowthPresetCompanies,
+        generatePrivateHardTechCompanies,
         generateBinaryHardTechCompanies,
         generateClassicCompanies,
         DEFAULT_VC_ROUNDS,

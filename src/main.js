@@ -319,15 +319,15 @@ function maybeTrackDecadeNetWorth(dateLike, players = null) {
 // --- Helper utilities ---
 const PresetGenerators = window.PresetGenerators || {};
 const {
-    generateHardTechPresetCompanies,
+    generatePublicHardTechPresetCompanies,
     generateHypergrowthPresetCompanies,
-    generateBinaryHardTechCompanies,
+    generatePrivateHardTechCompanies,
     generateClassicCompanies,
     DEFAULT_VC_ROUNDS,
     HARDTECH_VC_ROUNDS
 } = PresetGenerators;
 
-if (!generateHardTechPresetCompanies || !generateHypergrowthPresetCompanies || !generateBinaryHardTechCompanies || !generateClassicCompanies) {
+if (!generatePublicHardTechPresetCompanies || !generateHypergrowthPresetCompanies || !generatePrivateHardTechCompanies || !generateClassicCompanies) {
     throw new Error('PresetGenerators failed to load. Ensure presets.js is included before main.js.');
 }
 
@@ -1268,7 +1268,7 @@ async function loadCompaniesData() {
         if (Array.isArray(presetClassicCompanies)) {
             filteredCompanies.push(...presetClassicCompanies);
         }
-        const presetHardTechCompanies = await generateHardTechPresetCompanies(3, presetOptions);
+        const presetHardTechCompanies = await generatePublicHardTechPresetCompanies(3, presetOptions);
         if (Array.isArray(presetHardTechCompanies)) {
             filteredCompanies.push(...presetHardTechCompanies);
         }
@@ -1276,7 +1276,7 @@ async function loadCompaniesData() {
         if (Array.isArray(presetVentureCompanies)) {
             ventureCompanies.push(...presetVentureCompanies);
         }
-        const hardTechCompanies = await generateBinaryHardTechCompanies(3, presetOptions);
+        const hardTechCompanies = await generatePrivateHardTechCompanies(3, presetOptions);
         if (Array.isArray(hardTechCompanies)) {
             ventureCompanies.push(...hardTechCompanies);
         }

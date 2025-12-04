@@ -11,10 +11,10 @@ require('../src/presets/presets.js');
 
 const { SeededRandom } = global.SimShared;
 const {
-  generateHardTechPresetCompanies,
+  generatePublicHardTechPresetCompanies,
   generateClassicCompanies,
   generateHypergrowthPresetCompanies,
-  generateBinaryHardTechCompanies
+  generatePrivateHardTechCompanies
 } = global.PresetGenerators || {};
 const { VentureSimulation } = (global.VentureEngineModule || {});
 
@@ -27,11 +27,11 @@ const { VentureSimulation } = (global.VentureEngineModule || {});
 
   const publicCompanies = [
     ...(await generateClassicCompanies(presetOptions)),
-    ...(await generateHardTechPresetCompanies(1, presetOptions))
+    ...(await generatePublicHardTechPresetCompanies(1, presetOptions))
   ];
   const ventureCompanies = [
     ...(await generateHypergrowthPresetCompanies(presetOptions)),
-    ...await generateBinaryHardTechCompanies(1, presetOptions)
+    ...await generatePrivateHardTechCompanies(1, presetOptions)
   ];
 
   const sim = new global.Simulation(publicCompanies, { seed, macroEvents: [] });

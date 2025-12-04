@@ -213,18 +213,11 @@
       }
       this.targetStageIndex = Math.max(0, Math.min(targetIdx, this.roundDefinitions.length - 1));
 
-      // For hard-tech, compute initial valuation from pipeline
-      if (this.archetype === 'hardtech' && Array.isArray(this.products) && this.products.length > 0) {
+      // For hard-tech, compute initial valuation from pipeline using initial_valuation_realization
+      if (this.archetype === 'hardtech' && Array.isArray(this.products) && this.products.length > 0 && config.initial_valuation_realization != null) {
         const totalFullRevenue = this.products.reduce((sum, p) => sum + (p.fullVal || 0), 0);
-        if (config.initial_valuation_realization != null) {
-          // Use explicit realization factor
-          const realization = Math.max(0, Math.min(1, Number(config.initial_valuation_realization)));
-          this.currentValuation = Math.max(1, totalFullRevenue * realization * between(0.9, 1.1));
-        } else {
-          // Fall back to expected value from pipeline (probability-weighted)
-          const expectedValue = this.products.reduce((sum, p) => sum + (typeof p.expectedValue === 'function' ? p.expectedValue() : 0), 0);
-          this.currentValuation = Math.max(1, expectedValue * between(0.9, 1.1));
-        }
+        const realization = Math.max(0, Math.min(1, Number(config.initial_valuation_realization)));
+        this.currentValuation = Math.max(1, totalFullRevenue * realization * between(0.9, 1.1));
       } else {
         this.currentValuation = Math.max(1, Number(config.valuation_usd) || 10_000_000);
       }

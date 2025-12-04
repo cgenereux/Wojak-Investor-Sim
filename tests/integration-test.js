@@ -16,7 +16,7 @@ const { Simulation } = global;
 const { VentureSimulation } = global.VentureEngineModule || {};
 const Presets = global.PresetGenerators || {};
 
-if (!SeededRandom || !Simulation || !VentureSimulation || !Presets.generateHardTechPresetCompanies) {
+if (!SeededRandom || !Simulation || !VentureSimulation || !Presets.generatePublicHardTechPresetCompanies || !Presets.generatePrivateHardTechCompanies) {
   throw new Error('Simulation modules failed to load; ensure preset and sim files are required first.');
 }
 
@@ -66,11 +66,11 @@ async function main() {
 
   const publicCompanies = [
     ...(await Presets.generateClassicCompanies(presetOpts)),
-    ...(await Presets.generateHardTechPresetCompanies(2, presetOpts))
+    ...(await Presets.generatePublicHardTechPresetCompanies(2, presetOpts))
   ];
   const ventureCompanies = [
     ...(await Presets.generateHypergrowthPresetCompanies(presetOpts)),
-    ...await Presets.generateBinaryHardTechCompanies(1, presetOpts)
+    ...await Presets.generatePrivateHardTechCompanies(1, presetOpts)
   ];
 
   const sim = new Simulation(publicCompanies, { seed, rng: rngFn, macroEvents: macroEvents || [] });

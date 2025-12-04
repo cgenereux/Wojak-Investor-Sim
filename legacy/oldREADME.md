@@ -213,7 +213,7 @@ We now treat venture companies as explicit archetypes instead of one-size-fits-a
 
 ### Dual Archetypes
 - **Hypergrowth (default):** Keeps the existing ARR decay curve, stage-based round health, and valuation logic tied to `VC_STAGE_CONFIG`.
-- **Hard-Tech / Binary:** New lifecycle driven by product pipelines, with deep negative margins pre-commercialization and binary stage success. `generateBinaryHardTechCompanies()` injects a dedicated hard-tech pipeline template, base business, finance, costs, and metadata (`archetype: 'hardtech'`).
+- **Hard-Tech / Private:** New lifecycle driven by product pipelines, with deep negative margins pre-commercialization and binary stage success. `generatePrivateHardTechCompanies()` (alias: `generateBinaryHardTechCompanies()`) injects a dedicated hard-tech pipeline template, base business, finance, costs, and metadata (`archetype: 'hardtech'`).
 
 ### Engine Changes
 1. **Archetype Flag:** `VentureCompany` stores `archetype` and copies preset `pipeline/events` through `buildPublicConfigFromVenture()` and `VentureSimulation` so private companies keep their authored DNA.
