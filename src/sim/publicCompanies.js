@@ -901,9 +901,11 @@
 
       let plannedDividend = 0;
       if (this.debt <= 0 && Array.isArray(this.financialHistory) && this.financialHistory.length >= 3) {
-        const lastThree = this.financialHistory.slice(-3);
-        const allProfitable = lastThree.every(entry => entry && typeof entry.profit === 'number' && entry.profit > 0);
-        if (allProfitable && this.cash > 0) {
+        const lastFour = this.financialHistory.slice(-4);
+        const avgFour = lastFour.length > 0
+          ? lastFour.reduce((s, e) => s + (Number.isFinite(e?.profit) ? e.profit : 0), 0) / lastFour.length
+          : 0;
+        if (avgFour >= 0 && this.cash > 0) {
           plannedDividend = Math.min(this.cash, this.cash * 0.11);
         }
       }
