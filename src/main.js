@@ -1302,6 +1302,7 @@ const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', cu
 function formatLargeNumber(num, precision = 2) {
     const absNum = Math.abs(num);
     const sign = num < 0 ? '-' : '';
+    if (absNum >= 1e15) return `${sign}$${(absNum / 1e15).toFixed(precision)}Q`;
     if (absNum >= 1e12) return `${sign}$${(absNum / 1e12).toFixed(precision)}T`;
     if (absNum >= 1e9) return `${sign}$${(absNum / 1e9).toFixed(precision)}B`;
     if (absNum >= 1e6) return `${sign}$${(absNum / 1e6).toFixed(precision)}M`;
