@@ -105,6 +105,9 @@
       });
     } else if (currentSort === 'ipoQueue') {
       filtered.sort((a, b) => {
+        const aIpo = (a.ipoDate instanceof Date) ? a.ipoDate.getTime() : Number.POSITIVE_INFINITY;
+        const bIpo = (b.ipoDate instanceof Date) ? b.ipoDate.getTime() : Number.POSITIVE_INFINITY;
+        if (aIpo !== bIpo) return aIpo - bIpo; // oldest first
         ensureCompanyQueueIndex(a, state);
         ensureCompanyQueueIndex(b, state);
         return (a.__queueIndex || 0) - (b.__queueIndex || 0);

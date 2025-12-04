@@ -1295,7 +1295,7 @@ async function loadCompaniesData() {
 
 // --- Chart Objects ---
 let netWorthChart, companyDetailChart, financialYoyChart;
-let currentChartRange = 80; // Default to Max (20 years * 4 quarters)
+let currentChartRange = 80; // Default to 20Y (80 quarters)
 
 // --- Formatting ---
 const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
@@ -2448,7 +2448,7 @@ function renderCompanyFinancialHistory(company) {
             { label: '5Y', value: 20 },
             { label: '10Y', value: 40 },
             { label: '20Y', value: 80 },
-            { label: 'Max', value: 0 }
+            { label: '25Y', value: 100 }
         ];
 
         ranges.forEach(range => {
@@ -2509,13 +2509,23 @@ function renderCompanyFinancialHistory(company) {
         });
         const revenueData = yoySeries.map(item => item.revenue);
         const profitData = yoySeries.map(item => item.profit);
+        const desiredChartType = 'bar';
+
+        if (financialYoyChart && financialYoyChart.config.type !== desiredChartType) {
+            financialYoyChart.destroy();
+            financialYoyChart = null;
+        }
+
         const toProfitColor = (value) => {
             if (value === null || value === undefined || Number.isNaN(value)) return 'rgba(0,0,0,0)';
             return value >= 0 ? '#6de38a' : '#ff5b5b';
         };
         const profitColors = profitData.map(toProfitColor);
+        const barCategoryPct = 0.8;
+        const barPct = 0.9;
+        const barRadius = 4;
 
-        // Pad with empty data if few points to prevent "beeg spacing"
+        // Pad with empty data if few points to prevent "beeg spacing" (bar modes only)
         const minPoints = 20;
         if (labels.length < minPoints) {
             const missing = minPoints - labels.length;
@@ -2527,11 +2537,33 @@ function renderCompanyFinancialHistory(company) {
             }
         }
 
+        const revenueDataset = {
+            label: 'Revenue (Trailing 12 Months)',
+            data: revenueData,
+            backgroundColor: '#635bff',
+            borderRadius: barRadius,
+            categoryPercentage: barCategoryPct,
+            barPercentage: barPct,
+            grouped: false,
+            order: 1,
+            maxBarThickness: 50
+        };
+
+        const profitDataset = {
+            label: 'Profit (Trailing 12 Months)',
+            data: profitData,
+            backgroundColor: profitColors,
+            borderRadius: barRadius,
+            categoryPercentage: barCategoryPct,
+            barPercentage: barPct,
+            grouped: false,
+            order: 0,
+            maxBarThickness: 50
+        };
+
         if (financialYoyChart) {
             financialYoyChart.data.labels = labels;
-            financialYoyChart.data.datasets[0].data = revenueData;
-            financialYoyChart.data.datasets[1].data = profitData;
-            financialYoyChart.data.datasets[1].backgroundColor = profitColors;
+            financialYoyChart.data.datasets = [revenueDataset, profitDataset];
 
             // Ensure options are updated for interaction mode
             financialYoyChart.options.interaction = {
@@ -2541,33 +2573,10 @@ function renderCompanyFinancialHistory(company) {
             financialYoyChart.update();
         } else {
             financialYoyChart = new Chart(canvas.getContext('2d'), {
-                type: 'bar',
+                type: desiredChartType,
                 data: {
                     labels,
-                    datasets: [
-                        {
-                            label: 'Revenue (Trailing 12 Months)',
-                            data: revenueData,
-                            backgroundColor: '#635bff',
-                            borderRadius: 4,
-                            categoryPercentage: 0.8,
-                            barPercentage: 0.9,
-                            grouped: false,
-                            order: 1,
-                            maxBarThickness: 50
-                        },
-                        {
-                            label: 'Profit (Trailing 12 Months)',
-                            data: profitData,
-                            backgroundColor: profitColors,
-                            borderRadius: 4,
-                            categoryPercentage: 0.8,
-                            barPercentage: 0.9,
-                            grouped: false,
-                            order: 0,
-                            maxBarThickness: 50
-                        }
-                    ]
+                    datasets: [revenueDataset, profitDataset]
                 },
                 options: {
                     responsive: true,
