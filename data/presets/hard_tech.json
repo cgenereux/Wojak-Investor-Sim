@@ -388,7 +388,7 @@
                   "name": "Net Energy Gain Demonstration",
                   "duration_days": 1200,
                   "success_prob": 0.99,
-                  "value_realization": 0.4,
+                  "value_realization": 0.04,
                   "cost_usd": 300000000,
                   "max_retries": 2
                 },

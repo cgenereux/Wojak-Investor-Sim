@@ -1,1138 +1,293 @@
 {
+  "defaults": {
+    "structural_bias": { "min": 0.5, "max": 2, "half_life_years": 15 },
+    "base_revenue_usd": [600000000, 2000000000],
+    "margin_curve": {
+      "start_profit_margin": [0.03, 0.1],
+      "terminal_profit_margin": [0.12, 0.21],
+      "years_to_mature": [7, 10]
+    },
+    "multiple_curve": {
+      "initial_pe_ratio": [8, 15],
+      "terminal_pe_ratio": [12, 15],
+      "years_to_converge": [22, 34]
+    },
+    "finance": {
+      "starting_cash_ratio": 0.03,
+      "starting_debt_ratio": 0.0,
+      "interest_rate_annual": 0.07
+    },
+    "costs": {
+      "opex_fixed_usd": [15000000, 30000000],
+      "opex_variable_ratio": [0.08, 0.16],
+      "rd_base_ratio": [0.02, 0.04]
+    },
+    "ipo_window": { "from": 1975, "to": 1990 },
+    "sector": "General"
+  },
+  "sector_defaults": {
+    "Banking": {
+      "structural_bias": { "min": 0.4, "max": 2, "half_life_years": 25 },
+      "base_revenue_usd": [1200000000, 4000000000],
+      "margin_curve": {
+        "start_profit_margin": [0.08, 0.12],
+        "terminal_profit_margin": [0.16, 0.22],
+        "years_to_mature": [40, 60]
+      },
+      "multiple_curve": {
+        "initial_ps_ratio": [1.2, 1.8],
+        "initial_pe_ratio": [9, 14],
+        "terminal_pe_ratio": [9, 15],
+        "years_to_converge": [40, 60]
+      },
+      "finance": {
+        "starting_cash_ratio": 0.04,
+        "starting_debt_ratio": 0.0,
+        "interest_rate_annual": 0.07
+      },
+      "costs": {
+        "opex_fixed_usd": [15000000, 30000000],
+        "opex_variable_ratio": [0.08, 0.16],
+        "rd_base_ratio": [0.02, 0.04]
+      },
+      "sector": "Banking",
+      "ipo_window": { "from": 1970, "to": 1988 }
+    },
+    "Tech": {
+      "structural_bias": { "min": 0.6, "max": 3, "half_life_years": 18 },
+      "base_revenue_usd": [1500000000, 7000000000],
+      "margin_curve": {
+        "start_profit_margin": [0.1, 0.16],
+        "terminal_profit_margin": [0.22, 0.32],
+        "years_to_mature": [6, 10]
+      },
+      "multiple_curve": {
+        "initial_ps_ratio": [4.5, 7.5],
+        "terminal_pe_ratio": [16, 26],
+        "years_to_converge": [9, 13]
+      },
+      "finance": {
+        "starting_cash_ratio": 0.06,
+        "starting_debt_ratio": 0.01,
+        "interest_rate_annual": 0.07
+      },
+      "costs": {
+        "opex_fixed_usd": [220000000, 480000000],
+        "opex_variable_ratio": [0.12, 0.22],
+        "rd_base_ratio": [0.06, 0.1]
+      },
+      "sector": "Tech",
+      "ipo_window": { "from": 1979, "to": 1992 }
+    }
+  },
   "groups": [
     {
-      "id": "banks_classic",
-      "label": "Banks",
-      "pick": 2,
-      "defaults": {
-        "structural_bias": {
-          "min": 0.4,
-          "max": 2,
-          "half_life_years": 25
-        },
-        "base_revenue_usd": [
-          1200000000,
-          4000000000
-        ],
-        "margin_curve": {
-          "start_profit_margin": [
-            0.08,
-            0.12
-          ],
-          "terminal_profit_margin": [
-            0.16,
-            0.22
-          ],
-          "years_to_mature": [
-            40,
-            60
-          ]
-        },
-        "multiple_curve": {
-          "initial_ps_ratio": [
-            1.2,
-            1.8
-          ],
-          "initial_pe_ratio": [
-            9,
-            14
-          ],
-          "terminal_pe_ratio": [
-            9,
-            15
-          ],
-          "years_to_converge": [
-            40,
-            60
-          ]
-        },
-        "finance": {
-          "starting_cash_ratio": 0.04,
-          "starting_debt_ratio": 0.0,
-          "interest_rate_annual": 0.07
-        },
-        "costs": {
-          "opex_fixed_usd": [
-            15000000,
-            30000000
-          ],
-          "opex_variable_ratio": [
-            0.08,
-            0.16
-          ],
-          "rd_base_ratio": [
-            0.02,
-            0.04
-          ]
-        },
-        "ipo_window": {
-          "from": 1970,
-          "to": 1988
-        },
-        "sector": "Banking"
-      },
+      "id": "classic_1970s",
+      "label": "1970s Foundations",
+      "pick": 3,
+      "pick_by_sector": { "Banking": 1, "Retail": 1, "Automotive": 1 },
+      "defaults": { "ipo_window": { "from": 1970, "to": 1979 } },
       "roster": [
-        {
-          "name": "Hargrove & Sons",
-          "mission": "Preserving wealth across generations through disciplined investment banking.",
-          "founders": [
-            {
-              "name": "Theodore Hargrove III"
-            },
-            {
-              "name": "Edmund Whitmore"
-            }
-          ],
-          "founding_location": "New York, NY",
-          "ipo_window": {
-            "from": 1974,
-            "to": 1987
-          },
-          "sector": "Banking"
-        },
-        {
-          "name": "Sterling National Bank",
-          "mission": "Anchoring American commerce with trusted lending and capital markets.",
-          "founders": [
-            {
-              "name": "James Sterling"
-            },
-            {
-              "name": "Catherine Aldrich"
-            }
-          ],
-          "founding_location": "New York, NY",
-          "ipo_window": {
-            "from": 1971,
-            "to": 1982
-          },
-          "sector": "Banking"
-        },
         {
           "name": "Wainwright Brothers",
           "mission": "Advising the world's leading institutions on mergers, acquisitions, and strategy.",
-          "founders": [
-            {
-              "name": "Charles Wainwright"
-            },
-            {
-              "name": "Henry Wainwright"
-            }
-          ],
+          "founders": [ { "name": "Charles Wainwright" }, { "name": "Henry Wainwright" } ],
           "founding_location": "Boston, MA",
-          "ipo_window": {
-            "from": 1964,
-            "to": 1981
-          },
+          "ipo_window": { "from": 1972, "to": 1979 },
           "sector": "Banking"
+        },
+        {
+          "name": "Ryan’s Repair & Supply",
+          "founders": [ { "name": "Ryan Smith", "degree": "BS", "school": "University of Illinois" } ],
+          "sector": "Retail",
+          "mission": "Supplying the tools and materials homeowners trust.",
+          "founding_location": "New York, NY",
+          "ipo_window": { "from": 1974, "to": 1980 }
+        },
+        {
+          "name": "Atlas Motor Works",
+          "mission": "Building dependable, efficient cars and trucks for working families.",
+          "founders": [ { "name": "Carl Nguyen" }, { "name": "Dana Ruiz" } ],
+          "founding_location": "Detroit, MI",
+          "ipo_window": { "from": 1976, "to": 1982 },
+          "sector": "Automotive"
         }
       ]
     },
     {
-      "id": "tech_classic",
-      "label": "Tech",
+      "id": "classic_1980s",
+      "label": "1980s Deregulation",
       "pick": 2,
-      "defaults": {
-        "structural_bias": {
-          "min": 0.6,
-          "max": 3,
-          "half_life_years": 18
+      "defaults": { "ipo_window": { "from": 1980, "to": 1989 } },
+      "roster": [
+        {
+          "name": "Sterling National Bank",
+          "mission": "Anchoring American commerce with trusted lending and capital markets.",
+          "founders": [ { "name": "James Sterling" }, { "name": "Catherine Aldrich" } ],
+          "founding_location": "New York, NY",
+          "ipo_window": { "from": 1981, "to": 1988 },
+          "sector": "Banking"
         },
-        "base_revenue_usd": [
-          1500000000,
-          7000000000
-        ],
-        "margin_curve": {
-          "start_profit_margin": [
-            0.1,
-            0.16
-          ],
-          "terminal_profit_margin": [
-            0.22,
-            0.32
-          ],
-          "years_to_mature": [
-            6,
-            10
-          ]
+        {
+          "name": "SmartCart Holdings",
+          "founders": [ { "name": "Linda Harris", "degree": "MBA", "school": "Harvard" } ],
+          "sector": "Retail",
+          "mission": "Modernizing retail supply chains with smart checkout and logistics automation.",
+          "founding_location": "Bentonville, AR",
+          "ipo_window": { "from": 1982, "to": 1989 }
         },
-        "multiple_curve": {
-          "initial_ps_ratio": [
-            4.5,
-            7.5
-          ],
-          "terminal_pe_ratio": [
-            16,
-            26
-          ],
-          "years_to_converge": [
-            9,
-            13
-          ]
-        },
-        "finance": {
-          "starting_cash_ratio": 0.06,
-          "starting_debt_ratio": 0.01,
-          "interest_rate_annual": 0.07
-        },
-        "costs": {
-          "opex_fixed_usd": [
-            220000000,
-            480000000
-          ],
-          "opex_variable_ratio": [
-            0.12,
-            0.22
-          ],
-          "rd_base_ratio": [
-            0.06,
-            0.1
-          ]
-        },
-        "ipo_window": {
-          "from": 1979,
-          "to": 1992
-        },
-        "sector": "Tech"
-      },
+        {
+          "name": "Pacific Crest Airlines",
+          "mission": "Delivering reliable regional lift along the Pacific Rim.",
+          "founders": [ { "name": "Kenji Morita" }, { "name": "Sara Delgado" } ],
+          "founding_location": "San Francisco, CA",
+          "ipo_window": { "from": 1983, "to": 1991 },
+          "sector": "Airlines"
+        }
+      ]
+    },
+    {
+      "id": "classic_1990s",
+      "label": "1990s PC Boom",
+      "pick": 2,
+      "defaults": { "ipo_window": { "from": 1990, "to": 1999 } },
       "roster": [
         {
           "name": "Orion Microsystems",
           "sector": "Tech",
-          "ipo_window": {
-            "from": 1980,
-            "to": 1990
-          },
-          "founders": [
-            {
-              "name": "Clara Thompson"
-            },
-            {
-              "name": "Rajiv Desai"
-            }
-          ],
+          "ipo_window": { "from": 1990, "to": 1997 },
+          "founders": [ { "name": "Clara Thompson" }, { "name": "Rajiv Desai" } ],
           "mission": "Building dependable operating systems and software for every desk.",
           "founding_location": "Redmond, WA"
         },
         {
           "name": "Pioneer Devices",
           "sector": "Tech",
-          "ipo_window": {
-            "from": 1979,
-            "to": 1989
-          },
-          "founders": [
-            {
-              "name": "Miguel Alvarez"
-            },
-            {
-              "name": "Hannah Park"
-            }
-          ],
+          "ipo_window": { "from": 1991, "to": 1998 },
+          "founders": [ { "name": "Miguel Alvarez" }, { "name": "Hannah Park" } ],
           "mission": "Designing iconic consumer hardware with seamless ecosystems.",
           "founding_location": "Cupertino, CA"
         },
         {
           "name": "Summit Systems",
           "sector": "Tech",
-          "ipo_window": {
-            "from": 1981,
-            "to": 1991
-          },
-          "founders": [
-            {
-              "name": "Grace Ito"
-            },
-            {
-              "name": "Daniel Cho"
-            }
-          ],
+          "ipo_window": { "from": 1992, "to": 1999 },
+          "founders": [ { "name": "Grace Ito" }, { "name": "Daniel Cho" } ],
           "mission": "Delivering enterprise databases and middleware that never sleep.",
           "founding_location": "San Jose, CA"
         }
       ]
     },
     {
-      "id": "steady_classic",
-      "label": "Classic Corps",
+      "id": "classic_2000s",
+      "label": "2000s Globalization",
       "pick": 3,
-      "defaults": {
-        "structural_bias": {
-          "min": 0.5,
-          "max": 2,
-          "half_life_years": 15
-        },
-        "base_revenue_usd": [
-          600000000,
-          2000000000
-        ],
-        "margin_curve": {
-          "start_profit_margin": [
-            0.03,
-            0.1
-          ],
-          "terminal_profit_margin": [
-            0.12,
-            0.21
-          ],
-          "years_to_mature": [
-            7,
-            10
-          ]
-        },
-        "multiple_curve": {
-          "initial_pe_ratio": [
-            8,
-            15
-          ],
-          "terminal_pe_ratio": [
-            12,
-            15
-          ],
-          "years_to_converge": [
-            22,
-            34
-          ]
-        },
-        "finance": {
-          "starting_cash_ratio": 0.03,
-          "starting_debt_ratio": 0.0,
-          "interest_rate_annual": 0.07
-        },
-        "ipo_window": {
-          "from": 1975,
-          "to": 1990
-        }
-      },
+      "pick_by_sector": { "Banking": 1, "Retail": 1, "Airlines": 1 },
+      "defaults": { "ipo_window": { "from": 2000, "to": 2009 } },
       "roster": [
         {
-          "name": "SmartCart Holdings",
-          "founders": [
-            {
-              "name": "Linda Harris",
-              "degree": "MBA",
-              "school": "Harvard"
-            }
-          ],
-          "sector": "Retail",
-          "mission": "Modernizing retail supply chains with smart checkout and logistics automation.",
-          "founding_location": "Bentonville, AR",
-          "ipo_window": {
-            "from": 1974,
-            "to": 1981
-          }
-        },
-        {
-          "name": "Ryan’s Repair & Supply",
-          "founders": [
-            {
-              "name": "Ryan Smith",
-              "degree": "BS",
-              "school": "University of Illinois"
-            }
-          ],
-          "sector": "Retail",
-          "mission": "Supplying the tools and materials homeowners trust.",
+          "name": "Hargrove & Sons",
+          "mission": "Preserving wealth across generations through disciplined investment banking.",
+          "founders": [ { "name": "Theodore Hargrove III" }, { "name": "Edmund Whitmore" } ],
           "founding_location": "New York, NY",
-          "ipo_window": {
-            "from": 1976,
-            "to": 1983
-          }
+          "ipo_window": { "from": 1999, "to": 2007 },
+          "sector": "Banking"
         },
         {
           "name": "GlobalMart",
-          "founders": [
-            {
-              "name": "Sandra Osei",
-              "degree": "MBA",
-              "school": "Wharton"
-            }
-          ],
+          "founders": [ { "name": "Sandra Osei", "degree": "MBA", "school": "Wharton" } ],
           "sector": "Retail",
           "mission": "Empowering homeowners with reliable tools, materials, and service to get every project done right.",
           "founding_location": "Seattle, WA",
-          "ipo_window": {
-            "from": 1975,
-            "to": 1982
-          }
+          "ipo_window": { "from": 2000, "to": 2008 }
         },
         {
           "name": "SkyBridge Air",
           "mission": "Linking global hubs with reliable long-haul service.",
-          "founders": [
-            {
-              "name": "Amelia Carter"
-            },
-            {
-              "name": "Diego Alvarez"
-            }
-          ],
+          "founders": [ { "name": "Amelia Carter" }, { "name": "Diego Alvarez" } ],
           "founding_location": "Atlanta, GA",
-          "ipo_window": {
-            "from": 1977,
-            "to": 1986
-          },
+          "ipo_window": { "from": 2001, "to": 2009 },
           "sector": "Airlines"
+        }
+      ]
+    },
+    {
+      "id": "classic_2010s",
+      "label": "2010s Cloud & Bio",
+      "pick": 2,
+      "defaults": { "ipo_window": { "from": 2010, "to": 2019 } },
+      "roster": [
+        {
+          "name": "Genova Therapeutics",
+          "mission": "Scaling biologics manufacturing for frontline therapies.",
+          "founders": [ { "name": "Dr. Priya Malhotra" }, { "name": "Evan Brooks" } ],
+          "founding_location": "Cambridge, MA",
+          "ipo_window": { "from": 2010, "to": 2016 },
+          "sector": "Biotech"
+        },
+        {
+          "name": "Regeneron Pharmaceuticals",
+          "mission": "Developing and distributing life-saving pharmaceuticals.",
+          "founders": [ { "name": "Dr. Lena Romero" }, { "name": "Marcus Lee" } ],
+          "founding_location": "San Diego, CA",
+          "ipo_window": { "from": 2011, "to": 2017 },
+          "sector": "Biotech"
+        }
+      ]
+    },
+    {
+      "id": "classic_2020s",
+      "label": "2020s Resilience",
+      "pick": 2,
+      "defaults": { "ipo_window": { "from": 2020, "to": 2029 } },
+      "roster": [
+        {
+          "name": "American Real Estate",
+          "mission": "Acquiring, developing, and managing commercial hubs across the U.S.",
+          "founders": [ { "name": "Darren Whitfield" }, { "name": "Melanie Ortiz" } ],
+          "founding_location": "New York, NY",
+          "ipo_window": { "from": 2020, "to": 2026 },
+          "sector": "Real Estate"
         },
         {
           "name": "Joe's Airways",
           "mission": "Making premium transcontinental flights affordable.",
-          "founders": [
-            {
-              "name": "Joe Smhoe"
-            },
-            {
-              "name": "Sarah Collins"
-            }
-          ],
+          "founders": [ { "name": "Joe Smhoe" }, { "name": "Sarah Collins" } ],
           "founding_location": "Seattle, WA",
-          "ipo_window": {
-            "from": 1980,
-            "to": 1989
-          },
+          "ipo_window": { "from": 2021, "to": 2027 },
           "sector": "Airlines"
-        },
-        {
-          "name": "Pacific Crest Airlines",
-          "mission": "Delivering reliable regional lift along the Pacific Rim.",
-          "founders": [
-            {
-              "name": "Kenji Morita"
-            },
-            {
-              "name": "Sara Delgado"
-            }
-          ],
-          "founding_location": "San Francisco, CA",
-          "ipo_window": {
-            "from": 1976,
-            "to": 1985
-          },
-          "sector": "Airlines"
-        },
-        {
-          "name": "Atlas Motor Works",
-          "mission": "Building dependable, efficient cars and trucks for working families.",
-          "founders": [
-            {
-              "name": "Carl Nguyen"
-            },
-            {
-              "name": "Dana Ruiz"
-            }
-          ],
-          "founding_location": "Detroit, MI",
-          "ipo_window": {
-            "from": 1979,
-            "to": 1987
-          },
-          "sector": "Automotive"
-        },
-        {
-          "name": "Genova Therapeutics",
-          "mission": "Scaling biologics manufacturing for frontline therapies.",
-          "founders": [
-            {
-              "name": "Dr. Priya Malhotra"
-            },
-            {
-              "name": "Evan Brooks"
-            }
-          ],
-          "founding_location": "Cambridge, MA",
-          "ipo_window": {
-            "from": 1978,
-            "to": 1987
-          },
-          "sector": "Biotech"
-        },
-        {
-          "name": "Helion Pharmaceuticals",
-          "mission": "Developing and distributing life-saving pharmaceuticals.",
-          "founders": [
-            {
-              "name": "Dr. Lena Romero"
-            },
-            {
-              "name": "Marcus Lee"
-            }
-          ],
-          "founding_location": "San Diego, CA",
-          "ipo_window": {
-            "from": 1977,
-            "to": 1986
-          },
-          "sector": "Biotech"
-        },
-        {
-          "name": "American Real Estate",
-          "mission": "Acquiring, developing, and managing commercial hubs across the U.S.",
-          "founders": [
-            {
-              "name": "Darren Whitfield"
-            },
-            {
-              "name": "Melanie Ortiz"
-            }
-          ],
-          "founding_location": "New York, NY",
-          "ipo_window": {
-            "from": 1978,
-            "to": 1987
-          },
-          "sector": "Real Estate"
-        },
+        }
+      ]
+    },
+    {
+      "id": "classic_2030s",
+      "label": "2030s Frontier Defense",
+      "pick": 1,
+      "defaults": { "ipo_window": { "from": 2030, "to": 2039 } },
+      "roster": [
         {
           "name": "Lockmere Systems",
           "mission": "Engineering advanced avionics and defense platforms for allied forces.",
-          "founders": [
-            {
-              "name": "Colin Hart"
-            },
-            {
-              "name": "Rebecca Lin"
-            }
-          ],
+          "founders": [ { "name": "Colin Hart" }, { "name": "Rebecca Lin" } ],
           "founding_location": "Fort Worth, TX",
-          "ipo_window": {
-            "from": 1977,
-            "to": 1986
-          },
+          "ipo_window": { "from": 2030, "to": 2036 },
           "sector": "Defense"
-        },
+        }
+      ]
+    },
+    {
+      "id": "classic_2040s",
+      "label": "2040s Offworld Flight",
+      "pick": 1,
+      "defaults": { "ipo_window": { "from": 2040, "to": 2049 } },
+      "roster": [
         {
           "name": "Marston Aerospace",
           "mission": "Building next-gen aircraft and space systems for the US military.",
-          "founders": [
-            {
-              "name": "Angela Marston"
-            },
-            {
-              "name": "Victor Delgado"
-            }
-          ],
+          "founders": [ { "name": "Angela Marston" }, { "name": "Victor Delgado" } ],
           "founding_location": "St. Louis, MO",
-          "ipo_window": {
-            "from": 1978,
-            "to": 1988
-          },
+          "ipo_window": { "from": 2040, "to": 2046 },
           "sector": "Aerospace"
-        }
-      ]
-    },
-    {
-      "id": "steady_80s",
-      "label": "1980s Corps",
-      "pick": 3,
-      "defaults": {
-        "structural_bias": {
-          "min": 0.5,
-          "max": 2,
-          "half_life_years": 15
-        },
-        "base_revenue_usd": [
-          500000000,
-          1500000000
-        ],
-        "margin_curve": {
-          "start_profit_margin": [
-            0.03,
-            0.1
-          ],
-          "terminal_profit_margin": [
-            0.12,
-            0.21
-          ],
-          "years_to_mature": [
-            7,
-            10
-          ]
-        },
-        "multiple_curve": {
-          "initial_pe_ratio": [
-            8,
-            14
-          ],
-          "terminal_pe_ratio": [
-            12,
-            16
-          ],
-          "years_to_converge": [
-            22,
-            34
-          ]
-        },
-        "finance": {
-          "starting_cash_ratio": 0.03,
-          "starting_debt_ratio": 0.0,
-          "interest_rate_annual": 0.08
-        },
-        "ipo_window": {
-          "from": 1980,
-          "to": 1990
-        }
-      },
-      "roster": [
-        {
-          "name": "Placeholder 80s A",
-          "founders": [
-            {
-              "name": "Founder 80s"
-            }
-          ],
-          "sector": "Tech",
-          "mission": "80s Tech Mission",
-          "founding_location": "San Jose, CA"
-        },
-        {
-          "name": "Placeholder 80s B",
-          "founders": [
-            {
-              "name": "Founder 80s"
-            }
-          ],
-          "sector": "Retail",
-          "mission": "80s Retail Mission",
-          "founding_location": "Chicago, IL"
-        },
-        {
-          "name": "Placeholder 80s C",
-          "founders": [
-            {
-              "name": "Founder 80s"
-            }
-          ],
-          "sector": "Services",
-          "mission": "80s Services Mission",
-          "founding_location": "New York, NY"
-        }
-      ]
-    },
-    {
-      "id": "steady_90s",
-      "label": "1990s Corps",
-      "pick": 3,
-      "defaults": {
-        "structural_bias": {
-          "min": 0.5,
-          "max": 2,
-          "half_life_years": 15
-        },
-        "base_revenue_usd": [
-          800000000,
-          2500000000
-        ],
-        "margin_curve": {
-          "start_profit_margin": [
-            0.03,
-            0.1
-          ],
-          "terminal_profit_margin": [
-            0.12,
-            0.21
-          ],
-          "years_to_mature": [
-            7,
-            10
-          ]
-        },
-        "multiple_curve": {
-          "initial_pe_ratio": [
-            10,
-            18
-          ],
-          "terminal_pe_ratio": [
-            14,
-            18
-          ],
-          "years_to_converge": [
-            22,
-            34
-          ]
-        },
-        "finance": {
-          "starting_cash_ratio": 0.03,
-          "starting_debt_ratio": 0.0,
-          "interest_rate_annual": 0.06
-        },
-        "ipo_window": {
-          "from": 1990,
-          "to": 2000
-        }
-      },
-      "roster": [
-        {
-          "name": "Placeholder Corp A",
-          "founders": [
-            {
-              "name": "Founder One"
-            }
-          ],
-          "sector": "Tech",
-          "mission": "Innovating for the new millennium.",
-          "founding_location": "San Francisco, CA"
-        },
-        {
-          "name": "Placeholder Corp B",
-          "founders": [
-            {
-              "name": "Founder Two"
-            }
-          ],
-          "sector": "Retail",
-          "mission": "Bringing products to the digital age.",
-          "founding_location": "Austin, TX"
-        },
-        {
-          "name": "Placeholder Corp C",
-          "founders": [
-            {
-              "name": "Founder Three"
-            }
-          ],
-          "sector": "Services",
-          "mission": "Connecting people globally.",
-          "founding_location": "New York, NY"
-        }
-      ]
-    },
-    {
-      "id": "steady_2000s",
-      "label": "2000s Corps",
-      "pick": 3,
-      "defaults": {
-        "structural_bias": {
-          "min": 0.5,
-          "max": 2,
-          "half_life_years": 15
-        },
-        "base_revenue_usd": [
-          800000000,
-          2500000000
-        ],
-        "margin_curve": {
-          "start_profit_margin": [
-            0.03,
-            0.1
-          ],
-          "terminal_profit_margin": [
-            0.12,
-            0.21
-          ],
-          "years_to_mature": [
-            7,
-            10
-          ]
-        },
-        "multiple_curve": {
-          "initial_pe_ratio": [
-            10,
-            18
-          ],
-          "terminal_pe_ratio": [
-            14,
-            18
-          ],
-          "years_to_converge": [
-            22,
-            34
-          ]
-        },
-        "finance": {
-          "starting_cash_ratio": 0.03,
-          "starting_debt_ratio": 0.0,
-          "interest_rate_annual": 0.06
-        },
-        "ipo_window": {
-          "from": 2000,
-          "to": 2010
-        }
-      },
-      "roster": [
-        {
-          "name": "Placeholder 2000s A",
-          "founders": [
-            {
-              "name": "Founder 00s"
-            }
-          ],
-          "sector": "Tech",
-          "mission": "2000s Tech Mission",
-          "founding_location": "San Francisco, CA"
-        },
-        {
-          "name": "Placeholder 2000s B",
-          "founders": [
-            {
-              "name": "Founder 00s"
-            }
-          ],
-          "sector": "Retail",
-          "mission": "2000s Retail Mission",
-          "founding_location": "Austin, TX"
-        },
-        {
-          "name": "Placeholder 2000s C",
-          "founders": [
-            {
-              "name": "Founder 00s"
-            }
-          ],
-          "sector": "Services",
-          "mission": "2000s Services Mission",
-          "founding_location": "New York, NY"
-        }
-      ]
-    },
-    {
-      "id": "steady_2010s",
-      "label": "2010s Corps",
-      "pick": 3,
-      "defaults": {
-        "structural_bias": {
-          "min": 0.5,
-          "max": 2,
-          "half_life_years": 15
-        },
-        "base_revenue_usd": [
-          1000000000,
-          3000000000
-        ],
-        "margin_curve": {
-          "start_profit_margin": [
-            0.03,
-            0.1
-          ],
-          "terminal_profit_margin": [
-            0.12,
-            0.21
-          ],
-          "years_to_mature": [
-            7,
-            10
-          ]
-        },
-        "multiple_curve": {
-          "initial_pe_ratio": [
-            12,
-            20
-          ],
-          "terminal_pe_ratio": [
-            15,
-            20
-          ],
-          "years_to_converge": [
-            22,
-            34
-          ]
-        },
-        "finance": {
-          "starting_cash_ratio": 0.04,
-          "starting_debt_ratio": 0.0,
-          "interest_rate_annual": 0.04
-        },
-        "ipo_window": {
-          "from": 2010,
-          "to": 2020
-        }
-      },
-      "roster": [
-        {
-          "name": "Placeholder 2010s A",
-          "founders": [
-            {
-              "name": "Founder 10s"
-            }
-          ],
-          "sector": "Tech",
-          "mission": "2010s Tech Mission",
-          "founding_location": "Palo Alto, CA"
-        },
-        {
-          "name": "Placeholder 2010s B",
-          "founders": [
-            {
-              "name": "Founder 10s"
-            }
-          ],
-          "sector": "Retail",
-          "mission": "2010s Retail Mission",
-          "founding_location": "Seattle, WA"
-        },
-        {
-          "name": "Placeholder 2010s C",
-          "founders": [
-            {
-              "name": "Founder 10s"
-            }
-          ],
-          "sector": "Services",
-          "mission": "2010s Services Mission",
-          "founding_location": "Los Angeles, CA"
-        }
-      ]
-    },
-    {
-      "id": "steady_2020s",
-      "label": "2020s Corps",
-      "pick": 3,
-      "defaults": {
-        "structural_bias": {
-          "min": 0.5,
-          "max": 2,
-          "half_life_years": 15
-        },
-        "base_revenue_usd": [
-          1200000000,
-          3500000000
-        ],
-        "margin_curve": {
-          "start_profit_margin": [
-            0.03,
-            0.1
-          ],
-          "terminal_profit_margin": [
-            0.12,
-            0.21
-          ],
-          "years_to_mature": [
-            7,
-            10
-          ]
-        },
-        "multiple_curve": {
-          "initial_pe_ratio": [
-            15,
-            25
-          ],
-          "terminal_pe_ratio": [
-            18,
-            22
-          ],
-          "years_to_converge": [
-            22,
-            34
-          ]
-        },
-        "finance": {
-          "starting_cash_ratio": 0.05,
-          "starting_debt_ratio": 0.0,
-          "interest_rate_annual": 0.05
-        },
-        "ipo_window": {
-          "from": 2020,
-          "to": 2030
-        }
-      },
-      "roster": [
-        {
-          "name": "Placeholder 2020s A",
-          "founders": [
-            {
-              "name": "Founder 20s"
-            }
-          ],
-          "sector": "Tech",
-          "mission": "2020s Tech Mission",
-          "founding_location": "Austin, TX"
-        },
-        {
-          "name": "Placeholder 2020s B",
-          "founders": [
-            {
-              "name": "Founder 20s"
-            }
-          ],
-          "sector": "Retail",
-          "mission": "2020s Retail Mission",
-          "founding_location": "Denver, CO"
-        },
-        {
-          "name": "Placeholder 2020s C",
-          "founders": [
-            {
-              "name": "Founder 20s"
-            }
-          ],
-          "sector": "Services",
-          "mission": "2020s Services Mission",
-          "founding_location": "Miami, FL"
-        }
-      ]
-    },
-    {
-      "id": "steady_2030s",
-      "label": "2030s Corps",
-      "pick": 3,
-      "defaults": {
-        "structural_bias": {
-          "min": 0.5,
-          "max": 2,
-          "half_life_years": 15
-        },
-        "base_revenue_usd": [
-          1500000000,
-          4000000000
-        ],
-        "margin_curve": {
-          "start_profit_margin": [
-            0.03,
-            0.1
-          ],
-          "terminal_profit_margin": [
-            0.12,
-            0.21
-          ],
-          "years_to_mature": [
-            7,
-            10
-          ]
-        },
-        "multiple_curve": {
-          "initial_pe_ratio": [
-            15,
-            25
-          ],
-          "terminal_pe_ratio": [
-            18,
-            22
-          ],
-          "years_to_converge": [
-            22,
-            34
-          ]
-        },
-        "finance": {
-          "starting_cash_ratio": 0.05,
-          "starting_debt_ratio": 0.0,
-          "interest_rate_annual": 0.05
-        },
-        "ipo_window": {
-          "from": 2030,
-          "to": 2040
-        }
-      },
-      "roster": [
-        {
-          "name": "Placeholder 2030s A",
-          "founders": [
-            {
-              "name": "Founder 30s"
-            }
-          ],
-          "sector": "Tech",
-          "mission": "2030s Tech Mission",
-          "founding_location": "Mars Colony 1"
-        },
-        {
-          "name": "Placeholder 2030s B",
-          "founders": [
-            {
-              "name": "Founder 30s"
-            }
-          ],
-          "sector": "Retail",
-          "mission": "2030s Retail Mission",
-          "founding_location": "Moon Base Alpha"
-        },
-        {
-          "name": "Placeholder 2030s C",
-          "founders": [
-            {
-              "name": "Founder 30s"
-            }
-          ],
-          "sector": "Services",
-          "mission": "2030s Services Mission",
-          "founding_location": "New York, NY"
-        }
-      ]
-    },
-    {
-      "id": "steady_2040s",
-      "label": "2040s Corps",
-      "pick": 3,
-      "defaults": {
-        "structural_bias": {
-          "min": 0.5,
-          "max": 2,
-          "half_life_years": 15
-        },
-        "base_revenue_usd": [
-          2000000000,
-          5000000000
-        ],
-        "margin_curve": {
-          "start_profit_margin": [
-            0.03,
-            0.1
-          ],
-          "terminal_profit_margin": [
-            0.12,
-            0.21
-          ],
-          "years_to_mature": [
-            7,
-            10
-          ]
-        },
-        "multiple_curve": {
-          "initial_pe_ratio": [
-            15,
-            25
-          ],
-          "terminal_pe_ratio": [
-            18,
-            22
-          ],
-          "years_to_converge": [
-            22,
-            34
-          ]
-        },
-        "finance": {
-          "starting_cash_ratio": 0.05,
-          "starting_debt_ratio": 0.0,
-          "interest_rate_annual": 0.05
-        },
-        "ipo_window": {
-          "from": 2040,
-          "to": 2045
-        }
-      },
-      "roster": [
-        {
-          "name": "Placeholder 2040s A",
-          "founders": [
-            {
-              "name": "Founder 40s"
-            }
-          ],
-          "sector": "Tech",
-          "mission": "2040s Tech Mission",
-          "founding_location": "Orbital Station"
-        },
-        {
-          "name": "Placeholder 2040s B",
-          "founders": [
-            {
-              "name": "Founder 40s"
-            }
-          ],
-          "sector": "Retail",
-          "mission": "2040s Retail Mission",
-          "founding_location": "Neo Tokyo"
-        },
-        {
-          "name": "Placeholder 2040s C",
-          "founders": [
-            {
-              "name": "Founder 40s"
-            }
-          ],
-          "sector": "Services",
-          "mission": "2040s Services Mission",
-          "founding_location": "New York, NY"
         }
       ]
     }

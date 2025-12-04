@@ -513,29 +513,114 @@
         const pickRangeLocal = (range, fallbackMin, fallbackMax) => pickRange(range, fallbackMin, fallbackMax, randBetween);
         const data = await loadPresetJson(CLASSIC_CORPS_DATA_PATH, options);
         const groups = Array.isArray(data?.groups) ? data.groups : [];
+        const globalDefaults = data?.defaults || {};
+        const globalSectorDefaults = data?.sector_defaults || {};
         const companies = [];
+
+        // Helper to get decade from ipo_window
+        const getDecade = (entry, fallbackWindow) => {
+            const ipoWindow = entry.ipo_window || fallbackWindow;
+            const year = ipoWindow?.from || 1980;
+            return Math.floor(year / 10) * 10;
+        };
 
         groups.forEach(group => {
             const roster = Array.isArray(group?.roster) ? group.roster.slice() : [];
             if (!roster.length) return;
-            const defaults = group?.defaults || {};
-            const structuralBiasDefaults = defaults.structural_bias || { min: 0.6, max: 1.8, half_life_years: 10 };
-            const marginDefaults = defaults.margin_curve || {};
-            const multipleDefaults = defaults.multiple_curve || {};
-            const financeDefaults = defaults.finance || {};
-            const costDefaults = defaults.costs || {};
+            const defaults = { ...(globalDefaults || {}), ...(group?.defaults || {}) };
             const ipoDefault = defaults.ipo_window || { from: 1980, to: 1990 };
-            const pickCount = Math.min(group.pick || roster.length, roster.length);
-            const picked = [];
-            while (picked.length < pickCount && roster.length > 0) {
-                const idx = randIntBetween(0, roster.length);
-                picked.push(roster.splice(idx, 1)[0]);
+            const sectorDefaultsMap = {};
+            if (globalSectorDefaults && typeof globalSectorDefaults === 'object') {
+                Object.entries(globalSectorDefaults).forEach(([key, val]) => {
+                    const normalized = (key || '').toString().toLowerCase();
+                    sectorDefaultsMap[normalized] = val || {};
+                });
+            }
+            if (group?.sector_defaults && typeof group.sector_defaults === 'object') {
+                Object.entries(group.sector_defaults).forEach(([key, val]) => {
+                    const normalized = (key || '').toString().toLowerCase();
+                    sectorDefaultsMap[normalized] = val || {};
+                });
+            }
+
+            let picked = [];
+            const getSector = (entry) => (entry.sector || defaults.sector || 'General');
+
+            if (group.pick_by_sector && typeof group.pick_by_sector === 'object') {
+                // Sector-directed picking: honor requested counts, then fill to target if pick is larger
+                const rosterCopy = [...roster];
+                const totalRequested = Object.values(group.pick_by_sector).reduce((sum, val) => {
+                    const count = Math.max(0, Math.floor(Number(val) || 0));
+                    return sum + count;
+                }, 0);
+                const maxAvailable = roster.length;
+                const baseTarget = Math.max(totalRequested, Math.floor(Number(group.pick) || 0));
+                const target = baseTarget > 0 ? Math.min(baseTarget, maxAvailable) : maxAvailable;
+
+                Object.entries(group.pick_by_sector).forEach(([sectorKey, count]) => {
+                    const normalized = (sectorKey || '').toString().toLowerCase();
+                    const countInt = Math.max(0, Math.floor(Number(count) || 0));
+                    for (let i = 0; i < countInt; i++) {
+                        const pool = rosterCopy.filter(entry => getSector(entry).toLowerCase() === normalized);
+                        if (!pool.length) break;
+                        const idx = randIntBetween(0, pool.length);
+                        const chosen = pool[idx];
+                        const removeIndex = rosterCopy.indexOf(chosen);
+                        if (removeIndex >= 0) rosterCopy.splice(removeIndex, 1);
+                        picked.push(chosen);
+                    }
+                });
+
+                // Fill any remaining slots (if pick exceeds the sector counts) with random entries
+                while (picked.length < target && rosterCopy.length > 0) {
+                    const idx = randIntBetween(0, rosterCopy.length);
+                    picked.push(rosterCopy.splice(idx, 1)[0]);
+                }
+            } else if (group.pick_by_decade && typeof group.pick_by_decade === 'object') {
+                // Group roster by decade
+                const byDecade = {};
+                roster.forEach(entry => {
+                    const sectorKey = getSector(entry).toLowerCase();
+                    const fallbackWindow = sectorDefaultsMap[sectorKey]?.ipo_window || ipoDefault;
+                    const decade = getDecade(entry, fallbackWindow);
+                    if (!byDecade[decade]) byDecade[decade] = [];
+                    byDecade[decade].push(entry);
+                });
+
+                // Pick from each decade
+                Object.entries(group.pick_by_decade).forEach(([decadeStr, count]) => {
+                    const decade = parseInt(decadeStr, 10);
+                    const decadeRoster = byDecade[decade] ? [...byDecade[decade]] : [];
+                    const pickCount = Math.min(count, decadeRoster.length);
+                    for (let i = 0; i < pickCount && decadeRoster.length > 0; i++) {
+                        const idx = randIntBetween(0, decadeRoster.length);
+                        picked.push(decadeRoster.splice(idx, 1)[0]);
+                    }
+                });
+            } else {
+                // Original behavior: pick randomly from entire roster
+                const rosterCopy = [...roster];
+                const pickCount = Math.min(group.pick || roster.length, roster.length);
+                while (picked.length < pickCount && rosterCopy.length > 0) {
+                    const idx = randIntBetween(0, rosterCopy.length);
+                    picked.push(rosterCopy.splice(idx, 1)[0]);
+                }
             }
             picked.forEach((entry, idx) => {
+                const sectorKey = getSector(entry).toLowerCase();
+                const sectorDefaults = sectorDefaultsMap[sectorKey] || {};
+                const effectiveDefaults = { ...defaults, ...sectorDefaults };
+                const structuralBiasDefaults = effectiveDefaults.structural_bias || { min: 0.6, max: 1.8, half_life_years: 10 };
+                const marginDefaults = effectiveDefaults.margin_curve || {};
+                const multipleDefaults = effectiveDefaults.multiple_curve || {};
+                const financeDefaults = effectiveDefaults.finance || {};
+                const costDefaults = effectiveDefaults.costs || {};
+                const ipoFallback = effectiveDefaults.ipo_window || ipoDefault;
+
                 const name = entry.name || `${group.label || 'Corp'} ${idx + 1}`;
                 const id = makeId(`classic_${slugify(group.id || group.label || 'corp')}_${slugify(name)}`, idx);
-                const baseRevenue = pickRangeLocal(defaults.base_revenue_usd, 1_000_000_000, 5_000_000_000);
-                const ipoRange = entry.ipo_window || ipoDefault;
+                const baseRevenue = pickRangeLocal(effectiveDefaults.base_revenue_usd, 1_000_000_000, 5_000_000_000);
+                const ipoRange = entry.ipo_window || ipoFallback;
                 const startMargin = pickRangeLocal(marginDefaults.start_profit_margin, 0.05, 0.1);
                 const terminalMargin = pickRangeLocal(marginDefaults.terminal_profit_margin, 0.12, 0.25);
                 const initialPs = pickRangeLocal(multipleDefaults.initial_ps_ratio ?? multipleDefaults.initial_pe_ratio, 1.2, 6);
