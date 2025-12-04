@@ -107,12 +107,24 @@
     // Keep founders to 1–3 (2–3 common, 1 rare) and use US locations for consistency.
 
     function clonePipelineTemplate(template = [], scale = 1, prefix = '') {
-        return template.map(entry => ({
-            id: prefix ? `${prefix}_${entry.id}` : entry.id,
-            label: entry.label,
-            full_revenue_usd: Math.round((entry.full_revenue_usd || 0) * scale),
-            stages: (entry.stages || []).map(stage => ({ ...stage }))
-        }));
+        return template.map(entry => {
+            // Handle full_revenue_usd as either a number or [min, max] range
+            let fullRevenueUsd;
+            if (Array.isArray(entry.full_revenue_usd) && entry.full_revenue_usd.length >= 2) {
+                fullRevenueUsd = [
+                    Math.round(entry.full_revenue_usd[0] * scale),
+                    Math.round(entry.full_revenue_usd[1] * scale)
+                ];
+            } else {
+                fullRevenueUsd = Math.round((entry.full_revenue_usd || 0) * scale);
+            }
+            return {
+                id: prefix ? `${prefix}_${entry.id}` : entry.id,
+                label: entry.label,
+                full_revenue_usd: fullRevenueUsd,
+                stages: (entry.stages || []).map(stage => ({ ...stage }))
+            };
+        });
     }
 
     async function generateHardTechPresetCompanies(count = 1, options = {}) {
@@ -650,6 +662,8 @@
                 || defaults.private_listing_window
                 || defaults.listing_window
                 || defaults.private_listing_window;
+            // Use entry-specific values with fallbacks to random ranges
+            const entryValuation = Number.isFinite(entry.valuation_usd) ? entry.valuation_usd : valuation;
             companies.push({
                 id,
                 name: entry.name,
@@ -658,25 +672,26 @@
                 founders: Array.isArray(entry.founders) ? entry.founders.map(f => ({ ...f })) : [],
                 mission: entry.mission || '',
                 founding_location: entry.founding_location || '',
-                valuation_usd: valuation,
+                valuation_usd: entryValuation,
                 funding_round: entry.funding_round || 'Series B',
-                ipo_stage: 'pre_ipo',
+                ipo_stage: entry.ipo_stage || 'pre_ipo',
                 binary_success: true,
                 archetype: 'hardtech',
                 gate_stage: entry.gate_stage || 'series_f',
-                hypergrowth_window_years: randBetween(1.5, 3.5),
-                hypergrowth_initial_growth_rate: randBetween(0.8, 1.8),
-                hypergrowth_terminal_growth_rate: randBetween(0.15, 0.35),
-                hypergrowth_initial_margin: randBetween(-0.5, -0.2),
-                hypergrowth_terminal_margin: randBetween(0.2, 0.4),
-                long_run_revenue_ceiling_usd: valuation * randBetween(35, 70),
+                initial_valuation_realization: entry.initial_valuation_realization ?? null,
+                hypergrowth_window_years: entry.hypergrowth_window_years ?? randBetween(1.5, 3.5),
+                hypergrowth_initial_growth_rate: entry.hypergrowth_initial_growth_rate ?? randBetween(0.8, 1.8),
+                hypergrowth_terminal_growth_rate: entry.hypergrowth_terminal_growth_rate ?? randBetween(0.15, 0.35),
+                hypergrowth_initial_margin: entry.hypergrowth_initial_margin ?? randBetween(-0.5, -0.2),
+                hypergrowth_terminal_margin: entry.hypergrowth_terminal_margin ?? randBetween(0.2, 0.4),
+                long_run_revenue_ceiling_usd: entryValuation * randBetween(35, 70),
                 long_run_growth_rate: randBetween(0.25, 0.45),
                 long_run_growth_floor: randBetween(0.05, 0.12),
                 long_run_growth_decay: randBetween(0.08, 0.2),
                 post_gate_initial_multiple: randBetween(10, 16),
                 post_gate_baseline_multiple: randBetween(4, 8),
                 post_gate_multiple_decay_years: randBetween(6, 11),
-                post_gate_margin: randBetween(0.2, 0.35),
+                post_gate_margin: entry.post_gate_margin ?? randBetween(0.2, 0.35),
                 max_failures_before_collapse: 1,
                 private_listing_window: entry.private_listing_window || defaults.private_listing_window || null,
                 base_business: baseBusiness,

@@ -213,16 +213,18 @@
       }
       this.targetStageIndex = Math.max(0, Math.min(targetIdx, this.roundDefinitions.length - 1));
 
-      // For hard-tech, compute initial valuation from pipeline expectedValue
-      // (no stages completed yet, so it's all option value)
+      // For hard-tech, compute initial valuation from pipeline
       if (this.archetype === 'hardtech' && Array.isArray(this.products) && this.products.length > 0) {
-        const pipelineValue = this.products.reduce((sum, p) => {
-          return sum + (typeof p.expectedValue === 'function' ? p.expectedValue() : 0);
-        }, 0);
-        // Use pipeline value if meaningful, otherwise fall back to config
-        this.currentValuation = pipelineValue > 100_000
-          ? pipelineValue * between(0.9, 1.1)
-          : Math.max(1, Number(config.valuation_usd) || 10_000_000);
+        const totalFullRevenue = this.products.reduce((sum, p) => sum + (p.fullVal || 0), 0);
+        if (config.initial_valuation_realization != null) {
+          // Use explicit realization factor
+          const realization = Math.max(0, Math.min(1, Number(config.initial_valuation_realization)));
+          this.currentValuation = Math.max(1, totalFullRevenue * realization * between(0.9, 1.1));
+        } else {
+          // Fall back to expected value from pipeline (probability-weighted)
+          const expectedValue = this.products.reduce((sum, p) => sum + (typeof p.expectedValue === 'function' ? p.expectedValue() : 0), 0);
+          this.currentValuation = Math.max(1, expectedValue * between(0.9, 1.1));
+        }
       } else {
         this.currentValuation = Math.max(1, Number(config.valuation_usd) || 10_000_000);
       }
@@ -742,7 +744,6 @@
         ? stage.raiseFraction
         : [0.15, 0.3];
       const raiseFraction = between(raiseRange[0], raiseRange[1]);
-      const baseFairValue = this.computeFairValue(true);
       const prevValuation = Math.max(1, this.currentValuation || this.lastFairValue || 1);
       const multiplierRange = Array.isArray(stage.preMoneyMultiplier) && stage.preMoneyMultiplier.length >= 2
         ? stage.preMoneyMultiplier
@@ -750,12 +751,22 @@
 
       let fairValue;
       if (this.archetype === 'hardtech') {
-        // Hard-tech: let pipeline (value_realization) drive valuation
-        // Floor at 50% of previous to prevent catastrophic down rounds
-        const minFloor = prevValuation * 0.5;
-        fairValue = Math.max(baseFairValue, minFloor);
+        // Hard-tech: check if any pipeline stages have completed
+        const hasCompletedStage = Array.isArray(this.products) && this.products.some(p =>
+          Array.isArray(p.stages) && p.stages.some(s => s.completed)
+        );
+        if (hasCompletedStage) {
+          // Pipeline has progressed - use computed fair value with floor
+          const baseFairValue = this.computeFairValue(true);
+          const minFloor = prevValuation * 0.5;
+          fairValue = Math.max(baseFairValue, minFloor);
+        } else {
+          // No pipeline progress yet - use currentValuation (set from initial_valuation_realization)
+          fairValue = prevValuation * between(multiplierRange[0], multiplierRange[1]);
+        }
       } else {
         // Hypergrowth: clamp to previous valuation * multiplier range
+        const baseFairValue = this.computeFairValue(true);
         const minFairValue = prevValuation * multiplierRange[0];
         const maxFairValue = prevValuation * multiplierRange[1];
         fairValue = clampValue(baseFairValue, minFairValue, maxFairValue);
@@ -1523,6 +1534,7 @@
           finance: cfg.finance,
           costs: cfg.costs,
           archetype: cfg.archetype,
+          initial_valuation_realization: cfg.initial_valuation_realization,
           private_listing_window: cfg.private_listing_window || cfg.listing_window || cfg.listingWindow || cfg.listing_window,
           pendingCommitments: cfg.pendingCommitments || {},
           pipeline: Array.isArray(cfg.pipeline) ? cfg.pipeline : [],

@@ -262,7 +262,13 @@
   class Product {
     constructor (c) {
       this.label = c.label || c.id;
-      this.fullVal = c.full_revenue_usd;
+      // Support range for full_revenue_usd: [min, max] or single number
+      const revInput = c.full_revenue_usd;
+      if (Array.isArray(revInput) && revInput.length >= 2) {
+        this.fullVal = between(revInput[0], revInput[1]);
+      } else {
+        this.fullVal = Number(revInput) || 0;
+      }
       this.stages = c.stages.map(s => new Stage(s));
       this.hypergrowth = c.hypergrowth ? { ...c.hypergrowth } : null;
       this._hypergrowthTriggered = false;
