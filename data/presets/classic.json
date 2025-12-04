@@ -3,7 +3,7 @@
     "structural_bias": { "min": 0.5, "max": 2, "half_life_years": 15 },
     "base_revenue_usd": [200000000, 400000000],
     "margin_curve": {
-      "start_profit_margin": [0.8, 0.17],
+      "start_profit_margin": [0.08, 0.17],
       "terminal_profit_margin": [0.20, 0.26],
       "years_to_mature": [25, 45]
     },
