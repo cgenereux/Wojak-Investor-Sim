@@ -218,105 +218,25 @@
         });
         return companies;
     }
-    /*
-    async function generateSteadyMegacorpCompanies(count = 1, options = {}) {
-        const { randBetween, randIntBetween, makeId } = buildRandomTools(options);
-        const pickRangeLocal = (range, fallbackMin, fallbackMax) => pickRange(range, fallbackMin, fallbackMax, randBetween);
-        const data = await loadPresetJson(MEGACORP_DATA_PATH, options);
-        const rosterSource = Array.isArray(data?.roster) ? data.roster.slice() : [];
-        if (rosterSource.length === 0) return [];
-        const defaults = data?.defaults || {};
-        const structuralBiasDefaults = defaults.structural_bias || { min: 0.5, max: 3, half_life_years: 15 };
-        const marginDefaults = defaults.margin_curve || {};
-        const multipleDefaults = defaults.multiple_curve || {};
-        const financeDefaults = defaults.finance || {};
-        const ipoInstantDefault = defaults.ipo_instantly ?? false;
-        const picked = [];
-        while (picked.length < count && rosterSource.length > 0) {
-            const idx = randIntBetween(0, rosterSource.length);
-            picked.push(rosterSource.splice(idx, 1)[0]);
-        }
-        const companies = [];
-        picked.forEach((entry, i) => {
-            const name = entry.name || `MegaMart ${i + 1}`;
-            const founders = (entry.founders || []).map(f => ({ ...f }));
-            const id = makeId(`preset_megacorp_${slugify(name)}`, i);
-            const baseRevenue = pickRangeLocal(defaults.base_revenue_usd, 60_000_000_000, 200_000_000_000);
-            const ipoRange = entry.ipo_window || { from: 1980, to: 1985 };
-            const ipoInstantly = entry.ipo_instantly ?? ipoInstantDefault;
-            const startingCashRatio = financeDefaults.starting_cash_ratio ?? 0.03;
-            const startingDebtRatio = financeDefaults.starting_debt_ratio ?? 0.05;
-            const startMargin = pickRangeLocal(marginDefaults.start_profit_margin, 0.025, 0.04);
-            const terminalMargin = pickRangeLocal(marginDefaults.terminal_profit_margin, 0.05, 0.08);
-            const company = {
-                id,
-                static: {
-                    name,
-                    sector: entry.sector || 'Retail',
-                    founders,
-                    mission: entry.mission || defaults.mission || '',
-                    founding_location: entry.founding_location || defaults.founding_location || '',
-                    ipo_window: ipoRange,
-                    ipo_instantly: ipoInstantly
-                },
-                sentiment: {
-                    structural_bias: { ...structuralBiasDefaults }
-                },
-                base_business: {
-                    revenue_process: {
-                        initial_revenue_usd: {
-                            min: baseRevenue * 0.8,
-                            max: baseRevenue * 1.2
-                        }
-                    },
-                    margin_curve: {
-                        start_profit_margin: startMargin,
-                        terminal_profit_margin: terminalMargin,
-                        years_to_mature: pickRangeLocal(marginDefaults.years_to_mature, 7, 10)
-                    },
-                    multiple_curve: {
-                        initial_ps_ratio: (() => {
-                            // If an initial PE is provided, use it directly as the starting earnings multiple.
-                            if (multipleDefaults.initial_pe_ratio) {
-                                return pickRangeLocal(multipleDefaults.initial_pe_ratio, 12, 18);
-                            }
-                            return pickRangeLocal(multipleDefaults.initial_ps_ratio, 0.7, 1.1);
-                        })(),
-                        terminal_pe_ratio: pickRangeLocal(multipleDefaults.terminal_pe_ratio, 12, 15),
-                        years_to_converge: pickRangeLocal(multipleDefaults.years_to_converge, 6, 9)
-                    }
-                },
-                finance: {
-                    starting_cash_usd: baseRevenue * startingCashRatio,
-                    starting_debt_usd: baseRevenue * startingDebtRatio,
-                    interest_rate_annual: financeDefaults.interest_rate_annual ?? GLOBAL_BASE_INTEREST_RATE ?? 0.07
-                },
-                pipeline: [],
-                events: [],
-                post_success_mode: entry.post_success_mode || 'instant'
-            };
-            companies.push(company);
-        });
-        return companies;
-    }*/
 
     async function generateHypergrowthPresetCompanies(options = {}) {
-        const { randBetween, makeId } = buildRandomTools(options);
+        const { randBetween, randIntBetween, makeId } = buildRandomTools(options);
         const pickRangeLocal = (range, fallbackMin, fallbackMax) => pickRange(range, fallbackMin, fallbackMax, randBetween);
         const data = await loadPresetJson(HYPERGROWTH_DATA_PATH, options);
         const entries = Array.isArray(data?.companies) ? data.companies : [];
         if (entries.length === 0) return [];
         const defaults = data?.defaults || {};
-        const pmfLossProb = defaults.pmf_loss_prob_per_year ?? defaults.pmfLossProbPerYear ?? 0;
+        const pmfLossProb = defaults.pmf_loss_prob_per_year ?? defaults.pmfLossProbPerYear ?? 0.1;
         const pmfDeclineRange = defaults.pmf_decline_rate_range || defaults.pmf_decline_rate || [-0.4, -0.25];
         const pmfDeclineDuration = defaults.pmf_decline_duration_years || defaults.pmf_decline_duration || [2, 3];
         const structBiasBand = defaults.structural_bias_band ?? defaults.structural_bias?.band ?? null;
         const structBiasHalfLife = defaults.structural_bias_half_life_years ?? defaults.structural_bias?.half_life_years ?? null;
-        const results = entries.map((entry, idx) => {
+
+        return entries.map((entry, idx) => {
             const valuation = pickRangeLocal(defaults.valuation_usd, 6_000_000, 18_000_000);
             const longRunRevenueMultiplier = pickRangeLocal(defaults.long_run_revenue_ceiling_multiplier, 20, 40);
             return {
-                id: makeId(`preset_web_vc_${slugify(entry.name || `hyper_${idx}`)}`, idx),
+                id: makeId(`preset_hyper_${slugify(entry.name || `hyper_${idx}`)}`, idx),
                 name: entry.name || `Hypergrowth ${idx + 1}`,
                 sector: entry.sector || defaults.sector || 'Web',
                 description: entry.description || defaults.description || 'Hypergrowth preset',
@@ -341,9 +261,9 @@
                 post_gate_baseline_multiple: pickRangeLocal(defaults.post_gate_baseline_multiple, 4, 7),
                 post_gate_multiple_decay_years: pickRangeLocal(defaults.post_gate_multiple_decay_years, 5, 9),
                 post_gate_margin: pickRangeLocal(defaults.post_gate_margin, 0.18, 0.3),
-                max_failures_before_collapse: entry.max_failures_before_collapse ?? defaults.max_failures_before_collapse ?? 2,
-                rounds: entry.rounds || defaults.rounds || DEFAULT_VC_ROUNDS,
+                max_failures_before_collapse: entry.max_failures_before_collapse ?? defaults.max_failures_before_collapse ?? 1,
                 private_listing_window: entry.private_listing_window || defaults.private_listing_window || null,
+                rounds: entry.rounds || defaults.rounds || DEFAULT_VC_ROUNDS,
                 pmf_loss_prob_per_year: entry.pmf_loss_prob_per_year ?? pmfLossProb,
                 pmf_decline_rate_range: entry.pmf_decline_rate_range || pmfDeclineRange,
                 pmf_decline_duration_years: entry.pmf_decline_duration_years || pmfDeclineDuration,
@@ -351,89 +271,8 @@
                 structural_bias_half_life_years: entry.structural_bias_half_life_years ?? structBiasHalfLife
             };
         });
-        return results;
     }
 
-    async function generateProductRotatorCompanies() {
-        // Legacy preset intentionally disabled; kept for backward compatibility.
-        return [];
-    }
-    /*
-    async function generateBankingPresetCompanies(count = 1, options = {}) {
-        const { randBetween, randIntBetween, makeId } = buildRandomTools(options);
-        const pickRangeLocal = (range, fallbackMin, fallbackMax) => pickRange(range, fallbackMin, fallbackMax, randBetween);
-        const data = await loadPresetJson(BANKING_DATA_PATH, options);
-        const rosterSource = Array.isArray(data?.roster) ? data.roster.slice() : [];
-        if (rosterSource.length === 0) return [];
-        const defaults = data?.defaults || {};
-        const structuralBiasDefaults = defaults.structural_bias || { min: 0.4, max: 2, half_life_years: 20 };
-        const marginDefaults = defaults.margin_curve || {};
-        const multipleDefaults = defaults.multiple_curve || {};
-        const financeDefaults = defaults.finance || {};
-        const costDefaults = defaults.costs || {};
-        const ipoInstantDefault = defaults.ipo_instantly ?? false;
-
-        const pickRoster = [];
-        while (pickRoster.length < count && rosterSource.length > 0) {
-            const idx = randIntBetween(0, rosterSource.length);
-            pickRoster.push(rosterSource.splice(idx, 1)[0]);
-        }
-
-        return pickRoster.map((entry, idx) => {
-            const name = entry.name || `Bank ${idx + 1}`;
-            const baseRevenue = pickRangeLocal(defaults.base_revenue_usd, 12_000_000_000, 40_000_000_000);
-            const ipoRange = entry.ipo_window || defaults.ipo_window || { from: 1975, to: 1988 };
-            const ipoInstantly = entry.ipo_instantly ?? ipoInstantDefault;
-            return {
-                id: makeId(`preset_banking_${slugify(name)}`, idx),
-                static: {
-                    name,
-                    sector: entry.sector || defaults.sector || 'Banking',
-                    founders: (entry.founders || []).map(f => ({ ...f })),
-                    mission: entry.mission || defaults.mission || '',
-                    founding_location: entry.founding_location || defaults.founding_location || '',
-                    ipo_window: ipoRange,
-                    ipo_instantly: ipoInstantly
-                },
-                sentiment: {
-                    structural_bias: { ...structuralBiasDefaults }
-                },
-                base_business: {
-                    revenue_process: {
-                        initial_revenue_usd: {
-                            min: baseRevenue * 0.85,
-                            max: baseRevenue * 1.15
-                        }
-                    },
-                    margin_curve: {
-                        start_profit_margin: pickRangeLocal(marginDefaults.start_profit_margin, 0.08, 0.12),
-                        terminal_profit_margin: pickRangeLocal(marginDefaults.terminal_profit_margin, 0.16, 0.22),
-                        years_to_mature: pickRangeLocal(marginDefaults.years_to_mature, 7, 11)
-                    },
-                    multiple_curve: {
-                        initial_ps_ratio: pickRangeLocal(multipleDefaults.initial_ps_ratio, 1.2, 1.8),
-                        initial_pe_ratio: pickRangeLocal(multipleDefaults.initial_pe_ratio, 9, 14),
-                        terminal_pe_ratio: pickRangeLocal(multipleDefaults.terminal_pe_ratio, 9, 13),
-                        years_to_converge: pickRangeLocal(multipleDefaults.years_to_converge, 9, 14)
-                    }
-                },
-                finance: {
-                    starting_cash_usd: baseRevenue * (financeDefaults.starting_cash_ratio ?? 0.04),
-                    starting_debt_usd: baseRevenue * (financeDefaults.starting_debt_ratio ?? 0.08),
-                    interest_rate_annual: financeDefaults.interest_rate_annual ?? GLOBAL_BASE_INTEREST_RATE ?? 0.07
-                },
-                costs: {
-                    opex_fixed_usd: pickRangeLocal(costDefaults.opex_fixed_usd, 150_000_000, 300_000_000),
-                    opex_variable_ratio: pickRangeLocal(costDefaults.opex_variable_ratio, 0.08, 0.16),
-                    rd_base_ratio: pickRangeLocal(costDefaults.rd_base_ratio, 0.02, 0.04)
-                },
-                pipeline: [],
-                events: []
-            };
-        });
-    }*/
-
-    /*
     async function generateTechPresetCompanies(count = 1, options = {}) {
         const { randBetween, randIntBetween, makeId } = buildRandomTools(options);
         const pickRangeLocal = (range, fallbackMin, fallbackMax) => pickRange(range, fallbackMin, fallbackMax, randBetween);
@@ -506,7 +345,7 @@
                 events: []
             };
         });
-    }*/
+    }
 
     async function generateClassicCompanies(options = {}) {
         const { randBetween, randIntBetween, makeId } = buildRandomTools(options);
@@ -691,35 +530,27 @@
 
     async function generateBinaryHardTechCompanies(count = 1, options = {}) {
         const { randBetween, randIntBetween, makeId } = buildRandomTools(options);
-        const data = await loadPresetJson(BINARY_HARDTECH_DATA_PATH, options);
+        const pickRangeLocal = (range, fallbackMin, fallbackMax) => pickRange(range, fallbackMin, fallbackMax, randBetween);
+        const data = await loadPresetJson(HARDTECH_DATA_PATH, options);
         const defaults = data?.defaults?.private || data?.defaults || {};
         const mergedGroups = Array.isArray(data?.groups) ? data.groups.filter(g => (g.type || '').toLowerCase() === 'private') : [];
-        let rosterSource;
-        if (mergedGroups.length > 0) {
-            rosterSource = mergedGroups.flatMap(g => Array.isArray(g.roster) ? g.roster.map(r => ({ ...r, __group: g })) : []);
-        } else {
-            rosterSource = Array.isArray(data?.roster)
-                ? data.roster.slice()
-                : (Array.isArray(data?.companies) ? data.companies.slice() : []);
-        }
+        const rosterSource = mergedGroups.length > 0
+            ? mergedGroups.flatMap(g => Array.isArray(g.roster) ? g.roster.map(r => ({ ...r, __group: g })) : [])
+            : [];
         const defaultPipelineTemplate = Array.isArray(defaults?.pipelineTemplate)
             ? defaults.pipelineTemplate
             : [];
-        if (rosterSource.length === 0) return [];
-        const hasAnyPipelineTemplate = defaultPipelineTemplate.length > 0
-            || rosterSource.some(entry => Array.isArray(entry?.pipelineTemplate) && entry.pipelineTemplate.length > 0);
-        if (!hasAnyPipelineTemplate) return [];
+        if (rosterSource.length === 0 || defaultPipelineTemplate.length === 0) return [];
         const roster = [...rosterSource];
         const companies = [];
         while (companies.length < count && roster.length > 0) {
             const idx = randIntBetween(0, roster.length);
             const entry = roster.splice(idx, 1)[0];
             const valuation = randBetween(15_000_000, 40_000_000);
-            const id = makeId(`preset_hardtech_${slugify(entry.name)}`, companies.length);
+            const id = makeId(`preset_hardtech_${slugify(entry.name || 'hardtech')}`, companies.length);
             const pipelineSource = Array.isArray(entry?.pipelineTemplate) && entry.pipelineTemplate.length
                 ? entry.pipelineTemplate
                 : defaultPipelineTemplate;
-            if (!pipelineSource.length) continue;
             const pipelineScale = Number.isFinite(entry?.pipeline_scale) ? entry.pipeline_scale : randBetween(0.8, 1.4);
             const pipelineIdPrefix = `${id}_binary`;
             const pipeline = clonePipelineTemplate(pipelineSource, pipelineScale, pipelineIdPrefix).map(p => {
@@ -760,17 +591,15 @@
                 || defaults.private_listing_window
                 || defaults.listing_window
                 || defaults.private_listing_window;
-            // Use entry-specific values with fallbacks to random ranges
-            const entryValuation = Number.isFinite(entry.valuation_usd) ? entry.valuation_usd : valuation;
             companies.push({
                 id,
-                name: entry.name,
+                name: entry.name || 'Hardtech Venture',
                 sector: entry.sector || 'Deep Tech',
                 description: entry.description || 'Binary hard-tech preset (private)',
                 founders: Array.isArray(entry.founders) ? entry.founders.map(f => ({ ...f })) : [],
                 mission: entry.mission || '',
                 founding_location: entry.founding_location || '',
-                valuation_usd: entryValuation,
+                valuation_usd: valuation,
                 funding_round: entry.funding_round || 'Series B',
                 ipo_stage: entry.ipo_stage || 'pre_ipo',
                 binary_success: true,
@@ -782,7 +611,7 @@
                 hypergrowth_terminal_growth_rate: entry.hypergrowth_terminal_growth_rate ?? randBetween(0.15, 0.35),
                 hypergrowth_initial_margin: entry.hypergrowth_initial_margin ?? randBetween(-0.5, -0.2),
                 hypergrowth_terminal_margin: entry.hypergrowth_terminal_margin ?? randBetween(0.2, 0.4),
-                long_run_revenue_ceiling_usd: entryValuation * randBetween(35, 70),
+                long_run_revenue_ceiling_usd: valuation * randBetween(35, 70),
                 long_run_growth_rate: randBetween(0.25, 0.45),
                 long_run_growth_floor: randBetween(0.05, 0.12),
                 long_run_growth_decay: randBetween(0.08, 0.2),
@@ -790,15 +619,14 @@
                 post_gate_baseline_multiple: randBetween(4, 8),
                 post_gate_multiple_decay_years: randBetween(6, 11),
                 post_gate_margin: entry.post_gate_margin ?? randBetween(0.2, 0.35),
-                max_failures_before_collapse: 1,
-                private_listing_window: entry.private_listing_window || defaults.private_listing_window || null,
+                max_failures_before_collapse: entry.max_failures_before_collapse ?? 1,
+                private_listing_window: listingWindow || null,
                 base_business: baseBusiness,
                 finance,
                 costs,
                 pipeline,
                 rounds: HARDTECH_VC_ROUNDS,
-                post_success_mode: entry.post_success_mode || 'ramp',
-                private_listing_window: listingWindow
+                post_success_mode: entry.post_success_mode || 'ramp'
             });
         }
         return companies;
@@ -808,7 +636,6 @@
         generateHardTechPresetCompanies,
         generateHypergrowthPresetCompanies,
         generateBinaryHardTechCompanies,
-        generateProductRotatorCompanies,
         generateClassicCompanies,
         DEFAULT_VC_ROUNDS,
         HARDTECH_VC_ROUNDS

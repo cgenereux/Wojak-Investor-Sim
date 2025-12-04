@@ -339,7 +339,7 @@
       "id": "hardtech_private",
       "label": "Private Hardtech",
       "type": "private",
-      "pick": 3,
+      "pick": 4,
       "roster": [
         {
           "phase": "private",
