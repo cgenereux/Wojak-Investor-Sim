@@ -902,6 +902,28 @@ button.speed-active:hover {
     letter-spacing: 0.5px;
 }
 
+.portfolio-sector {
+    font-style: italic;
+    color: #666;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.portfolio-ipo-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    color: #4b5563;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    pointer-events: none;
+}
+
+.portfolio-item {
+    position: relative;
+}
+
 .companies-grid {
     pointer-events: auto;
 }
@@ -1110,56 +1132,56 @@ button.speed-active:hover {
     border-color: #d9e5ff;
 }
 
-.portfolio-list .portfolio-item.sector-tech {
+.portfolio-list .portfolio-item:not(.bankrupt).sector-tech {
     background: #eaf3ff;
     border-color: #d4e6ff;
 }
 
-.portfolio-list .portfolio-item.sector-biotech {
+.portfolio-list .portfolio-item:not(.bankrupt).sector-biotech {
     background: #fff0f6;
     border-color: #ffd6e8;
 }
 
-.portfolio-list .portfolio-item.sector-banking {
+.portfolio-list .portfolio-item:not(.bankrupt).sector-banking {
     background: #fff7df;
     border-color: #f3d27a;
 }
 
-.portfolio-list .portfolio-item.sector-retail,
-.portfolio-list .portfolio-item.sector-staples {
+.portfolio-list .portfolio-item:not(.bankrupt).sector-retail,
+.portfolio-list .portfolio-item:not(.bankrupt).sector-staples {
     background: #fff7ec;
     border-color: #ffe7c7;
 }
 
-.portfolio-list .portfolio-item.sector-airlines,
-.portfolio-list .portfolio-item.sector-aerospace {
+.portfolio-list .portfolio-item:not(.bankrupt).sector-airlines,
+.portfolio-list .portfolio-item:not(.bankrupt).sector-aerospace {
     background: #f7f1e8;
     border-color: #d9c0a3;
 }
 
-.portfolio-list .portfolio-item.sector-automotive,
-.portfolio-list .portfolio-item.sector-industrial {
+.portfolio-list .portfolio-item:not(.bankrupt).sector-automotive,
+.portfolio-list .portfolio-item:not(.bankrupt).sector-industrial {
     background: #f4f7f0;
     border-color: #dde5d4;
 }
 
-.portfolio-list .portfolio-item.sector-defense,
-.portfolio-list .portfolio-item.sector-energy {
+.portfolio-list .portfolio-item:not(.bankrupt).sector-defense,
+.portfolio-list .portfolio-item:not(.bankrupt).sector-energy {
     background: #f4f8f3;
     border-color: #d8ead6;
 }
 
-.portfolio-list .portfolio-item.sector-manufacturing {
+.portfolio-list .portfolio-item:not(.bankrupt).sector-manufacturing {
     background: #f7f1e8;
     border-color: #d9c0a3;
 }
 
-.portfolio-list .portfolio-item.sector-realestate {
+.portfolio-list .portfolio-item:not(.bankrupt).sector-realestate {
     background: #f6f3ff;
     border-color: #e3dbff;
 }
 
-.portfolio-list .portfolio-item.sector-web {
+.portfolio-list .portfolio-item:not(.bankrupt).sector-web {
     background: #f0f5ff;
     border-color: #d9e5ff;
 }

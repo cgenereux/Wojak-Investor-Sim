@@ -111,6 +111,8 @@ function renderVentureCompanies(companiesData, formatLargeNumber, formatCurrency
                 ? `Your Stake: ${company.playerEquityPercent.toFixed(2)}%`
                 : '';
             const isDoingRnd = !!company.isDoingRnd && !isFailed;
+            // Show "(Failed)" instead of stage for bankrupt companies
+            const companyNameDisplay = isFailed ? `${company.name} (Failed)` : company.name;
             let listingYear = null;
             if (Number.isFinite(company.history_third_ts)) {
                 const d = new Date(company.history_third_ts);
@@ -129,11 +131,11 @@ function renderVentureCompanies(companiesData, formatLargeNumber, formatCurrency
 
             companyDiv.innerHTML = `
             ${listingYear ? `<div class="company-ipo-badge">${listingYear}</div>` : ''}
-            <div class="company-name">${company.name}</div>
+            <div class="company-name">${companyNameDisplay}</div>
             <div class="company-info">
                 <div class="company-valuation">Valuation: ${valuationDisplay}</div>
                 ${statusDisplay ? `<div class="company-stage">${statusDisplay}</div>` : ''}
-                <div class="company-stage">Stage: ${stageDisplay}</div>
+                ${!isFailed ? `<div class="company-stage">Stage: ${stageDisplay}</div>` : ''}
                 ${playerStake ? `<div class="company-note">${playerStake}</div>` : ''}
             </div>
             ${isDoingRnd ? '<div class="company-rnd-flag">Conducting R&amp;D…</div>' : ''}

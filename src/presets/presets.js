@@ -392,7 +392,8 @@
                         mission: entry.mission || effectiveDefaults.mission || '',
                         founding_location: entry.founding_location || effectiveDefaults.founding_location || '',
                         ipo_window: ipoRange,
-                        ipo_instantly: entry.ipo_instantly ?? effectiveDefaults.ipo_instantly ?? false
+                        ipo_instantly: entry.ipo_instantly ?? effectiveDefaults.ipo_instantly ?? false,
+                        bankruptcy_date: entry.bankruptcy_date || null
                     },
                     sentiment: {
                         structural_bias: { ...structuralBiasDefaults }
@@ -439,54 +440,54 @@
         return companies;
     }
 
-  async function generatePublicHardTechPresetCompanies(count = null, options = {}) {
-    const { randBetween, randIntBetween, makeId } = buildRandomTools(options);
-    const pickRangeLocal = (range, fallbackMin, fallbackMax) => pickRange(range, fallbackMin, fallbackMax, randBetween);
-    const data = await loadPresetJson(HARDTECH_DATA_PATH, options);
-    const mergedGroups = Array.isArray(data?.groups) ? data.groups.filter(g => (g.type || '').toLowerCase() === 'public') : [];
-    const useGroupPick = count == null;
-    let defaults = mergedGroups.length > 0 ? (data?.defaults?.public || {}) : (data?.defaults || {});
+    async function generatePublicHardTechPresetCompanies(count = null, options = {}) {
+        const { randBetween, randIntBetween, makeId } = buildRandomTools(options);
+        const pickRangeLocal = (range, fallbackMin, fallbackMax) => pickRange(range, fallbackMin, fallbackMax, randBetween);
+        const data = await loadPresetJson(HARDTECH_DATA_PATH, options);
+        const mergedGroups = Array.isArray(data?.groups) ? data.groups.filter(g => (g.type || '').toLowerCase() === 'public') : [];
+        const useGroupPick = count == null;
+        let defaults = mergedGroups.length > 0 ? (data?.defaults?.public || {}) : (data?.defaults || {});
 
-    // Pick entries
-    let picked = [];
-    if (mergedGroups.length > 0) {
-      if (useGroupPick) {
-        mergedGroups.forEach(group => {
-          const roster = Array.isArray(group.roster) ? group.roster.map(r => ({ ...r, __group: group })) : [];
-          if (!roster.length) return;
-          const target = Math.min(
-            roster.length,
-            Math.max(0, Math.floor(Number(group.pick) || roster.length))
-          );
-          const rosterCopy = [...roster];
-          for (let i = 0; i < target && rosterCopy.length > 0; i++) {
-            const idx = randIntBetween(0, rosterCopy.length);
-            picked.push(rosterCopy.splice(idx, 1)[0]);
-          }
-        });
-      } else {
-        let rosterSource = mergedGroups.flatMap(g => Array.isArray(g.roster) ? g.roster.map(r => ({ ...r, __group: g })) : []);
-        const target = Math.min(Math.max(0, Math.floor(count)), rosterSource.length);
-        while (picked.length < target && rosterSource.length > 0) {
-          const idx = randIntBetween(0, rosterSource.length);
-          picked.push(rosterSource.splice(idx, 1)[0]);
+        // Pick entries
+        let picked = [];
+        if (mergedGroups.length > 0) {
+            if (useGroupPick) {
+                mergedGroups.forEach(group => {
+                    const roster = Array.isArray(group.roster) ? group.roster.map(r => ({ ...r, __group: group })) : [];
+                    if (!roster.length) return;
+                    const target = Math.min(
+                        roster.length,
+                        Math.max(0, Math.floor(Number(group.pick) || roster.length))
+                    );
+                    const rosterCopy = [...roster];
+                    for (let i = 0; i < target && rosterCopy.length > 0; i++) {
+                        const idx = randIntBetween(0, rosterCopy.length);
+                        picked.push(rosterCopy.splice(idx, 1)[0]);
+                    }
+                });
+            } else {
+                let rosterSource = mergedGroups.flatMap(g => Array.isArray(g.roster) ? g.roster.map(r => ({ ...r, __group: g })) : []);
+                const target = Math.min(Math.max(0, Math.floor(count)), rosterSource.length);
+                while (picked.length < target && rosterSource.length > 0) {
+                    const idx = randIntBetween(0, rosterSource.length);
+                    picked.push(rosterSource.splice(idx, 1)[0]);
+                }
+            }
+        } else {
+            const rosterSource = Array.isArray(data?.roster) ? data.roster.slice() : [];
+            if (rosterSource.length === 0) return [];
+            const target = useGroupPick ? rosterSource.length : Math.min(Math.max(0, Math.floor(count)), rosterSource.length);
+            while (picked.length < target && rosterSource.length > 0) {
+                const idx = randIntBetween(0, rosterSource.length);
+                picked.push(rosterSource.splice(idx, 1)[0]);
+            }
         }
-      }
-    } else {
-      const rosterSource = Array.isArray(data?.roster) ? data.roster.slice() : [];
-      if (rosterSource.length === 0) return [];
-      const target = useGroupPick ? rosterSource.length : Math.min(Math.max(0, Math.floor(count)), rosterSource.length);
-      while (picked.length < target && rosterSource.length > 0) {
-        const idx = randIntBetween(0, rosterSource.length);
-        picked.push(rosterSource.splice(idx, 1)[0]);
-      }
-    }
-    if (picked.length === 0) return [];
-    const companies = [];
-    const pipelineTemplate = Array.isArray(data?.pipelineTemplate) ? data.pipelineTemplate : (defaults.pipelineTemplate || []);
-    const structuralBiasDefaults = defaults.structural_bias || { min: 0.2, max: 6, half_life_years: 25 };
-    const marginDefaults = defaults.margin_curve || {};
-    const multipleDefaults = defaults.multiple_curve || {};
+        if (picked.length === 0) return [];
+        const companies = [];
+        const pipelineTemplate = Array.isArray(data?.pipelineTemplate) ? data.pipelineTemplate : (defaults.pipelineTemplate || []);
+        const structuralBiasDefaults = defaults.structural_bias || { min: 0.2, max: 6, half_life_years: 25 };
+        const marginDefaults = defaults.margin_curve || {};
+        const multipleDefaults = defaults.multiple_curve || {};
         const initialRevenueConfig = defaults.initial_revenue_usd || {};
         const pipelineScaleRange = defaults.pipeline_scale || [0.75, 1.25];
         const ipoInstantDefault = defaults.ipo_instantly ?? false;
@@ -573,89 +574,89 @@
             for (let i = 0; i < target && rosterCopy.length > 0; i++) {
                 const idx = randIntBetween(0, rosterCopy.length);
                 const entry = rosterCopy.splice(idx, 1)[0];
-            const valuation = randBetween(15_000_000, 40_000_000);
-            const id = makeId(`preset_hardtech_${slugify(entry.name || 'hardtech')}`, companies.length);
-            const pipelineSource = Array.isArray(entry?.pipelineTemplate) && entry.pipelineTemplate.length
-                ? entry.pipelineTemplate
-                : defaultPipelineTemplate;
-            const pipelineScale = Number.isFinite(entry?.pipeline_scale) ? entry.pipeline_scale : randBetween(0.8, 1.4);
-            const pipelineIdPrefix = `${id}_binary`;
-            const pipeline = clonePipelineTemplate(pipelineSource, pipelineScale, pipelineIdPrefix).map(p => {
-                const labelSuffix = entry.name ? ` (${entry.name})` : '';
-                return { ...p, label: `${p.label}${labelSuffix}` };
-            });
-            const initialRevenue = randBetween(2_000_000, 6_000_000);
-            const baseBusiness = {
-                revenue_process: {
-                    initial_revenue_usd: {
-                        min: initialRevenue * 0.7,
-                        max: initialRevenue * 1.4
+                const valuation = randBetween(15_000_000, 40_000_000);
+                const id = makeId(`preset_hardtech_${slugify(entry.name || 'hardtech')}`, companies.length);
+                const pipelineSource = Array.isArray(entry?.pipelineTemplate) && entry.pipelineTemplate.length
+                    ? entry.pipelineTemplate
+                    : defaultPipelineTemplate;
+                const pipelineScale = Number.isFinite(entry?.pipeline_scale) ? entry.pipeline_scale : randBetween(0.8, 1.4);
+                const pipelineIdPrefix = `${id}_binary`;
+                const pipeline = clonePipelineTemplate(pipelineSource, pipelineScale, pipelineIdPrefix).map(p => {
+                    const labelSuffix = entry.name ? ` (${entry.name})` : '';
+                    return { ...p, label: `${p.label}${labelSuffix}` };
+                });
+                const initialRevenue = randBetween(2_000_000, 6_000_000);
+                const baseBusiness = {
+                    revenue_process: {
+                        initial_revenue_usd: {
+                            min: initialRevenue * 0.7,
+                            max: initialRevenue * 1.4
+                        }
+                    },
+                    margin_curve: {
+                        start_profit_margin: randBetween(-1.4, -0.6),
+                        terminal_profit_margin: randBetween(0.18, 0.32),
+                        years_to_mature: randBetween(9, 14)
+                    },
+                    multiple_curve: {
+                        initial_ps_ratio: randBetween(14, 22),
+                        terminal_pe_ratio: randBetween(20, 30),
+                        years_to_converge: randBetween(10, 14)
                     }
-                },
-                margin_curve: {
-                    start_profit_margin: randBetween(-1.4, -0.6),
-                    terminal_profit_margin: randBetween(0.18, 0.32),
-                    years_to_mature: randBetween(9, 14)
-                },
-                multiple_curve: {
-                    initial_ps_ratio: randBetween(14, 22),
-                    terminal_pe_ratio: randBetween(20, 30),
-                    years_to_converge: randBetween(10, 14)
-                }
-            };
-            const finance = {
-                starting_cash_usd: initialRevenue * randBetween(6, 12),
-                starting_debt_usd: 0,
-                interest_rate_annual: GLOBAL_BASE_INTEREST_RATE ?? 0.07
-            };
-            const costs = {
-                opex_fixed_usd: randBetween(30_000_000, 60_000_000),
-                opex_variable_ratio: randBetween(0.18, 0.32),
-                rd_base_ratio: randBetween(0.05, 0.1)
-            };
-            const listingWindow = entry.private_listing_window
-                || entry.listing_window
-                || defaults.private_listing_window
-                || defaults.listing_window
-                || defaults.private_listing_window;
-            companies.push({
-                id,
-                name: entry.name || 'Hardtech Venture',
-                sector: entry.sector || 'Deep Tech',
-                description: entry.description || 'Binary hard-tech preset (private)',
-                founders: Array.isArray(entry.founders) ? entry.founders.map(f => ({ ...f })) : [],
-                mission: entry.mission || '',
-                founding_location: entry.founding_location || '',
-                valuation_usd: valuation,
-                funding_round: entry.funding_round || 'Series B',
-                ipo_stage: entry.ipo_stage || 'pre_ipo',
-                binary_success: true,
-                archetype: 'hardtech',
-                gate_stage: entry.gate_stage || 'series_f',
-                initial_valuation_realization: entry.initial_valuation_realization ?? null,
-                hypergrowth_window_years: entry.hypergrowth_window_years ?? randBetween(1.5, 3.5),
-                hypergrowth_initial_growth_rate: entry.hypergrowth_initial_growth_rate ?? randBetween(0.8, 1.8),
-                hypergrowth_terminal_growth_rate: entry.hypergrowth_terminal_growth_rate ?? randBetween(0.15, 0.35),
-                hypergrowth_initial_margin: entry.hypergrowth_initial_margin ?? randBetween(-0.5, -0.2),
-                hypergrowth_terminal_margin: entry.hypergrowth_terminal_margin ?? randBetween(0.2, 0.4),
-                long_run_revenue_ceiling_usd: valuation * randBetween(35, 70),
-                long_run_growth_rate: randBetween(0.25, 0.45),
-                long_run_growth_floor: randBetween(0.05, 0.12),
-                long_run_growth_decay: randBetween(0.08, 0.2),
-                post_gate_initial_multiple: randBetween(10, 16),
-                post_gate_baseline_multiple: randBetween(4, 8),
-                post_gate_multiple_decay_years: randBetween(6, 11),
-                post_gate_margin: entry.post_gate_margin ?? randBetween(0.2, 0.35),
-                max_failures_before_collapse: entry.max_failures_before_collapse ?? 1,
-                private_listing_window: listingWindow || null,
-                base_business: baseBusiness,
-                finance,
-                costs,
-                pipeline,
-                rounds: HARDTECH_VC_ROUNDS,
-                post_success_mode: entry.post_success_mode || 'ramp'
-            });
-        }
+                };
+                const finance = {
+                    starting_cash_usd: initialRevenue * randBetween(6, 12),
+                    starting_debt_usd: 0,
+                    interest_rate_annual: GLOBAL_BASE_INTEREST_RATE ?? 0.07
+                };
+                const costs = {
+                    opex_fixed_usd: randBetween(30_000_000, 60_000_000),
+                    opex_variable_ratio: randBetween(0.18, 0.32),
+                    rd_base_ratio: randBetween(0.05, 0.1)
+                };
+                const listingWindow = entry.private_listing_window
+                    || entry.listing_window
+                    || defaults.private_listing_window
+                    || defaults.listing_window
+                    || defaults.private_listing_window;
+                companies.push({
+                    id,
+                    name: entry.name || 'Hardtech Venture',
+                    sector: entry.sector || 'Deep Tech',
+                    description: entry.description || 'Binary hard-tech preset (private)',
+                    founders: Array.isArray(entry.founders) ? entry.founders.map(f => ({ ...f })) : [],
+                    mission: entry.mission || '',
+                    founding_location: entry.founding_location || '',
+                    valuation_usd: valuation,
+                    funding_round: entry.funding_round || 'Series B',
+                    ipo_stage: entry.ipo_stage || 'pre_ipo',
+                    binary_success: true,
+                    archetype: 'hardtech',
+                    gate_stage: entry.gate_stage || 'series_f',
+                    initial_valuation_realization: entry.initial_valuation_realization ?? null,
+                    hypergrowth_window_years: entry.hypergrowth_window_years ?? randBetween(1.5, 3.5),
+                    hypergrowth_initial_growth_rate: entry.hypergrowth_initial_growth_rate ?? randBetween(0.8, 1.8),
+                    hypergrowth_terminal_growth_rate: entry.hypergrowth_terminal_growth_rate ?? randBetween(0.15, 0.35),
+                    hypergrowth_initial_margin: entry.hypergrowth_initial_margin ?? randBetween(-0.5, -0.2),
+                    hypergrowth_terminal_margin: entry.hypergrowth_terminal_margin ?? randBetween(0.2, 0.4),
+                    long_run_revenue_ceiling_usd: valuation * randBetween(35, 70),
+                    long_run_growth_rate: randBetween(0.25, 0.45),
+                    long_run_growth_floor: randBetween(0.05, 0.12),
+                    long_run_growth_decay: randBetween(0.08, 0.2),
+                    post_gate_initial_multiple: randBetween(10, 16),
+                    post_gate_baseline_multiple: randBetween(4, 8),
+                    post_gate_multiple_decay_years: randBetween(6, 11),
+                    post_gate_margin: entry.post_gate_margin ?? randBetween(0.2, 0.35),
+                    max_failures_before_collapse: entry.max_failures_before_collapse ?? 1,
+                    private_listing_window: listingWindow || null,
+                    base_business: baseBusiness,
+                    finance,
+                    costs,
+                    pipeline,
+                    rounds: HARDTECH_VC_ROUNDS,
+                    post_success_mode: entry.post_success_mode || 'ramp'
+                });
+            }
         };
 
         if (mergedGroups.length > 0) {

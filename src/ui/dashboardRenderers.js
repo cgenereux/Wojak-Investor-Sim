@@ -241,22 +241,54 @@
     portfolio.forEach(holding => {
       const company = companies.find(c => c.name === holding.companyName);
       if (!company) return;
+      const isBankrupt = !!company.bankrupt;
       const sectorClass = getSectorClass(company.sector);
-      const currentValue = company.marketCap * holding.unitsOwned;
+      const currentValue = isBankrupt ? 0 : company.marketCap * holding.unitsOwned;
       const formattedValue = currencyFormatter.format(currentValue);
       const key = `public:${holding.companyName}`;
+      const bankruptClass = isBankrupt ? ' bankrupt' : '';
+      const companyNameDisplay = isBankrupt ? `${holding.companyName} (Failed)` : holding.companyName;
+      const statusLabel = isBankrupt ? 'Status: Bankrupt' : '';
+      // Hide sector and IPO year for bankrupt companies
+      const sectorDisplay = isBankrupt ? '' : (company.sector || '');
+      const ipoYear = (!isBankrupt && company.ipoDate) ? new Date(company.ipoDate).getFullYear() : null;
       processedKeys.add(key);
       if (existingItems.has(key)) {
         const item = existingItems.get(key);
         item.querySelector('.portfolio-value').textContent = formattedValue;
+        const nameEl = item.querySelector('.company-name');
+        if (nameEl) nameEl.textContent = companyNameDisplay;
+        const statusEl = item.querySelector('.portfolio-status');
+        if (statusEl) {
+          statusEl.textContent = statusLabel;
+          statusEl.style.display = isBankrupt ? 'block' : 'none';
+        }
+        const sectorEl = item.querySelector('.portfolio-sector');
+        if (sectorEl) {
+          sectorEl.textContent = sectorDisplay;
+          sectorEl.style.display = isBankrupt ? 'none' : 'block';
+        }
+        const ipoEl = item.querySelector('.portfolio-ipo-badge');
+        if (ipoEl) {
+          ipoEl.textContent = ipoYear || '';
+          ipoEl.style.display = isBankrupt ? 'none' : 'block';
+        }
         applySectorClass(item, sectorClass);
+        if (isBankrupt) {
+          item.classList.add('bankrupt');
+        } else {
+          item.classList.remove('bankrupt');
+        }
         existingItems.delete(key);
       } else {
         newPortfolioHtml.push(`
-          <div class="portfolio-item${sectorClass ? ` ${sectorClass}` : ''}" data-portfolio-type="public" data-portfolio-key="${key}">
-              <div class="company-name">${holding.companyName}</div>
+          <div class="portfolio-item${sectorClass ? ` ${sectorClass}` : ''}${bankruptClass}" data-portfolio-type="public" data-portfolio-key="${key}">
+              ${ipoYear ? `<div class="portfolio-ipo-badge">${ipoYear}</div>` : ''}
+              <div class="company-name">${companyNameDisplay}</div>
               <div class="portfolio-info">
+                  <span class="portfolio-status" style="display:${isBankrupt ? 'block' : 'none'}">${statusLabel}</span>
                   Value: <span class="portfolio-value">${formattedValue}</span>
+                  <div class="portfolio-sector" style="display:${isBankrupt ? 'none' : 'block'}">${sectorDisplay}</div>
               </div>
           </div>
         `);
@@ -279,17 +311,22 @@
       if (!hasEquity && !hasPending && !wasBankruptcyVictim) return;
       const equityValue = hasEquity ? equityFraction * valuation : 0;
       const pendingValue = !hasEquity && hasPending ? pendingCommitment : 0;
-      const formattedValue = hasEquity ? currencyFormatter.format(equityValue) : (hasPending ? currencyFormatter.format(pendingValue) : (wasBankruptcyVictim ? currencyFormatter.format(0) : ''));
+      // For bankrupt companies, show $0 value
+      const formattedValue = isFailed ? currencyFormatter.format(0) : (hasEquity ? currencyFormatter.format(equityValue) : (hasPending ? currencyFormatter.format(pendingValue) : ''));
       const pendingLabel = (!isInFlight && hasPending) ? `Committed: ${currencyFormatter.format(pendingCommitment)}` : '';
       const key = `private:${summary.id}`;
       processedKeys.add(key);
       const playerEquityPct = equityFraction * 100;
-      const stakeLabel = hasEquity ? `${playerEquityPct.toFixed(2)}% stake` : (wasBankruptcyVictim ? 'Investment failed' : 'Stake pending');
+      // Hide stake label for bankrupt companies
+      const stakeLabel = isFailed ? '' : (hasEquity ? `${playerEquityPct.toFixed(2)}% stake` : (wasBankruptcyVictim ? 'Investment failed' : 'Stake pending'));
       const stageLabel = detail.stageLabel || summary.stageLabel || 'Private';
-      const nameLabel = isInFlight ? `${summary.name} (${stageLabel}) (In Flight)` : `${summary.name} (${stageLabel})`;
+      // Show "(Failed)" instead of stage for bankrupt companies
+      const nameLabel = isFailed ? `${summary.name} (Failed)` : (isInFlight ? `${summary.name} (${stageLabel}) (In Flight)` : `${summary.name} (${stageLabel})`);
       const sectorClass = getSectorClass(detail.sector || summary.sector);
-      const valueRowDisplay = (hasEquity || hasPending || wasBankruptcyVictim) ? 'block' : 'none';
+      const valueRowDisplay = (hasEquity || hasPending || wasBankruptcyVictim || isFailed) ? 'block' : 'none';
+      const stakeDisplay = isFailed ? 'none' : 'block';
       const bankruptClass = isFailed ? ' bankrupt' : '';
+      const statusLabel = isFailed ? 'Status: Bankrupt' : '';
       if (existingItems.has(key)) {
         const item = existingItems.get(key);
         const valueRow = item.querySelector('.portfolio-value-row');
@@ -297,37 +334,37 @@
         const valueEl = item.querySelector('.portfolio-value');
         if (valueEl) valueEl.textContent = formattedValue;
         const stakeEl = item.querySelector('.portfolio-stake');
-        if (stakeEl) stakeEl.textContent = stakeLabel;
+        if (stakeEl) {
+          stakeEl.textContent = stakeLabel;
+          stakeEl.style.display = stakeDisplay;
+        }
         const pendingEl = item.querySelector('.portfolio-pending');
         if (pendingEl) {
           pendingEl.textContent = pendingLabel;
           pendingEl.style.display = (!isInFlight && hasPending) ? 'block' : 'none';
         }
+        const statusEl = item.querySelector('.portfolio-status');
+        if (statusEl) {
+          statusEl.textContent = statusLabel;
+          statusEl.style.display = isFailed ? 'block' : 'none';
+        }
         const nameEl = item.querySelector('.company-name');
         if (nameEl) {
-          // Update name and add/update bankrupt label
-          let existingLabel = item.querySelector('.portfolio-bankrupt-label');
-          if (isFailed && !existingLabel) {
-            nameEl.innerHTML = nameLabel + '<span class="portfolio-bankrupt-label">Bankrupt</span>';
-          } else if (isFailed) {
-            nameEl.childNodes[0].textContent = nameLabel;
-          } else {
-            nameEl.textContent = nameLabel;
-          }
+          nameEl.textContent = nameLabel;
         }
         applySectorClass(item, sectorClass);
-        if (bankruptClass) item.classList.add('bankrupt');
+        if (isFailed) item.classList.add('bankrupt');
         existingItems.delete(key);
       } else {
-        const bankruptLabel = isFailed ? '<span class="portfolio-bankrupt-label">Bankrupt</span>' : '';
         newPortfolioHtml.push(`
           <div class="portfolio-item${sectorClass ? ` ${sectorClass}` : ''}${bankruptClass}" data-portfolio-type="private" data-venture-id="${summary.id}" data-portfolio-key="${key}">
-              <div class="company-name">${nameLabel}${bankruptLabel}</div>
+              <div class="company-name">${nameLabel}</div>
               <div class="portfolio-info">
+                  <span class="portfolio-status" style="display:${isFailed ? 'block' : 'none'}">${statusLabel}</span>
                   <div class="portfolio-value-row" style="display:${valueRowDisplay}">
                       Value: <span class="portfolio-value">${formattedValue}</span>
                   </div>
-                  <span class="portfolio-stake">${stakeLabel}</span>
+                  <span class="portfolio-stake" style="display:${stakeDisplay}">${stakeLabel}</span>
                   <span class="portfolio-pending" style="display:${(!isInFlight && hasPending) ? 'block' : 'none'}">${pendingLabel}</span>
               </div>
           </div>

@@ -277,6 +277,9 @@
       this.ipoDate = ipoDate;
       this.fromVenture = !!cfg.fromVenture;
       this.macroEnv = macroEnv;
+      // Support for scheduled bankruptcy from presets
+      const bankruptcyDateRaw = (cfg.static && cfg.static.bankruptcy_date) || cfg.bankruptcy_date;
+      this.bankruptcyDate = bankruptcyDateRaw ? new Date(bankruptcyDateRaw) : null;
 
       this.startYear = gameStartYear;
       this.ageDays = 0;
@@ -580,12 +583,12 @@
       if (!data || data.length === 0) return '<p>No annual data available yet</p>';
       const fmtMoney = (v) => {
         const absV = Math.abs(v);
-      let formatted;
-      if (absV >= 1e15) formatted = `$${(absV / 1e15).toFixed(1)}Q`;
-      else if (absV >= 1e12) formatted = `$${(absV / 1e12).toFixed(1)}T`;
-      else if (absV >= 1e9) formatted = `$${(absV / 1e9).toFixed(1)}B`;
-      else if (absV >= 1e6) formatted = `$${(absV / 1e6).toFixed(1)}M`;
-      else if (absV >= 1e3) formatted = `$${(absV / 1e3).toFixed(1)}K`;
+        let formatted;
+        if (absV >= 1e15) formatted = `$${(absV / 1e15).toFixed(1)}Q`;
+        else if (absV >= 1e12) formatted = `$${(absV / 1e12).toFixed(1)}T`;
+        else if (absV >= 1e9) formatted = `$${(absV / 1e9).toFixed(1)}B`;
+        else if (absV >= 1e6) formatted = `$${(absV / 1e6).toFixed(1)}M`;
+        else if (absV >= 1e3) formatted = `$${(absV / 1e3).toFixed(1)}K`;
         else formatted = `$${absV.toFixed(0)}`;
         return v < 0 ? `-${formatted}` : formatted;
       };
@@ -768,6 +771,12 @@
     step(dtDays, gameDate) {
       if (this.bankrupt) return;
 
+      // Check for scheduled bankruptcy from preset
+      if (this.bankruptcyDate && gameDate && gameDate >= this.bankruptcyDate) {
+        this.markBankrupt(gameDate);
+        return;
+      }
+
       this.ageDays += dtDays;
       const dtYears = dtDays / 365;
       const ageYears = this.ageDays / 365;
@@ -819,7 +828,7 @@
       const revenueThisTick = effectiveAnnual * dtYears;
       // Debug: log once per year for Tech companies
       if (this.sector === 'Tech' && this.ageDays > 0 && this.ageDays % 365 < 15) {
-        console.log(`[Step] Tech "${this.name}" year ${Math.floor(this.ageDays/365)}: baseRevenue=${(this.baseRevenue/1e6).toFixed(0)}M, sectorFactor=${sectorFactor.toFixed(2)}, micro=${this.micro.toFixed(2)}, effectiveAnnual=${(effectiveAnnual/1e6).toFixed(0)}M`);
+        console.log(`[Step] Tech "${this.name}" year ${Math.floor(this.ageDays / 365)}: baseRevenue=${(this.baseRevenue / 1e6).toFixed(0)}M, sectorFactor=${sectorFactor.toFixed(2)}, micro=${this.micro.toFixed(2)}, effectiveAnnual=${(effectiveAnnual / 1e6).toFixed(0)}M`);
       }
 
       let marginNow;

@@ -1,65 +1,170 @@
 {
   "defaults": {
-    "structural_bias": { "min": 0.5, "max": 2, "half_life_years": 15 },
-    "base_revenue_usd": [200000000, 400000000],
+    "structural_bias": {
+      "min": 0.5,
+      "max": 2,
+      "half_life_years": 15
+    },
+    "base_revenue_usd": [
+      200000000,
+      400000000
+    ],
     "margin_curve": {
-      "start_profit_margin": [0.08, 0.17],
-      "terminal_profit_margin": [0.20, 0.26],
-      "years_to_mature": [25, 45]
+      "start_profit_margin": [
+        0.08,
+        0.17
+      ],
+      "terminal_profit_margin": [
+        0.20,
+        0.26
+      ],
+      "years_to_mature": [
+        25,
+        45
+      ]
     },
     "multiple_curve": {
-      "initial_pe_ratio": [8, 15],
-      "terminal_pe_ratio": [12, 15],
-      "years_to_converge": [20, 40]
+      "initial_pe_ratio": [
+        8,
+        15
+      ],
+      "terminal_pe_ratio": [
+        12,
+        15
+      ],
+      "years_to_converge": [
+        20,
+        40
+      ]
     },
     "costs": {
-      "opex_variable_ratio": [0.08, 0.16],
-      "rd_base_ratio": [0.02, 0.04]
+      "opex_variable_ratio": [
+        0.08,
+        0.16
+      ],
+      "rd_base_ratio": [
+        0.02,
+        0.04
+      ]
     },
-    "ipo_window": { "from": 1975, "to": 1990 },
+    "ipo_window": {
+      "from": 1975,
+      "to": 1990
+    },
     "sector": "General"
   },
   "sector_defaults": {
     "Banking": {
-      "structural_bias": { "min": 0.4, "max": 2, "half_life_years": 25 },
-      "base_revenue_usd": [1200000000, 4000000000],
+      "structural_bias": {
+        "min": 0.4,
+        "max": 2,
+        "half_life_years": 25
+      },
+      "base_revenue_usd": [
+        1200000000,
+        4000000000
+      ],
       "margin_curve": {
-        "start_profit_margin": [0.12, 0.16],
-        "terminal_profit_margin": [0.17, 0.23],
-        "years_to_mature": [40, 60]
+        "start_profit_margin": [
+          0.12,
+          0.16
+        ],
+        "terminal_profit_margin": [
+          0.17,
+          0.23
+        ],
+        "years_to_mature": [
+          40,
+          60
+        ]
       },
       "multiple_curve": {
-        "initial_ps_ratio": [1.2, 1.8],
-        "initial_pe_ratio": [9, 14],
-        "terminal_pe_ratio": [9, 15],
-        "years_to_converge": [40, 60]
+        "initial_ps_ratio": [
+          1.2,
+          1.8
+        ],
+        "initial_pe_ratio": [
+          9,
+          14
+        ],
+        "terminal_pe_ratio": [
+          9,
+          15
+        ],
+        "years_to_converge": [
+          40,
+          60
+        ]
       },
       "costs": {
-        "opex_variable_ratio": [0.08, 0.16],
-        "rd_base_ratio": [0.02, 0.04]
+        "opex_variable_ratio": [
+          0.08,
+          0.16
+        ],
+        "rd_base_ratio": [
+          0.02,
+          0.04
+        ]
       },
       "sector": "Banking",
-      "ipo_window": { "from": 1970, "to": 1988 }
+      "ipo_window": {
+        "from": 1970,
+        "to": 1988
+      }
     },
     "Tech": {
-      "structural_bias": { "min": 0.6, "max": 3, "half_life_years": 18 },
-      "base_revenue_usd": [150000000, 700000000],
+      "structural_bias": {
+        "min": 0.6,
+        "max": 3,
+        "half_life_years": 18
+      },
+      "base_revenue_usd": [
+        150000000,
+        700000000
+      ],
       "margin_curve": {
-        "start_profit_margin": [0.10, 0.16],
-        "terminal_profit_margin": [0.22, 0.32],
-        "years_to_mature": [15, 30]
+        "start_profit_margin": [
+          0.10,
+          0.16
+        ],
+        "terminal_profit_margin": [
+          0.22,
+          0.32
+        ],
+        "years_to_mature": [
+          15,
+          30
+        ]
       },
       "multiple_curve": {
-        "initial_ps_ratio": [4.5, 7.5],
-        "terminal_pe_ratio": [16, 26],
-        "years_to_converge": [9, 13]
+        "initial_ps_ratio": [
+          4.5,
+          7.5
+        ],
+        "terminal_pe_ratio": [
+          16,
+          26
+        ],
+        "years_to_converge": [
+          9,
+          13
+        ]
       },
       "costs": {
-        "opex_variable_ratio": [0.12, 0.22],
-        "rd_base_ratio": [0.06, 0.1]
+        "opex_variable_ratio": [
+          0.12,
+          0.22
+        ],
+        "rd_base_ratio": [
+          0.06,
+          0.1
+        ]
       },
       "sector": "Tech",
-      "ipo_window": { "from": 1979, "to": 1992 }
+      "ipo_window": {
+        "from": 1979,
+        "to": 1992
+      }
     }
   },
   "groups": [
@@ -67,19 +172,41 @@
       "id": "classic_1970s",
       "label": "1970s",
       "pick": 4,
-      "pick_by_sector": { "Banking": 2, "Retail": 1, "Automotive": 1 },
-      "defaults": { "ipo_window": { "from": 1964, "to": 1979 } },
+      "pick_by_sector": {
+        "Banking": 2,
+        "Retail": 1,
+        "Automotive": 1
+      },
+      "defaults": {
+        "ipo_window": {
+          "from": 1964,
+          "to": 1979
+        }
+      },
       "roster": [
         {
           "name": "Wainwright Brothers",
           "mission": "Advising the world's leading institutions on mergers, acquisitions, and strategy.",
-          "founders": [ { "name": "Charles Wainwright" }, { "name": "Henry Wainwright" } ],
+          "founders": [
+            {
+              "name": "Charles Wainwright"
+            },
+            {
+              "name": "Henry Wainwright"
+            }
+          ],
           "founding_location": "Boston, MA",
           "sector": "Banking"
         },
         {
           "name": "Ryan’s Repair & Supply",
-          "founders": [ { "name": "Ryan Smith", "degree": "BS", "school": "University of Illinois" } ],
+          "founders": [
+            {
+              "name": "Ryan Smith",
+              "degree": "BS",
+              "school": "University of Illinois"
+            }
+          ],
           "sector": "Retail",
           "mission": "Supplying the tools and materials homeowners trust.",
           "founding_location": "New York, NY"
@@ -87,21 +214,42 @@
         {
           "name": "Atlas Motor Works",
           "mission": "Building dependable, efficient cars and trucks for working families.",
-          "founders": [ { "name": "Carl Nguyen" }, { "name": "Dana Ruiz" } ],
+          "founders": [
+            {
+              "name": "Carl Nguyen"
+            },
+            {
+              "name": "Dana Ruiz"
+            }
+          ],
           "founding_location": "Detroit, MI",
           "sector": "Automotive"
         },
         {
           "name": "Sterling National Bank",
           "mission": "Anchoring American commerce with trusted lending and capital markets.",
-          "founders": [ { "name": "James Sterling" }, { "name": "Catherine Aldrich" } ],
+          "founders": [
+            {
+              "name": "James Sterling"
+            },
+            {
+              "name": "Catherine Aldrich"
+            }
+          ],
           "founding_location": "New York, NY",
           "sector": "Banking"
         },
         {
           "name": "Hargrove & Sons",
           "mission": "Preserving wealth across generations through disciplined investment banking.",
-          "founders": [ { "name": "Theodore Hargrove III" }, { "name": "Edmund Whitmore" } ],
+          "founders": [
+            {
+              "name": "Theodore Hargrove III"
+            },
+            {
+              "name": "Edmund Whitmore"
+            }
+          ],
           "founding_location": "New York, NY",
           "sector": "Banking"
         }
@@ -111,41 +259,86 @@
       "id": "classic_1980s",
       "label": "1980s",
       "pick": 3,
-      "pick_by_sector": { "Airlines": 1, "Retail":2},
-      "defaults": { "ipo_window": { "from": 1978, "to": 1989 } },
+      "pick_by_sector": {
+        "Airlines": 1,
+        "Retail": 2
+      },
+      "defaults": {
+        "ipo_window": {
+          "from": 1978,
+          "to": 1989
+        }
+      },
       "roster": [
         {
           "name": "SmartCart Holdings",
-          "founders": [ { "name": "Linda Harris", "degree": "MBA", "school": "Harvard" } ],
+          "founders": [
+            {
+              "name": "Linda Harris",
+              "degree": "MBA",
+              "school": "Harvard"
+            }
+          ],
           "sector": "Retail",
           "mission": "Modernizing retail supply chains with smart checkout and logistics automation.",
-          "founding_location": "Bentonville, AR"
+          "founding_location": "Bentonville, AR",
+          "bankruptcy_date": "1986-06-15"
         },
         {
           "name": "Pacific Crest Airlines",
           "mission": "Delivering reliable regional lift along the Pacific Rim.",
-          "founders": [ { "name": "Kenji Morita" }, { "name": "Sara Delgado" } ],
+          "founders": [
+            {
+              "name": "Kenji Morita"
+            },
+            {
+              "name": "Sara Delgado"
+            }
+          ],
           "founding_location": "San Francisco, CA",
           "sector": "Airlines"
         },
         {
           "name": "Joe's Airways",
           "mission": "Making premium transcontinental flights affordable.",
-          "founders": [ { "name": "Joe Smhoe" }, { "name": "Sarah Collins" } ],
+          "founders": [
+            {
+              "name": "Joe Smhoe"
+            },
+            {
+              "name": "Sarah Collins"
+            }
+          ],
           "founding_location": "Seattle, WA",
           "sector": "Airlines"
         },
         {
           "name": "SkyBridge Air",
           "mission": "Linking global hubs with reliable long-haul service.",
-          "founders": [ { "name": "Amelia Carter" }, { "name": "Diego Alvarez" } ],
+          "founders": [
+            {
+              "name": "Amelia Carter"
+            },
+            {
+              "name": "Diego Alvarez"
+            }
+          ],
           "founding_location": "Atlanta, GA",
-          "ipo_window": { "from": 2001, "to": 2009 },
+          "ipo_window": {
+            "from": 2001,
+            "to": 2009
+          },
           "sector": "Airlines"
         },
         {
           "name": "GlobalMart",
-          "founders": [ { "name": "Sandra Osei", "degree": "MBA", "school": "Wharton" } ],
+          "founders": [
+            {
+              "name": "Sandra Osei",
+              "degree": "MBA",
+              "school": "Wharton"
+            }
+          ],
           "sector": "Retail",
           "mission": "Empowering homeowners with reliable tools, materials, and service to get every project done right.",
           "founding_location": "Seattle, WA"
@@ -155,46 +348,102 @@
     {
       "id": "classic_1990s",
       "label": "1990s",
-      "pick_by_sector": { "Tech": 2, "Real Estate": 1, "Defense": 1},
-      "defaults": { "ipo_window": { "from": 1990, "to": 1999 } },
+      "pick_by_sector": {
+        "Tech": 2,
+        "Real Estate": 1,
+        "Defense": 1
+      },
+      "defaults": {
+        "ipo_window": {
+          "from": 1990,
+          "to": 1999
+        }
+      },
       "roster": [
         {
           "name": "Orion Microsystems",
           "sector": "Tech",
-          "ipo_window": { "from": 1982, "to": 1995 },
-          "founders": [ { "name": "Clara Thompson" }, { "name": "Rajiv Desai" } ],
+          "ipo_window": {
+            "from": 1982,
+            "to": 1995
+          },
+          "founders": [
+            {
+              "name": "Clara Thompson"
+            },
+            {
+              "name": "Rajiv Desai"
+            }
+          ],
           "mission": "Building dependable operating systems and software for every desk.",
           "founding_location": "Redmond, WA"
         },
         {
           "name": "Pioneer Devices",
           "sector": "Tech",
-          "founders": [ { "name": "Miguel Alvarez" }, { "name": "Hannah Park" } ],
+          "founders": [
+            {
+              "name": "Miguel Alvarez"
+            },
+            {
+              "name": "Hannah Park"
+            }
+          ],
           "mission": "Designing iconic consumer hardware with seamless ecosystems.",
           "founding_location": "Cupertino, CA"
         },
         {
           "name": "Summit Systems",
           "sector": "Tech",
-          "ipo_window": { "from": 1992, "to": 1999 },
-          "founders": [ { "name": "Grace Ito" }, { "name": "Daniel Cho" } ],
+          "ipo_window": {
+            "from": 1992,
+            "to": 1999
+          },
+          "founders": [
+            {
+              "name": "Grace Ito"
+            },
+            {
+              "name": "Daniel Cho"
+            }
+          ],
           "mission": "Delivering enterprise databases and middleware that never sleep.",
           "founding_location": "San Jose, CA"
         },
         {
           "name": "American Real Estate",
           "mission": "Acquiring, developing, and managing commercial hubs across the U.S.",
-          "founders": [ { "name": "Darren Whitfield" }, { "name": "Melanie Ortiz" } ],
+          "founders": [
+            {
+              "name": "Darren Whitfield"
+            },
+            {
+              "name": "Melanie Ortiz"
+            }
+          ],
           "founding_location": "New York, NY",
-          "ipo_window": { "from": 1975, "to": 1994},
+          "ipo_window": {
+            "from": 1975,
+            "to": 1994
+          },
           "sector": "Real Estate"
         },
         {
           "name": "Lockmere Systems",
           "mission": "Engineering advanced avionics and defense platforms for allied forces.",
-          "founders": [ { "name": "Colin Hart" }, { "name": "Rebecca Lin" } ],
+          "founders": [
+            {
+              "name": "Colin Hart"
+            },
+            {
+              "name": "Rebecca Lin"
+            }
+          ],
           "founding_location": "Fort Worth, TX",
-          "ipo_window": { "from": 1975, "to": 2000},
+          "ipo_window": {
+            "from": 1975,
+            "to": 2000
+          },
           "sector": "Defense"
         }
       ]
@@ -203,29 +452,62 @@
       "id": "classic_2000s",
       "label": "2000s Globalization",
       "pick": 2,
-      "pick_by_sector": { "Banking": 1, "Retail": 1, "Airlines": 1 },
-      "defaults": { "ipo_window": { "from": 2000, "to": 2009 } },
+      "pick_by_sector": {
+        "Banking": 1,
+        "Retail": 1,
+        "Airlines": 1
+      },
+      "defaults": {
+        "ipo_window": {
+          "from": 2000,
+          "to": 2009
+        }
+      },
       "roster": [
         {
           "name": "Genova Therapeutics",
           "mission": "Scaling biologics manufacturing for frontline therapies.",
-          "founders": [ { "name": "Dr. Priya Malhotra" }, { "name": "Evan Brooks" } ],
+          "founders": [
+            {
+              "name": "Dr. Priya Malhotra"
+            },
+            {
+              "name": "Evan Brooks"
+            }
+          ],
           "founding_location": "Cambridge, MA",
           "sector": "Biotech"
         },
         {
           "name": "Regeneron Therapeutics",
           "mission": "Developing and distributing life-saving pharmaceuticals.",
-          "founders": [ { "name": "Dr. Lena Romero" }, { "name": "Marcus Lee" } ],
+          "founders": [
+            {
+              "name": "Dr. Lena Romero"
+            },
+            {
+              "name": "Marcus Lee"
+            }
+          ],
           "founding_location": "San Diego, CA",
           "sector": "Biotech"
         },
         {
           "name": "Marston Aerospace",
           "mission": "Building next-gen aircraft and space systems for the US military.",
-          "founders": [ { "name": "Angela Marston" }, { "name": "Victor Delgado" } ],
+          "founders": [
+            {
+              "name": "Angela Marston"
+            },
+            {
+              "name": "Victor Delgado"
+            }
+          ],
           "founding_location": "St. Louis, MO",
-          "ipo_window": { "from": 1995, "to": 2009 },
+          "ipo_window": {
+            "from": 1995,
+            "to": 2009
+          },
           "sector": "Aerospace"
         }
       ]
@@ -234,12 +516,24 @@
       "id": "classic_2010s",
       "label": "2010s",
       "pick": 2,
-      "defaults": { "ipo_window": { "from": 2010, "to": 2019 } },
+      "defaults": {
+        "ipo_window": {
+          "from": 2010,
+          "to": 2019
+        }
+      },
       "roster": [
-          {
+        {
           "name": "Nebula Stream",
           "mission": "Unifying enterprise data silos into a single, intelligent cloud infrastructure.",
-          "founders": [ { "name": "Jessica Wu" }, { "name": "David Chen" } ],
+          "founders": [
+            {
+              "name": "Jessica Wu"
+            },
+            {
+              "name": "David Chen"
+            }
+          ],
           "founding_location": "San Francisco, CA",
           "sector": "Tech"
         }
@@ -249,35 +543,65 @@
       "id": "classic_2020s",
       "label": "2020s",
       "pick": 1,
-      "defaults": { "ipo_window": { "from": 2020, "to": 2029 } },
+      "defaults": {
+        "ipo_window": {
+          "from": 2020,
+          "to": 2029
+        }
+      },
       "roster": [
         {
           "name": "Verdant Power Solutions",
           "mission": "Stabilizing the grid with next-generation solid-state battery storage.",
-          "founders": [ { "name": "Lars Jensen" }, { "name": "Priya Patel" } ],
+          "founders": [
+            {
+              "name": "Lars Jensen"
+            },
+            {
+              "name": "Priya Patel"
+            }
+          ],
           "founding_location": "Austin, TX",
           "sector": "Energy"
         }
-        
       ]
     },
     {
       "id": "classic_2030s",
       "label": "2030s Frontier Defense",
       "pick": 2,
-      "defaults": { "ipo_window": { "from": 2030, "to": 2039 } },
+      "defaults": {
+        "ipo_window": {
+          "from": 2030,
+          "to": 2039
+        }
+      },
       "roster": [
         {
           "name": "Aegis Autonomous",
           "mission": "Deploying unmanned perimeter defense systems for sovereign territories.",
-          "founders": [ { "name": "Col. Robert Haze (Ret)" }, { "name": "Wei Zhang" } ],
+          "founders": [
+            {
+              "name": "Col. Robert Haze (Ret)"
+            },
+            {
+              "name": "Wei Zhang"
+            }
+          ],
           "founding_location": "Denver, CO",
           "sector": "Defense"
         },
         {
           "name": "OrbitCore Fabrication",
           "mission": "Manufacturing zero-gravity alloys and fiber optics in low earth orbit.",
-          "founders": [ { "name": "Elara Vance" }, { "name": "Kenji Sato" } ],
+          "founders": [
+            {
+              "name": "Elara Vance"
+            },
+            {
+              "name": "Kenji Sato"
+            }
+          ],
           "founding_location": "Mojave, CA",
           "sector": "Aerospace"
         }
@@ -287,19 +611,38 @@
       "id": "classic_2040s",
       "label": "2040s",
       "pick": 2,
-      "defaults": { "ipo_window": { "from": 2038, "to": 2046 } },
+      "defaults": {
+        "ipo_window": {
+          "from": 2038,
+          "to": 2046
+        }
+      },
       "roster": [
         {
           "name": "Helios Deep Space",
           "mission": "Establishing permanent heavy-cargo logistics bridges to Mars.",
-          "founders": [ { "name": "Xavier Solamon" }, { "name": "Lyra Belmonte" } ],
+          "founders": [
+            {
+              "name": "Xavier Solamon"
+            },
+            {
+              "name": "Lyra Belmonte"
+            }
+          ],
           "founding_location": "Boca Chica, TX",
           "sector": "Aerospace"
         },
         {
           "name": "TerraFirma Habitats",
           "mission": "Designing self-sustaining biospheres for hostile interplanetary environments.",
-          "founders": [ { "name": "Dr. Aris Thorne" }, { "name": "Maya Okafor" } ],
+          "founders": [
+            {
+              "name": "Dr. Aris Thorne"
+            },
+            {
+              "name": "Maya Okafor"
+            }
+          ],
           "founding_location": "Cape Canaveral, FL",
           "sector": "Real Estate"
         }
