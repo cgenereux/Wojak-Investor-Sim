@@ -21,7 +21,11 @@ const macroEvents = require('../data/macroEvents.json');
 const PORT = process.env.PORT || 4000;
 const ANNUAL_INTEREST_RATE = 0.07;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
-const BANKRUPT_PURGE_DELAY_MS = 9000;
+// 5 years in game time ≈ ~450 ticks at 500ms/tick with 4 game-days per tick
+// This is an approximation; for true game-time tracking we'd need to check sim dates
+// but this gives ~3.75 minutes real-time which is reasonable for visibility
+const BANKRUPT_PURGE_DELAY_MS = 5 * 365 * 500 / 4; // ~228 seconds (about 4 min real-time for 5 game-years)
+const VENTURE_BANKRUPT_PURGE_DELAY_MS = BANKRUPT_PURGE_DELAY_MS;
 const GAME_START_YEAR = 1985;
 const GAME_END_YEAR = 2050;
 const MAX_CONNECTIONS = Number(process.env.MAX_CONNECTIONS || 50);
@@ -512,6 +516,27 @@ function clearBankruptCleanupTimers(session) {
   });
 }
 
+function scheduleVentureBankruptHoldingCleanup(session, companyId) {
+  if (!session || !companyId) return;
+  // Use the same map but prefix with 'vc:' to distinguish from public companies
+  const key = `vc:${companyId}`;
+  if (session.bankruptRemovalTimers.has(key)) return;
+  const timer = setTimeout(() => {
+    if (!session || session.ended) return;
+    session.players.forEach(player => {
+      if (player && player.ventureHoldings && player.ventureHoldings[companyId]) {
+        delete player.ventureHoldings[companyId];
+      }
+      if (player && player.ventureCommitments && player.ventureCommitments[companyId]) {
+        delete player.ventureCommitments[companyId];
+      }
+    });
+    session.bankruptRemovalTimers.delete(key);
+    broadcastPlayers(session);
+  }, VENTURE_BANKRUPT_PURGE_DELAY_MS);
+  session.bankruptRemovalTimers.set(key, timer);
+}
+
 function sanitizeVentureEvents(events) {
   if (!Array.isArray(events)) return [];
   return events.map(evt => {
@@ -586,10 +611,8 @@ function handleVentureEventsSession(session, events) {
       return;
     }
     if (evt.type === 'venture_failed') {
-      session.players.forEach(p => {
-        if (p.ventureHoldings && p.ventureHoldings[evt.companyId]) delete p.ventureHoldings[evt.companyId];
-        if (p.ventureCommitments && p.ventureCommitments[evt.companyId]) delete p.ventureCommitments[evt.companyId];
-      });
+      // Schedule delayed cleanup so players can see the bankrupt VC holding for a while
+      scheduleVentureBankruptHoldingCleanup(session, evt.companyId);
       return;
     }
     if (evt.type === 'venture_ipo') {

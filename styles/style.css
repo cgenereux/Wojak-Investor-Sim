@@ -43,6 +43,7 @@ body {
     transition: transform 0.4s ease-in-out, opacity 0.4s ease-in-out;
 }
 
+/* Disable VC detail/back transitions when explicitly requested */
 #main-view {
     transform: translateX(0);
 }
@@ -882,6 +883,25 @@ button.speed-active:hover {
     transform: none;
 }
 
+.portfolio-item.bankrupt {
+    border: 1px solid #ff9aa2;
+    background: #fff1f1;
+    opacity: 0.85;
+}
+
+.portfolio-bankrupt-label {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    background: #dc2626;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
 .companies-grid {
     pointer-events: auto;
 }
@@ -1036,56 +1056,56 @@ button.speed-active:hover {
     border-color: #d9e5ff;
 }
 
-#ventureCompaniesGrid .company-box.sector-tech {
+#ventureCompaniesGrid .company-box:not(.bankrupt).sector-tech {
     background: #eaf3ff;
     border-color: #d4e6ff;
 }
 
-#ventureCompaniesGrid .company-box.sector-biotech {
+#ventureCompaniesGrid .company-box:not(.bankrupt).sector-biotech {
     background: #fff0f6;
     border-color: #ffd6e8;
 }
 
-#ventureCompaniesGrid .company-box.sector-banking {
+#ventureCompaniesGrid .company-box:not(.bankrupt).sector-banking {
     background: #fff7df;
     border-color: #f3d27a;
 }
 
-#ventureCompaniesGrid .company-box.sector-retail,
-#ventureCompaniesGrid .company-box.sector-staples {
+#ventureCompaniesGrid .company-box:not(.bankrupt).sector-retail,
+#ventureCompaniesGrid .company-box:not(.bankrupt).sector-staples {
     background: #fff7ec;
     border-color: #ffe7c7;
 }
 
-#ventureCompaniesGrid .company-box.sector-airlines,
-#ventureCompaniesGrid .company-box.sector-aerospace {
+#ventureCompaniesGrid .company-box:not(.bankrupt).sector-airlines,
+#ventureCompaniesGrid .company-box:not(.bankrupt).sector-aerospace {
     background: #f7f1e8;
     border-color: #d9c0a3;
 }
 
-#ventureCompaniesGrid .company-box.sector-automotive,
-#ventureCompaniesGrid .company-box.sector-industrial {
+#ventureCompaniesGrid .company-box:not(.bankrupt).sector-automotive,
+#ventureCompaniesGrid .company-box:not(.bankrupt).sector-industrial {
     background: #f4f7f0;
     border-color: #dde5d4;
 }
 
-#ventureCompaniesGrid .company-box.sector-defense,
-#ventureCompaniesGrid .company-box.sector-energy {
+#ventureCompaniesGrid .company-box:not(.bankrupt).sector-defense,
+#ventureCompaniesGrid .company-box:not(.bankrupt).sector-energy {
     background: #f4f8f3;
     border-color: #d8ead6;
 }
 
-#ventureCompaniesGrid .company-box.sector-manufacturing {
+#ventureCompaniesGrid .company-box:not(.bankrupt).sector-manufacturing {
     background: #f7f1e8;
     border-color: #d9c0a3;
 }
 
-#ventureCompaniesGrid .company-box.sector-realestate {
+#ventureCompaniesGrid .company-box:not(.bankrupt).sector-realestate {
     background: #f6f3ff;
     border-color: #e3dbff;
 }
 
-#ventureCompaniesGrid .company-box.sector-web {
+#ventureCompaniesGrid .company-box:not(.bankrupt).sector-web {
     background: #f0f5ff;
     border-color: #d9e5ff;
 }
@@ -1875,8 +1895,9 @@ button.speed-active:hover {
 }
 
 .company-box.bankrupt .company-name {
-    color: #d32f2f;
+    color: #333;
 }
+
 
 #chartjs-tooltip {
     opacity: 1;

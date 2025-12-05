@@ -106,11 +106,11 @@ function renderVentureCompanies(companiesData, formatLargeNumber, formatCurrency
             const valuationRaw = typeof company.valuation !== 'undefined' ? company.valuation : company.valuation_usd;
             const valuationDisplay = isFailed ? 'Bankrupt' : vcFormatLargeNumber(valuationRaw || 0, 1);
             const stageDisplay = company.stageLabel || company.funding_round || 'N/A';
-            const statusDisplay = (company.status || '').toLowerCase() === 'failed' ? 'Status: Bankrupt' : '';
+            const statusDisplay = '';
             const playerStake = company.playerEquityPercent && company.playerEquityPercent > 0
                 ? `Your Stake: ${company.playerEquityPercent.toFixed(2)}%`
                 : '';
-            const isDoingRnd = !!company.isDoingRnd;
+            const isDoingRnd = !!company.isDoingRnd && !isFailed;
             let listingYear = null;
             if (Number.isFinite(company.history_third_ts)) {
                 const d = new Date(company.history_third_ts);

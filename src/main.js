@@ -449,7 +449,6 @@ let currentSort = 'sector';
 let currentFilter = 'all';
 const DRIP_STORAGE_KEY = 'wojak_drip_enabled';
 let dripEnabled = false;
-const SPEED_STEPS = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8];
 const SESSION_ID_KEY = 'wojak_session_id';
 const BACKEND_URL_KEY = 'wojak_backend_url';
 const SELECTED_CHARACTER_KEY = 'wojak_selected_character';
@@ -577,8 +576,10 @@ const seenVentureIds = new Set();
 let unseenVentureCount = 0;
 const ENABLE_LOCAL_BANKRUPTCY_TEST = false;
 const BANKRUPTCY_TEST_DELAY_MS = 12000;
-const HOLDING_PURGE_DELAY_MS = 9000;
-const BANKRUPT_CLEANUP_BASE_MS = 120000; // 2 minutes at 1x speed
+// 5 years in game time: at 1x speed, each tick is ~500ms covering 4 game days
+// 5 years = 5 * 365 = 1825 days = ~456 ticks = ~228 seconds at 1x speed
+const HOLDING_PURGE_DELAY_MS = 5 * 365 * 500 / 4; // ~228 seconds (about 4 min real-time for 5 game-years at 1x)
+const BANKRUPT_CLEANUP_BASE_MS = HOLDING_PURGE_DELAY_MS; // Same delay for market visibility
 let bankruptcyTestTimer = null;
 const holdingsPurgeTimers = new Map();
 const bankruptCleanupTimers = new Map();
@@ -1296,6 +1297,9 @@ async function loadCompaniesData() {
 // --- Chart Objects ---
 let netWorthChart, companyDetailChart, financialYoyChart;
 let currentChartRange = 80; // Default to 20Y (80 quarters)
+const BASE_SPEED_STEPS = [0, 0.5, 1, 1.5, 2, 2.5, 3];
+const DEBUG_SPEED_STEPS = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 10, 12, 16];
+let SPEED_STEPS = BASE_SPEED_STEPS.slice();
 
 // --- Formatting ---
 const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
@@ -1310,6 +1314,36 @@ function formatLargeNumber(num, precision = 2) {
     return currencyFormatter.format(num);
 }
 function formatDate(date) { return date.toISOString().split('T')[0]; }
+
+// --- Debug mode (gated to localhost + singleplayer) ---
+const isLocalhost = typeof window !== 'undefined'
+    ? ['localhost', '127.0.0.1'].includes(window.location.hostname) || window.location.hostname.endsWith('.local')
+    : false;
+let debugMode = false;
+function setDebugMode(enabled, reason = 'manual') {
+    if (isServerAuthoritative) return;
+    if (!isLocalhost) return;
+    debugMode = !!enabled;
+    window.__WOJAK_DEBUG_MODE__ = debugMode;
+    const debugControls = document.getElementById('debugControls');
+    if (debugControls) debugControls.style.display = debugMode ? 'flex' : 'none';
+    SPEED_STEPS = debugMode ? DEBUG_SPEED_STEPS.slice() : BASE_SPEED_STEPS.slice();
+    // Clamp speed in non-debug
+    const maxSpeed = Math.max(...SPEED_STEPS);
+    if (!debugMode && currentSpeed > maxSpeed) {
+        setGameSpeed(maxSpeed);
+    } else {
+        updateSpeedThumbLabel();
+    }
+    syncSpeedSliderBounds();
+    if (debugMode) console.info(`[Debug] Enabled (${reason})`);
+}
+window.enableDebugMode = () => setDebugMode(true, 'console');
+window.disableDebugMode = () => setDebugMode(false, 'console');
+const debugParam = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('debug') : null;
+if (debugParam === '1' && !isServerAuthoritative) {
+    setDebugMode(true, 'query');
+}
 
 // --- Synthetic Equal-Weight Index (testing-only) ---
 function updateDisplay() {
@@ -2871,7 +2905,8 @@ function resumeGame() {
 }
 
 function setGameSpeed(speed) {
-    const clampedSpeed = Math.max(0, speed);
+    const maxSpeed = Math.max(...SPEED_STEPS);
+    const clampedSpeed = Math.max(0, Math.min(speed, maxSpeed));
     const wasPaused = isPaused;
     currentSpeed = clampedSpeed;
     if (isServerAuthoritative) {
@@ -3083,7 +3118,17 @@ sellMaxBtn.addEventListener('click', () => {
     }
 });
 
+function syncSpeedSliderBounds() {
+    if (!speedSlider) return;
+    const maxIdx = Math.max(SPEED_STEPS.length - 1, 0);
+    speedSlider.max = String(maxIdx);
+    const idx = SPEED_STEPS.indexOf(currentSpeed);
+    const val = `${idx >= 0 ? idx : Math.min(maxIdx, SPEED_STEPS.length - 1)}`;
+    speedSlider.value = val;
+}
+
 if (speedSlider) {
+    syncSpeedSliderBounds();
     speedSlider.addEventListener('input', (event) => {
         const idx = Number(event.target.value) || 0;
         const clampedIdx = Math.max(0, Math.min(SPEED_STEPS.length - 1, idx));
@@ -3128,7 +3173,7 @@ if (speedSlider) {
 
     if (typeof speedSlider.value === 'string') {
         const initialIdx = SPEED_STEPS.indexOf(currentSpeed);
-        const val = `${initialIdx >= 0 ? initialIdx : 2}`;
+        const val = `${initialIdx >= 0 ? initialIdx : Math.min(3, SPEED_STEPS.length - 1)}`;
         speedSlider.value = val;
     }
     updateSpeedThumbLabel();

@@ -387,25 +387,25 @@
                   "id": "net_energy",
                   "name": "Net Energy Gain Demonstration",
                   "duration_days": 1200,
-                  "success_prob": 0.99,
+                  "success_prob": 1,
                   "value_realization": 0.04,
                   "cost_usd": 300000000,
-                  "max_retries": 2
+                  "max_retries": 1
                 },
                 {
                   "id": "breakeven",
                   "name": "Sustained Breakeven",
                   "duration_days": 900,
                   "depends_on": "net_energy",
-                  "success_prob": 0.99,
+                  "success_prob": 0.0,
                   "value_realization": 0.1,
                   "cost_usd": 250000000,
-                  "max_retries": 2
+                  "max_retries": 1
                 },
                 {
                   "id": "grid_integration",
                   "name": "Grid Integration",
-                  "duration_days": 720,
+                  "duration_days": 800,
                   "depends_on": "breakeven",
                   "success_prob": 0.99,
                   "value_realization": 0.22,
@@ -415,7 +415,7 @@
                 {
                   "id": "regulatory_clearance",
                   "name": "Regulatory Clearance",
-                  "duration_days": 540,
+                  "duration_days": 750,
                   "depends_on": "grid_integration",
                   "success_prob": 0.99,
                   "value_realization": 0.43,
@@ -425,7 +425,7 @@
                 {
                   "id": "commercial_ramp",
                   "name": "Commercial Ramp",
-                  "duration_days": 540,
+                  "duration_days": 600,
                   "depends_on": "regulatory_clearance",
                   "success_prob": 0.99,
                   "value_realization": 0.7,

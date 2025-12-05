@@ -29,7 +29,7 @@
   const DAYS_PER_YEAR = 365;
   const QUARTER_DAYS = DAYS_PER_YEAR / 4;
   const YEAR_MS = VC_DAY_MS * DAYS_PER_YEAR;
-  const VENTURE_FAIL_TTL_MS = 120000;
+  const VENTURE_FAIL_TTL_MS = YEAR_MS * 3.5;
 
   function coerceDate(value, isEnd = false) {
     if (value == null) return null;
@@ -228,13 +228,13 @@
       if (this.listingWindow && this.listingWindow.from && this.listingWindow.to) {
         this.targetListingDate = new Date(this.listingWindow.to);
       } else {
-      this.targetListingDate = null;
-    }
-    this.status = 'raising';
-    this.raiseOnProgress = config.raise_on_progress ?? config.hardtech_raise_on_progress ?? (this.archetype === 'hardtech');
-    // When raising on pipeline progress, allow the first round to start immediately.
-    this.pendingRaiseFromProgress = !!this.raiseOnProgress;
-    this.daysSinceRound = 0;
+        this.targetListingDate = null;
+      }
+      this.status = 'raising';
+      this.raiseOnProgress = config.raise_on_progress ?? config.hardtech_raise_on_progress ?? (this.archetype === 'hardtech');
+      // When raising on pipeline progress, allow the first round to start immediately.
+      this.pendingRaiseFromProgress = !!this.raiseOnProgress;
+      this.daysSinceRound = 0;
       this.playerEquity = 0;
       this.playerEquityMap = {};
       this.playerInvested = 0;
@@ -617,10 +617,23 @@
 
     handleHardTechFailure(currentDate) {
       const refund = this.pendingCommitment || 0;
+
+      // Preserve which players had pending commitments when the company failed
+      // so they can see the bankrupt holding in their portfolio
+      if (!this.bankruptcyAffectedPlayers) this.bankruptcyAffectedPlayers = {};
+      if (this.pendingCommitments) {
+        Object.keys(this.pendingCommitments).forEach(pid => {
+          this.bankruptcyAffectedPlayers[pid] = true;
+        });
+      }
+
       if (refund > 0) {
         this.pendingCommitment = 0;
       }
-      this.playerEquity = 0;
+      this.pendingCommitments = {};
+      // NOTE: We intentionally do NOT clear playerEquity/playerEquityMap here.
+      // The player's stake remains visible (at $0 value) until the 5-year TTL expires.
+      // This allows users to see their failed holdings in the portfolio.
       this.currentValuation = 0;
       this.status = 'failed';
       const failDate = currentDate ? new Date(currentDate) : (this.lastTick ? new Date(this.lastTick) : new Date());
@@ -853,8 +866,10 @@
 
     hasPlayerPosition() {
       if (this.playerEquity > 0 || this.pendingCommitment > 0) return true;
-      if (!this.playerEquityMap) return false;
-      return Object.values(this.playerEquityMap).some(v => Number.isFinite(v) && v > 0);
+      if (this.playerEquityMap && Object.values(this.playerEquityMap).some(v => Number.isFinite(v) && v > 0)) return true;
+      // Also consider players affected by bankruptcy (they had pending commitments when company failed)
+      if (this.bankruptcyAffectedPlayers && Object.keys(this.bankruptcyAffectedPlayers).length > 0) return true;
+      return false;
     }
 
     leadRound(playerId = null) {
@@ -930,7 +945,14 @@
 
     advance(dtDays, currentDate) {
       if (!this.isPrivatePhase) return [];
-      if (this.status === 'failed' || this.status === 'exited') return [];
+      if (this.status === 'failed' || this.status === 'exited') {
+        // Ensure no lingering rounds/commitments after failure/exit
+        this.currentRound = null;
+        this.pendingCommitment = 0;
+        this.pendingCommitments = {};
+        this.lastCommitPlayerId = null;
+        return [];
+      }
       this.stageChanged = false;
       if (currentDate) {
         const nextDate = new Date(currentDate);
@@ -946,6 +968,9 @@
       this.applyProductHypergrowth(dtDays / DAYS_PER_YEAR, pipelineBoost);
       if (this.pendingHardTechFailure) {
         const failureEvent = this.pendingHardTechFailure;
+        this.currentRound = null;
+        this.pendingCommitment = 0;
+        this.pendingCommitments = {};
         this.pendingHardTechFailure = null;
         return [failureEvent];
       }
@@ -962,6 +987,14 @@
       const stage = this.currentStage;
       if (!this.strategy || !this.strategy.shouldResolveRound(stage)) {
         return events;
+      }
+
+      // Abort resolution if a hard-tech failure has been triggered mid-tick
+      if (this.status === 'failed' || this.pendingHardTechFailure) {
+        this.currentRound = null;
+        this.pendingCommitment = 0;
+        this.pendingCommitments = {};
+        return [];
       }
 
       const closingRound = this.currentRound;
@@ -1029,8 +1062,18 @@
         const collapse = this.consecutiveFails >= this.maxFailuresBeforeCollapse;
 
         if (collapse) {
-          this.playerEquity = 0;
-          this.playerEquityMap = {};
+          // NOTE: We intentionally do NOT clear playerEquity/playerEquityMap here.
+          // The player's stake remains visible (at $0 value) until the 5-year TTL expires.
+          // This allows users to see their failed holdings in the portfolio.
+
+          // Also preserve which players had pending commitments when the company failed
+          // so they can see the bankrupt holding in their portfolio (even though their
+          // commitment was refunded, not converted to equity)
+          if (!this.bankruptcyAffectedPlayers) this.bankruptcyAffectedPlayers = {};
+          Object.keys(commitments).forEach(pid => {
+            this.bankruptcyAffectedPlayers[pid] = true;
+          });
+
           this.currentValuation = 0;
           this.status = 'failed';
           const failDate = currentDate ? new Date(currentDate) : (this.lastTick ? new Date(this.lastTick) : new Date());
@@ -1246,6 +1289,7 @@
         daysSinceRound: this.daysSinceRound,
         daysSinceLastRaise: this.daysSinceLastRaise,
         playerEquityById: { ...(this.playerEquityMap || {}) },
+        bankruptcyAffectedPlayers: { ...(this.bankruptcyAffectedPlayers || {}) },
         is_listed: listed,
         history_start_ts: historyStartTs,
         history_third_ts: historyThirdTs,
@@ -1324,6 +1368,7 @@
         financialHistory: this.financialHistory.slice(),
         quarterHistory: this.quarterHistory ? this.quarterHistory.slice() : [],
         playerEquityById: { ...(this.playerEquityMap || {}) },
+        bankruptcyAffectedPlayers: { ...(this.bankruptcyAffectedPlayers || {}) },
         products: this.products.map(product => ({
           label: product.label,
           fullVal: product.fullVal,
@@ -1602,14 +1647,16 @@
 
     getCompanySummaries(currentDate = null) {
       const now = currentDate ? new Date(currentDate) : (this.lastTick ? new Date(this.lastTick) : new Date());
-      const cutoffWall = Date.now() - VENTURE_FAIL_TTL_MS;
+      const cutoffMs = now.getTime() - VENTURE_FAIL_TTL_MS;
 
-      // Prune only long-dead failures from the master list
+      // Prune only long-dead failures from the master list (based on game time, not wall clock)
       this.companies = this.companies.filter(company => {
         if (!company) return false;
         if (company.status === 'failed') {
-          const failedAtWall = Number.isFinite(company.failedAtWall) ? company.failedAtWall : NaN;
-          if (Number.isFinite(failedAtWall) && failedAtWall <= cutoffWall) {
+          const failedAtMs = company.failedAt instanceof Date ? company.failedAt.getTime() : NaN;
+          const fallbackMs = Number.isFinite(company.failedAtWall) ? company.failedAtWall : NaN;
+          const failStamp = Number.isFinite(failedAtMs) ? failedAtMs : fallbackMs;
+          if (Number.isFinite(failStamp) && failStamp <= cutoffMs) {
             return false;
           }
         }
@@ -1620,6 +1667,11 @@
         .filter(company => {
           if (!company) return false;
           if (company.exited) return false;
+          // Keep ALL failed companies visible until the 5-year TTL prunes them from the master list
+          // This allows users to see bankrupt companies in the market for context
+          if (company.status === 'failed') {
+            return true;
+          }
           if (!company.isActiveOnDate(now) && !company.hasPlayerPosition()) return false;
           return true;
         })
@@ -1630,6 +1682,10 @@
       const company = this.getCompanyById(companyId);
       if (!company) return null;
       const now = currentDate ? new Date(currentDate) : (this.lastTick ? new Date(this.lastTick) : null);
+      // Allow viewing failed companies (they stay visible for 5 years)
+      if (company.status === 'failed') {
+        return company.getDetail(now);
+      }
       if (!company.isActiveOnDate(now) && !company.hasPlayerPosition()) return null;
       return company.getDetail(now);
     }

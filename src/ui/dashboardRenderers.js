@@ -272,20 +272,24 @@
       const pendingCommitment = pickPlayerPendingCommitment(detail, summary.id);
       const hasEquity = equityFraction > 0;
       const hasPending = pendingCommitment > 0;
+      const isFailed = (detail.status || '').toLowerCase() === 'failed' || (summary.status || '').toLowerCase() === 'failed';
       const isInFlight = hasPending && !hasEquity;
-      if (!hasEquity && !hasPending) return;
+      // Check if player was affected by this company's bankruptcy (had pending commitment when it failed)
+      const wasBankruptcyVictim = isFailed && detail.bankruptcyAffectedPlayers && activePlayerId && detail.bankruptcyAffectedPlayers[activePlayerId];
+      if (!hasEquity && !hasPending && !wasBankruptcyVictim) return;
       const equityValue = hasEquity ? equityFraction * valuation : 0;
       const pendingValue = !hasEquity && hasPending ? pendingCommitment : 0;
-      const formattedValue = hasEquity ? currencyFormatter.format(equityValue) : (hasPending ? currencyFormatter.format(pendingValue) : '');
+      const formattedValue = hasEquity ? currencyFormatter.format(equityValue) : (hasPending ? currencyFormatter.format(pendingValue) : (wasBankruptcyVictim ? currencyFormatter.format(0) : ''));
       const pendingLabel = (!isInFlight && hasPending) ? `Committed: ${currencyFormatter.format(pendingCommitment)}` : '';
       const key = `private:${summary.id}`;
       processedKeys.add(key);
       const playerEquityPct = equityFraction * 100;
-      const stakeLabel = hasEquity ? `${playerEquityPct.toFixed(2)}% stake` : 'Stake pending';
+      const stakeLabel = hasEquity ? `${playerEquityPct.toFixed(2)}% stake` : (wasBankruptcyVictim ? 'Investment failed' : 'Stake pending');
       const stageLabel = detail.stageLabel || summary.stageLabel || 'Private';
       const nameLabel = isInFlight ? `${summary.name} (${stageLabel}) (In Flight)` : `${summary.name} (${stageLabel})`;
       const sectorClass = getSectorClass(detail.sector || summary.sector);
-      const valueRowDisplay = (hasEquity || hasPending) ? 'block' : 'none';
+      const valueRowDisplay = (hasEquity || hasPending || wasBankruptcyVictim) ? 'block' : 'none';
+      const bankruptClass = isFailed ? ' bankrupt' : '';
       if (existingItems.has(key)) {
         const item = existingItems.get(key);
         const valueRow = item.querySelector('.portfolio-value-row');
@@ -301,14 +305,24 @@
         }
         const nameEl = item.querySelector('.company-name');
         if (nameEl) {
-          nameEl.textContent = nameLabel;
+          // Update name and add/update bankrupt label
+          let existingLabel = item.querySelector('.portfolio-bankrupt-label');
+          if (isFailed && !existingLabel) {
+            nameEl.innerHTML = nameLabel + '<span class="portfolio-bankrupt-label">Bankrupt</span>';
+          } else if (isFailed) {
+            nameEl.childNodes[0].textContent = nameLabel;
+          } else {
+            nameEl.textContent = nameLabel;
+          }
         }
         applySectorClass(item, sectorClass);
+        if (bankruptClass) item.classList.add('bankrupt');
         existingItems.delete(key);
       } else {
+        const bankruptLabel = isFailed ? '<span class="portfolio-bankrupt-label">Bankrupt</span>' : '';
         newPortfolioHtml.push(`
-          <div class="portfolio-item${sectorClass ? ` ${sectorClass}` : ''}" data-portfolio-type="private" data-venture-id="${summary.id}" data-portfolio-key="${key}">
-              <div class="company-name">${nameLabel}</div>
+          <div class="portfolio-item${sectorClass ? ` ${sectorClass}` : ''}${bankruptClass}" data-portfolio-type="private" data-venture-id="${summary.id}" data-portfolio-key="${key}">
+              <div class="company-name">${nameLabel}${bankruptLabel}</div>
               <div class="portfolio-info">
                   <div class="portfolio-value-row" style="display:${valueRowDisplay}">
                       Value: <span class="portfolio-value">${formattedValue}</span>
