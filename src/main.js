@@ -96,6 +96,7 @@ if (typeof window !== 'undefined' && window.innerWidth <= 768) {
 
 const DEFAULT_WOJAK_SRC = 'wojaks/wojak.png';
 const MALDING_WOJAK_SRC = 'wojaks/malding-wojak.png';
+const HAPPY_WOJAK_SRC = 'wojaks/happywojak.png';
 const GAME_START_YEAR = 1985;
 const GAME_START_DATE = new Date(Date.UTC(GAME_START_YEAR, 0, 1));
 const GLOBAL_BASE_INTEREST_RATE = 0.07; // shared baseline; can be adjusted by macro events later
@@ -470,11 +471,13 @@ let lastRosterSnapshot = [];
 
 let wojakManager = null;
 let handlingBankruptcy = false;
+let gameEnded = false;
 if (wojakImage) {
     wojakManager = wojakFactory.createWojakManager({
         imageElement: wojakImage,
         defaultSrc: DEFAULT_WOJAK_SRC,
         maldingSrc: MALDING_WOJAK_SRC,
+        happySrc: HAPPY_WOJAK_SRC,
         getNetWorth: () => netWorth
     });
 }
@@ -499,6 +502,13 @@ let netWorth = cash;
 let netWorthHistory = [{ x: currentDate.getTime(), y: netWorth }];
 let netWorthAth = netWorth;
 let lastDrawdownTriggerAth = 0;
+
+// Happy wojak tracking - records net worth snapshots to detect 5x gains
+// Each entry: { netWorth, gameTime } where gameTime is currentDate.getTime()
+let happyNetWorthHistory = [];
+const HAPPY_GROWTH_MULTIPLIER = 5; // 5x increase required
+const HAPPY_WINDOW_YEARS = 3.5; // Within 3.5 game years
+const HAPPY_WINDOW_MS = HAPPY_WINDOW_YEARS * 365 * 24 * 60 * 60 * 1000;
 
 
 // --- Banking State ---
@@ -590,6 +600,7 @@ function resetClientStateForMultiplayer() {
     isPaused = true;
     isGameReady = false;
     handlingBankruptcy = false;
+    gameEnded = false;
     isMillionaire = false;
     isBillionaire = false;
     isTrillionaire = false;
@@ -599,6 +610,7 @@ function resetClientStateForMultiplayer() {
     netWorth = 0;
     netWorthAth = 0;
     lastDrawdownTriggerAth = 0;
+    happyNetWorthHistory = [];
     portfolio = [];
     companies = [];
     sim = null;
@@ -628,6 +640,10 @@ function resetClientStateForMultiplayer() {
     if (timelineEndPopup) timelineEndPopup.classList.remove('show');
     if (bankruptcyPopup) bankruptcyPopup.classList.remove('show');
     if (bankruptcyPopupMultiplayer) bankruptcyPopupMultiplayer.classList.remove('show');
+    // Re-enable speed slider for new game
+    if (speedSlider) {
+        speedSlider.disabled = false;
+    }
 }
 
 function initMatchContext(seedOverride = null) {
@@ -1400,8 +1416,10 @@ function updateDisplay() {
         endGame("bankrupt");
         return;
     }
-    if (handlingBankruptcy) {
-        const resolved = netWorth >= 0 && displayDebt <= 0 && (!isServerAuthoritative || (serverPlayer && !serverPlayer.bankrupt));
+    // In singleplayer, bankruptcy is final - don't allow recovery
+    // Only multiplayer can recover (server manages that state)
+    if (handlingBankruptcy && isServerAuthoritative) {
+        const resolved = netWorth >= 0 && displayDebt <= 0 && serverPlayer && !serverPlayer.bankrupt;
         if (resolved) {
             handlingBankruptcy = false;
         }
@@ -1743,6 +1761,24 @@ function updateNetWorth() {
         wojakManager.handleRecovery(netWorth);
     }
 
+    // Happy wojak logic - same conditions as malding (base wojak, singleplayer only)
+    if (maldingEnabled && wojakManager && !wojakManager.state.isMalding) {
+        const currentGameTime = currentDate.getTime();
+        // Record current net worth snapshot
+        happyNetWorthHistory.push({ netWorth, gameTime: currentGameTime });
+        // Prune old snapshots outside the window
+        const cutoffTime = currentGameTime - HAPPY_WINDOW_MS;
+        happyNetWorthHistory = happyNetWorthHistory.filter(entry => entry.gameTime >= cutoffTime);
+        // Check if current net worth is 5x any past snapshot within the window
+        const lowestInWindow = happyNetWorthHistory.reduce((min, entry) =>
+            entry.netWorth < min ? entry.netWorth : min, happyNetWorthHistory[0]?.netWorth || netWorth);
+        if (lowestInWindow > 0 && netWorth >= lowestInWindow * HAPPY_GROWTH_MULTIPLIER) {
+            wojakManager.triggerHappy(netWorth);
+            // Clear history so we don't re-trigger immediately
+            happyNetWorthHistory = [{ netWorth, gameTime: currentGameTime }];
+        }
+    }
+
     if (netWorth >= 1000000 && !isMillionaire) {
         isMillionaire = true;
         if (isWojakAvatar && wojakManager) {
@@ -2057,7 +2093,17 @@ function endGame(reason) {
     if (reason === "bankrupt") {
         handlingBankruptcy = true;
     }
+
+    // Permanently end game state for singleplayer bankruptcy or timeline end
+    if (!isServerAuthoritative || reason === "timeline_end") {
+        gameEnded = true;
+    }
+
     pauseGame();
+    // Disable the speed slider to prevent restarting after game over
+    if (speedSlider) {
+        speedSlider.disabled = true;
+    }
     let message = "";
     if (reason === "bankrupt") { message = "GAME OVER! You went bankrupt!"; }
     else if (reason === "timeline_end") { message = `Game Over! You reached ${GAME_END_YEAR}.`; }
@@ -2111,6 +2157,7 @@ function endGame(reason) {
 }
 
 function gameLoop() {
+    if (gameEnded) return;
     if (isServerAuthoritative) return;
     if (!isGameReady) return;
 
@@ -2897,6 +2944,7 @@ function pauseGame() {
 }
 
 function resumeGame() {
+    if (gameEnded) return;
     if (!isPaused) return;
     isPaused = false;
     wasAutoPaused = false;
@@ -2905,6 +2953,8 @@ function resumeGame() {
 }
 
 function setGameSpeed(speed) {
+    // Prevent resuming if game ended
+    if (gameEnded && speed > 0) return;
     const maxSpeed = Math.max(...SPEED_STEPS);
     const clampedSpeed = Math.max(0, Math.min(speed, maxSpeed));
     const wasPaused = isPaused;
