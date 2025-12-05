@@ -136,33 +136,42 @@
 
   const buildPublicConfigFromVenture = (cfg, startYear) => {
     const fallbackRevenue = Math.max(1_000_000, (cfg.valuation_usd || 10_000_000) / (STAGE_FINANCIALS.seed.ps || 9));
+
+    // All public company params can be overridden from hard-tech config
+    const initialPS = cfg.initial_ps_ratio ?? cfg.value_realization_ps ?? cfg.valueRealizationPS ?? 6;
+    const terminalPE = cfg.terminal_pe_ratio ?? 18;
+    const hypergrowthYears = cfg.hypergrowth_window_years ?? 2.5;
+    const yearsToConverge = cfg.years_to_converge ?? cfg.yearsToConverge ?? Math.max(3, hypergrowthYears + 2);
+    const startMargin = cfg.start_profit_margin ?? cfg.hypergrowth_initial_margin ?? -0.45;
+    const terminalMargin = cfg.terminal_profit_margin ?? cfg.hypergrowth_terminal_margin ?? 0.22;
+    const yearsToMature = cfg.years_to_mature ?? yearsToConverge + 3;
+
     const baseBusiness = cfg.base_business || {
       revenue_process: {
         initial_revenue_usd: {
-          min: fallbackRevenue,
-          max: fallbackRevenue * 1.25
+          min: cfg.initial_revenue_min ?? fallbackRevenue,
+          max: cfg.initial_revenue_max ?? fallbackRevenue * 1.25
         }
       },
       margin_curve: {
-        start_profit_margin: -0.45,
-        terminal_profit_margin: 0.22,
-        years_to_mature: 8
+        start_profit_margin: startMargin,
+        terminal_profit_margin: terminalMargin,
+        years_to_mature: yearsToMature
       },
       multiple_curve: {
-        initial_ps_ratio: 8,
-        terminal_pe_ratio: 18,
-        years_to_converge: 12
+        initial_ps_ratio: initialPS,
+        terminal_pe_ratio: terminalPE,
+        years_to_converge: yearsToConverge
       }
     };
     const finance = cfg.finance || {
-      starting_cash_usd: Math.max(2_000_000, (cfg.valuation_usd || 10_000_000) * 0.05),
-      starting_debt_usd: 0,
-      interest_rate_annual: 0.07
+      starting_cash_usd: cfg.starting_cash_usd ?? Math.max(2_000_000, (cfg.valuation_usd || 10_000_000) * 0.05),
+      starting_debt_usd: cfg.starting_debt_usd ?? 0,
+      interest_rate_annual: cfg.interest_rate_annual ?? 0.07
     };
     const costs = cfg.costs || {
-      opex_fixed_usd: 10_000_000,
-      opex_variable_ratio: 0.2,
-      rd_base_ratio: 0.05
+      opex_variable_ratio: cfg.opex_variable_ratio ?? 0.2,
+      rd_base_ratio: cfg.rd_base_ratio ?? 0.05
     };
 
     return {
@@ -213,11 +222,14 @@
       }
       this.targetStageIndex = Math.max(0, Math.min(targetIdx, this.roundDefinitions.length - 1));
 
+      // P/S for converting hard-tech revenue potential to valuation (default 6)
+      this.valueRealizationPS = config.value_realization_ps ?? config.valueRealizationPS ?? 6;
+
       // For hard-tech, compute initial valuation from pipeline using initial_valuation_realization
       if (this.archetype === 'hardtech' && Array.isArray(this.products) && this.products.length > 0 && config.initial_valuation_realization != null) {
         const totalFullRevenue = this.products.reduce((sum, p) => sum + (p.fullVal || 0), 0);
         const realization = Math.max(0, Math.min(1, Number(config.initial_valuation_realization)));
-        this.currentValuation = Math.max(1, totalFullRevenue * realization * between(0.9, 1.1));
+        this.currentValuation = Math.max(1, totalFullRevenue * realization * this.valueRealizationPS * between(0.9, 1.1));
       } else {
         this.currentValuation = Math.max(1, Number(config.valuation_usd) || 10_000_000);
       }
@@ -944,7 +956,11 @@
     }
 
     advance(dtDays, currentDate) {
-      if (!this.isPrivatePhase) return [];
+      if (!this.isPrivatePhase) {
+        // Public phase - use parent Company step function
+        this.step(dtDays, currentDate);
+        return [];
+      }
       if (this.status === 'failed' || this.status === 'exited') {
         // Ensure no lingering rounds/commitments after failure/exit
         this.currentRound = null;
@@ -1450,8 +1466,9 @@
       const macroFactor = this.macroEnv ? this.macroEnv.getValue(this.sector) : 1;
       const revenueSnapshot = Math.max(1, this.revenue || this.currentValuation / Math.max(ps, 1));
       const denom = Math.max(1e-3, macroFactor * Math.max(this.micro || 1, 0.05) * Math.max(this.revMult || 1, 0.05));
-      const pipelineSignal = (unlockedPV + optionPV) / Math.max(ps, 1);
-      const normalizedBase = (revenueSnapshot + pipelineSignal + (this.flatRev || 0)) / denom;
+      // Pipeline value (unlockedPV, optionPV) is NOT added here - it's already reflected
+      // in fair value calculations. Adding it to baseRevenue would cause double-counting.
+      const normalizedBase = (revenueSnapshot + (this.flatRev || 0)) / denom;
       this.baseRevenue = Math.max(1, normalizedBase);
 
       if (this.marginCurve && isFinite(this.lastRoundMargin)) {

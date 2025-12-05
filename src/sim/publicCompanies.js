@@ -696,9 +696,6 @@
       const rp = cfg.base_business.revenue_process;
       this.baseRevenue = between(rp.initial_revenue_usd.min, rp.initial_revenue_usd.max);
       this.initialBaseRevenue = this.baseRevenue;
-      if (cfg.static?.sector === 'Tech') {
-        console.log(`[Company] Tech "${cfg.static?.name}" baseRevenue =`, this.baseRevenue);
-      }
 
       const mc = cfg.base_business.margin_curve;
       const mu = cfg.base_business.multiple_curve;
@@ -803,7 +800,7 @@
         p.advance(dtDays, random, this);
         if (p.unlockedValue() > vBefore) successThisTick = true;
       }
-      if (successThisTick && this.multFreeze === null) {
+      if (successThisTick && this.multFreeze === null && this.marginCurve && this.multCurve) {
         const mNowTmp = this.marginCurve.value(ageYears);
         this.multFreeze = this.multCurve.value(ageYears, mNowTmp);
       }
@@ -823,13 +820,11 @@
       const revenueMultiplier = this.macroEnv.getRevenueMultiplier
         ? this.macroEnv.getRevenueMultiplier(this.sector)
         : 1;
-      const coreAnnual = ((this.baseRevenue + pipelineBoost) * sectorFactor * this.micro * this.revMult) - this.flatRev;
+      // baseRevenue drifts with macro factors, but pipelineBoost is fixed product revenue
+      const driftingRevenue = this.baseRevenue * sectorFactor * this.micro * this.revMult;
+      const coreAnnual = (driftingRevenue + pipelineBoost) - this.flatRev;
       const effectiveAnnual = coreAnnual * revenueMultiplier;
       const revenueThisTick = effectiveAnnual * dtYears;
-      // Debug: log once per year for Tech companies
-      if (this.sector === 'Tech' && this.ageDays > 0 && this.ageDays % 365 < 15) {
-        console.log(`[Step] Tech "${this.name}" year ${Math.floor(this.ageDays / 365)}: baseRevenue=${(this.baseRevenue / 1e6).toFixed(0)}M, sectorFactor=${sectorFactor.toFixed(2)}, micro=${this.micro.toFixed(2)}, effectiveAnnual=${(effectiveAnnual / 1e6).toFixed(0)}M`);
-      }
 
       let marginNow;
       if (this.marginCurve) {
@@ -889,9 +884,15 @@
       this.dividendAccumulatorDays = (this.dividendAccumulatorDays || 0) + dtDays;
       this.processPendingDividends(gameDate);
 
-      const unlockedPV = this.products.reduce((s, p) => s + p.unlockedValue(), 0);
-      const pipelineOption = this.products.reduce((s, p) => s + p.expectedValue(), 0);
+      // For commercialized products, revenue is already in pipelineBoost → effectiveAnnual.
+      // Only count unlockedValue for non-commercialized products (milestone progress).
+      // unlockedValue is revenue potential, so apply P/S to convert to valuation.
       const fairPE = this.multCurve.value(ageYears, marginNow);
+      const unlockedPV = this.products.reduce((s, p) => {
+        if (p.isCommercialised()) return s; // already in effectiveAnnual via pipelineBoost
+        return s + p.unlockedValue() * fairPE; // apply P/S to convert revenue → valuation
+      }, 0);
+      const pipelineOption = this.products.reduce((s, p) => s + p.expectedValue(), 0);
       // MultipleCurve transitions from initial_ps_ratio (P/S) to terminal_pe_ratio × margin.
       // Both ends represent a revenue multiplier, so multiply by revenue (effectiveAnnual), not earnings.
       const fairValue = effectiveAnnual * fairPE + unlockedPV + pipelineOption;
@@ -928,6 +929,10 @@
 
       this.marketCap = candidateCap;
       this.displayCap = this.marketCap;
+
+      // Update current revenue/profit rates for display purposes
+      this.revenue = effectiveAnnual;
+      this.profit = netIncome / dtYears;
 
       this.accumulateYear(revenueThisTick, netIncome, gameDate, dtDays);
 

@@ -22,8 +22,8 @@
       },
       "multiple_curve": {
         "initial_ps_ratio": [
-          28,
-          45
+          8,
+          15
         ],
         "terminal_pe_ratio": [
           16,
@@ -350,6 +350,7 @@
           "funding_round": "seed",
           "gate_stage": "series_c",
           "ipo_stage": "pre_ipo",
+          "value_realization_ps": 8,
           "founders": [
             {
               "name": "Marcus Chen",
@@ -370,6 +371,7 @@
           "hypergrowth_terminal_growth_rate": 0.2,
           "hypergrowth_initial_margin": -0.3,
           "hypergrowth_terminal_margin": 0.25,
+          "years_to_converge": 5,
           "private_listing_window": {
             "from": 1985,
             "to": 1985
@@ -379,15 +381,15 @@
               "id": "fusion_core",
               "label": "Commercial Fusion Reactor",
               "full_revenue_usd": [
-                25000000000,
-                50000000000
+                2500000000,
+                70000000000
               ],
               "stages": [
                 {
                   "id": "net_energy",
                   "name": "Net Energy Gain Demonstration",
                   "duration_days": 1200,
-                  "success_prob": 1,
+                  "success_prob": 0.99,
                   "value_realization": 0.04,
                   "cost_usd": 300000000,
                   "max_retries": 1
@@ -397,7 +399,7 @@
                   "name": "Sustained Breakeven",
                   "duration_days": 900,
                   "depends_on": "net_energy",
-                  "success_prob": 0.0,
+                  "success_prob": 0.99,
                   "value_realization": 0.1,
                   "cost_usd": 250000000,
                   "max_retries": 1
@@ -447,6 +449,7 @@
           "gate_stage": "series_c",
           "ipo_stage": "pre_ipo",
           "initial_valuation_realization": 0.04,
+          "value_realization_ps": 10,
           "founders": [
             {
               "name": "Dr. Arjun Mehta",
@@ -481,6 +484,7 @@
           "funding_round": "Series B",
           "gate_stage": "pre_ipo",
           "ipo_stage": "pre_ipo",
+          "value_realization_ps": 5,
           "founders": [
             {
               "name": "Liang Zhao",
@@ -515,6 +519,7 @@
           "funding_round": "Seed",
           "gate_stage": "series_c",
           "ipo_stage": "pre_ipo",
+          "value_realization_ps": 7,
           "founders": [
             {
               "name": "Priya Raman",
