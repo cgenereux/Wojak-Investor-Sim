@@ -1993,7 +1993,7 @@ function handleVentureEvents(events) {
 function getMaxBorrowing() {
     const debt = isServerAuthoritative && serverPlayer ? serverPlayer.debt : totalBorrowed;
     const netWorthVal = isServerAuthoritative && serverPlayer ? serverPlayer.netWorth : netWorth;
-    return Math.max(0, netWorthVal * 5 - debt);
+    return Math.max(0, netWorthVal * 4 - debt);
 }
 
 function borrow(amount) {
