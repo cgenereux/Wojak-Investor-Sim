@@ -1312,6 +1312,7 @@ async function loadCompaniesData() {
 
 // --- Chart Objects ---
 let netWorthChart, companyDetailChart, financialYoyChart;
+let financialYoyChartOwner = null;
 let currentChartRange = 80; // Default to 20Y (80 quarters)
 const BASE_SPEED_STEPS = [0, 0.5, 1, 1.5, 2, 2.5, 3];
 const DEBUG_SPEED_STEPS = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 10, 12, 16];
@@ -2471,6 +2472,7 @@ function destroyFinancialYoyChart() {
         financialYoyChart.destroy();
         financialYoyChart = null;
     }
+    financialYoyChartOwner = null;
 }
 
 function renderCompanyFinancialHistory(company) {
@@ -2478,6 +2480,7 @@ function renderCompanyFinancialHistory(company) {
     if (!container || !company) return;
     company.newAnnualData = false;
     company.newQuarterlyData = false;
+    const companyKey = company.id || company.name || '';
 
     // Ensure structure exists
     let chartWrapper = container.querySelector('.financial-yoy-chart');
@@ -2567,13 +2570,23 @@ function renderCompanyFinancialHistory(company) {
         });
     }
 
+    // If the viewed company changed, drop any prior chart so we don't reuse stale data
+    if (financialYoyChart && financialYoyChartOwner !== companyKey) {
+        financialYoyChart.destroy();
+        financialYoyChart = null;
+        financialYoyChartOwner = null;
+    }
+
     const yoySeries = getCompanyYoySeries(company, currentChartRange);
 
     if (yoySeries.length === 0) {
-        // Keep the last rendered chart if we have one; otherwise show a lightweight placeholder.
-        if (!financialYoyChart) {
-            chartWrapper.innerHTML = '<div class="chart-placeholder" style="padding:12px;color:#475569;">Waiting for financial data…</div>';
+        // No data for this company yet—clear any old chart so we don't show unrelated data.
+        if (financialYoyChart) {
+            financialYoyChart.destroy();
+            financialYoyChart = null;
         }
+        financialYoyChartOwner = null;
+        chartWrapper.innerHTML = '<div class="chart-placeholder" style="padding:12px;color:#475569;">Waiting for financial data…</div>';
     } else {
         // Ensure canvas exists if we came from empty state
         let canvas = chartWrapper.querySelector('canvas');
@@ -2700,6 +2713,7 @@ function renderCompanyFinancialHistory(company) {
                 }
             });
         }
+        financialYoyChartOwner = companyKey;
     }
 
     const tableHtml = typeof company.getFinancialTableHTML === 'function'

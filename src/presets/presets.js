@@ -328,7 +328,8 @@
                 const byDecade = {};
                 roster.forEach(entry => {
                     const sectorKey = getSector(entry).toLowerCase();
-                    const fallbackWindow = sectorDefaultsMap[sectorKey]?.ipo_window || ipoDefault;
+                    // Prefer group/global IPO defaults; fall back to sector defaults if missing.
+                    const fallbackWindow = ipoDefault || sectorDefaultsMap[sectorKey]?.ipo_window;
                     const decade = getDecade(entry, fallbackWindow);
                     if (!byDecade[decade]) byDecade[decade] = [];
                     byDecade[decade].push(entry);
@@ -356,7 +357,8 @@
             picked.forEach((entry, idx) => {
                 const sectorKey = getSector(entry).toLowerCase();
                 const sectorDefaults = sectorDefaultsMap[sectorKey] || {};
-                const effectiveDefaults = { ...defaults, ...sectorDefaults };
+                // Apply sector defaults first, then global/group defaults so group overrides win.
+                const effectiveDefaults = { ...sectorDefaults, ...defaults };
                 const structuralBiasDefaults = effectiveDefaults.structural_bias || { min: 0.6, max: 1.8, half_life_years: 10 };
                 const marginDefaults = effectiveDefaults.margin_curve || {};
                 const multipleDefaults = effectiveDefaults.multiple_curve || {};

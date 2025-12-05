@@ -275,7 +275,6 @@
       this.currentYearProfit = 0;
       this.startDate = new Date(start);
       this.currentDate = new Date(start);
-      this.lastYearRecorded = this.startDate.getUTCFullYear();
 
       // Use the defined private listing window for start date
       if (this.listingWindow && this.listingWindow.from) {
@@ -285,6 +284,8 @@
           this.currentDate = new Date(this.startDate);
         }
       }
+      // Set lastYearRecorded AFTER potentially updating startDate from listing window
+      this.lastYearRecorded = this.startDate.getUTCFullYear();
 
 
       this.stageChanged = false;
@@ -357,9 +358,10 @@
 
       this.lastFairValue = this.currentValuation;
 
-      this.generateRound(start);
+      // Use this.startDate (which respects listing window) instead of the original start parameter
+      this.generateRound(this.startDate);
       this.updateFinancialsFromValuation();
-      this.recordHistory(start);
+      this.recordHistory(this.startDate);
 
       if (!isFinite(this.cash) || this.cash <= 0) {
         const seedCapital = this.currentRound ? this.currentRound.raiseAmount : this.currentValuation * 0.1;
@@ -445,8 +447,6 @@
       this.revenue = revenue;
       this.profit = profit;
       this.marketCap = this.currentValuation;
-
-
     }
 
     recordHistory(gameDate) {
@@ -466,7 +466,7 @@
       const prof = this.profit * dtYears;
       this.currentYearRevenue += rev;
       this.currentYearProfit += prof;
-      this.accumulateQuarter(rev, prof, currentDate);
+      this.accumulateQuarter(rev, prof, currentDate, dtDays);
       this.ageDays += dtDays;
       this.applyRunwayFlow(dtDays);
 
@@ -720,14 +720,16 @@
       this.currentMultiple = Math.max(this.postGateBaselineMultiple, nextMultiple);
     }
 
-    enterPostGateMode(currentDate) {
+    enterPostGateMode(currentDate, opts = {}) {
+      const revBefore = this.revenue;
+      console.log(`[ENTER POSTGATE ${this.name}] ENTERING post-gate mode. revBefore=${revBefore?.toExponential(2)}, opts.baselineRevenue=${opts?.baselineRevenue?.toExponential(2)}, valuation=${this.currentValuation?.toExponential(2)}, stage=${this.currentStage?.id}`);
       this.postGateMode = true;
       this.postGatePending = false;
       this.hypergrowthActive = true;
       this.hypergrowthElapsedYears = 0;
       this.postGateStartDate = currentDate ? new Date(currentDate) : new Date();
       const baselineMultiple = this.postGateInitialMultiple;
-      let baselineRevenue = this.revenue;
+      let baselineRevenue = opts && Number.isFinite(opts.baselineRevenue) ? opts.baselineRevenue : this.revenue;
       if (!baselineRevenue || baselineRevenue <= 0) {
         baselineRevenue = Math.max(this.currentValuation / Math.max(baselineMultiple, 1), 1_000_000);
       }
@@ -735,7 +737,8 @@
 
       // Resolve hypergrowth margins: initial → terminal over window
       const currentStageFinancials = this.getStageFinancials();
-      this.hypergrowthStartMargin = this.hypergrowthInitialMargin ?? currentStageFinancials.margin ?? -0.2;
+      const fallbackMargin = (opts && Number.isFinite(opts.baselineMargin)) ? opts.baselineMargin : null;
+      this.hypergrowthStartMargin = this.hypergrowthInitialMargin ?? fallbackMargin ?? currentStageFinancials.margin ?? -0.2;
       this.hypergrowthEndMargin = this.hypergrowthTerminalMargin ?? this.postGateMargin;
 
       // Target revenue based on initial growth rate over window (approximate)
@@ -1188,7 +1191,17 @@
       this.playerEquity = updatedEquity;
 
       this.currentValuation = postMoney;
+      const revenueBeforeUpdate = this.revenue;
+      const profitBeforeUpdate = this.profit;
       this.updateFinancialsFromValuation();
+      const baselineRevenueForPostGate = Math.max(
+        this.revenue || 0,
+        revenueBeforeUpdate || 0,
+        this.lastRoundRevenue || 0
+      );
+      const baselineMarginForPostGate = baselineRevenueForPostGate > 0
+        ? ((Number.isFinite(profitBeforeUpdate) ? profitBeforeUpdate : (this.profit || 0)) / baselineRevenueForPostGate)
+        : null;
       this.recordHistory(currentDate);
 
       const runwayMonths = closingRound.runwayMonths || between(stage.monthsToNextRound[0], stage.monthsToNextRound[1]);
@@ -1202,15 +1215,33 @@
       this.currentRound = null;
 
       if (stageWasGate && success) {
+        console.log(`[GATE CLEARED ${this.name}] Gate stage (${stage?.id}) cleared! Setting gateCleared=true, postGatePending=true, baselineRevenueForPostGate=${baselineRevenueForPostGate?.toExponential(2)}`);
         this.gateCleared = true;
         this.postGatePending = true;
-      } else if (this.postGatePending && success) {
-        this.enterPostGateMode(currentDate);
+        if (!this.postGateMode) {
+          this.enterPostGateMode(currentDate, {
+            baselineRevenue: baselineRevenueForPostGate,
+            baselineMargin: baselineMarginForPostGate
+          });
+          this.recordHistory(currentDate);
+        }
+      } else if (this.postGatePending && success && !this.postGateMode) {
+        this.enterPostGateMode(currentDate, {
+          baselineRevenue: baselineRevenueForPostGate,
+          baselineMargin: baselineMarginForPostGate
+        });
         this.recordHistory(currentDate);
       }
 
       const reachedTarget = this.stageIndex >= this.targetStageIndex || stage.id === 'pre_ipo' || stage.id === 'ipo';
       if (reachedTarget) {
+        if (this.gateCleared && !this.postGateMode) {
+          this.enterPostGateMode(currentDate, {
+            baselineRevenue: baselineRevenueForPostGate,
+            baselineMargin: baselineMarginForPostGate
+          });
+          this.recordHistory(currentDate);
+        }
         this.stageIndex = Math.max(0, this.roundDefinitions.length - 1);
         this.status = 'ipo_pending';
         const finalValuation = this.currentValuation;
@@ -1440,6 +1471,7 @@
       this.setPhase('public', { ipoDate: effectiveDate.toISOString() });
       this.status = 'ipo';
       this.macroEnv = macroEnv || this.macroEnv;
+
       this.ipoDate = effectiveDate;
       this.showDividendColumn = true;
       this.currentRound = null;
@@ -1464,12 +1496,19 @@
       const stage = this.getStageFinancials();
       const ps = stage && stage.ps ? stage.ps : 6;
       const macroFactor = this.macroEnv ? this.macroEnv.getValue(this.sector) : 1;
-      const revenueSnapshot = Math.max(1, this.revenue || this.currentValuation / Math.max(ps, 1));
+      const revenueSnapshot = Math.max(
+        1,
+        this.revenue || 0,
+        this.lastRoundRevenue || 0,
+        this.baseRevenue || 0,
+        this.currentValuation / Math.max(ps, 1)
+      );
       const denom = Math.max(1e-3, macroFactor * Math.max(this.micro || 1, 0.05) * Math.max(this.revMult || 1, 0.05));
-      // Pipeline value (unlockedPV, optionPV) is NOT added here - it's already reflected
-      // in fair value calculations. Adding it to baseRevenue would cause double-counting.
-      const normalizedBase = (revenueSnapshot + (this.flatRev || 0)) / denom;
+      const pipelineSignal = (unlockedPV + optionPV) / Math.max(ps, 1);
+      const normalizedBase = (revenueSnapshot + pipelineSignal + (this.flatRev || 0)) / denom;
       this.baseRevenue = Math.max(1, normalizedBase);
+      // Preserve the stronger of existing revenue or the snapshot so we don't zero out growth on IPO.
+      this.revenue = Math.max(this.revenue || 0, revenueSnapshot);
 
       if (this.marginCurve && isFinite(this.lastRoundMargin)) {
         const startMargin = this.marginCurve.s;
