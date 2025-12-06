@@ -352,27 +352,19 @@
           "ipo_stage": "series_d",
           "rounds_override": ["seed", "series_a", "series_b", "series_c", "series_d"],
           "value_realization_ps": 8,
-          "founders": [
-            {
-              "name": "Marcus Chen",
-              "degree": "PhD",
-              "school": "MIT"
-            },
-            {
-              "name": "Elena Vasquez",
-              "degree": "PhD",
-              "school": "Imperial College"
-            }
-          ],
+          "founders": [{"name": "Marcus Chen", "degree": "PhD", "school": "MIT"},
+            {"name": "Elena Vasquez", "degree": "PhD", "school": "Imperial College"}],
           "mission": "Building fusion reactors that can replace natural gas peaker plants.",
           "founding_location": "Seattle, WA",
           "initial_valuation_realization": 0.01,
+
           "hypergrowth_window_years": 2.5,
           "hypergrowth_initial_growth_rate": 1.2,
           "hypergrowth_terminal_growth_rate": 0.2,
           "hypergrowth_initial_margin": -0.3,
           "hypergrowth_terminal_margin": 0.25,
           "years_to_converge": 5,
+
           "private_listing_window": {
             "from": 1985,
             "to": 1985
@@ -381,20 +373,15 @@
             {
               "id": "fusion_core",
               "label": "Commercial Fusion Reactor",
-              "full_revenue_usd": [
-                2500000000,
-                7000000000
-              ],
+              "full_revenue_usd": [2500000000, 7000000000],
               "stages": [
-                {
-                  "id": "net_energy",
+                { "id": "net_energy",
                   "name": "Net Energy Gain Demonstration",
                   "duration_days": 1200,
                   "success_prob": 0.99,
                   "value_realization": 0.04,
                   "cost_usd": 300000000,
-                  "max_retries": 1
-                },
+                  "max_retries": 1 },
                 {
                   "id": "breakeven",
                   "name": "Sustained Breakeven",
@@ -404,8 +391,7 @@
                   "value_realization": 0.1,
                   "cost_usd": 60000000,
                   "max_retries": 1
-                },
-                {
+                }, {
                   "id": "grid_integration",
                   "name": "Grid Integration",
                   "duration_days": 800,
@@ -414,8 +400,7 @@
                   "value_realization": 0.22,
                   "cost_usd": 1020000000,
                   "max_retries": 1
-                },
-                {
+                }, {
                   "id": "regulatory_clearance",
                   "name": "Regulatory Clearance",
                   "duration_days": 750,
@@ -424,8 +409,7 @@
                   "value_realization": 0.43,
                   "cost_usd": 2120000000,
                   "max_retries": 1
-                },
-                {
+                }, {
                   "id": "commercial_ramp",
                   "name": "Commercial Ramp",
                   "duration_days": 600,
@@ -439,79 +423,7 @@
               ]
             }
           ]
-        },
-        {
-          "phase": "private",
-          "post_success_mode": "ramp",
-          "name": "NeuroSync",
-          "sector": "BioTech",
-          "description": "Implantable BMI hardware for clinical and defense.",
-          "funding_round": "Series B",
-          "gate_stage": "series_c",
-          "ipo_stage": "pre_ipo",
-          "initial_valuation_realization": 0.04,
-          "value_realization_ps": 10,
-          "founders": [
-            {
-              "name": "Dr. Arjun Mehta",
-              "degree": "PhD",
-              "school": "MIT"
-            },
-            {
-              "name": "Sophia Martinez",
-              "degree": "MD",
-              "school": "Stanford"
-            }
-          ],
-          "mission": "Delivering safe, high-bandwidth neural interfaces.",
-          "founding_location": "San Jose, CA",
-          "valuation_usd": 22000000,
-          "hypergrowth_window_years": 2.2,
-          "hypergrowth_initial_growth_rate": 1.0,
-          "hypergrowth_terminal_growth_rate": 0.18,
-          "hypergrowth_initial_margin": -0.35,
-          "hypergrowth_terminal_margin": 0.22,
-          "private_listing_window": {
-            "from": 2021,
-            "to": 2032
-          }
-        },
-        {
-          "phase": "private",
-          "post_success_mode": "ramp",
-          "name": "AeroForge Materials",
-          "sector": "Aerospace",
-          "description": "High-temperature composites for hypersonic flight.",
-          "funding_round": "Series B",
-          "gate_stage": "pre_ipo",
-          "ipo_stage": "pre_ipo",
-          "value_realization_ps": 5,
-          "founders": [
-            {
-              "name": "Liang Zhao",
-              "degree": "PhD",
-              "school": "Caltech"
-            },
-            {
-              "name": "Maya Klein",
-              "degree": "PhD",
-              "school": "ETH Zurich"
-            }
-          ],
-          "mission": "Enabling reliable hypersonic platforms with advanced composites.",
-          "founding_location": "Los Angeles, CA",
-          "valuation_usd": 20000000,
-          "hypergrowth_window_years": 2.8,
-          "hypergrowth_initial_growth_rate": 1.1,
-          "hypergrowth_terminal_growth_rate": 0.2,
-          "hypergrowth_initial_margin": -0.4,
-          "hypergrowth_terminal_margin": 0.28,
-          "private_listing_window": {
-            "from": 2023,
-            "to": 2035
-          }
-        },
-        {
+        }, {
           "phase": "private",
           "post_success_mode": "ramp",
           "name": "Beep Boop Robotics",
@@ -522,25 +434,19 @@
           "rounds_override": ["seed", "series_a", "series_b", "series_c", "series_d"],
           "value_realization_ps": 7,
           "founders": [
-            {
-              "name": "Priya Raman",
-              "degree": "MS",
-              "school": "CMU"
-            },
-            {
-              "name": "Evan Brooks",
-              "degree": "BS",
-              "school": "Georgia Tech"
-            }
+            { "name": "Priya Raman", "degree": "MS", "school": "CMU" },
+            { "name": "Evan Brooks", "degree": "BS", "school": "Georgia Tech" }
           ],
           "mission": "Putting a helpful robot in every home to do the chores you hate.",
           "founding_location": "San Francisco, CA",
           "initial_valuation_realization": 0.04,
+
           "hypergrowth_window_years": 3,
           "hypergrowth_initial_growth_rate": 0.7,
           "hypergrowth_terminal_growth_rate": 0.12,
           "hypergrowth_initial_margin": -0.25,
           "hypergrowth_terminal_margin": 0.2,
+
           "private_listing_window": {
             "from": 1985,
             "to": 1985
@@ -550,62 +456,204 @@
               "id": "home_bot",
               "label": "Household Robot Platform",
               "full_revenue_usd": 12000000000,
-              "hypergrowth": {
-                "target_multiplier": 4.5,
-                "growth_rate": 0.5,
-                "duration_years": 3
-              },
               "stages": [
-                {
-                  "id": "navigation",
+                { "id": "navigation",
                   "name": "Home Navigation",
                   "duration_days": 720,
                   "success_prob": 0.99,
-                  "value_realization": 0.9,
+                  "value_realization": 0.1,
                   "cost_usd": 1000500200,
-                  "max_retries": 2
-                },
+                  "max_retries": 2 },
                 {
                   "id": "manipulation",
                   "name": "Safe Manipulation",
                   "duration_days": 760,
                   "depends_on": "navigation",
                   "success_prob": 0.99,
-                  "value_realization": 0.5,
+                  "value_realization": 0.19,
                   "cost_usd": 1500500200,
                   "max_retries": 2
-                },
-                {
+                }, {
                   "id": "household_tasks",
                   "name": "Household Task Autonomy",
                   "duration_days": 670,
                   "depends_on": "manipulation",
                   "success_prob": 0.99,
-                  "value_realization": 0.24,
+                  "value_realization": 0.35,
                   "cost_usd": 2500500200,
                   "max_retries": 1
-                },
-                {
+                }, {
                   "id": "mass_production",
                   "name": "Mass Production",
                   "duration_days": 650,
                   "depends_on": "household_tasks",
                   "success_prob": 0.99,
-                  "value_realization": 0.22,
+                  "value_realization": 0.76,
                   "cost_usd": 3500500200,
                   "max_retries": 1
-                },
-                {
+                }, {
                   "id": "global_launch",
                   "name": "Global Launch",
                   "duration_days": 480,
                   "depends_on": "mass_production",
                   "success_prob": 0.99,
-                  "value_realization": 0.22,
+                  "value_realization": 1,
                   "cost_usd": 85000000,
                   "max_retries": 1,
                   "commercialises_revenue": true
                 }
+              ]
+            }
+          ]
+        }, {
+          "phase": "private",
+          "post_success_mode": "ramp",
+          "name": "NeuronSync",
+          "sector": "BioTech",
+          "description": "Implantable BMI hardware for everyday clinical and consumer use.",
+          "gate_stage": "series_c",
+          "ipo_stage": "series_d",
+          "rounds_override": ["seed", "series_a", "series_b", "series_c", "series_d"],
+          "initial_valuation_realization": 0.04,
+          "value_realization_ps": 10,
+          "founders": [
+            { "name": "Dr. Arjun Mehta", "degree": "PhD", "school": "MIT" },
+            { "name": "Sophia Martinez", "degree": "MD", "school": "Stanford" }
+          ],
+          "mission": "Delivering safe, high-bandwidth neural interfaces.",
+          "founding_location": "San Jose, CA",
+
+          "hypergrowth_window_years": 3,
+          "hypergrowth_initial_growth_rate": 0.8,
+          "hypergrowth_terminal_growth_rate": 0.18,
+          "hypergrowth_initial_margin": -0.35,
+          "hypergrowth_terminal_margin": 0.24,
+          "years_to_converge": 5,
+
+          "private_listing_window": { "from": 1985, "to": 1985 },
+
+          "pipelineTemplate": [
+            {
+              "id": "neural_platform",
+              "label": "Neural Interface Platform",
+              "full_revenue_usd": [5000000000, 25000000000],
+              "stages": [
+                { "id": "preclinical_safety",
+                  "name": "Preclinical Safety & Biocompatibility",
+                  "duration_days": 720,
+                  "success_prob": 0.97,
+                  "value_realization": 0.06,
+                  "cost_usd": 250000000,
+                  "max_retries": 1 },
+                { "id": "first_in_human",
+                  "name": "First-in-Human Trials",
+                  "duration_days": 780,
+                  "depends_on": "preclinical_safety",
+                  "success_prob": 0.95,
+                  "value_realization": 0.16,
+                  "cost_usd": 400000000,
+                  "max_retries": 1 },
+                { "id": "high_bandwidth",
+                  "name": "High-Bandwidth Implant Platform",
+                  "duration_days": 820,
+                  "depends_on": "first_in_human",
+                  "success_prob": 0.94,
+                  "value_realization": 0.34,
+                  "cost_usd": 600000000,
+                  "max_retries": 1 },
+                { "id": "home_use",
+                  "name": "At-Home Use & Upgrade System",
+                  "duration_days": 680,
+                  "depends_on": "high_bandwidth",
+                  "success_prob": 0.94,
+                  "value_realization": 0.62,
+                  "cost_usd": 750000000,
+                  "max_retries": 1 },
+                { "id": "global_reimbursement",
+                  "name": "Global Reimbursement & Scale-Up",
+                  "duration_days": 540,
+                  "depends_on": "home_use",
+                  "success_prob": 0.95,
+                  "value_realization": 1,
+                  "cost_usd": 900000000,
+                  "max_retries": 1,
+                  "commercialises_revenue": true }
+              ]
+            }
+          ]
+        }, {
+          "phase": "private",
+          "post_success_mode": "ramp",
+          "name": "SynthWeave Materials",
+          "sector": "Materials",
+          "description": "Programmable synthetic composites for next-gen infrastructure and hardware.",
+          "gate_stage": "series_c",
+          "ipo_stage": "series_d",
+          "rounds_override": ["seed", "series_a", "series_b", "series_c", "series_d"],
+          "initial_valuation_realization": 0.03,
+          "value_realization_ps": 6,
+          "founders": [
+            { "name": "Liang Zhao", "degree": "PhD", "school": "Caltech" },
+            { "name": "Maya Klein", "degree": "PhD", "school": "ETH Zurich" }
+          ],
+          "mission": "Creating programmable synthetic materials for lighter, stronger, smarter systems.",
+          "founding_location": "Los Angeles, CA",
+
+          "hypergrowth_window_years": 2.8,
+          "hypergrowth_initial_growth_rate": 0.9,
+          "hypergrowth_terminal_growth_rate": 0.18,
+          "hypergrowth_initial_margin": -0.4,
+          "hypergrowth_terminal_margin": 0.26,
+          "years_to_converge": 5,
+
+          "private_listing_window": { "from": 1985, "to": 1985 },
+
+          "pipelineTemplate": [
+            {
+              "id": "synth_weave",
+              "label": "SynthWeave Composite Platform",
+              "full_revenue_usd": [5000000000, 25000000000],
+              "stages": [
+                { "id": "novel_polymer",
+                  "name": "Novel Polymer Chemistry",
+                  "duration_days": 640,
+                  "success_prob": 0.97,
+                  "value_realization": 0.05,
+                  "cost_usd": 220000000,
+                  "max_retries": 1 },
+                { "id": "pilot_line",
+                  "name": "Pilot Line & Test Parts",
+                  "duration_days": 700,
+                  "depends_on": "novel_polymer",
+                  "success_prob": 0.96,
+                  "value_realization": 0.15,
+                  "cost_usd": 450000000,
+                  "max_retries": 1 },
+                { "id": "structural_cert",
+                  "name": "Structural Certification & Standards",
+                  "duration_days": 760,
+                  "depends_on": "pilot_line",
+                  "success_prob": 0.95,
+                  "value_realization": 0.32,
+                  "cost_usd": 650000000,
+                  "max_retries": 1 },
+                { "id": "gigafactory_scale",
+                  "name": "Giga-Scale Production",
+                  "duration_days": 720,
+                  "depends_on": "structural_cert",
+                  "success_prob": 0.95,
+                  "value_realization": 0.65,
+                  "cost_usd": 900000000,
+                  "max_retries": 1 },
+                { "id": "global_oem",
+                  "name": "Global OEM Integration",
+                  "duration_days": 540,
+                  "depends_on": "gigafactory_scale",
+                  "success_prob": 0.96,
+                  "value_realization": 1,
+                  "cost_usd": 800000000,
+                  "max_retries": 1,
+                  "commercialises_revenue": true }
               ]
             }
           ]
