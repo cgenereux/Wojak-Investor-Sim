@@ -1,6 +1,6 @@
   About
 
-  - Wojak Investor Sim is a browser-based stock market and venture investing game where you play as Wojak (or friends) trying to build a portfolio from 1985–2050.
+  - Wojak Investor Sim is a browser-based stock market and venture investing game where you play as Wojak (or friends), building a portfolio from 1985–2050.
   - The live version runs at https://wojakinvestorsim.com using this codebase (vanilla JS frontend + Node/Fastify WebSocket backend).
   - The sim combines a public market (macro events, sectors, pipelines, dividends, bankruptcies) with a private VC layer (growth startups + hard tech ventures that IPO into the same world).
   - Supports both singleplayer and multiplayer party sessions with a server-authoritative timeline and shared leaderboard.
@@ -90,9 +90,8 @@
 
   Content/Preset Generation
 
-  - Public presets: hard tech (biotech-style pipelines), steady megacorps, product rotators (managed product catalog), each with sector defaults and IPO windows (data/presets/*.json, src/presets/presets.js).
-  - Venture presets: 1990s hypergrowth web companies, binary hard-tech ventures; product catalogs in data/productCatalogs/core.json.
-  - Legacy company JSONs are archived under legacy/data/legacy-companies and no longer load in the main flow (src/main.js:loadCompaniesData).
+  - Public presets: hard tech (biotech-style pipelines), steady corporations (tech, finance, retail, etc), each with sector defaults and IPO timelines (data/presets/*.json, src/presets/presets.js).
+  - Venture presets: hypergrowth and binary hard-tech ventures.
 
   Analytics & Debug
 
@@ -115,6 +114,5 @@
 
   To Do List
   - Bankruptcies don't work properly in multiplayer as assets aren't completely wiped and you can rebound from bankruptcy after going negative when you shouldn't be able to. The bankruptcy screen can also play pop up multiple times on one bankruptcy in multiplayer.
-  - Hypergrowth mode should be possible while public
-
-
+  - Hypergrowth mode should be possible while public in an ideal world
+  - It seems in mutliplayer, when character avatar's are too tall, it cuts of the top of their heads a bit, but for a reason i don't know, also seems to chop off the bottom of their names hence -- this may be because their usernames are included in the same square div as their avatar. 

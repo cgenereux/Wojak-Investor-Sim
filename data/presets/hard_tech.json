@@ -183,6 +183,8 @@
             }
           ],
           "mission": "Developing modular gene therapies that scale to mainstream patients.",
+          "initial_valuation_realization": 0.06,
+          "value_realization_ps": 4,
           "founding_location": "Cambridge, MA",
           "ipo_window": {
             "from": 1985,

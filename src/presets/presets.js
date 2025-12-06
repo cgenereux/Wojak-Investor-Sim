@@ -516,6 +516,12 @@
             }
             // Keep product labels clean without company name suffix
 
+            const valueRealizationPs = typeof entry.value_realization_ps === 'number'
+                ? entry.value_realization_ps
+                : (typeof defaults.value_realization_ps === 'number' ? defaults.value_realization_ps : null);
+            const initialPsSample = pickRangeLocal(multipleDefaults.initial_ps_ratio, 28, 45);
+            const initialPs = Number.isFinite(valueRealizationPs) ? valueRealizationPs : initialPsSample;
+
             const company = {
                 id,
                 static: {
@@ -544,14 +550,19 @@
                         years_to_mature: pickRangeLocal(marginDefaults.years_to_mature, 10, 14)
                     },
                     multiple_curve: {
-                        initial_ps_ratio: pickRangeLocal(multipleDefaults.initial_ps_ratio, 28, 45),
+                        initial_ps_ratio: initialPs,
                         terminal_pe_ratio: pickRangeLocal(multipleDefaults.terminal_pe_ratio, 16, 22),
                         years_to_converge: pickRangeLocal(multipleDefaults.years_to_converge, 8, 12)
                     }
                 },
                 finance: {},
                 pipeline,
-                events: []
+                events: [],
+                initial_valuation_realization: typeof entry.initial_valuation_realization === 'number'
+                    ? entry.initial_valuation_realization
+                    : (typeof defaults.initial_valuation_realization === 'number'
+                        ? defaults.initial_valuation_realization
+                        : null)
             };
             companies.push(company);
         });

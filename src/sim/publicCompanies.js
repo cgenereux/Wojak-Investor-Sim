@@ -802,6 +802,13 @@
       this.hasPipelineUpdate = false;
       const productPlanCfg = cfg.product_plan || cfg.productPlan || null;
       this.productManager = productPlanCfg ? new ProductManager(this, productPlanCfg) : null;
+      // Optional baseline pipeline realization for hard-tech style public companies.
+      // This parameter should affect valuation (via pipeline EV) but not revenue.
+      const realizationRaw = cfg.initial_valuation_realization ?? cfg.initial_value_realization;
+      const realization = (typeof realizationRaw === 'number' && Number.isFinite(realizationRaw))
+        ? Math.max(0, Math.min(1, realizationRaw))
+        : 0;
+      this.pipelineInitialRealization = realization > 0 ? realization : 0;
 
       let simDate = new Date(ipoDate);
       const dt = 14;
@@ -934,9 +941,21 @@
       // Only count unlockedValue for non-commercialized products (milestone progress).
       // unlockedValue is revenue potential, so apply P/S to convert to valuation.
       const fairPE = this.multCurve.value(ageYears, marginNow);
+      const baselineRealization = this.pipelineInitialRealization || 0;
       const unlockedPV = this.products.reduce((s, p) => {
         if (p.isCommercialised()) return s; // already in effectiveAnnual via pipelineBoost
-        return s + p.unlockedValue() * fairPE; // apply P/S to convert revenue → valuation
+        const full = p.fullVal || 0;
+        const uv = p.unlockedValue();
+        if (!Number.isFinite(uv) || full <= 0) {
+          return s;
+        }
+        if (baselineRealization <= 0) {
+          // Legacy behavior: valuation jumps start from zero pipeline EV.
+          return s + uv * fairPE;
+        }
+        const stageFactor = uv / full;
+        const realizedFactor = Math.max(baselineRealization, stageFactor);
+        return s + realizedFactor * full * fairPE;
       }, 0);
       const pipelineOption = this.products.reduce((s, p) => s + p.expectedValue(), 0);
       // MultipleCurve transitions from initial_ps_ratio (P/S) to terminal_pe_ratio × margin.
