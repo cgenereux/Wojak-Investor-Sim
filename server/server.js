@@ -616,9 +616,16 @@ function handleVentureEventsSession(session, events) {
       return;
     }
     if (evt.type === 'venture_ipo') {
-      let ventureCompany = evt.companyRef || null;
-      if (!ventureCompany && session.ventureSim) {
-        ventureCompany = session.ventureSim.extractCompany(evt.companyId) || session.ventureSim.getCompanyById(evt.companyId);
+      // Always extract from ventureSim so it leaves the private roster
+      let ventureCompany = null;
+      if (session.ventureSim) {
+        ventureCompany = session.ventureSim.extractCompany(evt.companyId);
+      }
+      // Fallback to the provided reference if extraction failed
+      if (!ventureCompany && evt.companyRef) {
+        ventureCompany = evt.companyRef;
+      } else if (!ventureCompany && session.ventureSim) {
+        ventureCompany = session.ventureSim.getCompanyById(evt.companyId);
       }
       if (ventureCompany && typeof session.sim.adoptVentureCompany === 'function') {
         session.sim.adoptVentureCompany(ventureCompany, session.sim.lastTick);

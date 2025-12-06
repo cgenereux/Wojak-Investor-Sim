@@ -508,10 +508,7 @@
             } else {
                 pipeline = clonePipelineTemplate(pipelineTemplate, currentPipelineScale, `${id}_pipeline`);
             }
-            pipeline = pipeline.map(p => ({
-                ...p,
-                label: `${p.label} (${name})`
-            }));
+            // Keep product labels clean without company name suffix
 
             const company = {
                 id,
@@ -580,9 +577,9 @@
                     : defaultPipelineTemplate;
                 const pipelineScale = Number.isFinite(entry?.pipeline_scale) ? entry.pipeline_scale : randBetween(0.8, 1.4);
                 const pipelineIdPrefix = `${id}_binary`;
+                // Keep product labels clean without company name suffix
                 const pipeline = clonePipelineTemplate(pipelineSource, pipelineScale, pipelineIdPrefix).map(p => {
-                    const labelSuffix = entry.name ? ` (${entry.name})` : '';
-                    return { ...p, label: `${p.label}${labelSuffix}` };
+                    return { ...p };
                 });
                 const initialRevenue = randBetween(2_000_000, 6_000_000);
                 const baseBusiness = {
