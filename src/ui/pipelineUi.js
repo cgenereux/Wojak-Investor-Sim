@@ -1,6 +1,7 @@
 (function (global) {
     function getPipelineHTML(company) {
-        let html = '<h3 class="investment-title">Product Pipeline</h3>';
+        const companyName = company.name || 'Company';
+        let html = `<h3 class="investment-title">${companyName}'s Product Pipeline</h3>`;
 
         if (!company.products || company.products.length === 0) {
             return '';

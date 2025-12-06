@@ -523,6 +523,12 @@ let sim = null;
 let companies = [];
 let ventureSim = null;
 let ventureCompanies = [];
+// When a VC-backed company IPOs in multiplayer, we defer the UI "jump to IPO"
+// until after the server-driven public listing arrives in tick.companies.
+let pendingVentureIPOJump = null;
+// Throttle public pipeline re-renders in multiplayer so CSS pulse animations
+// aren't reset on every server tick.
+let lastPublicPipelineRenderTs = 0;
 
 // Per-match context (seed + rng + refs) to keep public/venture in sync.
 let matchSeed = null;
@@ -955,6 +961,25 @@ function applyTick(tick) {
         }
     });
 
+    // In multiplayer, if we have a pending VC→IPO jump queued from the last
+    // venture_ipo event, now that companies are up to date we can navigate.
+    if (isServerAuthoritative && pendingVentureIPOJump) {
+        const jump = pendingVentureIPOJump;
+        const publicCompany = companies.find(c =>
+            c &&
+            ((jump.companyId && c.id === jump.companyId) ||
+             (jump.companyName && c.name === jump.companyName))
+        );
+        if (publicCompany && jump.wasViewing) {
+            if (typeof hideVentureCompanyDetail === 'function') {
+                hideVentureCompanyDetail({ skipHistory: true });
+            }
+            showCompanyDetail(publicCompany);
+            showToast(`${publicCompany.name} just IPO'd — jumping to the public listing.`, { tone: 'info', duration: 5000 });
+        }
+        pendingVentureIPOJump = null;
+    }
+
     if (Array.isArray(tick.players) && tick.players.length) {
         const me = tick.players.find(p => (serverPlayer && p.id === serverPlayer.id) || (clientPlayerId && p.id === clientPlayerId)) || tick.players[0];
         if (me) updatePlayerFromServer(me);
@@ -997,8 +1022,20 @@ function applyTick(tick) {
                 companyDetailChart.data.datasets[0].data = history;
                 companyDetailChart.update('none'); // 'none' mode for performance
             }
-            if (typeof updatePipelineDisplay === 'function' && Array.isArray(updated.products)) {
-                updatePipelineDisplay(updated);
+            if (typeof updatePipelineDisplay === 'function' && Array.isArray(updated.products) && updated.hasPipelineUpdate) {
+                if (!isServerAuthoritative) {
+                    updatePipelineDisplay(updated);
+                    updated.hasPipelineUpdate = false;
+                } else {
+                    // Multiplayer: throttle DOM rebuilds so CSS pulse animations
+                    // aren't reset on every server tick.
+                    const now = Date.now();
+                    if (!lastPublicPipelineRenderTs || now - lastPublicPipelineRenderTs > 1500) {
+                        updatePipelineDisplay(updated);
+                        updated.hasPipelineUpdate = false;
+                        lastPublicPipelineRenderTs = now;
+                    }
+                }
             }
             if (activeFinancialChanged) {
                 renderCompanyFinancialHistory(updated);
@@ -1060,13 +1097,8 @@ function applyTick(tick) {
             ventureSim.lastTick = new Date(tick.lastTick);
         }
 
-        // Refresh VC UI if active
-        if (document.body.classList.contains('vc-active') && typeof refreshVentureCompaniesList === 'function') {
-            refreshVentureCompaniesList();
-        }
-        if (document.body.classList.contains('vc-detail-active') && typeof refreshVentureDetailView === 'function') {
-            refreshVentureDetailView();
-        }
+        // In multiplayer, avoid re-rendering the entire VC list/detail every tick.
+        // UI refreshes are driven by ventureEvents and explicit actions instead.
         if (!document.body.classList.contains('vc-active')) {
             updateVentureBadge();
         }
@@ -1866,7 +1898,24 @@ function clamp(value, min, max) {
 }
 
 function convertVentureCompanyToPublic(event) {
-    if (!sim || !ventureSim || !event) return;
+    if (!event) return;
+
+    // Multiplayer: server is authoritative. Defer the UI jump until after
+    // the public listing arrives via tick.companies, and avoid mutating sims here.
+    if (isServerAuthoritative) {
+        const viewedVentureId = (typeof window.getCurrentVentureCompanyId === 'function')
+            ? window.getCurrentVentureCompanyId()
+            : null;
+        pendingVentureIPOJump = {
+            companyId: event.companyId,
+            companyName: event.name || null,
+            wasViewing: !!viewedVentureId && viewedVentureId === event.companyId
+        };
+        return;
+    }
+
+    // Singleplayer: local sim drives promotion.
+    if (!sim || !ventureSim) return;
     const ipoDate = new Date(currentDate);
     const viewedVentureId = (typeof window.getCurrentVentureCompanyId === 'function')
         ? window.getCurrentVentureCompanyId()
@@ -2190,8 +2239,6 @@ function gameLoop() {
             refreshVentureDetailView();
         }
         renderPortfolio();
-    } else if (typeof refreshVentureDetailView === 'function' && document.body.classList.contains('vc-detail-active')) {
-        refreshVentureDetailView();
     }
     if (document.body.classList.contains('vc-active')) {
         markVentureListingsSeen();
@@ -2285,9 +2332,12 @@ function gameLoop() {
     if (activeCompanyDetail) {
         updateInvestmentPanelStats(activeCompanyDetail);
 
-        // Always update pipeline to show live progress
-        updatePipelineDisplay(activeCompanyDetail);
-        activeCompanyDetail.hasPipelineUpdate = false;
+        // Only redraw the pipeline when something actually changed; this keeps
+        // the CSS pulse animation smooth instead of restarting every tick.
+        if (activeCompanyDetail.hasPipelineUpdate && typeof updatePipelineDisplay === 'function') {
+            updatePipelineDisplay(activeCompanyDetail);
+            activeCompanyDetail.hasPipelineUpdate = false;
+        }
     }
 }
 
