@@ -1508,9 +1508,14 @@ function renderMultiplayerEndSummary(players = [], finalYear = null) {
 
             const avatar = document.createElement('img');
             avatar.className = 'mp-end-avatar';
-            const avatarSrc = typeof getPlayerAvatarSrc === 'function'
+            let avatarSrc = typeof getPlayerAvatarSrc === 'function'
                 ? getPlayerAvatarSrc(p?.id || p?.name)
                 : (CHARACTER_SPRITES[(p?.character || '').toLowerCase()] || DEFAULT_WOJAK_SRC);
+            // Use tooltip_zoomer.png for tight circle avatars because the normal
+            // zoomer image isn't centered nicely in small avatar circles.
+            if ((p?.character || '').toLowerCase() === 'zoomer') {
+                avatarSrc = 'wojaks/tooltip_zoomer.png';
+            }
             avatar.src = avatarSrc;
             avatar.alt = p?.character || 'avatar';
 
@@ -3641,7 +3646,12 @@ async function init() {
                     ? (dsRef.borderColor[0] || '#0f172a')
                     : (dsRef?.borderColor || '#0f172a');
                 const label = dsRef?.label || 'Player';
-                const avatarSrc = isServerAuthoritative ? getPlayerAvatarSrc(label) : null;
+                let avatarSrc = isServerAuthoritative ? getPlayerAvatarSrc(label) : null;
+                // Use tooltip_zoomer.png for tight circle avatars because the normal
+                // zoomer image isn't centered nicely in small avatar circles.
+                if (avatarSrc && avatarSrc.includes('zoomer.png') && !avatarSrc.includes('tooltip_zoomer')) {
+                    avatarSrc = 'wojaks/tooltip_zoomer.png';
+                }
                 const marker = !isServerAuthoritative ? '' : (avatarSrc
                     ? `<img src="${avatarSrc}" alt="${label}" style="width:18px; height:18px; border-radius:50%; object-fit:cover; display:inline-block;" />`
                     : `<span style="width:10px; height:10px; border-radius:50%; background:${color}; display:inline-block;"></span>`);
