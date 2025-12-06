@@ -209,16 +209,21 @@
       this.mission = config.mission || '';
       this.foundingLocation = config.founding_location || config.foundingLocation || '';
       this.archetype = config.archetype || 'hypergrowth';
-      this.roundDefinitions = resolveRoundDefinitions(config.rounds);
+      this.roundDefinitions = resolveRoundDefinitions(config.rounds || config.rounds_override || []);
       const startingStageId = normalizeStageId(config.funding_round || 'seed');
       let startingIndex = this.roundDefinitions.findIndex(stage => stage.id === startingStageId);
       if (startingIndex < 0) startingIndex = 0;
       this.stageIndex = startingIndex;
 
       const targetLabel = normalizeStageId(config.ipo_stage || 'series_f');
+      this.targetStageIdNormalized = null;
+      this.targetStageId = null;
       let targetIdx = this.roundDefinitions.findIndex(stage => stage.id === targetLabel);
       if (targetIdx < 0) {
         targetIdx = this.roundDefinitions.length - 1;
+      } else {
+        this.targetStageId = this.roundDefinitions[targetIdx]?.id || targetLabel;
+        this.targetStageIdNormalized = targetLabel;
       }
       this.targetStageIndex = Math.max(0, Math.min(targetIdx, this.roundDefinitions.length - 1));
 
@@ -614,6 +619,20 @@
       return null;
     }
 
+    isHardTechPipelineComplete() {
+      const stats = this.getHardTechPipelineStats();
+      const noRemainingStage = this.getNextHardTechStage() === null;
+      if (!(stats.totalStages > 0 && stats.completedStages >= stats.totalStages && !stats.failedStage && noRemainingStage)) {
+        return false;
+      }
+      // Require all stages to have actually succeeded (not just completed)
+      return Array.isArray(this.products)
+        ? this.products.every(p =>
+            Array.isArray(p.stages) && p.stages.every(stage => stage.completed && stage.succeeded)
+          )
+        : false;
+    }
+
     getLastCompletedHardTechStage() {
       if (!Array.isArray(this.products)) return null;
       let last = null;
@@ -995,13 +1014,43 @@
       }
       this.accumulateFinancials(dtDays, currentDate);
       this.recordHistory(currentDate);
+
+      const events = [];
+
+      // Hard-tech fast path: if pipeline is complete and we’re at/after target stage, IPO immediately.
+      const pipelineComplete = this.archetype === 'hardtech' && this.raiseOnProgress && this.isHardTechPipelineComplete();
+      const reachedTargetStage = this.targetStageIdNormalized
+        ? normalizeStageId(this.currentStage?.id || '') === this.targetStageIdNormalized || this.stageIndex >= this.targetStageIndex
+        : (this.stageIndex >= this.targetStageIndex);
+      if (pipelineComplete && reachedTargetStage && this.status === 'raising') {
+        this.stageIndex = Math.max(this.stageIndex, this.targetStageIndex);
+        this.status = 'ipo';
+        this.stageChanged = true;
+        this.lastEventNote = 'Pipeline completed; IPO executed.';
+        events.push({
+          type: 'venture_ipo',
+          companyId: this.id,
+          name: this.name,
+          valuation: this.currentValuation,
+          revenue: this.revenue,
+          profit: this.profit,
+          playerEquity: this.playerEquity,
+          playerEquityById: { ...(this.playerEquityMap || {}) },
+          playerId: this.lastCommitPlayerId || null,
+          companyRef: this
+        });
+        this.setPhase('public');
+        return events;
+      }
+
       if (!this.currentRound && this.shouldStartNextRound()) {
         this.generateRound(currentDate);
       }
-      if (!this.currentRound) return [];
+      if (!this.currentRound) {
+        return events;
+      }
 
       this.daysSinceRound += dtDays;
-      const events = [];
 
       const stage = this.currentStage;
       if (!this.strategy || !this.strategy.shouldResolveRound(stage)) {
@@ -1624,6 +1673,7 @@
           post_gate_multiple_decay_years: cfg.post_gate_multiple_decay_years,
           post_gate_margin: cfg.post_gate_margin,
           max_failures_before_collapse: cfg.max_failures_before_collapse,
+          rounds: Array.isArray(cfg.rounds_override) ? cfg.rounds_override : Array.isArray(cfg.rounds) ? cfg.rounds : [],
           base_business: cfg.base_business,
           finance: cfg.finance,
           costs: cfg.costs,

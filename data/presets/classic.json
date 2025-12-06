@@ -233,7 +233,7 @@
     {
       "id": "classic_2010s",
       "label": "2010s",
-      "pick": 2,
+      "pick": 1,
       "defaults": { "ipo_window": { "from": 2010, "to": 2019 } },
       "roster": [
           {

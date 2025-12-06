@@ -618,6 +618,17 @@
                     || defaults.private_listing_window
                     || defaults.listing_window
                     || defaults.private_listing_window;
+                const roundsOverride = Array.isArray(entry.rounds_override) ? entry.rounds_override
+                    : Array.isArray(entry.stage_sequence) ? entry.stage_sequence
+                        : Array.isArray(entry.rounds) ? entry.rounds
+                            : Array.isArray(defaults.rounds) ? defaults.rounds
+                                : null;
+                const rounds = Array.isArray(roundsOverride) && roundsOverride.length > 0
+                    ? roundsOverride.map(r => r && r.toString ? r.toString() : r)
+                    : HARDTECH_VC_ROUNDS;
+                const fundingRound = entry.funding_round
+                    || (Array.isArray(rounds) && rounds.length ? rounds[0] : null)
+                    || 'seed';
                 companies.push({
                     id,
                     name: entry.name || 'Hardtech Venture',
@@ -627,7 +638,7 @@
                     mission: entry.mission || '',
                     founding_location: entry.founding_location || '',
                     valuation_usd: valuation,
-                    funding_round: entry.funding_round || 'Series B',
+                    funding_round: fundingRound,
                     ipo_stage: entry.ipo_stage || 'pre_ipo',
                     binary_success: true,
                     archetype: 'hardtech',
@@ -652,7 +663,7 @@
                     finance,
                     costs,
                     pipeline,
-                    rounds: HARDTECH_VC_ROUNDS,
+                    rounds,
                     post_success_mode: entry.post_success_mode || 'ramp'
                 });
             }

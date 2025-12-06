@@ -349,7 +349,8 @@
           "description": "Compact fusion reactors targeting commercial power generation.",
           "funding_round": "seed",
           "gate_stage": "series_c",
-          "ipo_stage": "pre_ipo",
+          "ipo_stage": "series_d",
+          "rounds_override": ["seed", "series_a", "series_b", "series_c", "series_d"],
           "value_realization_ps": 8,
           "founders": [
             {
