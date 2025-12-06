@@ -5,7 +5,7 @@
     "chance": 0.75,
     "start_year_range": [1995, 2040],
     "impact_days_range": [200, 300],
-    "recovery_days_range": [300, 500],
+    "recovery_days_range": [350, 600],
     "global_multiplier_range": [0.55, 0.75],
     "valuation_compression_range": [0.55, 0.7],
     "sector_impacts": [
@@ -30,7 +30,7 @@
     "chance": 0.9,
     "start_year_range": [1992, 2045],
     "impact_days_range": [360, 720],
-    "recovery_days_range": [240, 480],
+    "recovery_days_range": [400, 800],
     "global_multiplier_range": [0.8, 0.9],
     "valuation_compression_range": [0.55, 0.8],
     "sector_impacts": [
