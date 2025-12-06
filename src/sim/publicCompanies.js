@@ -283,6 +283,8 @@
 
       this.startYear = gameStartYear;
       this.ageDays = 0;
+      // Track public-era baseline so annual/quarter stamping is relative to IPO, not any prior lifecycle.
+      this.ageDaysAtIPO = 0;
       this.history = [];
       this.hypergrowthActive = false;
       this.hypergrowthTargetRevenue = 0;
@@ -371,9 +373,12 @@
     }
 
     maybeRecordAnnual(dividend = 0) {
-      const curYear = Math.floor(this.ageDays / 365);
-      const lastYear = Math.floor(this.lastYearEnd / 365);
-      if (curYear > lastYear && this.ageDays >= 365) {
+      const baseDays = this.ageDaysAtIPO || 0;
+      const adjAgeDays = Math.max(0, this.ageDays - baseDays);
+      const adjLastYearEnd = Math.max(0, this.lastYearEnd - baseDays);
+      const curYear = Math.floor(adjAgeDays / 365);
+      const lastYear = Math.floor(adjLastYearEnd / 365);
+      if (curYear > lastYear && adjAgeDays >= 365) {
         const yearStamp = this.ipoDate.getFullYear() + lastYear;
         const totals = this.sumQuarterTotalsForYear(yearStamp);
         const annualRevenue = totals.quarters > 0 ? totals.revenue : this.currentYearRevenue;

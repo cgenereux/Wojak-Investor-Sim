@@ -1534,6 +1534,15 @@
       this.bankrupt = false;
       this.marketCap = this.currentValuation;
       this.displayCap = this.currentValuation;
+      // Reset financial age baseline so public-era annuals start at IPO year.
+      this.ageDaysAtIPO = this.ageDays || 0;
+      this.lastYearEnd = this.ageDays;
+      this.currentYearRevenue = 0;
+      this.currentYearProfit = 0;
+      this.currentQuarterRevenue = 0;
+      this.currentQuarterProfit = 0;
+      this.currentQuarterDays = 0;
+      this.currentQuarterMeta = null;
       // Preserve some revenue expectations from pipeline when entering public markets
       const unlockedPV = Array.isArray(this.products)
         ? this.products.reduce((s, p) => s + (typeof p.unlockedValue === 'function' ? p.unlockedValue() : 0), 0)
