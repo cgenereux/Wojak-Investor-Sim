@@ -361,6 +361,41 @@
         this.quarterHistory.sort((a, b) => (a.year - b.year) || (a.quarter - b.quarter));
       }
 
+      // Sync pipeline if provided
+      if (Array.isArray(snapshot.products)) {
+        if (!Array.isArray(this.products) || this.products.length === 0) {
+          // Seed products directly if we don't have them yet
+          this.products = snapshot.products.map(p => ({
+            id: p.id,
+            label: p.label,
+            fullVal: p.fullVal,
+            stages: Array.isArray(p.stages) ? p.stages.map(s => ({ ...s })) : []
+          }));
+        } else {
+          const byId = new Map(this.products.map(p => [p.id, p]));
+          snapshot.products.forEach(pSnap => {
+            const existing = byId.get(pSnap.id);
+            if (!existing) return;
+            if (!Array.isArray(existing.stages)) existing.stages = [];
+            if (!Array.isArray(pSnap.stages)) return;
+            const stageMap = new Map(existing.stages.map(s => [s.id, s]));
+            pSnap.stages.forEach(snapStage => {
+              const stage = stageMap.get(snapStage.id);
+              if (!stage) return;
+              if (typeof snapStage.completed === 'boolean') stage.completed = snapStage.completed;
+              if (typeof snapStage.succeeded === 'boolean') stage.succeeded = snapStage.succeeded;
+              if (Number.isFinite(snapStage.elapsed)) stage.elapsed = snapStage.elapsed;
+              if (Number.isFinite(snapStage.tries)) stage.tries = snapStage.tries;
+              if (snapStage.depends_on) stage.depends_on = snapStage.depends_on;
+              if (snapStage.commercialises_revenue != null) stage.commercialises_revenue = !!snapStage.commercialises_revenue;
+              if (snapStage.name) stage.name = snapStage.name;
+              if (Number.isFinite(snapStage.duration_days)) stage.duration_days = snapStage.duration_days;
+              if (Number.isFinite(snapStage.success_prob)) stage.success_prob = snapStage.success_prob;
+            });
+          });
+        }
+      }
+
       // Flags for UI updates
       this.newAnnualData = true;
       this.newQuarterlyData = true;
@@ -1023,10 +1058,15 @@
           fullVal: p.fullVal,
           stages: Array.isArray(p.stages) ? p.stages.map(s => ({
             id: s.id,
+            name: s.name,
             completed: !!s.completed,
             succeeded: !!s.succeeded,
             elapsed: s.elapsed || 0,
-            tries: s.tries || 0
+            tries: s.tries || 0,
+            depends_on: s.depends_on || null,
+            commercialises_revenue: !!s.commercialises_revenue,
+            duration_days: s.duration_days || null,
+            success_prob: s.success_prob
           })) : []
         }))
         : [];

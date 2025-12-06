@@ -905,18 +905,18 @@ function unitHostedInvalid(units) {
 const server = app.server;
 const wss = new WebSocket.Server({ noServer: true });
 
-server.on('upgrade', (req, socket, head) => {
-  const url = new URL(req.url, 'http://localhost');
-  if (url.pathname !== '/ws') {
-    socket.destroy();
-    return;
+  server.on('upgrade', (req, socket, head) => {
+    const url = new URL(req.url, 'http://localhost');
+    if (url.pathname !== '/ws') {
+      socket.destroy();
+      return;
   }
   wss.handleUpgrade(req, socket, head, (ws) => {
     wss.emit('connection', ws, req, url);
   });
-});
+  });
 
-wss.on('connection', async (ws, req, url) => {
+  wss.on('connection', async (ws, req, url) => {
   // Buffer any early messages that might arrive before session setup completes.
   const bufferedMessages = [];
   const bufferMessage = (data) => bufferedMessages.push(data);
@@ -933,6 +933,11 @@ wss.on('connection', async (ws, req, url) => {
   const sessionId = url.searchParams.get('session') || 'default';
   const requestedPlayerId = url.searchParams.get('player') || null;
   const role = url.searchParams.get('role') === 'host' ? 'host' : 'guest';
+  const debugParam = url.searchParams.get('debug');
+  const remoteAddr = (req.socket && req.socket.remoteAddress) || '';
+  const hostHeader = (req.headers && req.headers.host) || '';
+  const isLocalRequest = /(^127\.0\.0\.1)|(::1)|(^localhost)|(\.local$)/i.test(remoteAddr) ||
+    /(^127\.0\.0\.1)|(::1)|(^localhost)|(\.local$)/i.test(hostHeader);
   let session = sessions.get(sessionId);
   if (!session) {
     if (role === 'guest') {
@@ -941,6 +946,12 @@ wss.on('connection', async (ws, req, url) => {
       return;
     }
     session = await buildMatch();
+    // If localhost with debug=1, accelerate time for this session (multiplayer debug convenience)
+    if (debugParam === '1' && isLocalRequest && !session.debugSpeedApplied) {
+      const mult = 6;
+      session.sim.dtDays = (session.sim.dtDays || 14) * mult;
+      session.debugSpeedApplied = true;
+    }
     sessions.set(sessionId, session);
   }
   session.lastActivity = Date.now();

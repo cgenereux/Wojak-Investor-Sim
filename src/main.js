@@ -997,6 +997,9 @@ function applyTick(tick) {
                 companyDetailChart.data.datasets[0].data = history;
                 companyDetailChart.update('none'); // 'none' mode for performance
             }
+            if (typeof updatePipelineDisplay === 'function' && Array.isArray(updated.products)) {
+                updatePipelineDisplay(updated);
+            }
             if (activeFinancialChanged) {
                 renderCompanyFinancialHistory(updated);
                 updated.newAnnualData = false;

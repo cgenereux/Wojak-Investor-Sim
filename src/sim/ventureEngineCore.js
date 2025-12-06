@@ -411,6 +411,29 @@
       if (snapshot.playerEquityById) {
         this.playerEquityMap = { ...snapshot.playerEquityById };
       }
+
+      // Sync pipeline stages if provided
+      if (Array.isArray(snapshot.products) && Array.isArray(this.products)) {
+        const byId = new Map(this.products.map(p => [p.id, p]));
+        snapshot.products.forEach(pSnap => {
+          const existing = byId.get(pSnap.id);
+          if (!existing || !Array.isArray(existing.stages) || !Array.isArray(pSnap.stages)) return;
+          const stageMap = new Map(existing.stages.map(s => [s.id, s]));
+          pSnap.stages.forEach(snapStage => {
+            const stage = stageMap.get(snapStage.id);
+            if (!stage) return;
+            if (typeof snapStage.completed === 'boolean') stage.completed = snapStage.completed;
+            if (typeof snapStage.succeeded === 'boolean') stage.succeeded = snapStage.succeeded;
+            if (Number.isFinite(snapStage.elapsed)) stage.elapsed = snapStage.elapsed;
+            if (Number.isFinite(snapStage.tries)) stage.tries = snapStage.tries;
+            if (snapStage.depends_on) stage.depends_on = snapStage.depends_on;
+            if (snapStage.commercialises_revenue != null) stage.commercialises_revenue = !!snapStage.commercialises_revenue;
+            if (snapStage.name) stage.name = snapStage.name;
+            if (Number.isFinite(snapStage.duration_days)) stage.duration_days = snapStage.duration_days;
+            if (Number.isFinite(snapStage.success_prob)) stage.success_prob = snapStage.success_prob;
+          });
+        });
+      }
     }
 
     get currentStage() {
@@ -1644,6 +1667,25 @@
       const recentFinancials = this.financialHistory ? this.financialHistory.slice(-12) : [];
       const recentHistory = this.history ? this.history.slice(-400) : [];
       const round = this.currentRound;
+      const productSnapshot = Array.isArray(this.products)
+        ? this.products.map(p => ({
+          id: p.id,
+          label: p.label,
+          fullVal: p.fullVal,
+          stages: Array.isArray(p.stages) ? p.stages.map(s => ({
+            id: s.id,
+            name: s.name,
+            completed: !!s.completed,
+            succeeded: !!s.succeeded,
+            elapsed: s.elapsed || 0,
+            tries: s.tries || 0,
+            depends_on: s.depends_on || null,
+            commercialises_revenue: !!s.commercialises_revenue,
+            duration_days: s.duration_days || null,
+            success_prob: s.success_prob
+          })) : []
+        }))
+        : [];
 
       return {
         id: this.id,
@@ -1690,7 +1732,8 @@
             from: this.listingWindow.from ? this.listingWindow.from.toISOString() : null,
             to: this.listingWindow.to ? this.listingWindow.to.toISOString() : null
           }
-          : null
+          : null,
+        products: productSnapshot
       };
     }
   }
