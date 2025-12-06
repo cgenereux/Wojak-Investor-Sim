@@ -1,18 +1,31 @@
+  About
+
+  - Wojak Investor Sim is a browser-based stock market and venture investing game where you play as Wojak (or friends) trying to build a portfolio from 1985–2050.
+  - The live version runs at https://wojakinvestorsim.com using this codebase (vanilla JS frontend + Node/Fastify WebSocket backend).
+  - The sim combines a public market (macro events, sectors, pipelines, dividends, bankruptcies) with a private VC layer (growth startups + hard tech ventures that IPO into the same world).
+  - Supports both singleplayer and multiplayer party sessions with a server-authoritative timeline and shared leaderboard.
+
+  Quick Start
+
+  - Requirements: Node 18+ for the backend/tests, and any static HTTP file server to serve this folder over http:// (the frontend uses fetch for JSON, so file:// will not work reliably).
+  - Singleplayer (local): from the repo root, run a static server such as `npx serve .` or `python -m http.server`, then open the served `index.html` in your browser to play with a fully local simulation.
+  - Multiplayer (local): in addition to the static server, run `npm install` once and then `npm start` to launch the Fastify/WebSocket backend on `ws://localhost:4000`; open the frontend and use the Multiplayer button to create/join a party (the client auto-targets localhost when running there).
+
   Architecture
 
   - Frontend is vanilla JS/HTML/CSS with Chart.js for charts and js-confetti for flair (index.html, src/main.js plus src/ui/*).
   - Backend is Fastify + WebSocket (server/server.js); it instantiates the same sim modules as the client (src/sim/*) and pushes ticks to connected clients.
-  - Game timeline runs from 1990 to 2050 with 14-day ticks; server ticks every 500ms in multiplayer and stops on idle or year 2050.
+  - Game timeline runs from 1985 to 2050 with 14-day ticks; server ticks every 500ms in multiplayer and stops on idle or year 2050.
   - Data/presets live under data/ and are generated at runtime via src/presets/presets.js (hard tech, megacorp, product rotators, hypergrowth ventures, binary hard tech ventures) plus macro events (data/
     macroEvents.json).
 
   Player & Economy
 
-  - Each player starts with $3,000 cash, zero debt, and a character (wojak/grug/zoomer/bloomer); state includes cash, debt, holdings, venture equity, commitments, invested cash, drip flag (server/
+  - Each player starts with $3,000 cash, and a character (wojak/grug/zoomer/bloomer); state includes cash, debt, holdings, venture equity, commitments, invested cash, drip flag (server/
     server.js:createPlayer, src/main.js).
   - Net worth = cash + public equity + venture equity + pending commitments − debt; bankruptcy triggers when net worth < 0 and debt > 0 (single-player shows restart popup; multiplayer liquidates your
     positions).
-  - Borrowing: up to 5× net worth cap at 7% APR; borrow/repay commands and UI in the banking modal (server/server.js, src/main.js).
+  - Borrowing: up to 4× net worth cap at 7% APR; borrow/repay commands and UI in the banking modal (server/server.js, src/main.js).
   - Dividends accrue quarterly; optional DRIP reinvests payouts into more shares (server/server.js:distributeDividends, src/main.js).
   - Cosmetic states: suits unlock at millionaire/billionaire/trillionaire, “malding” Wojak on >50% drawdowns (single-player), favicon/avatar swaps (src/main.js, src/ui/wojakManager.js).
 
@@ -24,9 +37,15 @@
   - Product manager can spawn/retire products over time (replacement/gap windows); scheduled company events and macro environment multipliers impact revenue.
   - Dividends start after three profitable years with no debt and pay in installments; bankrupt firms drop to the bottom of lists and stop trading.
 
+  Sectors & Subsectors
+
+  - Canonical sectors today are: Technology, BioTech, Energy, Finance, Retail, Industrial, Materials, and Healthcare; older labels like Travel and Defense are normalised into Industrial, and Real Estate is treated as Finance.
+  - Airlines/transport/travel-themed companies are mapped into Industrial (sharing the “industrial/travel” color family), so there is no separate Travel sector in the macro layer.
+  - Technology companies can optionally carry a subsector label used for visuals and sorting only: Web Technology, Hardware Technology, Material Technology, Aerospace Technology, and Space Technology (all still roll up to the Technology sector for macro and fundamentals).
+
   Macro Events
 
-  - Pandemic, rate shock, and “Bogdanov manipulation” scenarios affect revenue multipliers, valuation compression, drift, and volatility (sector-specific impacts) (data/macroEvents.json, src/sim/
+  - Pandemic, rate shock, recession scenarios affect revenue multipliers, valuation compression, drift, and volatility (sector-specific impacts) (data/macroEvents.json, src/sim/
     macroEvents.js).
   - Active macro events show as pills above the header (src/main.js:updateMacroEventsDisplay).
 
@@ -43,7 +62,7 @@
 
   UI & UX
 
-  - Playable avatars: Four selectable characters (Wojak, Grug, Zoomer, Bloomer) chosen via the character overlay in the multiplayer modal; avatar selection syncs to the server so others see your character.
+  - Playable multiplayer avatars: Four selectable characters (Wojak, Grug, Zoomer, Bloomer) chosen via the character overlay in the multiplayer modal; avatar selection syncs to the server so others see your character.
     Party avatars stack in the header; the current lead avatar name sits beside your Wojak art.
   - Mood/appearance states: Wojak malds on >50% drawdowns in single-player; malding auto-clears after recovery or time cap. Cosmetic suits unlock as your net worth climbs: suit Wojak (millionaire), red suit
     (billionaire), glowing suit (trillionaire). Malding is disabled in multiplayer to avoid noisy swaps.
@@ -53,8 +72,8 @@
     HTML tooltips (date + market cap/valuation) for readability.
   - HUD & layout: Header shows net worth, current date, macro-event pills, and multiplayer status/session ID. Market grid supports sort/filter; bankrupt firms are visually demoted. Detail panels include
     pipeline visualization, financial tables with dividend yield/P-S/P-E, buy/sell (with max buttons), and mission/founder/location badges. Portfolio lists both public and private stakes/commitments with
-    stage/context labels. VC view has round timers/dilution, lead CTA, and preset buy fractions; VC and main views have back buttons to swap contexts. Multiplayer lobby shows player chips at the top and
-    validates unique names; host/guest cues are reflected in the UI.
+    stage/context labels. VC view has round timers/dilution, lead CTA, and preset buy fractions; VC and main views have back buttons to swap contexts. Multiplayer lobby shows player chips at the top and validates unique names; host/guest cues are reflected in the UI.
+  - Sector visuals: Public and VC market grids use a soft gradient color system by sector, with Technology and its subsectors arranged in a pastel blue–purple spectrum (Space → Aerospace → Materials → Hardware → Web → core Technology) so sorting by sector reads as a left-to-right color flow.
 
   Multiplayer Flow
 
@@ -78,21 +97,8 @@
   Analytics & Debug
 
   - PostHog instrumentation for match start/end and decade net-worth checkpoints; frontend includes the PostHog SDK (index.html, src/main.js).
-  - Debug helpers: manual macro trigger window.triggerMacroEvent(id), set cash to M/B/T buttons, and server-side debug_set_cash command.
-
-  TODO
-
-    1. Flush out company roster and eras of company types VERY IMPORTANT -- we want about 80 companies over 75 years
-    2. Preset Helpers & Rosters: Formalize the API, migrate existing companies to preset + overrides, and document the schema so new entries are easy to author.
-    3. Polish & test & improve macro events -- this needs a lot of testing and polish
-    4. Need to test that the game works with 8 players
-    6. Pause button + time slider on company pages
-    8. Fix those couple PostHog analytics that don't work currently
-    10. Monthly incomes in multiplayer (maybe $100/month) -- optional for players to enable -- maybe won't have this in v1.0
-    11. Log curve option for multiplayer
-    12. Make game start at 1985
-  Complete:
-    9. Some kind of UI that tells the player "the back end is currently warming up -- give it 20 seconds or so" if party creation doesn't work within 3 seconds -- *done*
+  - Debug helpers: manual macro trigger `window.triggerMacroEvent(id)` (e.g., `'global_recession'`, `'pandemic_global'`), set cash to M/B/T buttons, and server-side `debug_set_cash` command.
+  - Local-only debug mode: add `?debug=1` when running on localhost singleplayer to unlock extra speed steps and show debug controls; this is intentionally disabled in multiplayer/server-authoritative mode.
 
   Venture Capital (what’s in-game)
 
@@ -107,12 +113,8 @@
   - UI notes: VC grid shows valuation/stage/stake; detail shows valuation chart, pipeline view, financial table, timer, dilution label, lead CTA, fraction buttons; portfolio shows stage labels and “in-flight”
     commitments.
 
-   Future Company Roster Plan
+  To Do List
+  - Bankruptcies don't work properly in multiplayer as assets aren't completely wiped and you can rebound from bankruptcy after going negative when you shouldn't be able to. The bankruptcy screen can also play pop up multiple times on one bankruptcy in multiplayer.
+  - Hypergrowth mode should be possible while public
 
-  - Era slates: Curate per decade (e.g., 1990s web/bio, 2000s mobile/cloud/retail, 2020s gene therapy/space-adjacent, 2030–2050 space/BMI/nanotech); each run spawns a subset for variety while staying
-    authored.
-  - Preset + metadata: Each company = preset key + flavor (name, founders, mission, location, IPO window, optional overrides). No bespoke curve data in JSON; balance stays in presets.
-  - Ventures first: Venture rosters (hypergrowth + hard-tech) seed each era and IPO into the public sim with their live state; late-era public-only names fill gaps (industrial/space megacorps).
-  - Sector catalogs: Expand product catalogs per sector and enforce uniqueness per run so two companies don’t share the same pipeline in a playthrough.
-  - Size target: Grow toward ~80 public companies across 1990–2050 plus a rotating bench of private ventures each decade; replace placeholders with curated names as the list fills out.
-  - Current Roster: public 26 companies (Biotech 5, Retail 2, Consumer Staples 1, Airlines 3, Automotive 1, Real Estate 1, Defense 1, Aerospace 1, Tech 7, Industrial 1, Banking 3); private 6 companies (Web 3, Energy 1, Aerospace 1, BioTech 1).
+
