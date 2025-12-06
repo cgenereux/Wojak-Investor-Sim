@@ -116,22 +116,26 @@
       company.revenue += (targetRevenue - company.revenue) * smoothing;
       company.profit += (targetProfit - company.profit) * smoothing;
     }
-    if (stageCompleted) {
-      company.hasPipelineUpdate = true;
-      if (company.raiseOnProgress) {
-        company.pendingRaiseFromProgress = true;
-      }
-      if (company.currentRound) {
-        const lastStage = company.getLastCompletedHardTechStage();
-        if (lastStage) {
-          company.currentRound.pipelineStage = lastStage.name || lastStage.id || company.currentRound.pipelineStage;
+      if (stageCompleted) {
+        company.hasPipelineUpdate = true;
+        if (company.raiseOnProgress) {
+          company.pendingRaiseFromProgress = true;
         }
-        company.currentRound.stageReadyToResolve = true;
-      }
-      if (stats.totalStages > 0 && stats.completedStages >= stats.totalStages) {
-        company.stageIndex = company.targetStageIndex;
-        company.hardTechReadyForIPO = true;
-      }
+        if (company.currentRound) {
+          const lastStage = company.getLastCompletedHardTechStage();
+          if (lastStage) {
+            company.currentRound.pipelineStage = lastStage.name || lastStage.id || company.currentRound.pipelineStage;
+          }
+          company.currentRound.stageReadyToResolve = true;
+          // Reprice the current round now that pipeline value has unlocked, so we don't use a stale pre-money.
+          if (typeof company.repriceCurrentRoundAfterProgress === 'function') {
+            company.repriceCurrentRoundAfterProgress();
+          }
+        }
+        if (stats.totalStages > 0 && stats.completedStages >= stats.totalStages) {
+          company.stageIndex = company.targetStageIndex;
+          company.hardTechReadyForIPO = true;
+        }
     }
   }
 

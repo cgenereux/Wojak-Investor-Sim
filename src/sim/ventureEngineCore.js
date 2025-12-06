@@ -1328,6 +1328,25 @@
       return events;
     }
 
+    repriceCurrentRoundAfterProgress() {
+      if (!this.raiseOnProgress) return;
+      if (!this.currentRound || this.status !== 'raising') return;
+      const stage = this.currentStage;
+      if (!stage) return;
+      const prevValuation = Math.max(1, this.currentValuation || this.lastFairValue || 1);
+      // For hard-tech: recompute fair value from unlocked pipeline after a stage completes.
+      const baseFairValue = this.computeFairValue(true);
+      const minFloor = prevValuation * 0.5;
+      const fairValue = clampValue(baseFairValue, minFloor, Infinity);
+      const raiseAmount = this.currentRound.raiseAmount;
+      const postMoney = fairValue + raiseAmount;
+      const equityOffered = postMoney > 0 ? (raiseAmount / postMoney) : this.currentRound.equityOffered;
+      this.currentRound.preMoney = fairValue;
+      this.currentRound.postMoney = postMoney;
+      this.currentRound.equityOffered = equityOffered;
+      this.currentRound.fairValue = fairValue;
+    }
+
     getSummary(currentDate = null) {
       const cash = Number.isFinite(this.cash) ? this.cash : 0;
       const debt = Number.isFinite(this.debt) ? this.debt : 0;
