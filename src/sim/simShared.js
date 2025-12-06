@@ -2,7 +2,7 @@
   // Simple deterministic PRNG (mulberry32) for seeded runs; defaults to Math.random if not set.
   const createDeterministicRng = (seed = Date.now()) => {
     let a = (typeof seed === 'number' ? seed : Math.abs(hashString(seed.toString()))) >>> 0;
-    return function next () {
+    return function next() {
       a |= 0;
       a = (a + 0x6D2B79F5) | 0;
       let t = Math.imul(a ^ (a >>> 15), 1 | a);
@@ -43,7 +43,7 @@
   const SIM_DAY_MS = 24 * 60 * 60 * 1000;
 
   class Random {
-    static gaussian (rngFn = random) {
+    static gaussian(rngFn = random) {
       let u = 0;
       let v = 0;
       while (!u) u = rngFn();
@@ -53,12 +53,12 @@
   }
 
   class SeededRandom {
-    constructor (seed = Date.now()) {
+    constructor(seed = Date.now()) {
       this.seed = seed;
       this.prng = createDeterministicRng(seed);
     }
-    random () { return this.prng(); }
-    gaussian () {
+    random() { return this.prng(); }
+    gaussian() {
       let u = 0;
       let v = 0;
       while (!u) u = this.random();
@@ -72,53 +72,53 @@
   const clampValue = (value, min, max) => Math.max(min, Math.min(max, value));
 
   class MarginCurve {
-    constructor (s, t, y) {
+    constructor(s, t, y) {
       this.s = s;
       this.t = t;
       this.y = Math.max(0.01, y);
     }
-    value (x) {
+    value(x) {
       return lerp(this.s, this.t, x / this.y);
     }
   }
 
   class MultipleCurve {
-    constructor (ps, pe, y) {
+    constructor(ps, pe, y) {
       this.ps = ps;
       this.pe = pe;
       this.y = Math.max(0.01, y);
     }
-    value (x, margin) {
+    value(x, margin) {
       return lerp(this.ps, this.pe * margin, x / this.y);
     }
   }
 
   const sectorMicro = {
-    Biotech:       { mu: +0.026, sigma: 0.145 },
+    Biotech: { mu: +0.026, sigma: 0.145 },
     Semiconductor: { mu: +0.05, sigma: 0.125 },
-    Banking:       { mu: +0.02, sigma: 0.075 },
-    Retail:        { mu: +0.013, sigma: 0.06 },
-    DEFAULT:       { mu: +0.026, sigma: 0.08 }
+    Banking: { mu: +0.02, sigma: 0.075 },
+    Retail: { mu: +0.013, sigma: 0.06 },
+    DEFAULT: { mu: +0.026, sigma: 0.08 }
   };
 
   const sectorMargin = {
-    Biotech:        0.25,
-    Semiconductor:  0.18,
-    Tech:           0.22,
-    Banking:        0.12,
-    Retail:         0.06,
-    DEFAULT:        0.15
+    Biotech: 0.25,
+    Semiconductor: 0.18,
+    Tech: 0.22,
+    Banking: 0.12,
+    Retail: 0.06,
+    DEFAULT: 0.15
   };
 
   class MacroEnvironment {
-    constructor (sectorsSet, eventManager = null) {
+    constructor(sectorsSet, eventManager = null) {
       this.defaultParams = { mu: 0.16, sigma: 0.12 };
       this.sectorPresets = {
-        Biotech:        { mu: 0.15, sigma: 0.21 },
-        Semiconductor:  { mu: 0.17, sigma: 0.25 },
-        Tech:           { mu: 0.215, sigma: 0.18 },
-        Banking:        { mu: 0.16, sigma: 0.15 },
-        Retail:         { mu: 0.16, sigma: 0.08 }
+        Biotech: { mu: 0.15, sigma: 0.21 },
+        Semiconductor: { mu: 0.17, sigma: 0.25 },
+        Tech: { mu: 0.215, sigma: 0.18 },
+        Banking: { mu: 0.16, sigma: 0.15 },
+        Retail: { mu: 0.16, sigma: 0.08 }
       };
       this.eventManager = eventManager || null;
 
@@ -164,7 +164,7 @@
       this.events = [];
     }
 
-    step (dtYears) {
+    step(dtYears) {
       this.stepBias(this.marketBiasState, dtYears);
       Object.values(this.sectorBiasStates).forEach(state => this.stepBias(state, dtYears));
 
@@ -180,7 +180,7 @@
       });
     }
 
-    ensureSector (sector) {
+    ensureSector(sector) {
       if (!sector) return;
       if (!this.idxs[sector]) {
         const p = this.sectorPresets[sector] || this.defaultParams;
@@ -191,13 +191,13 @@
       }
     }
 
-    getValue (sector) {
+    getValue(sector) {
       this.ensureSector(sector);
       const entry = this.idxs[sector] || this.idxs.DEFAULT || { value: 1 };
       return entry.value;
     }
 
-    getMu (sector) {
+    getMu(sector) {
       this.ensureSector(sector);
       const entry = this.idxs[sector] || this.idxs.DEFAULT || { mu: this.defaultParams.mu };
       return entry.mu;
@@ -226,7 +226,7 @@
   }
 
   class Stage {
-    constructor (c) {
+    constructor(c) {
       Object.assign(this, c);
       this.commercialises_revenue = !!c.commercialises_revenue;
       this.cost = c.cost_usd || 0;
@@ -237,11 +237,11 @@
       this.succeeded = false;
     }
 
-    canStart (done) {
+    canStart(done) {
       return !this.completed && (!this.depends_on || done.has(this.depends_on));
     }
 
-    advance (dt, rng, company) {
+    advance(dt, rng, company) {
       if (this.completed) return;
       company.rdOpex += this.cost * dt / 365;
       this.elapsed += dt;
@@ -260,7 +260,7 @@
   }
 
   class Product {
-    constructor (c) {
+    constructor(c) {
       this.label = c.label || c.id;
       // Support range for full_revenue_usd: [min, max] or single number
       const revInput = c.full_revenue_usd;
@@ -274,7 +274,7 @@
       this._hypergrowthTriggered = false;
     }
 
-    unlockedValue () {
+    unlockedValue() {
       let factor = 0;
       for (const st of this.stages) {
         if (!st.completed) break;
@@ -285,17 +285,17 @@
       return this.fullVal * factor;
     }
 
-    isCommercialised () {
+    isCommercialised() {
       return this.stages.some(
         s => s.commercialises_revenue && s.completed && s.succeeded
       );
     }
 
-    realisedRevenuePerYear () {
+    realisedRevenuePerYear() {
       return this.isCommercialised() ? this.fullVal : 0;
     }
 
-    expectedValue () {
+    expectedValue() {
       let probAcc = 1;
       let exp = 0;
       for (const st of this.stages) {
@@ -306,36 +306,36 @@
       return exp * 0.25;
     }
 
-    advance (dt, rng, company) {
+    advance(dt, rng, company) {
       const done = new Set(this.stages.filter(s => s.completed && s.succeeded).map(s => s.id));
       this.stages.forEach(st => {
         if (st.canStart(done)) st.advance(dt, rng, company, this.label);
       });
     }
 
-    get hasMarket () { return this.isCommercialised(); }
-    get hasFailure () { return this.stages.some(s => s.completed && !s.succeeded); }
+    get hasMarket() { return this.isCommercialised(); }
+    get hasFailure() { return this.stages.some(s => s.completed && !s.succeeded); }
   }
 
   class TimedEffect {
-    constructor (c) {
+    constructor(c) {
       this.t = c.type;
       this.v = c.value_usd || c.multiplier || c.value;
       this.left = c.duration_days || 0;
-      this.apply = c.apply || (() => {});
-      this.revert = c.revert || (() => {});
+      this.apply = c.apply || (() => { });
+      this.revert = c.revert || (() => { });
     }
   }
 
   class ScheduledEvent {
-    constructor (c) {
+    constructor(c) {
       this.label = c.label || c.id;
       this.intervalDays = c.interval_days || 365;
       this.timer = between(0, this.intervalDays);
       this.effects = c.effects.map(e => new TimedEffect(e));
     }
 
-    maybe (dtDays) {
+    maybe(dtDays) {
       this.timer -= dtDays;
       if (this.timer > 0) return [];
       this.timer = this.intervalDays;
@@ -365,5 +365,5 @@
     ScheduledEvent
   };
 })(typeof globalThis !== 'undefined'
-    ? globalThis
-    : (typeof window !== 'undefined' ? window : this));
+  ? globalThis
+  : (typeof window !== 'undefined' ? window : this));

@@ -25,6 +25,7 @@
     throw new Error('VentureStrategyModule must load before ventureEngineCore.js');
   }
 
+
   const VC_DAY_MS = 24 * 60 * 60 * 1000;
   const DAYS_PER_YEAR = 365;
   const QUARTER_DAYS = DAYS_PER_YEAR / 4;
@@ -628,8 +629,8 @@
       // Require all stages to have actually succeeded (not just completed)
       return Array.isArray(this.products)
         ? this.products.every(p =>
-            Array.isArray(p.stages) && p.stages.every(stage => stage.completed && stage.succeeded)
-          )
+          Array.isArray(p.stages) && p.stages.every(stage => stage.completed && stage.succeeded)
+        )
         : false;
     }
 
@@ -1533,7 +1534,6 @@
       this.bankrupt = false;
       this.marketCap = this.currentValuation;
       this.displayCap = this.currentValuation;
-
       // Preserve some revenue expectations from pipeline when entering public markets
       const unlockedPV = Array.isArray(this.products)
         ? this.products.reduce((s, p) => s + (typeof p.unlockedValue === 'function' ? p.unlockedValue() : 0), 0)
@@ -1577,6 +1577,35 @@
 
       if (!this.history || this.history.length === 0) {
         this.recordHistory(effectiveDate);
+      }
+
+      // Anchor financials to IPO year to avoid year jumps in UI.
+      const ipoYear = effectiveDate.getUTCFullYear();
+      this.currentYearRevenue = 0;
+      this.currentYearProfit = 0;
+      this.lastYearRecorded = ipoYear;
+      const ipoRevenue = Math.max(1, revenueSnapshot);
+      const ipoProfit = this.profit || 0;
+      const ipoEntry = {
+        year: ipoYear,
+        revenue: ipoRevenue,
+        profit: ipoProfit,
+        marketCap: this.currentValuation,
+        cash: Math.max(this.cash, 0),
+        debt: Math.max(this.debt, 0),
+        dividend: 0,
+        ps: ipoRevenue > 0 ? this.currentValuation / ipoRevenue : 0,
+        pe: ipoProfit > 0 ? this.currentValuation / ipoProfit : 0
+      };
+      if (!this.financialHistory) this.financialHistory = [];
+      const lastHistYear = this.financialHistory.length ? this.financialHistory[this.financialHistory.length - 1].year : null;
+      if (lastHistYear !== ipoYear) {
+        this.financialHistory.push(ipoEntry);
+      } else {
+        this.financialHistory[this.financialHistory.length - 1] = ipoEntry;
+      }
+      if (this.financialHistory.length > 60) {
+        this.financialHistory = this.financialHistory.slice(-60);
       }
     }
 
