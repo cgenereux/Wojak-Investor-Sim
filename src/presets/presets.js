@@ -1,6 +1,9 @@
 (function (global) {
     const GLOBAL_BASE_INTEREST_RATE = 0.07;
     const shared = global.SimShared || {};
+    const normalizeSector = typeof shared.normalizeSector === 'function'
+        ? shared.normalizeSector
+        : (s) => s;
     const defaultRng = typeof shared.random === 'function' ? shared.random : Math.random;
     const buildRandomTools = (options = {}) => {
         const rng = typeof options.rng === 'function' ? options.rng : defaultRng;
@@ -146,7 +149,8 @@
             return {
                 id: makeId(`preset_hyper_${slugify(entry.name || `hyper_${idx}`)}`, idx),
                 name: entry.name || `Hypergrowth ${idx + 1}`,
-                sector: entry.sector || defaults.sector || 'Web',
+                sector: normalizeSector(entry.sector || defaults.sector || 'Web'),
+                subsector: entry.subsector || null,
                 description: entry.description || defaults.description || 'Hypergrowth preset',
                 founders: Array.isArray(entry.founders) ? entry.founders.map(f => ({ ...f })) : (Array.isArray(defaults.founders) ? defaults.founders.map(f => ({ ...f })) : []),
                 mission: entry.mission || defaults.mission || '',
@@ -211,7 +215,8 @@
                 id: makeId(`preset_tech_${slugify(name)}`, idx),
                 static: {
                     name,
-                    sector: entry.sector || defaults.sector || 'Tech',
+                    sector: normalizeSector(entry.sector || defaults.sector || 'Tech'),
+                    subsector: entry.subsector || defaults.subsector || null,
                     founders: (entry.founders || []).map(f => ({ ...f })),
                     mission: entry.mission || defaults.mission || '',
                     founding_location: entry.founding_location || defaults.founding_location || '',
@@ -386,7 +391,8 @@
                     id,
                     static: {
                         name,
-                        sector: entry.sector || effectiveDefaults.sector || 'General',
+                        sector: normalizeSector(entry.sector || effectiveDefaults.sector || 'General'),
+                        subsector: entry.subsector || effectiveDefaults.subsector || null,
                         founders: (entry.founders || []).map(f => ({ ...f })),
                         mission: entry.mission || effectiveDefaults.mission || '',
                         founding_location: entry.founding_location || effectiveDefaults.founding_location || '',
@@ -514,7 +520,8 @@
                 id,
                 static: {
                     name,
-                    sector: defaults.sector || 'Biotech',
+                    sector: normalizeSector(defaults.sector || 'Biotech'),
+                    subsector: entry.subsector || defaults.subsector || null,
                     founders,
                     mission: entry.mission || defaults.mission || '',
                     founding_location: entry.founding_location || defaults.founding_location || '',
@@ -629,7 +636,8 @@
                 companies.push({
                     id,
                     name: entry.name || 'Hardtech Venture',
-                    sector: entry.sector || 'Deep Tech',
+                    sector: normalizeSector(entry.sector || 'Deep Tech'),
+                    subsector: entry.subsector || null,
                     description: entry.description || 'Binary hard-tech preset (private)',
                     founders: Array.isArray(entry.founders) ? entry.founders.map(f => ({ ...f })) : [],
                     mission: entry.mission || '',

@@ -940,7 +940,6 @@ const wss = new WebSocket.Server({ noServer: true });
   const sessionId = url.searchParams.get('session') || 'default';
   const requestedPlayerId = url.searchParams.get('player') || null;
   const role = url.searchParams.get('role') === 'host' ? 'host' : 'guest';
-  const debugParam = url.searchParams.get('debug');
   const remoteAddr = (req.socket && req.socket.remoteAddress) || '';
   const hostHeader = (req.headers && req.headers.host) || '';
   const isLocalRequest = /(^127\.0\.0\.1)|(::1)|(^localhost)|(\.local$)/i.test(remoteAddr) ||
@@ -953,12 +952,6 @@ const wss = new WebSocket.Server({ noServer: true });
       return;
     }
     session = await buildMatch();
-    // If localhost with debug=1, accelerate time for this session (multiplayer debug convenience)
-    if (debugParam === '1' && isLocalRequest && !session.debugSpeedApplied) {
-      const mult = 6;
-      session.sim.dtDays = (session.sim.dtDays || 14) * mult;
-      session.debugSpeedApplied = true;
-    }
     sessions.set(sessionId, session);
   }
   session.lastActivity = Date.now();

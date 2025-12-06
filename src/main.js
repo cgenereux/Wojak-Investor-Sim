@@ -705,9 +705,17 @@ function hydrateFromSnapshot(snapshot) {
                 // For simplicity, if it's in the main companies list, treat as Public Company (or PhaseCompany)
                 // But wait, the snapshot structure might differ.
                 // Standard public companies:
-                instance = new CompanyModule.Company({ id: cData.id, static: { name: cData.name, sector: cData.sector }, base_business: { revenue_process: { initial_revenue_usd: { min: 0, max: 0 } }, margin_curve: {}, multiple_curve: {} } }, getMacroEnv());
+                instance = new CompanyModule.Company({
+                    id: cData.id,
+                    static: { name: cData.name, sector: cData.sector, subsector: cData.subsector },
+                    base_business: { revenue_process: { initial_revenue_usd: { min: 0, max: 0 } }, margin_curve: {}, multiple_curve: {} }
+                }, getMacroEnv());
             } else {
-                instance = new CompanyModule.Company({ id: cData.id, static: { name: cData.name, sector: cData.sector }, base_business: { revenue_process: { initial_revenue_usd: { min: 0, max: 0 } }, margin_curve: {}, multiple_curve: {} } }, getMacroEnv());
+                instance = new CompanyModule.Company({
+                    id: cData.id,
+                    static: { name: cData.name, sector: cData.sector, subsector: cData.subsector },
+                    base_business: { revenue_process: { initial_revenue_usd: { min: 0, max: 0 } }, margin_curve: {}, multiple_curve: {} }
+                }, getMacroEnv());
             }
             instance.syncFromSnapshot(cData);
             return instance;
@@ -729,6 +737,7 @@ function hydrateFromSnapshot(snapshot) {
                         id: vData.id,
                         name: vData.name,
                         sector: vData.sector,
+                        subsector: vData.subsector,
                         description: vData.description,
                         valuation_usd: vData.valuation,
                         funding_round: vData.funding_round || vData.stageLabel || 'seed'
@@ -2936,7 +2945,8 @@ function showCompanyDetail(company, options = {}) {
     bodyEl.classList.remove('vc-detail-active');
     bodyEl.classList.add('detail-active');
     document.getElementById('detailCompanyName').textContent = company.name;
-    document.getElementById('detailCompanySector').textContent = company.bankrupt ? 'Status: Bankrupt' : company.sector;
+    const sectorLabel = company.subsector || company.sector || 'Unknown';
+    document.getElementById('detailCompanySector').textContent = company.bankrupt ? 'Status: Bankrupt' : sectorLabel;
     renderCompanyMeta(company);
     updateInvestmentPanel(company);
     const ctx = document.getElementById('companyDetailChart').getContext('2d');

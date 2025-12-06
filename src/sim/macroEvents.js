@@ -1,5 +1,8 @@
 (function (global) {
   const shared = global.SimShared || {};
+  const normalizeSector = typeof shared.normalizeSector === 'function'
+    ? shared.normalizeSector
+    : (s) => s;
   const getRng = () => (typeof shared.random === 'function' ? shared.random : Math.random);
   const randBetween = (min, max, rngFn = getRng()) => rngFn() * (max - min) + min;
   const randIntBetween = (min, max) => Math.floor(randBetween(min, max + 1));
@@ -70,12 +73,14 @@
       const valuationMinMultiplier = pickFromRange(def.valuation_compression_range, def.valuation_compression ?? 1);
       const sectorImpacts = Array.isArray(def.sector_impacts)
         ? def.sector_impacts.map(entry => {
-            const min = pickFromRange(entry.min_multiplier, entry.multiplier ?? entry.value ?? globalMinMultiplier);
-            return {
-              sector: entry.sector || 'ALL',
-              minMultiplier: typeof min === 'number' ? min : globalMinMultiplier
-            };
-          })
+          const min = pickFromRange(entry.min_multiplier, entry.multiplier ?? entry.value ?? globalMinMultiplier);
+          const rawSector = entry.sector || 'ALL';
+          const canonical = normalizeSector(rawSector) || rawSector;
+          return {
+            sector: canonical,
+            minMultiplier: typeof min === 'number' ? min : globalMinMultiplier
+          };
+        })
         : [];
       const state = options.forceActive ? 'active' : 'scheduled';
       const polarity = typeof def.polarity === 'string' ? def.polarity.toLowerCase() : '';
@@ -176,9 +181,10 @@
     getRevenueMultiplier(sector) {
       if (!this.activeEvents.length) return 1;
       const ref = this.currentDate || new Date();
+      const canonicalSector = sector ? normalizeSector(sector) : null;
       return this.activeEvents.reduce((mult, event) => {
         return mult * this.computeEventMultiplier(event, {
-          sector,
+          sector: canonicalSector,
           referenceDate: ref,
           baseMin: event.globalMinMultiplier,
           sectorImpacts: event.sectorImpacts
@@ -189,9 +195,10 @@
     getValuationMultiplier(sector) {
       if (!this.activeEvents.length) return 1;
       const ref = this.currentDate || new Date();
+      const canonicalSector = sector ? normalizeSector(sector) : null;
       return this.activeEvents.reduce((mult, event) => {
         return mult * this.computeEventMultiplier(event, {
-          sector,
+          sector: canonicalSector,
           referenceDate: ref,
           baseMin: event.valuationMinMultiplier || 1,
           sectorImpacts: []
@@ -202,9 +209,10 @@
     getRevenueBiasMultiplier(sector) {
       if (!this.activeEvents.length) return 1;
       const ref = this.currentDate || new Date();
+      const canonicalSector = sector ? normalizeSector(sector) : null;
       return this.activeEvents.reduce((mult, event) => {
         return mult * this.computeEventMultiplier(event, {
-          sector,
+          sector: canonicalSector,
           referenceDate: ref,
           baseMin: event.globalMinMultiplier,
           sectorImpacts: event.sectorImpacts
@@ -220,7 +228,7 @@
       const elapsed = (referenceDate - event.startDate) / DAY_MS;
       if (elapsed < 0) return 1;
       if (elapsed >= event.totalDays) return 1;
-      const targetSector = sector ? sector.toLowerCase() : 'all';
+      const targetSector = sector ? String(sector).toLowerCase() : 'all';
       const sectorImpact = sectorImpacts.find(entry => {
         const entrySector = (entry.sector || 'all').toLowerCase();
         return entrySector === 'all' || entrySector === targetSector;

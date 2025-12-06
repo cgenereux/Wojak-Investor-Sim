@@ -3,6 +3,7 @@
     {
       "name": "eBuy",
       "sector": "Web",
+      "subsector": "Web Technology",
       "description": "1990s hypergrowth web preset (private)",
       "funding_round": "Seed",
       "ipo_stage": "series_f",
@@ -18,6 +19,7 @@
     {
       "name": "CyberWorks",
       "sector": "Web",
+      "subsector": "Web Technology",
       "description": "1990s hypergrowth web preset (private)",
       "funding_round": "Seed",
       "ipo_stage": "series_f",
@@ -33,6 +35,7 @@
     {
       "name": "StreamCast",
       "sector": "Web",
+      "subsector": "Web Technology",
       "description": "1990s hypergrowth web preset (private)",
       "funding_round": "Seed",
       "ipo_stage": "series_f",

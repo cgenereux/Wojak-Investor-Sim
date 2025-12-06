@@ -10,7 +10,8 @@
     clampValue,
     random,
     withRandomSource,
-    SeededRandom
+    SeededRandom,
+    normalizeSector
   } = shared;
   const FAST_LISTING = false // !!process.env.FAST_LISTING; // 1;
   const { Company } = companyModule;
@@ -175,11 +176,15 @@
       rd_base_ratio: cfg.rd_base_ratio ?? 0.05
     };
 
+    const rawSector = cfg.sector || 'Private';
+    const canonicalSector = typeof normalizeSector === 'function' ? normalizeSector(rawSector) : rawSector;
+
     return {
       id: cfg.id,
       static: {
         name: cfg.name || 'Venture Spinout',
-        sector: cfg.sector || 'Private',
+        sector: canonicalSector,
+        subsector: cfg.subsector || null,
         founders: Array.isArray(cfg.founders) ? cfg.founders.map(f => ({ ...f })) : [],
         mission: cfg.mission || '',
         founding_location: cfg.founding_location || cfg.foundingLocation || '',
@@ -1409,7 +1414,7 @@
         id: this.id,
         name: this.name,
         sector: this.sector,
-        sector: this.sector,
+        subsector: this.subsector || null,
         founders: Array.isArray(this.founders) ? this.founders.map(f => ({ ...f })) : [],
         mission: this.mission || '',
         founding_location: this.foundingLocation || '',
@@ -1482,6 +1487,7 @@
         id: this.id,
         name: this.name,
         sector: this.sector,
+        subsector: this.subsector || null,
         founders: Array.isArray(this.founders) ? this.founders.map(f => ({ ...f })) : [],
         mission: this.mission || '',
         founding_location: this.foundingLocation || '',
@@ -1690,6 +1696,8 @@
       return {
         id: this.id,
         name: this.name,
+        sector: this.sector,
+        subsector: this.subsector || null,
         founders: Array.isArray(this.founders) ? this.founders.map(f => ({ ...f })) : [],
         mission: this.mission || '',
         founding_location: this.foundingLocation || '',
@@ -1750,6 +1758,7 @@
           id: cfg.id,
           name: cfg.name,
           sector: cfg.sector,
+          subsector: cfg.subsector,
           description: cfg.description,
           founders: Array.isArray(cfg.founders) ? cfg.founders : [],
           mission: cfg.mission || '',

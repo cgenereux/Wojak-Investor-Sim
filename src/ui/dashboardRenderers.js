@@ -1,22 +1,54 @@
 (function (global) {
   const DEFAULT_RENDER_INTERVAL = 500;
   const SECTOR_CLASS_MAP = {
+    // Technology and web-style
     tech: 'sector-tech',
+    technology: 'sector-tech',
+    web: 'sector-web',
+    aerospace: 'sector-aerospace',
+    semiconductor: 'sector-tech',
+    'rocket technology': 'sector-aerospace',
+    rockets: 'sector-aerospace',
+
+    // Bio / health
     biotech: 'sector-biotech',
+    'bio tech': 'sector-biotech',
+
+    // Finance / banking / real estate
     banking: 'sector-banking',
+    finance: 'sector-banking',
+    'real estate': 'sector-realestate',
+
+    // Industrial / materials
     manufacturing: 'sector-manufacturing',
+    industrial: 'sector-industrial',
+    automotive: 'sector-automotive',
+    materials: 'sector-industrial',
+
+    // Retail / staples
     retail: 'sector-retail',
     'consumer staples': 'sector-staples',
+
+    // Travel & transport
     airlines: 'sector-airlines',
-    automotive: 'sector-automotive',
-    aerospace: 'sector-aerospace',
+    travel: 'sector-airlines',
+    transportation: 'sector-airlines',
+    'travel & transport': 'sector-airlines',
+
+    // Defense / energy
     defense: 'sector-defense',
-    energy: 'sector-energy',
-    industrial: 'sector-industrial',
-    'real estate': 'sector-realestate',
-    web: 'sector-web'
+    energy: 'sector-energy'
   };
   const SECTOR_CLASS_VALUES = Object.values(SECTOR_CLASS_MAP);
+
+  const SUBSECTOR_CLASS_MAP = {
+    'web technology': 'subsector-web-tech',
+    'hardware technology': 'subsector-hardware-tech',
+    'aerospace technology': 'subsector-aero-tech',
+    'material technology': 'subsector-material-tech',
+    'space technology': 'subsector-space-tech'
+  };
+  const SUBSECTOR_CLASS_VALUES = Object.values(SUBSECTOR_CLASS_MAP);
 
   function escapeHtml(value = '') {
     return String(value)
@@ -44,6 +76,17 @@
     if (!el) return;
     SECTOR_CLASS_VALUES.forEach(cls => el.classList.remove(cls));
     if (sectorClass) el.classList.add(sectorClass);
+  }
+
+  function getSubsectorClass(subsector = '') {
+    const key = String(subsector || '').trim().toLowerCase();
+    return SUBSECTOR_CLASS_MAP[key] || '';
+  }
+
+  function applySubsectorClass(el, subsectorClass = '') {
+    if (!el) return;
+    SUBSECTOR_CLASS_VALUES.forEach(cls => el.classList.remove(cls));
+    if (subsectorClass) el.classList.add(subsectorClass);
   }
 
   function ensureCompanyQueueIndex(company, state) {
@@ -84,16 +127,60 @@
     } else if (currentSort === 'ipoDateDesc') {
       filtered.sort((x, y) => ((y.ipoDate instanceof Date ? y.ipoDate.getTime() : 0) - (x.ipoDate instanceof Date ? x.ipoDate.getTime() : 0)));
     } else if (currentSort === 'sector') {
-      const sectorOrder = ['biotech', 'tech', 'web', 'retail', 'banking', 'airlines', 'transportation'];
+      const sectorOrder = [
+        'biotech',
+        // Technologies cluster
+        'technology',
+        'tech',
+        'web',
+        // Energy
+        'energy',
+        // Finance
+        'finance',
+        'banking',
+        // Retail / consumer
+        'retail',
+        // Industrial + related
+        'industrial',
+        'manufacturing',
+        'automotive',
+        'materials',
+        'airlines',
+        'transportation',
+        'travel',
+        'travel & transport'
+      ];
+      const techSubsectorOrder = [
+        'space technology',
+        'aerospace technology',
+        'material technology',
+        'materials technology',
+        'hardware technology',
+        'web technology',
+        'technology'          // plain Technology / no subsector
+      ];
+      const pickTechSubsectorIndex = (company) => {
+        const sectorKey = String(company.sector || '').trim().toLowerCase();
+        if (sectorKey !== 'technology' && sectorKey !== 'tech') return 0;
+        const sub = String(company.subsector || '').trim().toLowerCase() || 'technology';
+        const idx = techSubsectorOrder.indexOf(sub);
+        return idx >= 0 ? idx : 0;
+      };
       filtered.sort((a, b) => {
         const sa = (a.sector || '').toLowerCase();
         const sb = (b.sector || '').toLowerCase();
         const ia = sectorOrder.indexOf(sa);
         const ib = sectorOrder.indexOf(sb);
         if (sa === sb) {
+          // Within Technology, order by subsector: Tech -> Web Tech -> Hardware -> Materials -> Aerospace.
+          if (sa === 'technology' || sa === 'tech') {
+            const subA = pickTechSubsectorIndex(a);
+            const subB = pickTechSubsectorIndex(b);
+            if (subA !== subB) return subA - subB;
+          }
           const aIpo = (a.ipoDate instanceof Date) ? a.ipoDate.getTime() : 0;
           const bIpo = (b.ipoDate instanceof Date) ? b.ipoDate.getTime() : 0;
-          if (aIpo !== bIpo) return bIpo - aIpo; // newest first within sector
+          if (aIpo !== bIpo) return bIpo - aIpo; // newest first within (sub)sector
           ensureCompanyQueueIndex(a, state);
           ensureCompanyQueueIndex(b, state);
           return (a.__queueIndex || 0) - (b.__queueIndex || 0);
@@ -127,9 +214,13 @@
         ? company.displayCap
         : (Number.isFinite(company.marketCap) ? company.marketCap : 0);
       const sectorClass = company.bankrupt ? '' : getSectorClass(company.sector);
-      const boxClass = company.bankrupt ? 'company-box bankrupt' : `company-box${sectorClass ? ` ${sectorClass}` : ''}`;
+      const subsectorClass = company.bankrupt ? '' : getSubsectorClass(company.subsector);
+      const boxClass = company.bankrupt
+        ? 'company-box bankrupt'
+        : `company-box${sectorClass ? ` ${sectorClass}` : ''}${subsectorClass ? ` ${subsectorClass}` : ''}`;
       const capLabel = company.bankrupt ? 'Market Cap: Bankrupt' : `Market Cap: ${formatLargeNumber(cap)}`;
-      const sectorLabel = company.bankrupt ? 'Status: Bankrupt' : (company.sector || 'Unknown');
+      const rawSectorLabel = company.subsector || company.sector || 'Unknown';
+      const sectorLabel = company.bankrupt ? 'Status: Bankrupt' : rawSectorLabel;
       const ipoLabel = company.ipoDate instanceof Date
         ? `${company.ipoDate.getFullYear()}`
         : '';
@@ -243,6 +334,7 @@
       if (!company) return;
       const isBankrupt = !!company.bankrupt;
       const sectorClass = getSectorClass(company.sector);
+      const subsectorClass = getSubsectorClass(company.subsector);
       const currentValue = isBankrupt ? 0 : company.marketCap * holding.unitsOwned;
       const formattedValue = currencyFormatter.format(currentValue);
       const key = `public:${holding.companyName}`;
@@ -250,7 +342,7 @@
       const companyNameDisplay = isBankrupt ? `${holding.companyName} (Failed)` : holding.companyName;
       const statusLabel = isBankrupt ? 'Status: Bankrupt' : '';
       // Hide sector and IPO year for bankrupt companies
-      const sectorDisplay = isBankrupt ? '' : (company.sector || '');
+      const sectorDisplay = isBankrupt ? '' : (company.subsector || company.sector || '');
       const ipoYear = (!isBankrupt && company.ipoDate) ? new Date(company.ipoDate).getFullYear() : null;
       processedKeys.add(key);
       if (existingItems.has(key)) {
@@ -274,6 +366,7 @@
           ipoEl.style.display = isBankrupt ? 'none' : 'block';
         }
         applySectorClass(item, sectorClass);
+        applySubsectorClass(item, subsectorClass);
         if (isBankrupt) {
           item.classList.add('bankrupt');
         } else {
@@ -282,7 +375,7 @@
         existingItems.delete(key);
       } else {
         newPortfolioHtml.push(`
-          <div class="portfolio-item${sectorClass ? ` ${sectorClass}` : ''}${bankruptClass}" data-portfolio-type="public" data-portfolio-key="${key}">
+          <div class="portfolio-item${sectorClass ? ` ${sectorClass}` : ''}${subsectorClass ? ` ${subsectorClass}` : ''}${bankruptClass}" data-portfolio-type="public" data-portfolio-key="${key}">
               ${ipoYear ? `<div class="portfolio-ipo-badge">${ipoYear}</div>` : ''}
               <div class="company-name">${companyNameDisplay}</div>
               <div class="portfolio-info">
@@ -450,7 +543,11 @@
 
   global.DashboardRenderers = {
     renderCompanies,
-    renderPortfolio
+    renderPortfolio,
+    getSectorClass,
+    applySectorClass,
+    getSubsectorClass,
+    applySubsectorClass
   };
 })(typeof globalThis !== 'undefined'
   ? globalThis

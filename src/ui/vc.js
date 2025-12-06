@@ -38,6 +38,34 @@ const lastInvestmentOptionsKey = new Map();
 let venturePurchaseLock = false;
 let vcTooltipHandlersAttached = new WeakSet();
 
+function getVentureSectorClass(sector) {
+    const dr = (typeof window !== 'undefined' && window.DashboardRenderers)
+        ? window.DashboardRenderers
+        : (typeof globalThis !== 'undefined' && globalThis.DashboardRenderers)
+            ? globalThis.DashboardRenderers
+            : null;
+    if (dr && typeof dr.getSectorClass === 'function') {
+        return dr.getSectorClass(sector);
+    }
+    const key = String(sector || '').trim().toLowerCase();
+    if (!key) return '';
+    return `sector-${key.replace(/\s+/g, '_')}`;
+}
+
+function getVentureSubsectorClass(subsector) {
+    const dr = (typeof window !== 'undefined' && window.DashboardRenderers)
+        ? window.DashboardRenderers
+        : (typeof globalThis !== 'undefined' && globalThis.DashboardRenderers)
+            ? globalThis.DashboardRenderers
+            : null;
+    if (dr && typeof dr.getSubsectorClass === 'function') {
+        return dr.getSubsectorClass(subsector);
+    }
+    const key = String(subsector || '').trim().toLowerCase();
+    if (!key) return '';
+    return `subsector-${key.replace(/\s+/g, '_')}`;
+}
+
 function ensureVentureReady() {
     if (typeof ensureVentureSimulation === 'function') {
         ensureVentureSimulation();
@@ -98,8 +126,12 @@ function renderVentureCompanies(companiesData, formatLargeNumber, formatCurrency
                 companyDiv.classList.add('bankrupt');
             }
             if (company.sector) {
-                const sectorClass = `sector-${(company.sector || '').toLowerCase()}`;
-                companyDiv.classList.add(sectorClass);
+                const sectorClass = getVentureSectorClass(company.sector);
+                if (sectorClass) companyDiv.classList.add(sectorClass);
+            }
+            if (company.subsector) {
+                const subsectorClass = getVentureSubsectorClass(company.subsector);
+                if (subsectorClass) companyDiv.classList.add(subsectorClass);
             }
             companyDiv.dataset.companyId = company.id;
 
@@ -444,7 +476,8 @@ function updateVentureDetail(companyId) {
 
     vcDetailNameEl.textContent = detail.name;
     const valuation = detail.valuation || 0;
-    vcDetailSectorEl.textContent = `${detail.sector || 'Unknown'} - ${detail.stageLabel}`;
+    const sectorLabel = detail.subsector || detail.sector || 'Unknown';
+    vcDetailSectorEl.textContent = `${sectorLabel} - ${detail.stageLabel}`;
     vcDetailFundingEl.style.display = 'none';
     const mission = (detail.mission || detail.description || '').trim();
     const founders = Array.isArray(detail.founders) ? detail.founders : [];

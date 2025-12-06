@@ -71,6 +71,61 @@
   const between = (lo, hi, rngFn = random) => lo + rngFn() * (hi - lo);
   const clampValue = (value, min, max) => Math.max(min, Math.min(max, value));
 
+  // Canonical sector mapping: collapse legacy labels into a stable set.
+  const SECTOR_CANONICAL_MAP = {
+    // Core tech + web-style
+    tech: 'Technology',
+    technology: 'Technology',
+    web: 'Technology',
+    aerospace: 'Technology',
+    rockets: 'Technology',
+    'rocket technology': 'Technology',
+    'deep tech': 'Technology',
+    'hard tech': 'Technology',
+    semiconductor: 'Technology',
+
+    // Bio / health
+    biotech: 'BioTech',
+    'bio tech': 'BioTech',
+    biotechnology: 'BioTech',
+    healthcare: 'Healthcare',
+    'health care': 'Healthcare',
+
+    // Finance / banking / real estate
+    banking: 'Finance',
+    finance: 'Finance',
+    'real estate': 'Finance',
+
+    // Industrial / materials
+    industrial: 'Industrial',
+    manufacturing: 'Industrial',
+    automotive: 'Industrial',
+    general: 'Industrial',
+    private: 'Industrial',
+
+    // Energy / defense / retail
+    energy: 'Energy',
+    defense: 'Industrial',
+    retail: 'Retail',
+    'consumer staples': 'Retail',
+
+    // Travel folded into Industrial
+    airlines: 'Industrial',
+    travel: 'Industrial',
+    transportation: 'Industrial',
+    'travel & transport': 'Industrial',
+
+    // Materials
+    materials: 'Materials'
+  };
+
+  const normalizeSector = (input) => {
+    if (!input) return input;
+    const key = String(input).trim().toLowerCase();
+    const mapped = SECTOR_CANONICAL_MAP[key];
+    return mapped || input;
+  };
+
   class MarginCurve {
     constructor(s, t, y) {
       this.s = s;
@@ -94,18 +149,16 @@
   }
 
   const sectorMicro = {
-    Biotech: { mu: +0.026, sigma: 0.145 },
-    Semiconductor: { mu: +0.05, sigma: 0.125 },
-    Banking: { mu: +0.02, sigma: 0.075 },
+    BioTech: { mu: +0.026, sigma: 0.145 },
+    Finance: { mu: +0.02, sigma: 0.075 },
     Retail: { mu: +0.013, sigma: 0.06 },
     DEFAULT: { mu: +0.026, sigma: 0.08 }
   };
 
   const sectorMargin = {
-    Biotech: 0.25,
-    Semiconductor: 0.18,
-    Tech: 0.22,
-    Banking: 0.12,
+    BioTech: 0.25,
+    Technology: 0.22,
+    Finance: 0.12,
     Retail: 0.06,
     DEFAULT: 0.15
   };
@@ -114,10 +167,9 @@
     constructor(sectorsSet, eventManager = null) {
       this.defaultParams = { mu: 0.16, sigma: 0.12 };
       this.sectorPresets = {
-        Biotech: { mu: 0.15, sigma: 0.21 },
-        Semiconductor: { mu: 0.17, sigma: 0.25 },
-        Tech: { mu: 0.215, sigma: 0.18 },
-        Banking: { mu: 0.16, sigma: 0.15 },
+        BioTech: { mu: 0.15, sigma: 0.21 },
+        Technology: { mu: 0.215, sigma: 0.18 },
+        Finance: { mu: 0.16, sigma: 0.15 },
         Retail: { mu: 0.16, sigma: 0.08 }
       };
       this.eventManager = eventManager || null;
@@ -146,7 +198,9 @@
       this.sectorBiasStates = {};
 
       this.idxs = {};
-      sectorsSet.forEach(sec => {
+      sectorsSet.forEach(rawSec => {
+        const sec = normalizeSector(rawSec);
+        if (!sec) return;
         const p = this.sectorPresets[sec] || this.defaultParams;
         this.idxs[sec] = { value: 1, mu: p.mu, sigma: p.sigma };
         this.sectorBiasStates[sec] = buildBiasState([0.75, 1.5], 10, 0.35);
@@ -180,7 +234,8 @@
       });
     }
 
-    ensureSector(sector) {
+    ensureSector(sectorRaw) {
+      const sector = normalizeSector(sectorRaw);
       if (!sector) return;
       if (!this.idxs[sector]) {
         const p = this.sectorPresets[sector] || this.defaultParams;
@@ -191,19 +246,22 @@
       }
     }
 
-    getValue(sector) {
+    getValue(sectorRaw) {
+      const sector = normalizeSector(sectorRaw);
       this.ensureSector(sector);
       const entry = this.idxs[sector] || this.idxs.DEFAULT || { value: 1 };
       return entry.value;
     }
 
-    getMu(sector) {
+    getMu(sectorRaw) {
+      const sector = normalizeSector(sectorRaw);
       this.ensureSector(sector);
       const entry = this.idxs[sector] || this.idxs.DEFAULT || { mu: this.defaultParams.mu };
       return entry.mu;
     }
 
-    getSentimentMultiplier(sector) {
+    getSentimentMultiplier(sectorRaw) {
+      const sector = normalizeSector(sectorRaw);
       this.ensureSector(sector);
       const market = this.marketBiasState ? this.marketBiasState.value : 1;
       const sectorState = this.sectorBiasStates[sector] || this.sectorBiasStates.DEFAULT;
@@ -211,7 +269,8 @@
       return market * sectorBias;
     }
 
-    getRevenueMultiplier(sector) {
+    getRevenueMultiplier(sectorRaw) {
+      const sector = normalizeSector(sectorRaw);
       const eventMult = this.eventManager ? this.eventManager.getRevenueMultiplier(sector) : 1;
       const biasMult = this.eventManager && typeof this.eventManager.getRevenueBiasMultiplier === 'function'
         ? this.eventManager.getRevenueBiasMultiplier(sector)
@@ -359,6 +418,7 @@
     sectorMicro,
     sectorMargin,
     MacroEnvironment,
+    normalizeSector,
     Stage,
     Product,
     TimedEffect,

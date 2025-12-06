@@ -169,6 +169,7 @@
         {
           "name": "Pioneer Devices",
           "sector": "Tech",
+          "subsector": "Hardware Technology",
           "founders": [ { "name": "Miguel Alvarez" }, { "name": "Hannah Park" } ],
           "mission": "Designing iconic consumer hardware with seamless ecosystems.",
           "founding_location": "Cupertino, CA"
@@ -195,7 +196,7 @@
           "founders": [ { "name": "Colin Hart" }, { "name": "Rebecca Lin" } ],
           "founding_location": "Fort Worth, TX",
           "ipo_window": { "from": 1975, "to": 2000},
-          "sector": "Defense"
+          "sector": "Tech"
         }
       ]
     },
@@ -226,7 +227,8 @@
           "founders": [ { "name": "Angela Marston" }, { "name": "Victor Delgado" } ],
           "founding_location": "St. Louis, MO",
           "ipo_window": { "from": 1995, "to": 2009 },
-          "sector": "Aerospace"
+          "sector": "Technology",
+          "subsector": "Aerospace Technology"
         }
       ]
     },
@@ -236,7 +238,7 @@
       "pick": 1,
       "defaults": { "ipo_window": { "from": 2010, "to": 2019 } },
       "roster": [
-          {
+        {
           "name": "Nebula Stream",
           "mission": "Unifying enterprise data silos into a single, intelligent cloud infrastructure.",
           "founders": [ { "name": "Jessica Wu" }, { "name": "David Chen" } ],
@@ -279,7 +281,8 @@
           "mission": "Manufacturing zero-gravity alloys and fiber optics in low earth orbit.",
           "founders": [ { "name": "Elara Vance" }, { "name": "Kenji Sato" } ],
           "founding_location": "Mojave, CA",
-          "sector": "Aerospace"
+          "sector": "Technology",
+          "subsector": "Space Technology"
         }
       ]
     },
@@ -294,14 +297,16 @@
           "mission": "Establishing permanent heavy-cargo logistics bridges to Mars.",
           "founders": [ { "name": "Xavier Solamon" }, { "name": "Lyra Belmonte" } ],
           "founding_location": "Boca Chica, TX",
-          "sector": "Aerospace"
+          "sector": "Technology",
+          "subsector": "Space Technology"
         },
         {
           "name": "TerraFirma Habitats",
           "mission": "Designing self-sustaining biospheres for hostile interplanetary environments.",
           "founders": [ { "name": "Dr. Aris Thorne" }, { "name": "Maya Okafor" } ],
           "founding_location": "Cape Canaveral, FL",
-          "sector": "Real Estate"
+          "sector": "Technology",
+          "subsector": "Space Technology"
         }
       ]
     }

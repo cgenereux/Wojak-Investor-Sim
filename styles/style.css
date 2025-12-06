@@ -1024,9 +1024,34 @@ button.speed-active:hover {
     font-style: normal;
 }
 
+.companies-grid .company-box:not(.bankrupt).sector-tech.subsector-space-tech {
+    background: #ddcffd; /* 1 – space technology */
+    border-color: #ccb5fb;
+}
+
+.companies-grid .company-box:not(.bankrupt).sector-tech.subsector-aero-tech {
+    background: #d0d0ff; /* 2 – aerospace technology */
+    border-color: #b8b8ff;
+}
+
+.companies-grid .company-box:not(.bankrupt).sector-tech.subsector-material-tech {
+    background: #c8d6ff; /* 3 – material technology */
+    border-color: #acbff7;
+}
+
+.companies-grid .company-box:not(.bankrupt).sector-tech.subsector-hardware-tech {
+    background: #ccd9ff; /* 4 – hardware technology */
+    border-color: #b3c4f2;
+}
+
+.companies-grid .company-box:not(.bankrupt).sector-tech.subsector-web-tech {
+    background: #d9e6ff; /* 5 – web technology */
+    border-color: #bfd2f5;
+}
+
 .companies-grid .company-box:not(.bankrupt).sector-tech {
-    background: #eaf3ff;
-    border-color: #d4e6ff;
+    background: #e6f3ff; /* 6 – technology */
+    border-color: #cadff1;
 }
 
 .companies-grid .company-box:not(.bankrupt).sector-biotech {
@@ -1046,15 +1071,11 @@ button.speed-active:hover {
 }
 
 .companies-grid .company-box:not(.bankrupt).sector-airlines,
-.companies-grid .company-box:not(.bankrupt).sector-aerospace {
-    background: #f7f1e8;
-    border-color: #d9c0a3;
-}
-
+.companies-grid .company-box:not(.bankrupt).sector-aerospace,
 .companies-grid .company-box:not(.bankrupt).sector-automotive,
 .companies-grid .company-box:not(.bankrupt).sector-industrial {
-    background: #f4f7f0;
-    border-color: #dde5d4;
+    background: #f7f1e8;
+    border-color: #d9c0a3;
 }
 
 .companies-grid .company-box:not(.bankrupt).sector-defense,
@@ -1078,9 +1099,34 @@ button.speed-active:hover {
     border-color: #d9e5ff;
 }
 
+#ventureCompaniesGrid .company-box:not(.bankrupt).sector-tech.subsector-space-tech {
+    background: #ddcffd;
+    border-color: #ccb5fb;
+}
+
+#ventureCompaniesGrid .company-box:not(.bankrupt).sector-tech.subsector-aero-tech {
+    background: #d0d0ff;
+    border-color: #b8b8ff;
+}
+
+#ventureCompaniesGrid .company-box:not(.bankrupt).sector-tech.subsector-material-tech {
+    background: #c8d6ff;
+    border-color: #acbff7;
+}
+
+#ventureCompaniesGrid .company-box:not(.bankrupt).sector-tech.subsector-hardware-tech {
+    background: #ccd9ff;
+    border-color: #b3c4f2;
+}
+
+#ventureCompaniesGrid .company-box:not(.bankrupt).sector-tech.subsector-web-tech {
+    background: #d9e6ff;
+    border-color: #bfd2f5;
+}
+
 #ventureCompaniesGrid .company-box:not(.bankrupt).sector-tech {
-    background: #eaf3ff;
-    border-color: #d4e6ff;
+    background: #e6f3ff;
+    border-color: #cadff1;
 }
 
 #ventureCompaniesGrid .company-box:not(.bankrupt).sector-biotech {
@@ -1100,15 +1146,11 @@ button.speed-active:hover {
 }
 
 #ventureCompaniesGrid .company-box:not(.bankrupt).sector-airlines,
-#ventureCompaniesGrid .company-box:not(.bankrupt).sector-aerospace {
-    background: #f7f1e8;
-    border-color: #d9c0a3;
-}
-
+#ventureCompaniesGrid .company-box:not(.bankrupt).sector-aerospace,
 #ventureCompaniesGrid .company-box:not(.bankrupt).sector-automotive,
 #ventureCompaniesGrid .company-box:not(.bankrupt).sector-industrial {
-    background: #f4f7f0;
-    border-color: #dde5d4;
+    background: #f7f1e8;
+    border-color: #d9c0a3;
 }
 
 #ventureCompaniesGrid .company-box:not(.bankrupt).sector-defense,
@@ -1132,9 +1174,34 @@ button.speed-active:hover {
     border-color: #d9e5ff;
 }
 
+.portfolio-list .portfolio-item:not(.bankrupt).sector-tech.subsector-space-tech {
+    background: #ddcffd;
+    border-color: #ccb5fb;
+}
+
+.portfolio-list .portfolio-item:not(.bankrupt).sector-tech.subsector-aero-tech {
+    background: #d0d0ff;
+    border-color: #b8b8ff;
+}
+
+.portfolio-list .portfolio-item:not(.bankrupt).sector-tech.subsector-material-tech {
+    background: #c8d6ff;
+    border-color: #acbff7;
+}
+
+.portfolio-list .portfolio-item:not(.bankrupt).sector-tech.subsector-hardware-tech {
+    background: #ccd9ff;
+    border-color: #b3c4f2;
+}
+
+.portfolio-list .portfolio-item:not(.bankrupt).sector-tech.subsector-web-tech {
+    background: #d9e6ff;
+    border-color: #bfd2f5;
+}
+
 .portfolio-list .portfolio-item:not(.bankrupt).sector-tech {
-    background: #eaf3ff;
-    border-color: #d4e6ff;
+    background: #e6f3ff;
+    border-color: #cadff1;
 }
 
 .portfolio-list .portfolio-item:not(.bankrupt).sector-biotech {

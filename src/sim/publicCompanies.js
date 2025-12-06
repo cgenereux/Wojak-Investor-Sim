@@ -14,7 +14,8 @@
     sectorMicro,
     sectorMargin,
     Product,
-    ScheduledEvent
+    ScheduledEvent,
+    normalizeSector
   } = shared;
 
   // Shared baseline interest; can be overridden via finance configs or future macro hooks.
@@ -270,7 +271,9 @@
     constructor(cfg, macroEnv, gameStartYear = 1990, ipoDate = new Date(gameStartYear, 0, 1)) {
       this.id = cfg.id;
       this.name = (cfg.static && cfg.static.name) || 'Company';
-      this.sector = (cfg.static && cfg.static.sector) || 'General';
+      const rawSector = (cfg.static && cfg.static.sector) || 'General';
+      this.sector = typeof normalizeSector === 'function' ? normalizeSector(rawSector) : rawSector;
+      this.subsector = (cfg.static && cfg.static.subsector) || null;
       this.founders = Array.isArray(cfg.static?.founders) ? cfg.static.founders.map(f => ({ ...f })) : (Array.isArray(cfg.founders) ? cfg.founders.map(f => ({ ...f })) : []);
       this.mission = (cfg.static && cfg.static.mission) || cfg.mission || '';
       this.foundingLocation = (cfg.static && (cfg.static.founding_location || cfg.static.foundingLocation)) || cfg.founding_location || cfg.foundingLocation || '';
@@ -327,6 +330,9 @@
       }
       if (Array.isArray(snapshot.founders)) {
         this.founders = snapshot.founders.map(f => ({ ...f }));
+      }
+      if (typeof snapshot.subsector === 'string' && snapshot.subsector) {
+        this.subsector = snapshot.subsector;
       }
       if (typeof snapshot.mission === 'string') {
         this.mission = snapshot.mission;
@@ -1074,6 +1080,7 @@
         id: this.id,
         name: this.name,
         sector: this.sector,
+        subsector: this.subsector || null,
         founders: Array.isArray(this.founders) ? this.founders.map(f => ({ ...f })) : [],
         mission: this.mission || '',
         founding_location: this.foundingLocation || '',
@@ -1099,7 +1106,10 @@
     constructor(cfg, macroEnv, gameStartYear = 1990, ipoDate = new Date(gameStartYear, 0, 1)) {
       super(cfg, macroEnv, gameStartYear, ipoDate);
       if (!cfg.static || !cfg.static.name) this.name = 'Hypergrowth Co';
-      if (!cfg.static || !cfg.static.sector) this.sector = 'Web';
+      if (!cfg.static || !cfg.static.sector) {
+        const fallbackSector = 'Web';
+        this.sector = typeof normalizeSector === 'function' ? normalizeSector(fallbackSector) : fallbackSector;
+      }
 
       const rp = (cfg.base_business && cfg.base_business.revenue_process) || { initial_revenue_usd: { min: 2_000_000, max: 40_000_000 } };
       this.arr = between(rp.initial_revenue_usd.min, rp.initial_revenue_usd.max);
