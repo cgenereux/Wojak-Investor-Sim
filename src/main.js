@@ -1106,9 +1106,17 @@ function applyTick(tick) {
             ventureSim.lastTick = new Date(tick.lastTick);
         }
 
-        // In multiplayer, avoid re-rendering the entire VC list/detail every tick.
-        // UI refreshes are driven by ventureEvents and explicit actions instead.
-        if (!document.body.classList.contains('vc-active')) {
+        const vcActive = document.body.classList.contains('vc-active');
+        const vcDetailActive = document.body.classList.contains('vc-detail-active');
+        // In multiplayer, keep VC views in sync on every tick while open so
+        // timers, runway, and financials advance smoothly with server time.
+        if (vcActive && typeof refreshVentureCompaniesList === 'function') {
+            refreshVentureCompaniesList();
+        }
+        if (vcDetailActive && typeof refreshVentureDetailView === 'function') {
+            refreshVentureDetailView();
+        }
+        if (!vcActive) {
             updateVentureBadge();
         }
     }
@@ -2240,19 +2248,24 @@ function gameLoop() {
         handleVentureEvents(ventureEvents);
     }
     const stagesChanged = ventureSim ? ventureSim.consumeStageUpdates() : false;
-    if (stagesChanged) {
-        if (typeof refreshVentureCompaniesList === 'function' && document.body.classList.contains('vc-active')) {
-            refreshVentureCompaniesList();
-        }
-        if (typeof refreshVentureDetailView === 'function' && document.body.classList.contains('vc-detail-active')) {
-            refreshVentureDetailView();
-        }
-        renderPortfolio();
+    // Always keep VC views in sync while the tab is open so timers,
+    // runway, and financials advance smoothly with each tick.
+    const vcActive = document.body.classList.contains('vc-active');
+    const vcDetailActive = document.body.classList.contains('vc-detail-active');
+    if (vcActive && typeof refreshVentureCompaniesList === 'function') {
+        refreshVentureCompaniesList();
     }
-    if (document.body.classList.contains('vc-active')) {
+    if (vcDetailActive && typeof refreshVentureDetailView === 'function') {
+        refreshVentureDetailView();
+    }
+    if (vcActive) {
         markVentureListingsSeen();
     } else {
         updateVentureBadge();
+    }
+    // Portfolio only needs a full re-render when stage/round state changes.
+    if (stagesChanged) {
+        renderPortfolio();
     }
 
     const bankruptNow = [];

@@ -20,6 +20,7 @@ const vcFinancialHistoryContainer = document.getElementById('vcFinancialHistoryC
 
 let currentVentureCompanyId = null;
 let vcInitialized = false;
+let ventureSortMode = 'recent';
 let vcFormatLargeNumber = (value, precision = 2) => {
     if (value === null || value === undefined) return '$0';
     const abs = Math.abs(value);
@@ -109,13 +110,71 @@ function renderVentureCompanies(companiesData, formatLargeNumber, formatCurrency
         }
         return Number.POSITIVE_INFINITY;
     };
+    const sectorOrder = [
+        'biotech',
+        'technology',
+        'tech',
+        'web',
+        'energy',
+        'finance',
+        'banking',
+        'retail',
+        'industrial',
+        'manufacturing',
+        'automotive',
+        'materials',
+        'airlines',
+        'transportation',
+        'travel',
+        'travel & transport'
+    ];
+    const techSubsectorOrder = [
+        'space technology',
+        'aerospace technology',
+        'material technology',
+        'materials technology',
+        'hardware technology',
+        'web technology',
+        'technology'
+    ];
+    const pickTechSubsectorIndex = (company) => {
+        const sectorKey = String(company.sector || '').trim().toLowerCase();
+        if (sectorKey !== 'technology' && sectorKey !== 'tech') return 0;
+        const sub = String(company.subsector || '').trim().toLowerCase() || 'technology';
+        const idx = techSubsectorOrder.indexOf(sub);
+        return idx >= 0 ? idx : 0;
+    };
+    const sortMode = ventureSortMode || 'recent';
 
     (companiesData || [])
         .slice()
         .sort((a, b) => {
             const ta = getListingTs(a);
             const tb = getListingTs(b);
-            if (ta !== tb) return ta - tb;
+            const listingA = Number.isFinite(ta) ? ta : -Infinity;
+            const listingB = Number.isFinite(tb) ? tb : -Infinity;
+
+            if (sortMode === 'sector') {
+                const sa = String(a.sector || '').trim().toLowerCase();
+                const sb = String(b.sector || '').trim().toLowerCase();
+                const ia = sectorOrder.indexOf(sa);
+                const ib = sectorOrder.indexOf(sb);
+                if (sa === sb) {
+                    if (sa === 'technology' || sa === 'tech') {
+                        const subA = pickTechSubsectorIndex(a);
+                        const subB = pickTechSubsectorIndex(b);
+                        if (subA !== subB) return subA - subB;
+                    }
+                    if (listingA !== listingB) return listingB - listingA;
+                    return (a.name || '').localeCompare(b.name || '');
+                }
+                if (ia >= 0 && ib >= 0) return ia - ib;
+                if (ia >= 0) return -1;
+                if (ib >= 0) return 1;
+                return sa.localeCompare(sb);
+            }
+
+            if (listingA !== listingB) return listingB - listingA;
             return (a.name || '').localeCompare(b.name || '');
         })
         .forEach(company => {
@@ -780,6 +839,15 @@ function refreshVentureDetailView() {
 function initVC() {
     if (vcInitialized) return;
     vcInitialized = true;
+    const vcSortSelect = document.getElementById('vcSortCompanies');
+    if (vcSortSelect) {
+        vcSortSelect.value = ventureSortMode;
+        vcSortSelect.addEventListener('change', (evt) => {
+            const next = String(evt.target.value || '').trim().toLowerCase();
+            ventureSortMode = next === 'sector' ? 'sector' : 'recent';
+            refreshVentureCompaniesList();
+        });
+    }
     if (backToVcListBtn) {
         backToVcListBtn.addEventListener('click', exitVentureToHome);
     }
