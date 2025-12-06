@@ -769,8 +769,6 @@
     }
 
     enterPostGateMode(currentDate, opts = {}) {
-      const revBefore = this.revenue;
-      console.log(`[ENTER POSTGATE ${this.name}] ENTERING post-gate mode. revBefore=${revBefore?.toExponential(2)}, opts.baselineRevenue=${opts?.baselineRevenue?.toExponential(2)}, valuation=${this.currentValuation?.toExponential(2)}, stage=${this.currentStage?.id}`);
       this.postGateMode = true;
       this.postGatePending = false;
       this.hypergrowthActive = true;
@@ -1293,7 +1291,6 @@
       this.currentRound = null;
 
       if (stageWasGate && success) {
-        console.log(`[GATE CLEARED ${this.name}] Gate stage (${stage?.id}) cleared! Setting gateCleared=true, postGatePending=true, baselineRevenueForPostGate=${baselineRevenueForPostGate?.toExponential(2)}`);
         this.gateCleared = true;
         this.postGatePending = true;
         if (!this.postGateMode) {
