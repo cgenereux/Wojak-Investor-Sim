@@ -1005,6 +1005,16 @@
 
       const interest = this.debt * this.intRate * dtYears;
       const useLaggedBudget = this.laggedBudget && this.laggedBudget.enabled;
+      // For the first few public quarters after IPO, temper the growth
+      // expectations baked into the lagged-budget model by using roughly
+      // half the usual macro slope in the muFactor. This keeps early
+      // quarters from being uniformly loss-making while still anchoring
+      // expenses to growth.
+      const baseDaysForIPO = this.ageDaysAtIPO || 0;
+      const quartersSinceIPO = Math.floor(
+        Math.max(0, (this.ageDays - baseDaysForIPO) / QUARTER_DAYS)
+      );
+      const EARLY_PROFIT_EASING_QUARTERS = 5;
       let netIncome;
       if (useLaggedBudget) {
         const lookbackYears = Math.max(1, Math.floor(this.laggedBudget.lookbackYears || 3));
@@ -1019,7 +1029,8 @@
         const muRate = Number.isFinite(sectorMu)
           ? (sectorMu > 1 ? sectorMu - 1 : Math.max(0, sectorMu))
           : 0;
-        const muFactor = clampValue(Math.pow(1 + muRate * 0.7, 1.5), 0.7, 1.6);
+        const muSlope = quartersSinceIPO < EARLY_PROFIT_EASING_QUARTERS ? 0.35 : 0.7;
+        const muFactor = clampValue(Math.pow(1 + muRate * muSlope, 1.5), 0.7, 1.6);
         const budgetedSize = trailingAvg * tam * muFactor;
         const marginForBudget = clampValue(marginNow, 0, 0.99);
         // Budgeted expenses are annual-scale; scale by dtYears to keep units consistent with per-tick revenue.
