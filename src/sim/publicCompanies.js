@@ -23,7 +23,7 @@
 
   const QUARTER_DAYS = 365 / 4;
   const MAX_QUARTER_HISTORY = 400;
-  const PRODUCT_RETIRE_DELAY_DAYS = Math.round(2.5 * 365);
+  const PRODUCT_RETIRE_DELAY_DAYS = Math.round(5 * 365);
 
   const DEFAULT_STRUCT_BIAS_RANGE = [0.67, 1.57];
   const DEFAULT_STRUCT_BIAS_HALFLIFE = 8;
@@ -371,12 +371,23 @@
       if (Array.isArray(snapshot.products)) {
         if (!Array.isArray(this.products) || this.products.length === 0) {
           // Seed products directly if we don't have them yet
-          this.products = snapshot.products.map(p => ({
-            id: p.id,
-            label: p.label,
-            fullVal: p.fullVal,
-            stages: Array.isArray(p.stages) ? p.stages.map(s => ({ ...s })) : []
-          }));
+          this.products = snapshot.products.map(p => {
+            const meta = {};
+            if (p.resolved) meta.resolved = !!p.resolved;
+            if (typeof p.resolvedAgeDays === 'number') meta.resolvedAgeDays = p.resolvedAgeDays;
+            if (p.pipelineStatus) meta.status = p.pipelineStatus;
+            if (p.retired) meta.retired = !!p.retired;
+            const product = {
+              id: p.id,
+              label: p.label,
+              fullVal: p.fullVal,
+              stages: Array.isArray(p.stages) ? p.stages.map(s => ({ ...s })) : []
+            };
+            if (Object.keys(meta).length > 0) {
+              product.__pipelineMeta = meta;
+            }
+            return product;
+          });
         } else {
           const byId = new Map(this.products.map(p => [p.id, p]));
           snapshot.products.forEach(pSnap => {
@@ -398,6 +409,15 @@
               if (Number.isFinite(snapStage.duration_days)) stage.duration_days = snapStage.duration_days;
               if (Number.isFinite(snapStage.success_prob)) stage.success_prob = snapStage.success_prob;
             });
+            // Sync pipeline lifecycle meta if present
+            let meta = existing.__pipelineMeta || {};
+            if (pSnap.resolved) meta.resolved = !!pSnap.resolved;
+            if (typeof pSnap.resolvedAgeDays === 'number') meta.resolvedAgeDays = pSnap.resolvedAgeDays;
+            if (pSnap.pipelineStatus) meta.status = pSnap.pipelineStatus;
+            if (pSnap.retired) meta.retired = !!pSnap.retired;
+            if (Object.keys(meta).length > 0) {
+              existing.__pipelineMeta = meta;
+            }
           });
         }
       }
@@ -743,6 +763,30 @@
       this.baseRevenue = between(rp.initial_revenue_usd.min, rp.initial_revenue_usd.max);
       this.initialBaseRevenue = this.baseRevenue;
 
+      // For companies that IPO after the game start year, scale their
+      // initial base revenue so that, effectively, they have experienced
+      // roughly half of the macro GBM drift between the start year and
+      // their IPO year. This keeps late IPOs from looking as if they
+      // had compounded at the full sector mu since the start of the
+      // simulation.
+      try {
+        const ipoYear = ipoDate instanceof Date ? ipoDate.getFullYear() : gameStartYear;
+        const yearsFromStart = Math.max(0, ipoYear - gameStartYear);
+        if (yearsFromStart > 0 && macroEnv && typeof macroEnv.getMu === 'function') {
+          const mu = macroEnv.getMu(this.sector);
+          if (Number.isFinite(mu) && mu > 0) {
+            const scale = Math.exp(-0.5 * mu * yearsFromStart);
+            const scaledBase = this.baseRevenue * scale;
+            if (Number.isFinite(scaledBase) && scaledBase > 0) {
+              this.baseRevenue = scaledBase;
+              this.initialBaseRevenue = this.baseRevenue;
+            }
+          }
+        }
+      } catch (err) {
+        // If anything goes wrong here, fall back to the unscaled baseRevenue.
+      }
+
       const mc = cfg.base_business.margin_curve;
       const mu = cfg.base_business.multiple_curve;
       this.marginCurve = cfg.base_business.margin_curve
@@ -856,6 +900,43 @@
       if (successThisTick && this.multFreeze === null && this.marginCurve && this.multCurve) {
         const mNowTmp = this.marginCurve.value(ageYears);
         this.multFreeze = this.multCurve.value(ageYears, mNowTmp);
+      }
+
+      // Track per-product resolution and a UI-only retirement flag so
+      // completed/failed pipelines can disappear from the detail view
+      // after a fixed in-game delay without changing the underlying
+      // valuation math.
+      if (Array.isArray(this.products) && this.products.length > 0) {
+        const nowAgeDays = this.ageDays || 0;
+        this.products.forEach(p => {
+          if (!p || !Array.isArray(p.stages) || p.stages.length === 0) return;
+          const stages = p.stages;
+          const allDone = stages.every(s => s && s.completed);
+          const hasFailureStage = stages.some(s => s && s.completed && s.succeeded === false);
+          let meta = p.__pipelineMeta || {};
+          const wasResolved = !!meta.resolved;
+          const resolved = allDone || hasFailureStage;
+
+          if (resolved && !wasResolved) {
+            meta.resolved = true;
+            meta.resolvedAgeDays = nowAgeDays;
+            meta.status = hasFailureStage ? 'failed' : 'succeeded';
+            p.__pipelineMeta = meta;
+            this.hasPipelineUpdate = true;
+          } else if (resolved && wasResolved && typeof meta.resolvedAgeDays !== 'number') {
+            meta.resolvedAgeDays = nowAgeDays;
+            p.__pipelineMeta = meta;
+          }
+
+          if (meta.resolved && !meta.retired && typeof meta.resolvedAgeDays === 'number') {
+            const deltaDays = nowAgeDays - meta.resolvedAgeDays;
+            if (deltaDays >= PRODUCT_RETIRE_DELAY_DAYS) {
+              meta.retired = true;
+              p.__pipelineMeta = meta;
+              this.hasPipelineUpdate = true;
+            }
+          }
+        });
       }
 
       const pipelineBoost = this.products.reduce((s, p) => s + p.realisedRevenuePerYear(), 0);
@@ -1077,23 +1158,30 @@
       const quarterLimit = options.quarterLimit ?? 8;
       const tail = (arr, n) => Array.isArray(arr) ? arr.slice(Math.max(0, arr.length - n)) : [];
       const productSnapshot = Array.isArray(this.products)
-        ? this.products.map(p => ({
-          id: p.id,
-          label: p.label,
-          fullVal: p.fullVal,
-          stages: Array.isArray(p.stages) ? p.stages.map(s => ({
-            id: s.id,
-            name: s.name,
-            completed: !!s.completed,
-            succeeded: !!s.succeeded,
-            elapsed: s.elapsed || 0,
-            tries: s.tries || 0,
-            depends_on: s.depends_on || null,
-            commercialises_revenue: !!s.commercialises_revenue,
-            duration_days: s.duration_days || null,
-            success_prob: s.success_prob
-          })) : []
-        }))
+        ? this.products.map(p => {
+          const meta = p.__pipelineMeta || {};
+          return {
+            id: p.id,
+            label: p.label,
+            fullVal: p.fullVal,
+            stages: Array.isArray(p.stages) ? p.stages.map(s => ({
+              id: s.id,
+              name: s.name,
+              completed: !!s.completed,
+              succeeded: !!s.succeeded,
+              elapsed: s.elapsed || 0,
+              tries: s.tries || 0,
+              depends_on: s.depends_on || null,
+              commercialises_revenue: !!s.commercialises_revenue,
+              duration_days: s.duration_days || null,
+              success_prob: s.success_prob
+            })) : [],
+            resolved: !!meta.resolved,
+            resolvedAgeDays: typeof meta.resolvedAgeDays === 'number' ? meta.resolvedAgeDays : null,
+            pipelineStatus: meta.status || null,
+            retired: !!meta.retired
+          };
+        })
         : [];
       return {
         id: this.id,

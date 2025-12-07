@@ -7,7 +7,19 @@
             return '';
         }
 
-        company.products.forEach(product => {
+        const products = Array.isArray(company.products)
+            ? company.products.filter(product => {
+                if (!product) return false;
+                const meta = product.__pipelineMeta || {};
+                return !meta.retired;
+            })
+            : [];
+
+        if (!products.length) {
+            return '';
+        }
+
+        products.forEach(product => {
             html += `<div class="pipeline-section">
                     <h4 class="product-name-label">${product.label}</h4>
                     <div class="pipeline">`;

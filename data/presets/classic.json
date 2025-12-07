@@ -43,7 +43,7 @@
     },
     "Tech": {
       "structural_bias": { "min": 0.6, "max": 3, "half_life_years": 18 },
-      "base_revenue_usd": [150000000, 700000000],
+      "base_revenue_usd": [15000000, 70000000],
       "margin_curve": {
         "start_profit_margin": [0.10, 0.16],
         "terminal_profit_margin": [0.22, 0.32],
