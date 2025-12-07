@@ -1067,7 +1067,7 @@ button.speed-active:hover {
 .companies-grid .company-box:not(.bankrupt).sector-retail,
 .companies-grid .company-box:not(.bankrupt).sector-staples {
     background: #fff7ec;
-    border-color: #ffe7c7;
+    border-color: #ffecd5;
 }
 
 .companies-grid .company-box:not(.bankrupt).sector-airlines,
@@ -1075,7 +1075,7 @@ button.speed-active:hover {
 .companies-grid .company-box:not(.bankrupt).sector-automotive,
 .companies-grid .company-box:not(.bankrupt).sector-industrial {
     background: #f7f1e8;
-    border-color: #d9c0a3;
+    border-color: #e2ccb5;
 }
 
 .companies-grid .company-box:not(.bankrupt).sector-defense,

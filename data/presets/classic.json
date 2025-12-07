@@ -1,7 +1,7 @@
 {
   "defaults": {
     "structural_bias": { "min": 0.5, "max": 2, "half_life_years": 15 },
-    "base_revenue_usd": [200000000, 400000000],
+    "base_revenue_usd": [50000000, 200000000],
     "margin_curve": {
       "start_profit_margin": [0.08, 0.17],
       "terminal_profit_margin": [0.20, 0.26],
@@ -22,7 +22,7 @@
   "sector_defaults": {
     "Banking": {
       "structural_bias": { "min": 0.4, "max": 2, "half_life_years": 25 },
-      "base_revenue_usd": [1200000000, 4000000000],
+      "base_revenue_usd": [120000000, 400000000],
       "margin_curve": {
         "start_profit_margin": [0.12, 0.16],
         "terminal_profit_margin": [0.17, 0.23],
