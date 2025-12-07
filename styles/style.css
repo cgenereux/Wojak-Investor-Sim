@@ -287,9 +287,9 @@ body.vc-active.vc-detail-active #main-view {
 
 .party-avatar {
     width: 100px;
-    height: 100px;
+    min-height: 100px;
     border-radius: 10px;
-    overflow: hidden;
+    overflow: visible;
     background: #ffffff;
     border: none;
     display: flex;
@@ -335,10 +335,9 @@ body.vc-active.vc-detail-active #main-view {
     text-overflow: ellipsis;
 }
 
-/* Shrink avatars by 20% when 4+ players (many-players class on header-content) */
 .header-content.many-players .party-avatar {
     width: 80px;
-    height: 80px;
+    min-height: 80px;
     border-radius: 8px;
 }
 
