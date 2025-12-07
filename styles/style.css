@@ -721,9 +721,9 @@ body.multiplayer-active .company-detail-controls {
 #speedSlider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 17px;
-    /* ~25% larger for WebKit (Chrome/Edge/Safari) */
-    height: 17px;
+    width: 16px;
+    /* ~5% smaller than previous WebKit size */
+    height: 16px;
     margin-top: -4.5px;
     /* centers thumb on 8px track */
     border-radius: 50%;
