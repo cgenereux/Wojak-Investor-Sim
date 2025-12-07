@@ -150,17 +150,45 @@
 
   const sectorMicro = {
     BioTech: { mu: +0.026, sigma: 0.145 },
-    Finance: { mu: +0.02, sigma: 0.075 },
+    Finance: { mu: +0.02, sigma: 0.065 },
     Retail: { mu: +0.013, sigma: 0.06 },
+    Technology: { mu: +0.026, sigma: 0.08},
+    Healthcare: { mu: +0.019, sigma: 0.070 }, 
+    Energy:     { mu: +0.018, sigma: 0.110 },
+    Industrial: { mu: +0.017, sigma: 0.085 }, 
+    Materials:  { mu: +0.018, sigma: 0.095 }, 
     DEFAULT: { mu: +0.026, sigma: 0.08 }
   };
 
   const sectorMargin = {
     BioTech: 0.25,
     Technology: 0.22,
-    Finance: 0.12,
-    Retail: 0.06,
+    Finance: 0.16,
+    Retail: 0.09,
+    Energy: 0.14,
+    Materials: 0.13,
+    Industrial: 0.11,
     DEFAULT: 0.15
+  };
+
+  // Optional subsector-level overrides. If a company's subsector matches one
+  // of these keys, it will use these micro/margin parameters instead of the
+  // parent sector's defaults. Values are initialized to match Technology so
+  // behavior is unchanged until tuned.
+  const subsectorMicro = {
+    'Web Technology': { mu: sectorMicro.Technology.mu, sigma: sectorMicro.Technology.sigma },
+    'Hardware Technology': { mu: sectorMicro.Technology.mu, sigma: sectorMicro.Technology.sigma },
+    'Material Technology': { mu: sectorMicro.Technology.mu, sigma: sectorMicro.Technology.sigma },
+    'Aerospace Technology': { mu: sectorMicro.Technology.mu, sigma: sectorMicro.Technology.sigma },
+    'Space Technology': { mu: sectorMicro.Technology.mu, sigma: sectorMicro.Technology.sigma }
+  };
+
+  const subsectorMargin = {
+    'Web Technology': .19,
+    'Hardware Technology': .20,
+    'Material Technology': .31,
+    'Aerospace Technology': .29,
+    'Space Technology': 0.32
   };
 
   class MacroEnvironment {
@@ -169,8 +197,13 @@
       this.sectorPresets = {
         BioTech: { mu: 0.15, sigma: 0.21 },
         Technology: { mu: 0.215, sigma: 0.18 },
-        Finance: { mu: 0.16, sigma: 0.15 },
-        Retail: { mu: 0.16, sigma: 0.08 }
+        Finance: { mu: 0.16, sigma: 0.13 },
+        Retail: { mu: 0.15, sigma: 0.08 },
+
+        Energy:     { mu: 0.184,  sigma: 0.14 },
+        Industrial: { mu: 0.156,  sigma: 0.11 }, 
+        Materials:  { mu: 0.165, sigma: 0.19 },
+        Healthcare: { mu: 0.17,  sigma: 0.14 }
       };
       this.eventManager = eventManager || null;
 
@@ -417,6 +450,8 @@
     MultipleCurve,
     sectorMicro,
     sectorMargin,
+    subsectorMicro,
+    subsectorMargin,
     MacroEnvironment,
     normalizeSector,
     Stage,

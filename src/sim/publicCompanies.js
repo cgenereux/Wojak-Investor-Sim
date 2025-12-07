@@ -832,7 +832,11 @@
 
       this.micro = 1;
       this.micro_k = 0.4;
-      const sm = sectorMicro[this.sector] || sectorMicro.DEFAULT;
+      const subsectorKey = this.subsector || null;
+      const subsectorCfg = subsectorKey && shared.subsectorMicro
+        ? shared.subsectorMicro[subsectorKey]
+        : null;
+      const sm = subsectorCfg || sectorMicro[this.sector] || sectorMicro.DEFAULT;
       this.micro_mu = sm.mu;
       this.micro_sig = sm.sigma;
       this.rng = cfg.rng || random;
@@ -964,11 +968,15 @@
       if (this.marginCurve) {
         marginNow = this.marginCurve.value(ageYears);
       } else {
-        const base = sectorMargin[this.sector] ?? sectorMargin.DEFAULT;
+        const subsectorKeyForMargin = this.subsector || null;
+        const baseMargin = subsectorKeyForMargin && shared.subsectorMargin
+          ? (shared.subsectorMargin[subsectorKeyForMargin] ?? null)
+          : null;
+        const sectorBase = baseMargin != null ? baseMargin : (sectorMargin[this.sector] ?? sectorMargin.DEFAULT);
         const sizeKick = 0.02 * Math.log10(Math.max(1, effectiveAnnual / 1e9));
         const cycle = this.macroEnv.getValue(this.sector);
         const downPenalty = Math.max(0, 1 - cycle);
-        marginNow = Math.max(0.01, base + sizeKick - 0.15 * downPenalty);
+        marginNow = Math.max(0.01, sectorBase + sizeKick - 0.15 * downPenalty);
       }
       this.rdOpex = 0;
       const rdPipeline = this.products.reduce((s, p) => s + p.expectedValue(), 0);
