@@ -115,4 +115,4 @@
   To Do List
   - Bankruptcies don't work properly in multiplayer as assets aren't completely wiped and you can rebound from bankruptcy after going negative when you shouldn't be able to. The bankruptcy screen can also play pop up multiple times on one bankruptcy in multiplayer.
   - Hypergrowth mode should be possible while public in an ideal world
-  - It seems in mutliplayer, when character avatar's are too tall, it cuts of the top of their heads a bit, but for a reason i don't know, also seems to chop off the bottom of their names hence -- this may be because their usernames are included in the same square div as their avatar. 
+  - It seems in mutliplayer, when character avatar's are too tall, it cuts of the top of their heads a bit, but for a reason i don't know, also seems to chop off the bottom of their names hence -- this may be because their usernames are included in the same square div as their avatar. -- fixed

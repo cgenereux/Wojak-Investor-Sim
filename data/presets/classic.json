@@ -66,7 +66,7 @@
     {
       "id": "classic_1970s",
       "label": "1970s",
-      "pick": 4,
+      "pick": 5,
       "pick_by_sector": { "Banking": 2, "Retail": 1, "Automotive": 1 },
       "defaults": { "ipo_window": { "from": 1964, "to": 1979 } },
       "roster": [
@@ -110,7 +110,7 @@
     {
       "id": "classic_1980s",
       "label": "1980s",
-      "pick": 3,
+      "pick": 5,
       "pick_by_sector": { "Airlines": 1, "Retail": 2, "Tech": 1, "Energy": 1},
       "defaults": { "ipo_window": { "from": 1978, "to": 1989 } },
       "roster": [
@@ -160,7 +160,7 @@
             { "name": "James Holloway" }
           ],
           "founding_location": "Sunnyvale, CA",
-          "ipo_window": { "from": 1979, "to": 1987 }
+          "ipo_window": { "from": 1979, "to": 1990 }
         },
         {
           "name": "GlobalNet Switchworks",
@@ -189,6 +189,7 @@
     {
       "id": "classic_1990s",
       "label": "1990s",
+      "pick": 4,
       "pick_by_sector": { "Tech": 2, "Real Estate": 1, "Defense": 1},
       "defaults": { "ipo_window": { "from": 1990, "to": 1999 } },
       "roster": [
@@ -237,7 +238,7 @@
     {
       "id": "classic_2000s",
       "label": "2000s",
-      "pick": 2,
+      "pick": 3,
       "pick_by_sector": { "Banking": 1, "Retail": 1, "Airlines": 1 },
       "defaults": { "ipo_window": { "from": 2000, "to": 2009 } },
       "roster": [

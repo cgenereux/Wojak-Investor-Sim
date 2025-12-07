@@ -754,24 +754,24 @@
     }
   }
 
-  class Company extends PhaseCompany {
-    constructor(cfg, macroEnv, gameStartYear = 1990, ipoDate = new Date(gameStartYear, 0, 1)) {
-      super(cfg, macroEnv, gameStartYear, ipoDate, 'public');
-      this.showDividendColumn = true;
+	  class Company extends PhaseCompany {
+	    constructor(cfg, macroEnv, gameStartYear = 1990, ipoDate = new Date(gameStartYear, 0, 1)) {
+	      super(cfg, macroEnv, gameStartYear, ipoDate, 'public');
+	      this.showDividendColumn = true;
 
-      const rp = cfg.base_business.revenue_process;
-      this.baseRevenue = between(rp.initial_revenue_usd.min, rp.initial_revenue_usd.max);
-      this.initialBaseRevenue = this.baseRevenue;
+	      const rp = cfg.base_business.revenue_process;
+	      this.baseRevenue = between(rp.initial_revenue_usd.min, rp.initial_revenue_usd.max);
+	      this.initialBaseRevenue = this.baseRevenue;
 
-      // For companies that IPO after the game start year, scale their
-      // initial base revenue so that, effectively, they have experienced
-      // roughly half of the macro GBM drift between the start year and
-      // their IPO year. This keeps late IPOs from looking as if they
-      // had compounded at the full sector mu since the start of the
-      // simulation.
-      try {
-        const ipoYear = ipoDate instanceof Date ? ipoDate.getFullYear() : gameStartYear;
-        const yearsFromStart = Math.max(0, ipoYear - gameStartYear);
+	      // For companies that IPO after the game start year, scale their
+	      // initial base revenue so that, effectively, they have experienced
+	      // roughly half of the macro GBM drift between the start year and
+	      // their IPO year. This keeps late IPOs from looking as if they
+	      // had compounded at the full sector mu since the start of the
+	      // simulation.
+	      try {
+	        const ipoYear = ipoDate instanceof Date ? ipoDate.getFullYear() : gameStartYear;
+	        const yearsFromStart = Math.max(0, ipoYear - gameStartYear);
         if (yearsFromStart > 0 && macroEnv && typeof macroEnv.getMu === 'function') {
           const mu = macroEnv.getMu(this.sector);
           if (Number.isFinite(mu) && mu > 0) {
@@ -853,18 +853,39 @@
       // Optional baseline pipeline realization for hard-tech style public companies.
       // This parameter should affect valuation (via pipeline EV) but not revenue.
       const realizationRaw = cfg.initial_valuation_realization ?? cfg.initial_value_realization;
-      const realization = (typeof realizationRaw === 'number' && Number.isFinite(realizationRaw))
-        ? Math.max(0, Math.min(1, realizationRaw))
-        : 0;
-      this.pipelineInitialRealization = realization > 0 ? realization : 0;
+	      const realization = (typeof realizationRaw === 'number' && Number.isFinite(realizationRaw))
+	        ? Math.max(0, Math.min(1, realizationRaw))
+	        : 0;
+	      this.pipelineInitialRealization = realization > 0 ? realization : 0;
 
-      let simDate = new Date(ipoDate);
-      const dt = 14;
-      while (simDate.getFullYear() < gameStartYear) {
-        this.step(dt, simDate);
-        simDate.setDate(simDate.getDate() + dt);
-      }
-    }
+	      // Pre-start simulation: for companies that IPO *before* the game
+	      // start year, walk them forward in 14-day steps so that they
+	      // accumulate history and fundamentals. During this pre-history
+	      // window we want them to experience the full sector-level GBM
+	      // drift (macro mu), not the "half mu" adjustment used for IPOs
+	      // that occur *after* the start year.
+	      let simDate = new Date(ipoDate);
+	      const dt = 14;
+	      const dtYears = dt / 365;
+	      const hasPreStartSpan = ipoDate instanceof Date && ipoDate.getFullYear() < gameStartYear;
+	      const preStartMu = hasPreStartSpan && macroEnv && typeof macroEnv.getMu === 'function'
+	        ? macroEnv.getMu(this.sector)
+	        : null;
+	      const usePreStartMu = Number.isFinite(preStartMu) && preStartMu > 0;
+	      while (simDate.getFullYear() < gameStartYear) {
+	        if (usePreStartMu) {
+	          const stepScale = Math.exp(preStartMu * dtYears);
+	          if (Number.isFinite(stepScale) && stepScale > 0) {
+	            this.baseRevenue *= stepScale;
+	          }
+	        }
+	        this.step(dt, simDate);
+	        simDate.setDate(simDate.getDate() + dt);
+	      }
+	      // After pre-history, treat the evolved baseRevenue as the
+	      // reference "initial" level for any future pipeline bump caps.
+	      this.initialBaseRevenue = this.baseRevenue;
+	    }
 
     step(dtDays, gameDate) {
       if (this.bankrupt) return;
