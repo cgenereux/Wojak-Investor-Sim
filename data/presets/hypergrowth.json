@@ -2,14 +2,14 @@
   "companies": [
     {
       "name": "eBuy",
-      "sector": "Web",
+      "sector": "Technology",
       "subsector": "Web Technology",
       "funding_round": "Seed",
       "ipo_stage": "series_f",
       "gate_stage": "series_c",
       "founders": [
-        { "name": "Sofia Duarte" },
-        { "name": "Kevin Lin" }
+        { "name": "Peter Johnson", "degree": "BSc Computer Science", "school": "Stanford" },
+        { "name": "Eric Rovolo", "degree": "BComm", "school": "UBC" }
       ],
       "mission": "Empowering anyone to buy and sell online through the power of auctions.",
       "founding_location": "San Francisco, CA",
@@ -17,14 +17,14 @@
     },
     {
       "name": "CyberWorks",
-      "sector": "Web",
+      "sector": "Technology",
       "subsector": "Web Technology",
       "funding_round": "Seed",
       "ipo_stage": "series_f",
       "gate_stage": "series_c",
       "founders": [
-        { "name": "Reema Khalid" },
-        { "name": "Alex Ortega" }
+        { "name": "Ross Ulrich", "degree": "BSc Computer Science", "school": "UWaterloo" },
+        { "name": "Alex Carr", "degree": "BSc Computer Systems", "school": "UWaterloo" }
       ],
       "mission": "Securing electronic commerce in the Internet age.",
       "founding_location": "Palo Alto, CA",
@@ -32,40 +32,145 @@
     },
     {
       "name": "StreamCast",
-      "sector": "Web",
+      "sector": "Technology",
       "subsector": "Web Technology",
       "funding_round": "Seed",
       "ipo_stage": "series_f",
       "gate_stage": "series_c",
       "founders": [
-        { "name": "Maya Ito" },
-        { "name": "Julio Rivera" }
+        { "name": "Jason Shmitt", "degree": "BSc Computer Science", "school": "NYU" },
+        { "name": "Jawed Chen", "degree": "BSc Computer Engineering", "school": "Columbia" }
       ],
       "mission": "Live broadcasting for the Internet age.",
       "founding_location": "San Francisco, CA",
       "private_listing_window": { "from": 1996, "to": 2011 }
+    },
+
+
+    {
+      "name": "DashCart",
+      "sector": "Technology",
+      "subsector": "Web Technology",
+      "funding_round": "Seed",
+      "ipo_stage": "series_f",
+      "gate_stage": "series_c",
+      "founders": [
+        { "name": "Maya Torres", "degree": "BS Supply Chain Management", "school": "ASU" },
+        { "name": "Daniel Park", "degree": "MS Computer Science", "school": "Stanford" }
+      ],
+      "mission": "Delivering anything in your city in under an hour through a flexible courier network.",
+      "founding_location": "San Francisco, CA",
+      "private_listing_window": { "from": 2011, "to": 2019 }
+    },
+
+    {
+      "name": "Rode",
+      "sector": "Technology",
+      "subsector": "Web Technology",
+      "funding_round": "Seed",
+      "ipo_stage": "series_f",
+      "gate_stage": "series_c",
+      "founders": [
+        { "name": "Lauren Kim", "degree": "BS Mechanical Engineering", "school": "UC Berkeley" },
+        { "name": "Andre Miller", "degree": "BS Computer Science", "school": "SJSU" }
+      ],
+      "mission": "Making city transportation instant and affordable through a flexible driver network.",
+      "founding_location": "San Francisco, CA",
+      "private_listing_window": { "from": 2011, "to": 2019 }
+    },
+
+    {
+      "name": "QuickPlate",
+      "sector": "Technology",
+      "subsector": "Web Technology",
+      "funding_round": "Seed",
+      "ipo_stage": "series_f",
+      "gate_stage": "series_c",
+      "founders": [
+        { "name": "Carlos Ramirez", "degree": "BA Economics", "school": "UC Berkeley" },
+        { "name": "Jenna Lee", "degree": "BS Information Systems", "school": "SFSU" }
+      ],
+      "mission": "Connecting local restaurants to hungry customers with ultra fast delivery and smart batching.",
+      "founding_location": "San Jose, CA",
+      "private_listing_window": { "from": 2008, "to": 2017 }
+    },
+
+    {
+      "name": "Circle",
+      "sector": "Technology",
+      "subsector": "Web Technology",
+      "funding_round": "Seed",
+      "ipo_stage": "series_f",
+      "gate_stage": "series_c",
+      "founders": [
+        { "name": "Joseph Smith", "degree": "BSc Computer Science", "school": "Harvard" },
+        { "name": "Dustin Park", "degree": "BSc Economics", "school": "Harvard" }
+      ],
+      "mission": "Connecting people with their real world social networks online.",
+      "founding_location": "Boston, MA",
+      "private_listing_window": { "from": 2000, "to": 2012 }
+    },
+    {
+      "name": "PayBud",
+      "sector": "Technology",
+      "subsector": "Web Technology",
+      "funding_round": "Seed",
+      "ipo_stage": "series_f",
+      "gate_stage": "series_c",
+      "founders": [
+        { "name": "Max Levinson", "degree": "BSc Computer Science", "school": "UIUC" },
+        { "name": "Peter Conroy", "degree": "BSc Physics", "school": "Stanford" }
+      ],
+      "mission": "Making sending money as easy as sending an email.",
+      "founding_location": "Palo Alto, CA",
+      "private_listing_window": { "from": 1993, "to": 2007 }
+    },
+    {
+      "name": "Greenery",
+      "sector": "Technology",
+      "subsector": "Web Technology",
+      "funding_round": "Seed",
+      "ipo_stage": "series_f",
+      "gate_stage": "series_c",
+      "founders": [
+        { "name": "Vlad Petrov", "degree": "BSc Physics", "school": "Stanford" },
+        { "name": "Baiju Prasad", "degree": "BSc Mathematics", "school": "Stanford" }
+      ],
+      "mission": "Democratizing finance with commission free stock trading for everyone.",
+      "founding_location": "Palo Alto, CA",
+      "private_listing_window": { "from": 2007, "to": 2021 }
+    },
+    {
+      "name": "LockedIn",
+      "sector": "Technology",
+      "subsector": "Web Technology",
+      "funding_round": "Seed",
+      "ipo_stage": "series_f",
+      "gate_stage": "series_c",
+      "founders": [
+        { "name": "Eric Yuan Jr.", "degree": "MSc Computer Science", "school": "Stanford" },
+        { "name": "David Chang", "degree": "BSc Computer Engineering", "school": "SJSU" }
+      ],
+      "mission": "Video meetings that work for anyone, anywhere.",
+      "founding_location": "San Jose, CA",
+      "private_listing_window": { "from": 2005, "to": 2019 }
     }
+
   ],
   "defaults": {
-    "valuation_usd": [6000000, 18000000],
+    "initial_revenue_usd": [1000000, 4000000],
+    "initial_ps_multiple": [7, 11],
     "hypergrowth_window_years": [2, 4],
-    "hypergrowth_initial_growth_rate": [0.6, 1.2],
+    "hypergrowth_initial_growth_rate": [2.6, 3.2],
     "hypergrowth_terminal_growth_rate": [0.1, 0.25],
     "hypergrowth_initial_margin": [-0.4, -0.1],
     "hypergrowth_terminal_margin": [0.15, 0.3],
-    "long_run_revenue_ceiling_multiplier": [20, 40],
-    "long_run_growth_rate": [0.45, 0.7],
-    "long_run_growth_floor": [0.08, 0.18],
-    "long_run_growth_decay": [0.25, 0.5],
-    "post_gate_initial_multiple": [12, 20],
-    "post_gate_baseline_multiple": [4, 7],
+    "post_gate_initial_ps_multiple": [12, 20],
+    "post_gate_terminal_ps_multiple": [4, 7],
     "post_gate_multiple_decay_years": [5, 9],
-    "post_gate_margin": [0.18, 0.3],
     "pmf_loss_prob_per_year": 0.1,
     "pmf_decline_rate_range": [-0.4, -0.25],
     "pmf_decline_duration_years": [2, 3],
-    "structural_bias_band": 0.6,
-    "structural_bias_half_life_years": 8,
     "max_failures_before_collapse": 1,
     "binary_success": false,
     "private_listing_window": { "from": 1990, "to": 2002 },

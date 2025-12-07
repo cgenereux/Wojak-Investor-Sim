@@ -11,17 +11,16 @@
   };
 
   function computeHypergrowthFairValue(company, applyNoise = true) {
-    const fin = company.getStageFinancials();
-    const ps = fin.ps || 6;
-    const margin = clampValue(fin.margin ?? 0.1, -2, 0.35);
-    const revenue = Math.max(1, company.revenue || company.currentValuation / Math.max(ps, 1));
-    let base = revenue * ps;
-    if (company.postGateMode) {
-      const forwardMargin = company.postGateMargin || margin;
-      const forwardE = revenue * forwardMargin;
-      const impliedPE = Math.max(ps * 2, 8);
-      base = forwardE * impliedPE;
-    }
+    if (!company) return 1;
+    const revenueBase = Number.isFinite(company.revenue) && company.revenue > 0
+      ? company.revenue
+      : (Number.isFinite(company.initialRevenue) && company.initialRevenue > 0
+        ? company.initialRevenue
+        : Math.max(1, company.currentValuation || 1));
+    const multiple = company.currentMultiple && company.currentMultiple > 0
+      ? company.currentMultiple
+      : (company.privatePSMultiple && company.privatePSMultiple > 0 ? company.privatePSMultiple : 6);
+    let base = revenueBase * multiple;
     if (applyNoise) {
       base *= between(0.9, 1.1);
     }
@@ -79,13 +78,32 @@
       company.profit = 0;
       return;
     }
-    const stage = company.currentStage;
-    const stageKey = stage ? stage.id : 'seed';
-    const fin = company.getStageFinancials(stage);
-    const targetRevenue = Math.max(company.currentValuation / Math.max(fin.ps || 1, 1e-3), 0);
-    const smoothing = 1 - Math.exp(-5 * dtYears);
-    company.revenue += (targetRevenue - company.revenue) * smoothing;
-    company.profit = company.revenue * fin.margin;
+    // Ensure a sensible starting revenue
+    const ps = company.privatePSMultiple && company.privatePSMultiple > 0 ? company.privatePSMultiple : 6;
+    if (!Number.isFinite(company.revenue) || company.revenue <= 0) {
+      const baseFromInitial = Number.isFinite(company.initialRevenue) && company.initialRevenue > 0
+        ? company.initialRevenue
+        : 0;
+      const baseFromVal = company.currentValuation > 0 ? company.currentValuation / Math.max(ps, 1e-3) : 0;
+      company.revenue = Math.max(1, baseFromInitial, baseFromVal);
+    }
+
+    if (!Number.isFinite(company.hypergrowthElapsedYears)) {
+      company.hypergrowthElapsedYears = 0;
+    }
+    const progress = Math.min(1, company.hypergrowthElapsedYears / Math.max(company.hypergrowthWindowYears || 1, 0.25));
+    const startFactor = company.hypergrowthInitialGrowthRate || 1.6;
+    const endFactor = company.hypergrowthTerminalGrowthRate || 1.15;
+    const currentFactor = startFactor + (endFactor - startFactor) * progress;
+    const growthFactor = Math.pow(Math.max(currentFactor, 1.0), dtYears);
+    company.revenue *= growthFactor;
+    company.hypergrowthElapsedYears += dtYears;
+
+    const marginStart = typeof company.hypergrowthInitialMargin === 'number' ? company.hypergrowthInitialMargin : -0.4;
+    const marginEnd = typeof company.hypergrowthTerminalMargin === 'number' ? company.hypergrowthTerminalMargin : marginStart;
+    const marginProgress = Math.min(1, company.hypergrowthElapsedYears / Math.max(company.hypergrowthWindowYears || 1, 0.25));
+    const margin = clampValue(marginStart + (marginEnd - marginStart) * marginProgress, -2, 0.6);
+    company.profit = company.revenue * margin;
   }
 
   function advanceHardTechPreGate(company, dtYears, dtDays, currentDate) {

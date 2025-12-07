@@ -557,10 +557,17 @@ function updateVentureDetail(companyId) {
     }
     if (vcDetailFoundersEl) {
         vcDetailFoundersEl.innerHTML = '';
-        if (founderNames.length) {
+        if (founders.length) {
             let html = '<div class="detail-founders-label">Founders:</div>';
-            founderNames.forEach(name => {
-                html += `<div class="detail-founder-name">${name}</div>`;
+            founders.forEach(f => {
+                if (!f) return;
+                const name = (f.name || '').trim();
+                const school = (f.school || '').trim();
+                if (!name && !school) return;
+                const label = (name && school)
+                    ? `${name}, ${school}`
+                    : (name || school);
+                html += `<div class="detail-founder-name">${label}</div>`;
             });
             vcDetailFoundersEl.innerHTML = html;
             vcDetailFoundersEl.style.display = 'flex';

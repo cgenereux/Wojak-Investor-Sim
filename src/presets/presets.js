@@ -137,15 +137,15 @@
         const entries = Array.isArray(data?.companies) ? data.companies : [];
         if (entries.length === 0) return [];
         const defaults = data?.defaults || {};
-        const pmfLossProb = defaults.pmf_loss_prob_per_year ?? defaults.pmfLossProbPerYear ?? 0.1;
+        // Native hypergrowth ventures: default PMF loss probability is 10% per year.
+        const pmfLossProb = 0.10;
         const pmfDeclineRange = defaults.pmf_decline_rate_range || defaults.pmf_decline_rate || [-0.4, -0.25];
         const pmfDeclineDuration = defaults.pmf_decline_duration_years || defaults.pmf_decline_duration || [2, 3];
-        const structBiasBand = defaults.structural_bias_band ?? defaults.structural_bias?.band ?? null;
-        const structBiasHalfLife = defaults.structural_bias_half_life_years ?? defaults.structural_bias?.half_life_years ?? null;
 
         return entries.map((entry, idx) => {
-            const valuation = pickRangeLocal(defaults.valuation_usd, 6_000_000, 18_000_000);
-            const longRunRevenueMultiplier = pickRangeLocal(defaults.long_run_revenue_ceiling_multiplier, 20, 40);
+            const initialRevenue = pickRangeLocal(defaults.initial_revenue_usd, 1_000_000, 4_000_000);
+            const initialPs = pickRangeLocal(defaults.initial_ps_multiple, 7, 11);
+            const valuation = Math.max(1, initialRevenue * initialPs);
             return {
                 id: makeId(`preset_hyper_${slugify(entry.name || `hyper_${idx}`)}`, idx),
                 name: entry.name || `Hypergrowth ${idx + 1}`,
@@ -155,6 +155,8 @@
                 mission: entry.mission || defaults.mission || '',
                 founding_location: entry.founding_location || defaults.founding_location || '',
                 valuation_usd: valuation,
+                initial_revenue_usd: initialRevenue,
+                initial_ps_multiple: initialPs,
                 funding_round: entry.funding_round || defaults.funding_round || 'Seed',
                 ipo_stage: entry.ipo_stage || defaults.ipo_stage || 'series_f',
                 binary_success: entry.binary_success ?? defaults.binary_success ?? false,
@@ -164,22 +166,16 @@
                 hypergrowth_terminal_growth_rate: pickRangeLocal(defaults.hypergrowth_terminal_growth_rate, 0.1, 0.25),
                 hypergrowth_initial_margin: pickRangeLocal(defaults.hypergrowth_initial_margin, -0.4, -0.1),
                 hypergrowth_terminal_margin: pickRangeLocal(defaults.hypergrowth_terminal_margin, 0.15, 0.3),
-                long_run_revenue_ceiling_usd: valuation * longRunRevenueMultiplier,
-                long_run_growth_rate: pickRangeLocal(defaults.long_run_growth_rate, 0.45, 0.7),
-                long_run_growth_floor: pickRangeLocal(defaults.long_run_growth_floor, 0.08, 0.18),
-                long_run_growth_decay: pickRangeLocal(defaults.long_run_growth_decay, 0.25, 0.5),
-                post_gate_initial_multiple: pickRangeLocal(defaults.post_gate_initial_multiple, 12, 20),
-                post_gate_baseline_multiple: pickRangeLocal(defaults.post_gate_baseline_multiple, 4, 7),
+                post_gate_initial_ps_multiple: pickRangeLocal(defaults.post_gate_initial_ps_multiple, 12, 20),
+                post_gate_terminal_ps_multiple: pickRangeLocal(defaults.post_gate_terminal_ps_multiple, 4, 7),
                 post_gate_multiple_decay_years: pickRangeLocal(defaults.post_gate_multiple_decay_years, 5, 9),
-                post_gate_margin: pickRangeLocal(defaults.post_gate_margin, 0.18, 0.3),
                 max_failures_before_collapse: entry.max_failures_before_collapse ?? defaults.max_failures_before_collapse ?? 1,
                 private_listing_window: entry.private_listing_window || defaults.private_listing_window || null,
                 rounds: entry.rounds || defaults.rounds || DEFAULT_VC_ROUNDS,
                 pmf_loss_prob_per_year: entry.pmf_loss_prob_per_year ?? pmfLossProb,
                 pmf_decline_rate_range: entry.pmf_decline_rate_range || pmfDeclineRange,
                 pmf_decline_duration_years: entry.pmf_decline_duration_years || pmfDeclineDuration,
-                structural_bias_band: entry.structural_bias_band ?? structBiasBand,
-                structural_bias_half_life_years: entry.structural_bias_half_life_years ?? structBiasHalfLife
+                // structural bias fields intentionally omitted for hypergrowth for now
             };
         });
     }
@@ -667,8 +663,8 @@
                     long_run_growth_rate: randBetween(0.25, 0.45),
                     long_run_growth_floor: randBetween(0.05, 0.12),
                     long_run_growth_decay: randBetween(0.08, 0.2),
-                    post_gate_initial_multiple: randBetween(10, 16),
-                    post_gate_baseline_multiple: randBetween(4, 8),
+                    post_gate_initial_ps_multiple: randBetween(10, 16),
+                    post_gate_terminal_ps_multiple: randBetween(4, 8),
                     post_gate_multiple_decay_years: randBetween(6, 11),
                     post_gate_margin: entry.post_gate_margin ?? randBetween(0.2, 0.35),
                     max_failures_before_collapse: entry.max_failures_before_collapse ?? 1,

@@ -112,6 +112,22 @@
   - UI notes: VC grid shows valuation/stage/stake; detail shows valuation chart, pipeline view, financial table, timer, dilution label, lead CTA, fraction buttons; portfolio shows stage labels and “in-flight”
     commitments.
 
+  Hypergrowth Parameters (VC-native)
+
+  - `initial_revenue_usd`: starting annualised revenue at the beginning of the hypergrowth sim.
+  - `hypergrowth_window_years`: length (in years) of the intense hypergrowth phase.
+  - `hypergrowth_initial_growth_rate`: YoY revenue growth at the start of the hypergrowth window.
+  - `hypergrowth_terminal_growth_rate`: YoY revenue growth at the end of the hypergrowth window (pre-public, just before things normalise).
+  - `hypergrowth_initial_margin`: starting operating margin during hypergrowth (can be meaningfully negative).
+  - `hypergrowth_terminal_margin`: margin hypergrowth companies converge to by the end of the window; treated as their long-run “normal” margin once public.
+  - `initial_ps_multiple`: private-phase revenue multiple used to translate revenue into pre-gate valuations.
+  - `post_gate_initial_ps_multiple`: revenue multiple around IPO / exit from hypergrowth (still elevated).
+  - `post_gate_terminal_ps_multiple`: steady-state revenue multiple hypergrowth ventures converge to as normal public companies.
+  - `post_gate_multiple_decay_years`: years over which the multiple slides from `post_gate_initial_ps_multiple` to `post_gate_terminal_ps_multiple`.
+  - `pmf_loss_prob_per_year`: annual chance a native hypergrowth company enters a product–market-fit loss phase.
+  - `pmf_decline_rate_range`: range of annual revenue/margin shock applied while PMF loss is active (e.g., −40% to −25% per year).
+  - `pmf_decline_duration_years`: duration (in years) that a PMF loss event remains active before the company stabilises at a new, lower trajectory.
+
   To Do List
   - Bankruptcies don't work properly in multiplayer as assets aren't completely wiped and you can rebound from bankruptcy after going negative when you shouldn't be able to. The bankruptcy screen can also play pop up multiple times on one bankruptcy in multiplayer.
   - Hypergrowth mode should be possible while public in an ideal world

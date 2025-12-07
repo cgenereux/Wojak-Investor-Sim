@@ -235,11 +235,17 @@
       // P/S for converting hard-tech revenue potential to valuation (default 6)
       this.valueRealizationPS = config.value_realization_ps ?? config.valueRealizationPS ?? 6;
 
+      // Hypergrowth-specific initial revenue and PS multiple
+      this.initialRevenue = Number(config.initial_revenue_usd ?? 0);
+      this.initialPSMultiple = Number(config.initial_ps_multiple ?? 0);
+
       // For hard-tech, compute initial valuation from pipeline using initial_valuation_realization
       if (this.archetype === 'hardtech' && Array.isArray(this.products) && this.products.length > 0 && config.initial_valuation_realization != null) {
         const totalFullRevenue = this.products.reduce((sum, p) => sum + (p.fullVal || 0), 0);
         const realization = Math.max(0, Math.min(1, Number(config.initial_valuation_realization)));
         this.currentValuation = Math.max(1, totalFullRevenue * realization * this.valueRealizationPS * between(0.9, 1.1));
+      } else if (this.archetype === 'hypergrowth' && this.initialRevenue > 0 && this.initialPSMultiple > 0) {
+        this.currentValuation = Math.max(1, this.initialRevenue * this.initialPSMultiple);
       } else {
         this.currentValuation = Math.max(1, Number(config.valuation_usd) || 10_000_000);
       }
@@ -316,22 +322,28 @@
 
       this.hypergrowthWindowYears = Math.max(Number(config.hypergrowth_window_years || 2), 0.25);
 
-      // Hypergrowth growth rate: initial → terminal (decaying over window)
-      // Backwards compat: derive from old params if new ones not specified
-      let defaultInitialRate = 0.8;
-      let defaultTerminalRate = 0.15;
-      if (config.hypergrowth_revenue_growth_rate != null) {
-        // Old single rate param - use as initial, decay to 20% of it
-        defaultInitialRate = Math.max(Number(config.hypergrowth_revenue_growth_rate), 0.1);
-        defaultTerminalRate = defaultInitialRate * 0.2;
-      } else if (config.hypergrowth_total_multiplier != null) {
-        // Even older multiplier param - derive rate
+      // Hypergrowth growth: interpret params as per-year growth *factors* (1.10 = +10% YoY).
+      // For backwards compat, values in (0, 1.5) are treated as rates (0.10 = +10%) and converted to factors.
+      const normalizeGrowthInput = (value, fallbackFactor) => {
+        const v = Number(value);
+        if (!Number.isFinite(v)) return fallbackFactor;
+        if (v > 0 && v < 1.5) return 1 + v; // old style "0.1 = 10%"
+        if (v <= 0) return fallbackFactor;
+        return v; // already a factor like 1.6, 2.5, etc.
+      };
+      let defaultInitialFactor = normalizeGrowthInput(config.hypergrowth_revenue_growth_rate, 1.6);
+      let defaultTerminalFactor = normalizeGrowthInput(defaultInitialFactor * 0.2, 1.15);
+      if (config.hypergrowth_total_multiplier != null) {
+        // Even older multiplier param - approximate an average factor over the window.
         const multiplier = Math.max(Number(config.hypergrowth_total_multiplier), 1.5);
-        defaultInitialRate = Math.pow(multiplier, 1 / this.hypergrowthWindowYears) - 1;
-        defaultTerminalRate = defaultInitialRate * 0.2;
+        const avgFactor = Math.pow(multiplier, 1 / this.hypergrowthWindowYears);
+        defaultInitialFactor = avgFactor * 1.3;
+        defaultTerminalFactor = avgFactor * 0.7;
       }
-      this.hypergrowthInitialGrowthRate = Math.max(Number(config.hypergrowth_initial_growth_rate ?? defaultInitialRate), 0.05);
-      this.hypergrowthTerminalGrowthRate = Math.max(Number(config.hypergrowth_terminal_growth_rate ?? defaultTerminalRate), 0.01);
+      const rawInitial = config.hypergrowth_initial_growth_rate ?? defaultInitialFactor;
+      const rawTerminal = config.hypergrowth_terminal_growth_rate ?? defaultTerminalFactor;
+      this.hypergrowthInitialGrowthRate = normalizeGrowthInput(rawInitial, defaultInitialFactor);
+      this.hypergrowthTerminalGrowthRate = normalizeGrowthInput(rawTerminal, defaultTerminalFactor);
 
       // Hypergrowth margin: initial → terminal (improving over window)
       // Default initial from stage financials, terminal from post_gate_margin
@@ -341,14 +353,27 @@
       // Keep for backwards compat
       this.hypergrowthRevenueGrowthRate = this.hypergrowthInitialGrowthRate;
       this.hypergrowthTotalMultiplier = Math.pow(1 + this.hypergrowthInitialGrowthRate, this.hypergrowthWindowYears);
-      this.longRunRevenueCeiling = Math.max(Number(config.long_run_revenue_ceiling_usd || this.currentValuation * 40), this.currentValuation);
-      this.longRunGrowthRate = Math.max(Number(config.long_run_growth_rate || 0.3), 0.05);
-      this.longRunGrowthFloor = Math.max(Number(config.long_run_growth_floor || 0.05), 0.01);
-      this.longRunGrowthDecay = Math.max(Number(config.long_run_growth_decay || 0.25), 0.05);
-      this.postGateInitialMultiple = Math.max(Number(config.post_gate_initial_multiple || 12), 2);
-      this.postGateBaselineMultiple = Math.max(Number(config.post_gate_baseline_multiple || 4), 1);
+
+      // Long-run (post-hypergrowth VC tail) growth defaults.
+      // For hard-tech, these can still be provided via config; for hypergrowth presets we fall back to sane defaults.
+      const lrCeiling = config.long_run_revenue_ceiling_usd;
+      this.longRunRevenueCeiling = Number.isFinite(lrCeiling) && lrCeiling > 0
+        ? lrCeiling
+        : this.currentValuation * 40;
+      const lrRate = config.long_run_growth_rate;
+      const lrFloor = config.long_run_growth_floor;
+      const lrDecay = config.long_run_growth_decay;
+      this.longRunGrowthRate = Number.isFinite(lrRate) ? Math.max(lrRate, 0.01) : 0.35;
+      this.longRunGrowthFloor = Number.isFinite(lrFloor) ? Math.max(lrFloor, 0.0) : 0.08;
+      this.longRunGrowthDecay = Number.isFinite(lrDecay) ? Math.max(lrDecay, 0.01) : 0.3;
+
+      // Post-gate multiples now use PS-based naming (with backwards-compat reads)
+      const postGateInitialPs = config.post_gate_initial_ps_multiple ?? config.post_gate_initial_multiple;
+      const postGateTerminalPs = config.post_gate_terminal_ps_multiple ?? config.post_gate_baseline_multiple;
+      this.postGateInitialPSMultiple = Math.max(Number(postGateInitialPs || 12), 2);
+      this.postGateTerminalPSMultiple = Math.max(Number(postGateTerminalPs || 4), 1);
       this.postGateMultipleDecayYears = Math.max(Number(config.post_gate_multiple_decay_years || 6), 1);
-      this.postGateMargin = Math.max(Number(config.post_gate_margin || 0.2), 0.05);
+      this.postGateMargin = Math.max(Number(config.post_gate_margin ?? this.hypergrowthTerminalMargin ?? 0.2), 0.05);
       this.pmfLossProbPerYear = Number(config.pmf_loss_prob_per_year ?? config.pmfLossProbPerYear ?? 0);
       this.pmfDeclineRateRange = config.pmf_decline_rate_range || config.pmf_decline_rate || config.pmfDeclineRateRange || [-0.4, -0.25];
       this.pmfDeclineDurationYears = config.pmf_decline_duration_years || config.pmf_decline_duration || config.pmfDeclineDurationYears || [2, 3];
@@ -364,7 +389,9 @@
       this.hypergrowthStartMargin = null; // Set when entering post-gate mode
       this.postGateStartDate = null;
       this.hypergrowthEndDate = null;
-      this.currentMultiple = this.postGateInitialMultiple;
+      // Private-phase PS multiple for hypergrowth; defaults to post-gate initial if not provided.
+      this.privatePSMultiple = this.initialPSMultiple > 0 ? this.initialPSMultiple : this.postGateInitialPSMultiple;
+      this.currentMultiple = this.postGateInitialPSMultiple;
 
       this.lastFairValue = this.currentValuation;
 
@@ -469,12 +496,23 @@
         this.marketCap = this.currentValuation;
         return;
       }
+      const valuation = Math.max(this.currentValuation || 0, 0);
+      if (this.archetype === 'hypergrowth') {
+        const ps = this.privatePSMultiple && this.privatePSMultiple > 0 ? this.privatePSMultiple : 6;
+        const marginDefault = typeof this.hypergrowthInitialMargin === 'number' ? this.hypergrowthInitialMargin : -0.4;
+        const margin = clampValue(marginDefault, -2, 0.5);
+        const revenue = this.binarySuccess ? 0 : valuation / Math.max(ps, 1e-3);
+        const profit = revenue * margin;
+        this.revenue = revenue;
+        this.profit = profit;
+        this.marketCap = this.currentValuation;
+        return;
+      }
       const stage = this.currentStage;
       const stageKey = stage ? stage.id : 'seed';
       const fin = STAGE_FINANCIALS[stageKey] || STAGE_FINANCIALS.seed;
       const ps = fin.ps || 6;
       const margin = clampValue(fin.margin ?? 0.1, -2, 0.35);
-      const valuation = Math.max(this.currentValuation || 0, 0);
       const revenue = this.binarySuccess ? 0 : valuation / Math.max(ps, 1e-3);
       const profit = revenue * margin;
       this.revenue = revenue;
@@ -557,37 +595,25 @@
 
 
     advancePostGateRevenue(dtYears) {
-      if (this.hypergrowthActive) {
-        // Interpolate growth rate: initial → terminal over hypergrowth window
-        const progress = Math.min(1, this.hypergrowthElapsedYears / this.hypergrowthWindowYears);
-        const currentGrowthRate = this.hypergrowthInitialGrowthRate +
-          (this.hypergrowthTerminalGrowthRate - this.hypergrowthInitialGrowthRate) * progress;
-        const growthFactor = Math.pow(1 + currentGrowthRate, dtYears);
-        this.revenue *= growthFactor;
-        this.hypergrowthElapsedYears += dtYears;
-
-        // Interpolate margin: initial → terminal over hypergrowth window
-        const marginProgress = Math.min(1, this.hypergrowthElapsedYears / this.hypergrowthWindowYears);
-        const startMargin = this.hypergrowthStartMargin ?? -0.2;
-        const endMargin = this.hypergrowthEndMargin ?? this.postGateMargin;
-        const currentMargin = startMargin + (endMargin - startMargin) * marginProgress;
-        this.profit = this.revenue * currentMargin;
-
-        if (this.hypergrowthElapsedYears >= this.hypergrowthWindowYears || this.revenue >= this.hypergrowthTargetRevenue) {
-          this.revenue = Math.min(this.revenue, this.hypergrowthTargetRevenue || this.revenue);
-          this.hypergrowthActive = false;
-          this.hypergrowthEndDate = this.postGateStartDate ? new Date(this.postGateStartDate.getTime() + this.hypergrowthWindowYears * YEAR_MS) : null;
-        }
-      } else {
-        const yearsSinceHyper = Math.max(0, this.hypergrowthElapsedYears - this.hypergrowthWindowYears);
-        const baseRate = this.longRunGrowthRate;
-        const decay = Math.exp(-this.longRunGrowthDecay * yearsSinceHyper);
-        const effectiveRate = Math.max(this.longRunGrowthFloor, baseRate * decay);
-        const growthFactor = Math.pow(1 + effectiveRate, dtYears);
-        this.revenue *= growthFactor;
-        // Post-hypergrowth: margin is at post-gate level
-        this.profit = this.revenue * this.postGateMargin;
+      // For now, post-gate hypergrowth uses the same factor-based growth curve as pre-gate,
+      // but with margins converging toward the post-gate margin.
+      if (!Number.isFinite(this.hypergrowthElapsedYears)) {
+        this.hypergrowthElapsedYears = 0;
       }
+      const progress = Math.min(1, this.hypergrowthElapsedYears / this.hypergrowthWindowYears);
+      const startFactor = this.hypergrowthInitialGrowthRate || 1.2;
+      const endFactor = this.hypergrowthTerminalGrowthRate || 1.08;
+      const currentFactor = startFactor + (endFactor - startFactor) * progress;
+      const growthFactor = Math.pow(Math.max(currentFactor, 1.0), dtYears);
+      this.revenue *= growthFactor;
+      this.hypergrowthElapsedYears += dtYears;
+
+      const marginProgress = Math.min(1, this.hypergrowthElapsedYears / this.hypergrowthWindowYears);
+      const startMargin = this.hypergrowthStartMargin ?? (typeof this.hypergrowthInitialMargin === 'number' ? this.hypergrowthInitialMargin : -0.4);
+      const endMargin = this.hypergrowthEndMargin ?? this.postGateMargin;
+      const currentMargin = startMargin + (endMargin - startMargin) * marginProgress;
+      this.profit = this.revenue * currentMargin;
+
       if (this.revenue > this.longRunRevenueCeiling) {
         this.revenue = this.longRunRevenueCeiling;
       }
@@ -758,13 +784,13 @@
         : (this.postGateStartDate ? this.postGateStartDate.getTime() : 0);
       const baseMs = this.postGateStartDate ? this.postGateStartDate.getTime() : nowMs;
       const years = Math.max(0, (nowMs - baseMs) / YEAR_MS);
-      const range = this.postGateInitialMultiple - this.postGateBaselineMultiple;
+      const range = this.postGateInitialPSMultiple - this.postGateTerminalPSMultiple;
       let decayShare = this.postGateMultipleDecayYears > 0 ? Math.min(1, years / this.postGateMultipleDecayYears) : 1;
       if (this.hypergrowthActive) {
         decayShare *= 0.25;
       }
-      const nextMultiple = this.postGateInitialMultiple - range * decayShare;
-      this.currentMultiple = Math.max(this.postGateBaselineMultiple, nextMultiple);
+      const nextMultiple = this.postGateInitialPSMultiple - range * decayShare;
+      this.currentMultiple = Math.max(this.postGateTerminalPSMultiple, nextMultiple);
     }
 
     enterPostGateMode(currentDate, opts = {}) {
@@ -773,7 +799,7 @@
       this.hypergrowthActive = true;
       this.hypergrowthElapsedYears = 0;
       this.postGateStartDate = currentDate ? new Date(currentDate) : new Date();
-      const baselineMultiple = this.postGateInitialMultiple;
+      const baselineMultiple = this.postGateInitialPSMultiple;
       let baselineRevenue = opts && Number.isFinite(opts.baselineRevenue) ? opts.baselineRevenue : this.revenue;
       if (!baselineRevenue || baselineRevenue <= 0) {
         baselineRevenue = Math.max(this.currentValuation / Math.max(baselineMultiple, 1), 1_000_000);
@@ -781,10 +807,9 @@
       this.revenue = Math.max(1, baselineRevenue);
 
       // Resolve hypergrowth margins: initial → terminal over window
-      const currentStageFinancials = this.getStageFinancials();
       const fallbackMargin = (opts && Number.isFinite(opts.baselineMargin)) ? opts.baselineMargin : null;
-      this.hypergrowthStartMargin = this.hypergrowthInitialMargin ?? fallbackMargin ?? currentStageFinancials.margin ?? -0.2;
-      this.hypergrowthEndMargin = this.hypergrowthTerminalMargin ?? this.postGateMargin;
+      this.hypergrowthStartMargin = this.hypergrowthInitialMargin ?? fallbackMargin ?? -0.2;
+      this.hypergrowthEndMargin = this.hypergrowthTerminalMargin ?? this.hypergrowthStartMargin;
 
       // Target revenue based on initial growth rate over window (approximate)
       const avgRate = (this.hypergrowthInitialGrowthRate + this.hypergrowthTerminalGrowthRate) / 2;
@@ -831,11 +856,8 @@
           fairValue = prevValuation * between(multiplierRange[0], multiplierRange[1]);
         }
       } else {
-        // Hypergrowth: clamp to previous valuation * multiplier range
-        const baseFairValue = this.computeFairValue(true);
-        const minFairValue = prevValuation * multiplierRange[0];
-        const maxFairValue = prevValuation * multiplierRange[1];
-        fairValue = clampValue(baseFairValue, minFairValue, maxFairValue);
+        // Hypergrowth: valuation is driven by revenue × PS multiple
+        fairValue = this.computeFairValue(true);
       }
       const preMoney = fairValue;
       const raiseAmount = Math.max(500_000, fairValue * raiseFraction);
@@ -1758,6 +1780,8 @@
           mission: cfg.mission || '',
           founding_location: cfg.founding_location || cfg.foundingLocation || '',
           valuation_usd: cfg.valuation_usd,
+          initial_revenue_usd: cfg.initial_revenue_usd,
+          initial_ps_multiple: cfg.initial_ps_multiple,
           funding_round: cfg.funding_round,
           ipo_stage: cfg.ipo_stage,
           binary_success: cfg.binary_success,
@@ -1767,14 +1791,9 @@
           hypergrowth_terminal_growth_rate: cfg.hypergrowth_terminal_growth_rate,
           hypergrowth_initial_margin: cfg.hypergrowth_initial_margin,
           hypergrowth_terminal_margin: cfg.hypergrowth_terminal_margin,
-          long_run_revenue_ceiling_usd: cfg.long_run_revenue_ceiling_usd,
-          long_run_growth_rate: cfg.long_run_growth_rate,
-          long_run_growth_floor: cfg.long_run_growth_floor,
-          long_run_growth_decay: cfg.long_run_growth_decay,
-          post_gate_initial_multiple: cfg.post_gate_initial_multiple,
-          post_gate_baseline_multiple: cfg.post_gate_baseline_multiple,
+          post_gate_initial_ps_multiple: cfg.post_gate_initial_ps_multiple,
+          post_gate_terminal_ps_multiple: cfg.post_gate_terminal_ps_multiple,
           post_gate_multiple_decay_years: cfg.post_gate_multiple_decay_years,
-          post_gate_margin: cfg.post_gate_margin,
           max_failures_before_collapse: cfg.max_failures_before_collapse,
           rounds: Array.isArray(cfg.rounds_override) ? cfg.rounds_override : Array.isArray(cfg.rounds) ? cfg.rounds : [],
           base_business: cfg.base_business,
