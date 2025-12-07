@@ -4,8 +4,8 @@
       "structural_bias": { "min": 0.5, "max": 2, "half_life_years": 25 },
       "margin_curve": {
         "start_profit_margin": [0.08, 0.15],
-        "terminal_profit_margin": [0.5, 0.7],
-        "years_to_mature": [10, 14]
+        "terminal_profit_margin": [0.25, 0.4],
+        "years_to_mature": [9, 14]
       },
       "multiple_curve": {
         "initial_ps_ratio": [8, 15],

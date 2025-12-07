@@ -14,17 +14,27 @@
     ">
 
     <!-- Libraries -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
     <script
-        src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/js-confetti@latest/dist/js-confetti.browser.js"></script>
+        src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"
+        defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-confetti@latest/dist/js-confetti.browser.js" defer></script>
     <script type="module">
-        import posthog from 'https://cdn.jsdelivr.net/npm/posthog-js/+esm'
-        posthog.init('phc_j5ukj2NB3lfN1VsZ5cC3SoerSH8MGHi6PLX9BRG0yWc', {
-            api_host: 'https://us.i.posthog.com',
-            person_profiles: 'identified_only'
-        })
-        window.posthog = posthog
+        // Defer PostHog initialization until after the window load event so
+        // analytics don't sit directly in the critical rendering path.
+        window.addEventListener('load', () => {
+            import('https://cdn.jsdelivr.net/npm/posthog-js/+esm')
+                .then(({ default: posthog }) => {
+                    posthog.init('phc_j5ukj2NB3lfN1VsZ5cC3SoerSH8MGHi6PLX9BRG0yWc', {
+                        api_host: 'https://us.i.posthog.com',
+                        person_profiles: 'identified_only'
+                    });
+                    window.posthog = posthog;
+                })
+                .catch(() => {
+                    // If analytics fail to load, degrade silently.
+                });
+        });
     </script>
 
     <!-- CSS and JS -->
@@ -508,17 +518,17 @@
     </div>
 
     <!-- Scripts -->
-    <script src="src/sim/simShared.js"></script>
-    <script src="src/sim/macroEvents.js"></script>
-    <script src="src/sim/ventureStrategies.js"></script>
-    <script src="src/sim/publicCompanies.js"></script>
-    <script src="src/sim/ventureEngineCore.js"></script>
-    <script src="src/sim/simEngine.js"></script>
-    <script src="src/ui/vc.js"></script>
-    <script src="src/presets/presets.js"></script>
-    <script src="src/ui/pipelineUi.js"></script>
-    <script src="src/ui/wojakManager.js"></script>
-    <script src="src/ui/dashboardRenderers.js"></script>
+    <script src="src/sim/simShared.js" defer></script>
+    <script src="src/sim/macroEvents.js" defer></script>
+    <script src="src/sim/ventureStrategies.js" defer></script>
+    <script src="src/sim/publicCompanies.js" defer></script>
+    <script src="src/sim/ventureEngineCore.js" defer></script>
+    <script src="src/sim/simEngine.js" defer></script>
+    <script src="src/ui/vc.js" defer></script>
+    <script src="src/presets/presets.js" defer></script>
+    <script src="src/ui/pipelineUi.js" defer></script>
+    <script src="src/ui/wojakManager.js" defer></script>
+    <script src="src/ui/dashboardRenderers.js" defer></script>
     <script src="src/ui/multiplayer.js" defer></script>
     <script src="src/main.js" defer></script>
     <script src="src/ui/bootstrap.js" defer></script>

@@ -1325,29 +1325,41 @@ async function loadCompaniesData() {
     try {
         initMatchContext();
         resetVentureBadgeState();
-        const macroEventsResponse = await fetch('data/macroEvents.json');
-        if (!macroEventsResponse.ok) { throw new Error(`HTTP error! status: ${macroEventsResponse.status} for macroEvents.json`); }
-
         ventureCompanies = [];
-        const macroEvents = await macroEventsResponse.json();
-        let filteredCompanies = [];
         const presetOptions = matchRngFn ? { rng: matchRngFn } : {};
-        const presetClassicCompanies = await generateClassicCompanies(presetOptions);
+        const [
+            macroEvents,
+            presetClassicCompanies,
+            presetHardTechCompanies,
+            presetVentureCompanies,
+            hardTechCompanies
+        ] = await Promise.all([
+            fetch('data/macroEvents.json').then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status} for macroEvents.json`);
+                }
+                return response.json();
+            }),
+            generateClassicCompanies(presetOptions),
+            generatePublicHardTechPresetCompanies(null, presetOptions),
+            generateHypergrowthPresetCompanies(presetOptions),
+            generatePrivateHardTechCompanies(null, presetOptions)
+        ]);
+
+        let filteredCompanies = [];
         if (Array.isArray(presetClassicCompanies)) {
             filteredCompanies.push(...presetClassicCompanies);
         }
-        const presetHardTechCompanies = await generatePublicHardTechPresetCompanies(null, presetOptions);
         if (Array.isArray(presetHardTechCompanies)) {
             filteredCompanies.push(...presetHardTechCompanies);
         }
-        const presetVentureCompanies = await generateHypergrowthPresetCompanies(presetOptions);
         if (Array.isArray(presetVentureCompanies)) {
             ventureCompanies.push(...presetVentureCompanies);
         }
-        const hardTechCompanies = await generatePrivateHardTechCompanies(null, presetOptions);
         if (Array.isArray(hardTechCompanies)) {
             ventureCompanies.push(...hardTechCompanies);
         }
+
         ensureVentureSimulation(true);
         updateVentureBadge();
         const simOptions = matchRngFn
