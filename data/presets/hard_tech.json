@@ -1,47 +1,19 @@
 {
   "defaults": {
     "public": {
-      "structural_bias": {
-        "min": 0.5,
-        "max": 2,
-        "half_life_years": 25
-      },
+      "structural_bias": { "min": 0.5, "max": 2, "half_life_years": 25 },
       "margin_curve": {
-        "start_profit_margin": [
-          0.08,
-          0.15
-        ],
-        "terminal_profit_margin": [
-          0.5,
-          0.7
-        ],
-        "years_to_mature": [
-          10,
-          14
-        ]
+        "start_profit_margin": [0.08, 0.15],
+        "terminal_profit_margin": [0.5, 0.7],
+        "years_to_mature": [10, 14]
       },
       "multiple_curve": {
-        "initial_ps_ratio": [
-          8,
-          15
-        ],
-        "terminal_pe_ratio": [
-          16,
-          22
-        ],
-        "years_to_converge": [
-          8,
-          12
-        ]
+        "initial_ps_ratio": [8, 15],
+        "terminal_pe_ratio": [16, 22],
+        "years_to_converge": [7, 10]
       },
-      "initial_revenue_usd": {
-        "min": 1000000,
-        "maxMultiplier": 8
-      },
-      "pipeline_scale": [
-        0.75,
-        1.25
-      ],
+      "initial_revenue_usd": { "min": 1000000, "maxMultiplier": 8 },
+      "pipeline_scale": [0.75, 1.25],
       "ipo_instantly": false,
       "pipelineTemplate": [
         {
@@ -49,46 +21,10 @@
           "label": "Biotech Program",
           "full_revenue_usd": 11000000000,
           "stages": [
-            {
-              "id": "phase_1",
-              "name": "Phase 1 Trials",
-              "duration_days": 720,
-              "success_prob": 0.36,
-              "value_realization": 0.31,
-              "cost_usd": 110000000,
-              "max_retries": 1
-            },
-            {
-              "id": "phase_2",
-              "name": "Phase 2 Trials",
-              "duration_days": 770,
-              "depends_on": "phase_1",
-              "success_prob": 0.51,
-              "value_realization": 0.45,
-              "cost_usd": 200000000,
-              "max_retries": 1
-            },
-            {
-              "id": "phase_3",
-              "name": "Phase 3 Trials",
-              "duration_days": 859,
-              "depends_on": "phase_2",
-              "success_prob": 0.67,
-              "value_realization": 0.55,
-              "cost_usd": 320000000,
-              "max_retries": 1
-            },
-            {
-              "id": "fda_review",
-              "name": "FDA Review",
-              "duration_days": 550,
-              "depends_on": "phase_3",
-              "success_prob": 0.82,
-              "value_realization": 0.7,
-              "cost_usd": 90000000,
-              "max_retries": 1,
-              "commercialises_revenue": true
-            }
+            { "id": "phase_1", "name": "Phase 1 Trials", "duration_days": 720, "success_prob": 0.36, "value_realization": 0.31, "cost_usd": 110000000, "max_retries": 1 },
+            { "id": "phase_2", "name": "Phase 2 Trials", "duration_days": 770, "depends_on": "phase_1", "success_prob": 0.51, "value_realization": 0.45, "cost_usd": 200000000, "max_retries": 1 },
+            { "id": "phase_3", "name": "Phase 3 Trials", "duration_days": 859, "depends_on": "phase_2", "success_prob": 0.67, "value_realization": 0.55, "cost_usd": 320000000, "max_retries": 1 },
+            { "id": "fda_review", "name": "FDA Review", "duration_days": 550, "depends_on": "phase_3", "success_prob": 0.82, "value_realization": 0.7, "cost_usd": 90000000, "max_retries": 1, "commercialises_revenue": true }
           ]
         }
       ]
@@ -100,63 +36,15 @@
           "label": "Flagship Hard-Tech Program",
           "full_revenue_usd": 30000000000,
           "stages": [
-            {
-              "id": "concept_validation",
-              "name": "Concept Validation",
-              "duration_days": 720,
-              "success_prob": 0.55,
-              "value_realization": 0.1,
-              "cost_usd": 120000000,
-              "max_retries": 2
-            },
-            {
-              "id": "prototype_build",
-              "name": "Prototype Build",
-              "duration_days": 900,
-              "depends_on": "concept_validation",
-              "success_prob": 0.5,
-              "value_realization": 0.2,
-              "cost_usd": 180000000,
-              "max_retries": 2
-            },
-            {
-              "id": "pilot_demo",
-              "name": "Pilot Demonstration",
-              "duration_days": 720,
-              "depends_on": "prototype_build",
-              "success_prob": 0.6,
-              "value_realization": 0.25,
-              "cost_usd": 220000000,
-              "max_retries": 1
-            },
-            {
-              "id": "regulatory_clearance",
-              "name": "Regulatory Clearance",
-              "duration_days": 540,
-              "depends_on": "pilot_demo",
-              "success_prob": 0.7,
-              "value_realization": 0.25,
-              "cost_usd": 150000000,
-              "max_retries": 1
-            },
-            {
-              "id": "commercial_ramp",
-              "name": "Commercial Ramp",
-              "duration_days": 540,
-              "depends_on": "regulatory_clearance",
-              "success_prob": 0.85,
-              "value_realization": 0.2,
-              "cost_usd": 120000000,
-              "max_retries": 1,
-              "commercialises_revenue": true
-            }
+            { "id": "concept_validation", "name": "Concept Validation", "duration_days": 720, "success_prob": 0.55, "value_realization": 0.1, "cost_usd": 120000000, "max_retries": 1 },
+            { "id": "prototype_build", "name": "Prototype Build", "duration_days": 900, "depends_on": "concept_validation", "success_prob": 0.5, "value_realization": 0.2, "cost_usd": 180000000, "max_retries": 1 },
+            { "id": "pilot_demo", "name": "Pilot Demonstration", "duration_days": 720, "depends_on": "prototype_build", "success_prob": 0.6, "value_realization": 0.25, "cost_usd": 220000000, "max_retries": 1 },
+            { "id": "regulatory_clearance", "name": "Regulatory Clearance", "duration_days": 540, "depends_on": "pilot_demo", "success_prob": 0.7, "value_realization": 0.5, "cost_usd": 150000000, "max_retries": 1 },
+            { "id": "commercial_ramp", "name": "Commercial Ramp", "duration_days": 540, "depends_on": "regulatory_clearance", "success_prob": 0.85, "value_realization": 0.7, "cost_usd": 120000000, "max_retries": 1, "commercialises_revenue": true }
           ]
         }
       ],
-      "private_listing_window": {
-        "from": 2020,
-        "to": 2035
-      }
+      "private_listing_window": { "from": 2020, "to": 2035 }
     }
   },
   "groups": [
@@ -171,71 +59,24 @@
           "post_success_mode": "instant",
           "name": "GeneScale Therapeutics",
           "founders": [
-            {
-              "name": "Dr. Sahana Patel",
-              "degree": "PhD",
-              "school": "MIT"
-            },
-            {
-              "name": "Dr. Kai Nakamura",
-              "degree": "PhD",
-              "school": "Tokyo University"
-            }
+            { "name": "Dr. Sahana Patel", "degree": "PhD", "school": "MIT" },
+            { "name": "Dr. Kai Nakamura", "degree": "PhD", "school": "Tokyo University" }
           ],
-          "mission": "Developing modular gene therapies that scale to mainstream patients.",
+          "mission": "Developing modular gene therapies that scale to hundreds of millions of patients.",
           "initial_valuation_realization": 0.06,
           "value_realization_ps": 4,
           "founding_location": "Cambridge, MA",
-          "ipo_window": {
-            "from": 1985,
-            "to": 1985
-          },
+          "ipo_window": { "from": 1988, "to": 2004 },
           "pipeline": [
             {
               "id": "sickle_cell_gene_therapy",
               "label": "Sickle Cell Gene Therapy",
               "full_revenue_usd": 18000000000,
               "stages": [
-                {
-                  "id": "phase_1",
-                  "name": "Phase 1 Trials",
-                  "duration_days": 730,
-                  "success_prob": 0.30,
-                  "value_realization": 0.14,
-                  "cost_usd": 130000000,
-                  "max_retries": 2
-                },
-                {
-                  "id": "phase_2",
-                  "name": "Phase 2 Trials",
-                  "duration_days": 1095,
-                  "depends_on": "phase_1",
-                  "success_prob": 0.45,
-                  "value_realization": 0.28,
-                  "cost_usd": 240000000,
-                  "max_retries": 2
-                },
-                {
-                  "id": "phase_3",
-                  "name": "Phase 3 Trials",
-                  "duration_days": 1460,
-                  "depends_on": "phase_2",
-                  "success_prob": 0.58,
-                  "value_realization": 0.6,
-                  "cost_usd": 350000000,
-                  "max_retries": 1
-                },
-                {
-                  "id": "fda_review",
-                  "name": "FDA Review",
-                  "duration_days": 365,
-                  "depends_on": "phase_3",
-                  "success_prob": 0.78,
-                  "value_realization": 0.20,
-                  "cost_usd": 90000000,
-                  "max_retries": 1,
-                  "commercialises_revenue": true
-                }
+                { "id": "phase_1", "name": "Phase 1 Trials", "duration_days": 730, "success_prob": 0.3, "value_realization": 0.14, "cost_usd": 130000000, "max_retries": 2 },
+                { "id": "phase_2", "name": "Phase 2 Trials", "duration_days": 1095, "depends_on": "phase_1", "success_prob": 0.45, "value_realization": 0.28, "cost_usd": 240000000, "max_retries": 1 },
+                { "id": "phase_3", "name": "Phase 3 Trials", "duration_days": 1460, "depends_on": "phase_2", "success_prob": 0.58, "value_realization": 0.6, "cost_usd": 350000000, "max_retries": 1 },
+                { "id": "fda_review", "name": "FDA Review", "duration_days": 365, "depends_on": "phase_3", "success_prob": 0.78, "value_realization": 0.88, "cost_usd": 90000000, "max_retries": 1, "commercialises_revenue": true }
               ]
             }
           ]
@@ -245,69 +86,24 @@
           "post_success_mode": "instant",
           "name": "Synaptix",
           "founders": [
-            {
-              "name": "Dr. Elise Carver",
-              "degree": "MD",
-              "school": "Johns Hopkins"
-            },
-            {
-              "name": "Dr. Malik Hassan",
-              "degree": "PhD",
-              "school": "Oxford"
-            }
+            { "name": "Dr. Elise Carver", "degree": "MD", "school": "Johns Hopkins" },
+            { "name": "Dr. Malik Hassan", "degree": "PhD", "school": "Oxford" }
           ],
-          "mission": "Creating immune therapies for brain disease.",
+          "mission": "Reprogramming the immune system to stop neurodegenerative disease.",
           "founding_location": "Baltimore, MD",
-          "ipo_window": {
-            "from": 1999,
-            "to": 2006
-          },
+          "initial_valuation_realization": 0.06,
+          "value_realization_ps": 4,
+          "ipo_window": { "from": 1999, "to": 2006 },
           "pipeline": [
             {
               "id": "neuroimmune_alzheimers",
               "label": "Alzheimer's Neuroimmune Therapy",
               "full_revenue_usd": 14000000000,
               "stages": [
-                {
-                  "id": "phase_1",
-                  "name": "Phase 1 Trials",
-                  "duration_days": 730,
-                  "success_prob": 0.22,
-                  "value_realization": 0.15,
-                  "cost_usd": 95000000,
-                  "max_retries": 2
-                },
-                {
-                  "id": "phase_2",
-                  "name": "Phase 2 Trials",
-                  "duration_days": 1095,
-                  "depends_on": "phase_1",
-                  "success_prob": 0.36,
-                  "value_realization": 0.3,
-                  "cost_usd": 180000000,
-                  "max_retries": 1
-                },
-                {
-                  "id": "phase_3",
-                  "name": "Phase 3 Trials",
-                  "duration_days": 1460,
-                  "depends_on": "phase_2",
-                  "success_prob": 0.52,
-                  "value_realization": 0.4,
-                  "cost_usd": 320000000,
-                  "max_retries": 1
-                },
-                {
-                  "id": "fda_review",
-                  "name": "FDA Review",
-                  "duration_days": 365,
-                  "depends_on": "phase_3",
-                  "success_prob": 0.75,
-                  "value_realization": 0.15,
-                  "cost_usd": 85000000,
-                  "max_retries": 1,
-                  "commercialises_revenue": true
-                }
+                { "id": "phase_1", "name": "Phase 1 Trials", "duration_days": 730, "success_prob": 0.42, "value_realization": 0.15, "cost_usd": 95000000, "max_retries": 1 },
+                { "id": "phase_2", "name": "Phase 2 Trials", "duration_days": 1095, "depends_on": "phase_1", "success_prob": 0.51, "value_realization": 0.3, "cost_usd": 180000000, "max_retries": 1 },
+                { "id": "phase_3", "name": "Phase 3 Trials", "duration_days": 1460, "depends_on": "phase_2", "success_prob": 0.68, "value_realization": 0.46, "cost_usd": 320000000, "max_retries": 1 },
+                { "id": "fda_review", "name": "FDA Review", "duration_days": 365, "depends_on": "phase_3", "success_prob": 0.86, "value_realization": 0.78, "cost_usd": 85000000, "max_retries": 1, "commercialises_revenue": true }
               ]
             }
           ]
@@ -316,24 +112,64 @@
           "phase": "public",
           "post_success_mode": "instant",
           "name": "OncoGen",
+          "initial_valuation_realization": 0.06,
+          "value_realization_ps": 4,
           "founders": [
-            {
-              "name": "Dr. Lucia Romero",
-              "degree": "PhD",
-              "school": "Stanford"
-            },
-            {
-              "name": "Dr. Noah Bernstein",
-              "degree": "MD",
-              "school": "Harvard"
-            }
+            { "name": "Dr. Lucia Romero", "degree": "PhD", "school": "Stanford" },
+            { "name": "Dr. Noah Bernstein", "degree": "MD", "school": "Harvard" }
           ],
-          "mission": "Targeted cancer diagnostics and therapies.",
+          "mission": "Eradicating deadly cancers with ultra-early diagnostics and precision treatments.",
           "founding_location": "San Diego, CA",
-          "ipo_window": {
-            "from": 1992,
-            "to": 1997
-          }
+          "ipo_window": { "from": 1988, "to": 1997 },
+          "pipeline": [
+            {
+              "id": "precision_oncology_platform",
+              "label": "Precision Oncology Platform",
+              "full_revenue_usd": 16000000000,
+              "stages": [
+                {
+                  "id": "liquid_biopsy_panel",
+                  "name": "Liquid Biopsy Panel Trials",
+                  "duration_days": 730,
+                  "success_prob": 0.38,
+                  "value_realization": 0.16,
+                  "cost_usd": 140000000,
+                  "max_retries": 1
+                },
+                {
+                  "id": "adaptive_combo_trials",
+                  "name": "Adaptive Combo Therapy Trials",
+                  "duration_days": 1095,
+                  "depends_on": "liquid_biopsy_panel",
+                  "success_prob": 0.52,
+                  "value_realization": 0.36,
+                  "cost_usd": 260000000,
+                  "max_retries": 1
+                },
+                {
+                  "id": "registrational_studies",
+                  "name": "Registrational Studies",
+                  "duration_days": 1275,
+                  "depends_on": "adaptive_combo_trials",
+                  "success_prob": 0.64,
+                  "value_realization": 0.62,
+                  "cost_usd": 340000000,
+                  "max_retries": 1
+                },
+                {
+                  "id": "global_guidelines",
+                  "name": "Global Guidelines & Label Expansion",
+                  "duration_days": 730,
+                  "depends_on": "registrational_studies",
+                  "success_prob": 0.82,
+                  "value_realization": 0.9,
+                  "cost_usd": 120000000,
+                  "max_retries": 1,
+                  "commercialises_revenue": true
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -348,90 +184,46 @@
           "post_success_mode": "ramp",
           "name": "Fusion Dynamics",
           "sector": "Energy",
-          "description": "Compact fusion reactors targeting commercial power generation.",
           "funding_round": "seed",
           "gate_stage": "series_c",
           "ipo_stage": "series_d",
           "rounds_override": ["seed", "series_a", "series_b", "series_c", "series_d"],
           "value_realization_ps": 8,
-          "founders": [{"name": "Marcus Chen", "degree": "PhD", "school": "MIT"},
-            {"name": "Elena Vasquez", "degree": "PhD", "school": "Imperial College"}],
-          "mission": "Building fusion reactors that can replace natural gas peaker plants.",
+          "founders": [
+            { "name": "Marcus Chen", "degree": "PhD", "school": "MIT" },
+            { "name": "Elena Vasquez", "degree": "PhD", "school": "Imperial College" }
+          ],
+          "mission": "Building fusion reactors that can retire every gas peaker plant on Earth.",
           "founding_location": "Seattle, WA",
           "initial_valuation_realization": 0.01,
-
           "hypergrowth_window_years": 2.5,
           "hypergrowth_initial_growth_rate": 1.2,
           "hypergrowth_terminal_growth_rate": 0.2,
           "hypergrowth_initial_margin": -0.3,
           "hypergrowth_terminal_margin": 0.25,
           "years_to_converge": 5,
-
-          "private_listing_window": {
-            "from": 1985,
-            "to": 1985
-          },
+          "private_listing_window": { "from": 2016, "to": 2028 },
           "pipelineTemplate": [
             {
               "id": "fusion_core",
               "label": "Commercial Fusion Reactor",
               "full_revenue_usd": [2500000000, 7000000000],
               "stages": [
-                { "id": "net_energy",
-                  "name": "Net Energy Gain Demonstration",
-                  "duration_days": 1200,
-                  "success_prob": 0.99,
-                  "value_realization": 0.04,
-                  "cost_usd": 300000000,
-                  "max_retries": 1 },
-                {
-                  "id": "breakeven",
-                  "name": "Sustained Breakeven",
-                  "duration_days": 900,
-                  "depends_on": "net_energy",
-                  "success_prob": 0.99,
-                  "value_realization": 0.1,
-                  "cost_usd": 60000000,
-                  "max_retries": 1
-                }, {
-                  "id": "grid_integration",
-                  "name": "Grid Integration",
-                  "duration_days": 800,
-                  "depends_on": "breakeven",
-                  "success_prob": 0.99,
-                  "value_realization": 0.22,
-                  "cost_usd": 1020000000,
-                  "max_retries": 1
-                }, {
-                  "id": "regulatory_clearance",
-                  "name": "Regulatory Clearance",
-                  "duration_days": 750,
-                  "depends_on": "grid_integration",
-                  "success_prob": 0.99,
-                  "value_realization": 0.43,
-                  "cost_usd": 2120000000,
-                  "max_retries": 1
-                }, {
-                  "id": "commercial_ramp",
-                  "name": "Commercial Ramp",
-                  "duration_days": 600,
-                  "depends_on": "regulatory_clearance",
-                  "success_prob": 0.99,
-                  "value_realization": 0.7,
-                  "cost_usd": 2520000000,
-                  "max_retries": 1,
-                  "commercialises_revenue": true
-                }
+                { "id": "net_energy", "name": "Net Energy Gain Demonstration", "duration_days": 1200, "success_prob": 0.54, "value_realization": 0.04, "cost_usd": 300000000, "max_retries": 1 },
+                { "id": "breakeven", "name": "Sustained Breakeven", "duration_days": 900, "depends_on": "net_energy", "success_prob": 0.66, "value_realization": 0.1, "cost_usd": 60000000, "max_retries": 1 },
+                { "id": "grid_integration", "name": "Grid Integration", "duration_days": 800, "depends_on": "breakeven", "success_prob": 0.67, "value_realization": 0.22, "cost_usd": 1020000000, "max_retries": 1 },
+                { "id": "regulatory_clearance", "name": "Regulatory Clearance", "duration_days": 750, "depends_on": "grid_integration", "success_prob": 0.78, "value_realization": 0.43, "cost_usd": 2120000000, "max_retries": 1 },
+                { "id": "commercial_ramp", "name": "Commercial Ramp", "duration_days": 600, "depends_on": "regulatory_clearance", "success_prob": 0.9, "value_realization": 0.7, "cost_usd": 2520000000, "max_retries": 1, "commercialises_revenue": true }
               ]
             }
           ]
-        }, {
+        },
+        {
           "phase": "private",
           "post_success_mode": "ramp",
           "name": "Beep Boop Robotics",
           "sector": "Technology",
           "subsector": "Hardware Technology",
-          "description": "Home robots that handle everyday chores with reliable autonomy.",
           "gate_stage": "series_c",
           "ipo_stage": "series_d",
           "rounds_override": ["seed", "series_a", "series_b", "series_c", "series_d"],
@@ -443,81 +235,36 @@
           "mission": "Putting a helpful robot in every home to do the chores you hate.",
           "founding_location": "San Francisco, CA",
           "initial_valuation_realization": 0.04,
-
           "hypergrowth_window_years": 3,
           "hypergrowth_initial_growth_rate": 0.7,
           "hypergrowth_terminal_growth_rate": 0.12,
           "hypergrowth_initial_margin": -0.25,
           "hypergrowth_terminal_margin": 0.2,
-
-          "private_listing_window": {
-            "from": 1985,
-            "to": 1985
-          },
+          "private_listing_window": { "from": 2023, "to": 2032 },
           "pipelineTemplate": [
             {
               "id": "home_bot",
               "label": "Household Robot Platform",
-              "full_revenue_usd": 12000000000,
+              "full_revenue_usd": [2500000000, 2800000000],
               "stages": [
-                { "id": "navigation",
-                  "name": "Home Navigation",
-                  "duration_days": 720,
-                  "success_prob": 0.99,
-                  "value_realization": 0.1,
-                  "cost_usd": 1000500200,
-                  "max_retries": 2 },
-                {
-                  "id": "manipulation",
-                  "name": "Safe Manipulation",
-                  "duration_days": 760,
-                  "depends_on": "navigation",
-                  "success_prob": 0.99,
-                  "value_realization": 0.19,
-                  "cost_usd": 1500500200,
-                  "max_retries": 2
-                }, {
-                  "id": "household_tasks",
-                  "name": "Household Task Autonomy",
-                  "duration_days": 670,
-                  "depends_on": "manipulation",
-                  "success_prob": 0.99,
-                  "value_realization": 0.35,
-                  "cost_usd": 2500500200,
-                  "max_retries": 1
-                }, {
-                  "id": "mass_production",
-                  "name": "Mass Production",
-                  "duration_days": 650,
-                  "depends_on": "household_tasks",
-                  "success_prob": 0.99,
-                  "value_realization": 0.76,
-                  "cost_usd": 3500500200,
-                  "max_retries": 1
-                }, {
-                  "id": "global_launch",
-                  "name": "Global Launch",
-                  "duration_days": 480,
-                  "depends_on": "mass_production",
-                  "success_prob": 0.99,
-                  "value_realization": 1,
-                  "cost_usd": 85000000,
-                  "max_retries": 1,
-                  "commercialises_revenue": true
-                }
+                { "id": "navigation", "name": "Home Navigation", "duration_days": 720, "success_prob": 0.56, "value_realization": 0.1, "cost_usd": 1000500200, "max_retries": 2 },
+                { "id": "manipulation", "name": "Safe Manipulation", "duration_days": 760, "depends_on": "navigation", "success_prob": 0.68, "value_realization": 0.19, "cost_usd": 1500500200, "max_retries": 2 },
+                { "id": "household_tasks", "name": "Household Task Autonomy", "duration_days": 670, "depends_on": "manipulation", "success_prob": 0.78, "value_realization": 0.35, "cost_usd": 2500500200, "max_retries": 1 },
+                { "id": "mass_production", "name": "Mass Production", "duration_days": 650, "depends_on": "household_tasks", "success_prob": 0.88, "value_realization": 0.76, "cost_usd": 3500500200, "max_retries": 1 },
+                { "id": "global_launch", "name": "Global Launch", "duration_days": 480, "depends_on": "mass_production", "success_prob": 0.99, "value_realization": 1, "cost_usd": 85000000, "max_retries": 1, "commercialises_revenue": true }
               ]
             }
           ]
-        }, {
+        },
+        {
           "phase": "private",
           "post_success_mode": "ramp",
           "name": "NeuronSync",
           "sector": "BioTech",
-          "description": "Implantable BMI hardware for everyday clinical and consumer use.",
           "gate_stage": "series_c",
           "ipo_stage": "series_d",
           "rounds_override": ["seed", "series_a", "series_b", "series_c", "series_d"],
-          "initial_valuation_realization": 0.04,
+          "initial_valuation_realization": 0.025,
           "value_realization_ps": 10,
           "founders": [
             { "name": "Dr. Arjun Mehta", "degree": "PhD", "school": "MIT" },
@@ -525,72 +272,34 @@
           ],
           "mission": "Delivering safe, high-bandwidth neural interfaces.",
           "founding_location": "San Jose, CA",
-
           "hypergrowth_window_years": 3,
           "hypergrowth_initial_growth_rate": 0.8,
           "hypergrowth_terminal_growth_rate": 0.18,
           "hypergrowth_initial_margin": -0.35,
           "hypergrowth_terminal_margin": 0.24,
           "years_to_converge": 5,
-
-          "private_listing_window": { "from": 1985, "to": 1985 },
-
+          "private_listing_window": { "from": 2036, "to": 2041 },
           "pipelineTemplate": [
             {
               "id": "neural_platform",
               "label": "Neural Interface Platform",
-              "full_revenue_usd": [5000000000, 25000000000],
+              "full_revenue_usd": [18000000000, 75000000000],
               "stages": [
-                { "id": "preclinical_safety",
-                  "name": "Preclinical Safety & Biocompatibility",
-                  "duration_days": 720,
-                  "success_prob": 0.97,
-                  "value_realization": 0.06,
-                  "cost_usd": 250000000,
-                  "max_retries": 1 },
-                { "id": "first_in_human",
-                  "name": "First-in-Human Trials",
-                  "duration_days": 780,
-                  "depends_on": "preclinical_safety",
-                  "success_prob": 0.95,
-                  "value_realization": 0.16,
-                  "cost_usd": 400000000,
-                  "max_retries": 1 },
-                { "id": "high_bandwidth",
-                  "name": "High-Bandwidth Implant Platform",
-                  "duration_days": 820,
-                  "depends_on": "first_in_human",
-                  "success_prob": 0.94,
-                  "value_realization": 0.34,
-                  "cost_usd": 600000000,
-                  "max_retries": 1 },
-                { "id": "home_use",
-                  "name": "At-Home Use & Upgrade System",
-                  "duration_days": 680,
-                  "depends_on": "high_bandwidth",
-                  "success_prob": 0.94,
-                  "value_realization": 0.62,
-                  "cost_usd": 750000000,
-                  "max_retries": 1 },
-                { "id": "global_reimbursement",
-                  "name": "Global Reimbursement & Scale-Up",
-                  "duration_days": 540,
-                  "depends_on": "home_use",
-                  "success_prob": 0.95,
-                  "value_realization": 1,
-                  "cost_usd": 900000000,
-                  "max_retries": 1,
-                  "commercialises_revenue": true }
+                { "id": "preclinical_safety", "name": "Preclinical Safety & Biocompatibility", "duration_days": 720, "success_prob": 0.5, "value_realization": 0.06, "cost_usd": 250000000, "max_retries": 1 },
+                { "id": "first_in_human", "name": "First-in-Human Trials", "duration_days": 780, "depends_on": "preclinical_safety", "success_prob": 0.64, "value_realization": 0.16, "cost_usd": 400000000, "max_retries": 1 },
+                { "id": "high_bandwidth", "name": "High-Bandwidth Implant Platform", "duration_days": 820, "depends_on": "first_in_human", "success_prob": 0.77, "value_realization": 0.34, "cost_usd": 600000000, "max_retries": 1 },
+                { "id": "home_use", "name": "At-Home Use & Upgrade System", "duration_days": 680, "depends_on": "high_bandwidth", "success_prob": 0.9, "value_realization": 0.62, "cost_usd": 750000000, "max_retries": 1 },
+                { "id": "global_reimbursement", "name": "Global Reimbursement & Scale-Up", "duration_days": 540, "depends_on": "home_use", "success_prob": 0.96, "value_realization": 1, "cost_usd": 900000000, "max_retries": 1, "commercialises_revenue": true }
               ]
             }
           ]
-        }, {
+        },
+        {
           "phase": "private",
           "post_success_mode": "ramp",
           "name": "SynthWeave Materials",
           "sector": "Technology",
           "subsector": "Material Technology",
-          "description": "Programmable synthetic composites for next-gen infrastructure and hardware.",
           "gate_stage": "series_c",
           "ipo_stage": "series_d",
           "rounds_override": ["seed", "series_a", "series_b", "series_c", "series_d"],
@@ -602,62 +311,24 @@
           ],
           "mission": "Creating programmable synthetic materials for lighter, stronger, smarter systems.",
           "founding_location": "Los Angeles, CA",
-
           "hypergrowth_window_years": 2.8,
           "hypergrowth_initial_growth_rate": 0.9,
           "hypergrowth_terminal_growth_rate": 0.18,
           "hypergrowth_initial_margin": -0.4,
           "hypergrowth_terminal_margin": 0.26,
           "years_to_converge": 5,
-
-          "private_listing_window": { "from": 1985, "to": 1985 },
-
+          "private_listing_window": { "from": 2029, "to": 2036 },
           "pipelineTemplate": [
             {
               "id": "synth_weave",
               "label": "SynthWeave Composite Platform",
-              "full_revenue_usd": [5000000000, 25000000000],
+              "full_revenue_usd": [8000000000, 34000000000],
               "stages": [
-                { "id": "novel_polymer",
-                  "name": "Novel Polymer Chemistry",
-                  "duration_days": 640,
-                  "success_prob": 0.97,
-                  "value_realization": 0.05,
-                  "cost_usd": 220000000,
-                  "max_retries": 1 },
-                { "id": "pilot_line",
-                  "name": "Pilot Line & Test Parts",
-                  "duration_days": 700,
-                  "depends_on": "novel_polymer",
-                  "success_prob": 0.96,
-                  "value_realization": 0.15,
-                  "cost_usd": 450000000,
-                  "max_retries": 1 },
-                { "id": "structural_cert",
-                  "name": "Structural Certification & Standards",
-                  "duration_days": 760,
-                  "depends_on": "pilot_line",
-                  "success_prob": 0.95,
-                  "value_realization": 0.32,
-                  "cost_usd": 650000000,
-                  "max_retries": 1 },
-                { "id": "gigafactory_scale",
-                  "name": "Giga-Scale Production",
-                  "duration_days": 720,
-                  "depends_on": "structural_cert",
-                  "success_prob": 0.95,
-                  "value_realization": 0.65,
-                  "cost_usd": 900000000,
-                  "max_retries": 1 },
-                { "id": "global_oem",
-                  "name": "Global OEM Integration",
-                  "duration_days": 540,
-                  "depends_on": "gigafactory_scale",
-                  "success_prob": 0.96,
-                  "value_realization": 1,
-                  "cost_usd": 800000000,
-                  "max_retries": 1,
-                  "commercialises_revenue": true }
+                { "id": "novel_polymer", "name": "Novel Polymer Chemistry", "duration_days": 640, "success_prob": 0.97, "value_realization": 0.05, "cost_usd": 220000000, "max_retries": 1 },
+                { "id": "pilot_line", "name": "Pilot Line & Test Parts", "duration_days": 700, "depends_on": "novel_polymer", "success_prob": 0.96, "value_realization": 0.15, "cost_usd": 450000000, "max_retries": 1 },
+                { "id": "structural_cert", "name": "Structural Certification & Standards", "duration_days": 760, "depends_on": "pilot_line", "success_prob": 0.95, "value_realization": 0.32, "cost_usd": 650000000, "max_retries": 1 },
+                { "id": "gigafactory_scale", "name": "Giga-Scale Production", "duration_days": 720, "depends_on": "structural_cert", "success_prob": 0.95, "value_realization": 0.65, "cost_usd": 900000000, "max_retries": 1 },
+                { "id": "global_oem", "name": "Global OEM Integration", "duration_days": 540, "depends_on": "gigafactory_scale", "success_prob": 0.96, "value_realization": 1, "cost_usd": 800000000, "max_retries": 1, "commercialises_revenue": true }
               ]
             }
           ]

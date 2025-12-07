@@ -27,7 +27,7 @@
     positions).
   - Borrowing: up to 4× net worth cap at 7% APR; borrow/repay commands and UI in the banking modal (server/server.js, src/main.js).
   - Dividends accrue quarterly; optional DRIP reinvests payouts into more shares (server/server.js:distributeDividends, src/main.js).
-  - Cosmetic states: suits unlock at millionaire/billionaire/trillionaire, “malding” Wojak on >50% drawdowns (single-player), favicon/avatar swaps (src/main.js, src/ui/wojakManager.js).
+  - Cosmetic states: suits unlock at millionaire/billionaire/trillionaire, “malding” Wojak on >50% drawdowns, happy Wojak on a 5x returns within 3.5 years, favicon/avatar swaps (src/main.js, src/ui/wojakManager.js).
 
   Public Market Simulation (single-player local and server-side)
 

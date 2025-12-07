@@ -33,6 +33,10 @@ const SNAPSHOT_HISTORY_LIMIT = 1000;
 const SNAPSHOT_QUARTER_LIMIT = 120;
 const TICK_HISTORY_LIMIT = 1;
 const TICK_QUARTER_LIMIT = 40;
+// Venture spinouts (VC → public) need a richer history payload on ticks so
+// multiplayer clients can render pre-IPO valuation/financial history similar
+// to singleplayer. Limit this to spinouts to avoid bloating every tick.
+const FROM_VENTURE_TICK_HISTORY_LIMIT = 400;
 const GAME_START_DATE = new Date(Date.UTC(GAME_START_YEAR, 0, 1));
 
 const app = fastify({ logger: false });
@@ -202,13 +206,16 @@ function startTickLoop(session) {
     accrueInterest(session, dtDays);
     const dividendEvents = distributeDividends(session);
     scheduleBankruptHoldingCleanup(session);
-    const payload = {
+      const payload = {
       type: 'tick',
       lastTick: session.sim.lastTick ? session.sim.lastTick.toISOString() : null,
       companies: session.sim.companies.map(c => {
         if (typeof c.toSnapshot === 'function') {
-          // Send minimal price history but deeper financial/quarterly history for charts
-          return c.toSnapshot({ historyLimit: TICK_HISTORY_LIMIT, quarterLimit: TICK_QUARTER_LIMIT });
+          // Send minimal price history for most names, but a richer tail
+          // for venture spinouts so pre-IPO history is preserved client-side.
+          const fromVenture = c.fromVenture || (c.static && c.static.fromVenture);
+          const historyLimit = fromVenture ? FROM_VENTURE_TICK_HISTORY_LIMIT : TICK_HISTORY_LIMIT;
+          return c.toSnapshot({ historyLimit, quarterLimit: TICK_QUARTER_LIMIT });
         }
         return {
           id: c.id,

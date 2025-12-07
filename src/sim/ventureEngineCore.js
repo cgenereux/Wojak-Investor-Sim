@@ -210,7 +210,6 @@
       this.showDividendColumn = false;
       this.fromVenture = true;
 
-      this.description = config.description || '';
       this.founders = Array.isArray(config.founders) ? config.founders.map(f => ({ ...f })) : [];
       this.mission = config.mission || '';
       this.foundingLocation = config.founding_location || config.foundingLocation || '';
@@ -1488,7 +1487,6 @@
         founders: Array.isArray(this.founders) ? this.founders.map(f => ({ ...f })) : [],
         mission: this.mission || '',
         founding_location: this.foundingLocation || '',
-        description: this.description,
         valuation: this.currentValuation,
         stageLabel: stage ? stage.label : 'N/A',
         status: this.getStatusLabel(),
@@ -1756,7 +1754,6 @@
           name: cfg.name,
           sector: cfg.sector,
           subsector: cfg.subsector,
-          description: cfg.description,
           founders: Array.isArray(cfg.founders) ? cfg.founders : [],
           mission: cfg.mission || '',
           founding_location: cfg.founding_location || cfg.foundingLocation || '',

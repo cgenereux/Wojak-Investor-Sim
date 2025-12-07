@@ -738,7 +738,6 @@ function hydrateFromSnapshot(snapshot) {
                         name: vData.name,
                         sector: vData.sector,
                         subsector: vData.subsector,
-                        description: vData.description,
                         valuation_usd: vData.valuation,
                         funding_round: vData.funding_round || vData.stageLabel || 'seed'
                     };
@@ -3088,7 +3087,8 @@ function openVentureTab(options = {}) {
     renderVentureCompanies(
         summaries,
         formatLargeNumber,
-        formatLargeNumber
+        formatLargeNumber,
+        true // Force render when entering VC tab
     );
     markVentureListingsSeen();
     if (!skipHistory && typeof pushViewState === 'function') {

@@ -21,6 +21,8 @@ const vcFinancialHistoryContainer = document.getElementById('vcFinancialHistoryC
 let currentVentureCompanyId = null;
 let vcInitialized = false;
 let ventureSortMode = 'recent';
+let vcGridLastRenderTs = 0;
+const VC_GRID_RENDER_INTERVAL = 500; // Throttle grid rebuilds to prevent click issues at fast speeds
 let vcFormatLargeNumber = (value, precision = 2) => {
     if (value === null || value === undefined) return '$0';
     const abs = Math.abs(value);
@@ -86,10 +88,18 @@ function destroyVentureChart(options = { valuation: true, financial: true }) {
     }
 }
 
-function renderVentureCompanies(companiesData, formatLargeNumber, formatCurrency) {
+function renderVentureCompanies(companiesData, formatLargeNumber, formatCurrency, force = false) {
     ensureVentureReady();
 
     if (!ventureCompaniesGrid) return;
+
+    // Throttle grid rebuilds to prevent click issues at fast game speeds
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    if (!force && vcGridLastRenderTs && (now - vcGridLastRenderTs) < VC_GRID_RENDER_INTERVAL) {
+        return;
+    }
+    vcGridLastRenderTs = now;
+
     ventureCompaniesGrid.innerHTML = '';
     if (Array.isArray(companiesData) && companiesData.length === 0) {
         ventureCompaniesGrid.innerHTML = '<div class="vc-empty-state">No venture capital investment opportunities right now.</div>';
@@ -232,7 +242,6 @@ function renderVentureCompanies(companiesData, formatLargeNumber, formatCurrency
             ${isDoingRnd ? '<div class="company-rnd-flag">Conducting R&amp;D…</div>' : ''}
         `;
 
-            companyDiv.addEventListener('click', () => showVentureCompanyDetail(company.id));
             ventureCompaniesGrid.appendChild(companyDiv);
         });
 }
@@ -538,7 +547,7 @@ function updateVentureDetail(companyId) {
     const sectorLabel = detail.subsector || detail.sector || 'Unknown';
     vcDetailSectorEl.textContent = `${sectorLabel} - ${detail.stageLabel}`;
     vcDetailFundingEl.style.display = 'none';
-    const mission = (detail.mission || detail.description || '').trim();
+    const mission = (detail.mission || '').trim();
     const founders = Array.isArray(detail.founders) ? detail.founders : [];
     const founderNames = founders.map(f => f && f.name).filter(Boolean);
     const foundingLocation = (detail.founding_location || detail.foundingLocation || '').trim();
@@ -820,10 +829,10 @@ function exitVentureToHome() {
     }
 }
 
-function refreshVentureCompaniesList() {
+function refreshVentureCompaniesList(force = false) {
     if (typeof getVentureCompanySummaries !== 'function') return;
     const summaries = getVentureCompanySummaries();
-    renderVentureCompanies(summaries, vcFormatLargeNumber, vcFormatCurrency);
+    renderVentureCompanies(summaries, vcFormatLargeNumber, vcFormatCurrency, force);
     if (document.body.classList.contains('vc-active') && typeof window.markVentureListingsSeen === 'function') {
         window.markVentureListingsSeen();
     } else if (typeof window.updateVentureBadge === 'function') {
@@ -845,7 +854,7 @@ function initVC() {
         vcSortSelect.addEventListener('change', (evt) => {
             const next = String(evt.target.value || '').trim().toLowerCase();
             ventureSortMode = next === 'sector' ? 'sector' : 'recent';
-            refreshVentureCompaniesList();
+            refreshVentureCompaniesList(true); // Force render on sort change
         });
     }
     if (backToVcListBtn) {
@@ -882,6 +891,17 @@ function initVC() {
             if (!btn) return;
             const pct = parseFloat(btn.dataset.pct);
             handleVenturePurchase(pct);
+        });
+    }
+    // Use event delegation for VC grid clicks (prevents missed clicks at fast speeds)
+    if (ventureCompaniesGrid) {
+        ventureCompaniesGrid.addEventListener('click', (evt) => {
+            const companyBox = evt.target.closest('.company-box');
+            if (!companyBox) return;
+            const companyId = companyBox.dataset.companyId;
+            if (companyId) {
+                showVentureCompanyDetail(companyId);
+            }
         });
     }
 }

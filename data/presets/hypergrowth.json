@@ -4,7 +4,6 @@
       "name": "eBuy",
       "sector": "Web",
       "subsector": "Web Technology",
-      "description": "1990s hypergrowth web preset (private)",
       "funding_round": "Seed",
       "ipo_stage": "series_f",
       "gate_stage": "series_c",
@@ -14,13 +13,12 @@
       ],
       "mission": "Empowering anyone to buy and sell online through the power of auctions.",
       "founding_location": "San Francisco, CA",
-      "private_listing_window": { "from": 1990, "to": 1998 }
+      "private_listing_window": { "from": 2000, "to": 2009 }
     },
     {
       "name": "CyberWorks",
       "sector": "Web",
       "subsector": "Web Technology",
-      "description": "1990s hypergrowth web preset (private)",
       "funding_round": "Seed",
       "ipo_stage": "series_f",
       "gate_stage": "series_c",
@@ -30,13 +28,12 @@
       ],
       "mission": "Securing electronic commerce in the Internet age.",
       "founding_location": "Palo Alto, CA",
-      "private_listing_window": { "from": 1985, "to": 1985 }
+      "private_listing_window": { "from": 2000, "to": 2008 }
     },
     {
       "name": "StreamCast",
       "sector": "Web",
       "subsector": "Web Technology",
-      "description": "1990s hypergrowth web preset (private)",
       "funding_round": "Seed",
       "ipo_stage": "series_f",
       "gate_stage": "series_c",
@@ -46,7 +43,7 @@
       ],
       "mission": "Live broadcasting for the Internet age.",
       "founding_location": "San Francisco, CA",
-      "private_listing_window": { "from": 1993, "to": 2001 }
+      "private_listing_window": { "from": 1996, "to": 2011 }
     }
   ],
   "defaults": {

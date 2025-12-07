@@ -111,7 +111,7 @@
       "id": "classic_1980s",
       "label": "1980s",
       "pick": 3,
-      "pick_by_sector": { "Airlines": 1, "Retail":2},
+      "pick_by_sector": { "Airlines": 1, "Retail": 2, "Tech": 1, "Energy": 1},
       "defaults": { "ipo_window": { "from": 1978, "to": 1989 } },
       "roster": [
         {
@@ -149,7 +149,41 @@
           "sector": "Retail",
           "mission": "Empowering homeowners with reliable tools, materials, and service to get every project done right.",
           "founding_location": "Seattle, WA"
-        }
+        },
+        {
+          "name": "Pacific Logic Instruments",
+          "sector": "Tech",
+          "subsector": "Technology",
+          "mission": "Designing microprocessors and controller chips for personal computers and industrial systems.",
+          "founders": [
+            { "name": "Ellen Morita" },
+            { "name": "James Holloway" }
+          ],
+          "founding_location": "Sunnyvale, CA",
+          "ipo_window": { "from": 1979, "to": 1987 }
+        },
+        {
+          "name": "GlobalNet Switchworks",
+          "sector": "Tech",
+          "mission": "Building networking gear and routers that connect corporate campuses around the world.",
+          "founders": [
+            { "name": "Victor Ramirez" },
+            { "name": "Naomi Tanaka" }
+          ],
+          "founding_location": "San Jose, CA",
+          "ipo_window": { "from": 1987, "to": 1998 }
+        },
+        {
+          "name": "Frontier Basin Energy",
+          "sector": "Energy",
+          "mission": "Exploring and developing offshore and continental oil and gas fields for long-term baseload supply.",
+          "founders": [
+            { "name": "Harold McKenzie" },
+            { "name": "Diane Okafor" }
+          ],
+          "founding_location": "Houston, TX",
+          "ipo_window": { "from": 1973, "to": 1988 }
+         }
       ]
     },
     {
@@ -196,13 +230,13 @@
           "founders": [ { "name": "Colin Hart" }, { "name": "Rebecca Lin" } ],
           "founding_location": "Fort Worth, TX",
           "ipo_window": { "from": 1975, "to": 2000},
-          "sector": "Tech"
+          "sector": "Industrial"
         }
       ]
     },
     {
       "id": "classic_2000s",
-      "label": "2000s Globalization",
+      "label": "2000s",
       "pick": 2,
       "pick_by_sector": { "Banking": 1, "Retail": 1, "Airlines": 1 },
       "defaults": { "ipo_window": { "from": 2000, "to": 2009 } },
@@ -265,7 +299,7 @@
     },
     {
       "id": "classic_2030s",
-      "label": "2030s Frontier Defense",
+      "label": "2030s",
       "pick": 2,
       "defaults": { "ipo_window": { "from": 2030, "to": 2039 } },
       "roster": [
@@ -290,7 +324,7 @@
       "id": "classic_2040s",
       "label": "2040s",
       "pick": 2,
-      "defaults": { "ipo_window": { "from": 2038, "to": 2046 } },
+      "defaults": { "ipo_window": { "from": 2038, "to": 2034 } },
       "roster": [
         {
           "name": "Helios Deep Space",
