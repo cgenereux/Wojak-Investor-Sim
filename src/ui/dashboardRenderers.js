@@ -403,65 +403,118 @@
       const wasBankruptcyVictim = isFailed && detail.bankruptcyAffectedPlayers && activePlayerId && detail.bankruptcyAffectedPlayers[activePlayerId];
       if (!hasEquity && !hasPending && !wasBankruptcyVictim) return;
       const equityValue = hasEquity ? equityFraction * valuation : 0;
-      const pendingValue = !hasEquity && hasPending ? pendingCommitment : 0;
-      // For bankrupt companies, show $0 value
-      const formattedValue = isFailed ? currencyFormatter.format(0) : (hasEquity ? currencyFormatter.format(equityValue) : (hasPending ? currencyFormatter.format(pendingValue) : ''));
-      const pendingLabel = (!isInFlight && hasPending) ? `Committed: ${currencyFormatter.format(pendingCommitment)}` : '';
-      const key = `private:${summary.id}`;
-      processedKeys.add(key);
-      const playerEquityPct = equityFraction * 100;
-      // Hide stake label for bankrupt companies
-      const stakeLabel = isFailed ? '' : (hasEquity ? `${playerEquityPct.toFixed(2)}% stake` : (wasBankruptcyVictim ? 'Investment failed' : 'Stake pending'));
+      const pendingValue = hasPending ? pendingCommitment : 0;
       const stageLabel = detail.stageLabel || summary.stageLabel || 'Private';
-      // Show "(Failed)" instead of stage for bankrupt companies
-      const nameLabel = isFailed ? `${summary.name} (Failed)` : (isInFlight ? `${summary.name} (${stageLabel}) (In Flight)` : `${summary.name} (${stageLabel})`);
       const sectorClass = getSectorClass(detail.sector || summary.sector);
-      const valueRowDisplay = (hasEquity || hasPending || wasBankruptcyVictim || isFailed) ? 'block' : 'none';
-      const stakeDisplay = isFailed ? 'none' : 'block';
       const bankruptClass = isFailed ? ' bankrupt' : '';
       const statusLabel = isFailed ? 'Status: Bankrupt' : '';
-      if (existingItems.has(key)) {
-        const item = existingItems.get(key);
-        const valueRow = item.querySelector('.portfolio-value-row');
-        if (valueRow) valueRow.style.display = valueRowDisplay;
-        const valueEl = item.querySelector('.portfolio-value');
-        if (valueEl) valueEl.textContent = formattedValue;
-        const stakeEl = item.querySelector('.portfolio-stake');
-        if (stakeEl) {
-          stakeEl.textContent = stakeLabel;
-          stakeEl.style.display = stakeDisplay;
+
+      // --- Landed equity row (main pile) ---
+      if (hasEquity || wasBankruptcyVictim || isFailed) {
+        const mainKey = `private:${summary.id}:main`;
+        processedKeys.add(mainKey);
+        const playerEquityPct = equityFraction * 100;
+        const equityFormatted = isFailed ? currencyFormatter.format(0) : (hasEquity ? currencyFormatter.format(equityValue) : '');
+        const stakeLabel = isFailed ? '' : (hasEquity ? `${playerEquityPct.toFixed(2)}% stake` : (wasBankruptcyVictim ? 'Investment failed' : 'Stake pending'));
+        const valueRowDisplay = (hasEquity || wasBankruptcyVictim || isFailed) ? 'block' : 'none';
+        const stakeDisplay = isFailed ? 'none' : 'block';
+        const nameLabel = isFailed ? `${summary.name} (Failed)` : `${summary.name} (${stageLabel})`;
+
+        if (existingItems.has(mainKey)) {
+          const item = existingItems.get(mainKey);
+          const valueRow = item.querySelector('.portfolio-value-row');
+          if (valueRow) valueRow.style.display = valueRowDisplay;
+          const valueEl = item.querySelector('.portfolio-value');
+          if (valueEl) valueEl.textContent = equityFormatted;
+          const stakeEl = item.querySelector('.portfolio-stake');
+          if (stakeEl) {
+            stakeEl.textContent = stakeLabel;
+            stakeEl.style.display = stakeDisplay;
+          }
+          const pendingEl = item.querySelector('.portfolio-pending');
+          if (pendingEl) {
+            pendingEl.textContent = '';
+            pendingEl.style.display = 'none';
+          }
+          const statusEl = item.querySelector('.portfolio-status');
+          if (statusEl) {
+            statusEl.textContent = statusLabel;
+            statusEl.style.display = isFailed ? 'block' : 'none';
+          }
+          const nameEl = item.querySelector('.company-name');
+          if (nameEl) {
+            nameEl.textContent = nameLabel;
+          }
+          applySectorClass(item, sectorClass);
+          if (isFailed) item.classList.add('bankrupt');
+          existingItems.delete(mainKey);
+        } else {
+          newPortfolioHtml.push(`
+            <div class="portfolio-item${sectorClass ? ` ${sectorClass}` : ''}${bankruptClass}" data-portfolio-type="private" data-venture-id="${summary.id}" data-portfolio-key="${mainKey}">
+                <div class="company-name">${nameLabel}</div>
+                <div class="portfolio-info">
+                    <span class="portfolio-status" style="display:${isFailed ? 'block' : 'none'}">${statusLabel}</span>
+                    <div class="portfolio-value-row" style="display:${valueRowDisplay}">
+                        Value: <span class="portfolio-value">${equityFormatted}</span>
+                    </div>
+                    <span class="portfolio-stake" style="display:${stakeDisplay}">${stakeLabel}</span>
+                    <span class="portfolio-pending" style="display:none"></span>
+                </div>
+            </div>
+          `);
         }
-        const pendingEl = item.querySelector('.portfolio-pending');
-        if (pendingEl) {
-          pendingEl.textContent = pendingLabel;
-          pendingEl.style.display = (!isInFlight && hasPending) ? 'block' : 'none';
+      }
+
+      // --- In-flight commitment row (per-company, temporary until round lands) ---
+      if (hasPending) {
+        const inflightKey = `private:${summary.id}:inflight`;
+        processedKeys.add(inflightKey);
+        const inflightName = `${summary.name} (${stageLabel}) (In Flight)`;
+        const inflightValue = currencyFormatter.format(pendingValue);
+        const pendingLabel = `Committed: ${inflightValue}`;
+
+        if (existingItems.has(inflightKey)) {
+          const item = existingItems.get(inflightKey);
+          const valueRow = item.querySelector('.portfolio-value-row');
+          if (valueRow) valueRow.style.display = 'block';
+          const valueEl = item.querySelector('.portfolio-value');
+          if (valueEl) valueEl.textContent = inflightValue;
+          const stakeEl = item.querySelector('.portfolio-stake');
+          if (stakeEl) {
+            stakeEl.textContent = 'Stake pending';
+            stakeEl.style.display = 'block';
+          }
+          const pendingEl = item.querySelector('.portfolio-pending');
+          if (pendingEl) {
+            pendingEl.textContent = pendingLabel;
+            pendingEl.style.display = 'block';
+          }
+          const statusEl = item.querySelector('.portfolio-status');
+          if (statusEl) {
+            statusEl.textContent = '';
+            statusEl.style.display = 'none';
+          }
+          const nameEl = item.querySelector('.company-name');
+          if (nameEl) {
+            nameEl.textContent = inflightName;
+          }
+          applySectorClass(item, sectorClass);
+          existingItems.delete(inflightKey);
+        } else {
+          newPortfolioHtml.push(`
+            <div class="portfolio-item${sectorClass ? ` ${sectorClass}` : ''}" data-portfolio-type="private" data-venture-id="${summary.id}" data-portfolio-key="${inflightKey}">
+                <div class="company-name">${inflightName}</div>
+                <div class="portfolio-info">
+                    <span class="portfolio-status" style="display:none"></span>
+                    <div class="portfolio-value-row" style="display:block">
+                        Value: <span class="portfolio-value">${inflightValue}</span>
+                    </div>
+                    <span class="portfolio-stake" style="display:block">Stake pending</span>
+                    <span class="portfolio-pending" style="display:block">${pendingLabel}</span>
+                </div>
+            </div>
+          `);
         }
-        const statusEl = item.querySelector('.portfolio-status');
-        if (statusEl) {
-          statusEl.textContent = statusLabel;
-          statusEl.style.display = isFailed ? 'block' : 'none';
-        }
-        const nameEl = item.querySelector('.company-name');
-        if (nameEl) {
-          nameEl.textContent = nameLabel;
-        }
-        applySectorClass(item, sectorClass);
-        if (isFailed) item.classList.add('bankrupt');
-        existingItems.delete(key);
-      } else {
-        newPortfolioHtml.push(`
-          <div class="portfolio-item${sectorClass ? ` ${sectorClass}` : ''}${bankruptClass}" data-portfolio-type="private" data-venture-id="${summary.id}" data-portfolio-key="${key}">
-              <div class="company-name">${nameLabel}</div>
-              <div class="portfolio-info">
-                  <span class="portfolio-status" style="display:${isFailed ? 'block' : 'none'}">${statusLabel}</span>
-                  <div class="portfolio-value-row" style="display:${valueRowDisplay}">
-                      Value: <span class="portfolio-value">${formattedValue}</span>
-                  </div>
-                  <span class="portfolio-stake" style="display:${stakeDisplay}">${stakeLabel}</span>
-                  <span class="portfolio-pending" style="display:${(!isInFlight && hasPending) ? 'block' : 'none'}">${pendingLabel}</span>
-              </div>
-          </div>
-        `);
       }
     });
 
@@ -471,8 +524,8 @@
       holdingsEntries.forEach(([vcId, pct]) => {
         const pctNum = Number(pct) || 0;
         if (pctNum <= 0) return;
-        const key = `private:${vcId}`;
-        if (processedKeys.has(key)) return;
+        const mainKey = `private:${vcId}:main`;
+        if (processedKeys.has(mainKey)) return;
         const nameLabel = `${vcId} (Private)`;
         const stakeLabel = `${(pctNum * 100).toFixed(2)}% stake`;
         const value = (serverPlayer.ventureEquity && serverPlayer.ventureEquity > 0)
@@ -480,7 +533,7 @@
           : 0;
         const valueStr = value > 0 ? currencyFormatter.format(value) : '';
         newPortfolioHtml.push(`
-          <div class="portfolio-item" data-portfolio-type="private" data-venture-id="${vcId}" data-portfolio-key="${key}">
+          <div class="portfolio-item" data-portfolio-type="private" data-venture-id="${vcId}" data-portfolio-key="${mainKey}">
               <div class="company-name">${nameLabel}</div>
               <div class="portfolio-info">
                   <div class="portfolio-value-row" style="display:${valueStr ? 'block' : 'none'}">
@@ -495,11 +548,11 @@
       if (serverPlayer.ventureCommitments) {
         Object.entries(serverPlayer.ventureCommitments).forEach(([vcId, amount]) => {
           if (!amount || amount <= 0) return;
-          const key = `private:${vcId}`;
-          if (processedKeys.has(key)) return; // Prevent duplicates
+          const inflightKey = `private:${vcId}:inflight`;
+          if (processedKeys.has(inflightKey)) return; // Prevent duplicates
           const nameLabel = `${vcId} (Private) (In Flight)`;
-          if (existingItems.has(key)) {
-            const item = existingItems.get(key);
+          if (existingItems.has(inflightKey)) {
+            const item = existingItems.get(inflightKey);
             const nameEl = item.querySelector('.company-name');
             if (nameEl) nameEl.textContent = nameLabel;
             const valueEl = item.querySelector('.portfolio-value');
@@ -513,11 +566,11 @@
             }
             const stakeEl = item.querySelector('.portfolio-stake');
             if (stakeEl) stakeEl.textContent = 'Stake pending';
-            existingItems.delete(key);
+            existingItems.delete(inflightKey);
             return;
           }
           newPortfolioHtml.push(`
-            <div class="portfolio-item" data-portfolio-type="private" data-venture-id="${vcId}" data-portfolio-key="${key}">
+            <div class="portfolio-item" data-portfolio-type="private" data-venture-id="${vcId}" data-portfolio-key="${inflightKey}">
                 <div class="company-name">${nameLabel}</div>
                 <div class="portfolio-info">
                     <div class="portfolio-value-row" style="display:block">

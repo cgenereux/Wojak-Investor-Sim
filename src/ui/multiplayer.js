@@ -1152,7 +1152,7 @@
                 };
             })
             : [];
-        console.debug('[RosterUpdate] Received players:', roster.length, roster.map(p => p.id || p.name));
+        // console.debug('[RosterUpdate] Received players:', roster.length, roster.map(p => p.id || p.name));
         latestServerPlayers = roster;
         lastRosterSnapshot = roster;
         updatePlayerColors(roster);

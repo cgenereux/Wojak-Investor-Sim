@@ -618,6 +618,17 @@ function handleVentureEventsSession(session, events) {
       return;
     }
     if (evt.type === 'venture_failed') {
+      // Credit any refund/liquidation payout on the authoritative server
+      const player = evt.playerId ? session.players.get(evt.playerId) : null;
+      if (player && evt.companyId) {
+        const refund = Number(evt.refund) || 0;
+        if (refund > 0) {
+          player.cash += refund;
+        }
+        if (player.ventureCommitments) {
+          delete player.ventureCommitments[evt.companyId];
+        }
+      }
       // Schedule delayed cleanup so players can see the bankrupt VC holding for a while
       scheduleVentureBankruptHoldingCleanup(session, evt.companyId);
       return;

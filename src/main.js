@@ -2033,13 +2033,14 @@ function handleVentureEvents(events) {
             convertVentureCompanyToPublic(event);
             needsRefresh = true;
         } else if (event.type === 'venture_failed') {
-            if (event.refund && event.refund > 0) {
+            // Credit refund/liquidation payout if it's for this player (or no playerId specified)
+            if (event.refund && event.refund > 0 && (!event.playerId || event.playerId === activePlayerId)) {
                 cash += event.refund;
             }
             removeVentureSpinoutFromMarket(event.name);
             needsRefresh = true;
         } else if (event.type === 'venture_round_failed') {
-            if (event.refund && event.refund > 0) {
+            if (event.refund && event.refund > 0 && (!event.playerId || event.playerId === activePlayerId)) {
                 cash += event.refund;
             }
             needsRefresh = true;

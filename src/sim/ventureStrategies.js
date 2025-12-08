@@ -63,12 +63,18 @@
         kind: 'late',
         startRevenue: 0,
         startMargin: 0,
-        terminalMargin: null
+        terminalMargin: null,
+        recoveryActive: false,
+        recoveryElapsedYears: 0,
+        recoveryDurationYears: 0,
+        recoveryStartMargin: 0,
+        recoveryTargetMargin: null,
+        hasTriggered: false
       };
     }
     const state = company.hyperPmfState;
 
-    if (!state.active) {
+    if (!state.active && !state.recoveryActive && !state.hasTriggered) {
       const trigger = rng() < prob * dtYears;
       if (trigger) {
         const stage = company.currentStage || null;
@@ -78,7 +84,8 @@
         state.kind = isEarly ? 'early' : 'late';
         state.active = true;
         state.elapsedYears = 0;
-        state.durationYears = Math.max(0.25, sampleRange(company.pmfDeclineDurationYears, 2, 3));
+        const baseDuration = sampleRange(company.pmfDeclineDurationYears, 2, 3);
+        state.durationYears = Math.max(0.25, isEarly ? baseDuration * 2 : baseDuration);
         state.startRevenue = Math.max(
           1,
           Number.isFinite(company.revenue) && company.revenue > 0 ? company.revenue
@@ -89,12 +96,15 @@
           : (typeof company.hypergrowthInitialMargin === 'number' ? company.hypergrowthInitialMargin : -0.4);
         state.startMargin = clampValue(marginNow, -2, 0.6);
         // Sample a terminal PMF-loss margin and trend toward it over the PMF window.
-        const terminalMarginSample = sampleRange(
+        // Early stage companies get 2x worse margins.
+        let terminalMarginSample = sampleRange(
           company.pmfTerminalMarginRange,
           -0.26,
           -0.15
         );
+        if (isEarly) terminalMarginSample *= 2;
         state.terminalMargin = clampValue(terminalMarginSample, -1.0, 0.4);
+        state.hasTriggered = true;
 
         // TEMP: debug PMF loss triggers
         if (typeof console !== 'undefined' && console && typeof console.log === 'function') {
@@ -147,14 +157,21 @@
       ? company.revenue + (targetRevenue - company.revenue) * smoothing
       : targetRevenue;
 
+    // Early stage PMF loss: if revenue down >50% from ATH, mark for collapse on next round
+    if (state.kind === 'early' && company.revenue < startRev * 0.5) {
+      company.pmfCollapseOnNextRound = true;
+    }
+
     const fallbackBadMargin = state.kind === 'early' ? -0.6 : -0.25;
     const targetMargin = clampValue(
       Number.isFinite(state.terminalMargin) ? state.terminalMargin : fallbackBadMargin,
       -2,
       0.6
     );
+    // Early stage: margins decline 1.5x faster (hit terminal at 66% through instead of 100%)
+    const marginProgress = state.kind === 'early' ? Math.min(progress * 1.5, 1) : progress;
     const margin = clampValue(
-      state.startMargin + (targetMargin - state.startMargin) * progress,
+      state.startMargin + (targetMargin - state.startMargin) * marginProgress,
       -2,
       0.6
     );
@@ -163,7 +180,7 @@
     if (state.elapsedYears >= state.durationYears) {
       state.active = false;
       // Start a smooth margin recovery back toward a healthier long-run level.
-      const recoveryDuration = sampleRange(company.pmfRecoveryYearsRange, 3, 4);
+      const recoveryDuration = sampleRange(company.pmfRecoveryYearsRange, 2, 3);
       const currentMargin = company.revenue !== 0 ? (company.profit / company.revenue) : targetMargin;
       const safeCurrent = clampValue(currentMargin, -2, 0.6);
       const baseTarget = typeof company.hypergrowthTerminalMargin === 'number'

@@ -1190,7 +1190,13 @@
       const equityOffered = committedAmount > 0 && committedEquity > 0 ? committedEquity : equityOfferedDefault;
       const dilutedEquity = this.playerEquity * (preMoney / postMoney);
 
-      if (!success && roundFailuresEnabled) {
+      // Early stage PMF loss with >50% revenue decline forces immediate collapse
+      const pmfForceCollapse = this.pmfCollapseOnNextRound === true;
+      if (pmfForceCollapse) {
+        success = false;
+      }
+
+      if (!success && (roundFailuresEnabled || pmfForceCollapse)) {
         const commitments = closingRound.playerCommitments || {};
         const singlePlayerId = closingRound.commitPlayerId || this.lastCommitPlayerId;
 
@@ -1218,7 +1224,7 @@
         });
 
         this.consecutiveFails = (this.consecutiveFails || 0) + 1;
-        const collapse = this.consecutiveFails >= this.maxFailuresBeforeCollapse;
+        const collapse = pmfForceCollapse || this.consecutiveFails >= this.maxFailuresBeforeCollapse;
 
         if (collapse) {
           // NOTE: We intentionally do NOT clear playerEquity/playerEquityMap here.
@@ -1233,17 +1239,46 @@
             this.bankruptcyAffectedPlayers[pid] = true;
           });
 
+          // PMF collapse: pay out remaining cash to shareholders based on their equity stake
+          if (pmfForceCollapse && this.playerEquityMap && this.cash > 0) {
+            const cashPool = Math.max(0, this.cash);
+            let totalPaidOut = 0;
+            Object.entries(this.playerEquityMap).forEach(([pid, equity]) => {
+              if (equity > 0) {
+                // Each shareholder gets cash * their equity fraction
+                const share = cashPool * equity;
+                if (share > 0) {
+                  totalPaidOut += share;
+                  refundEvents.push({
+                    companyId: this.id,
+                    name: this.name,
+                    valuation: 0,
+                    revenue: this.revenue,
+                    profit: this.profit,
+                    refund: share,
+                    playerId: pid,
+                    isLiquidation: true
+                  });
+                }
+              }
+            });
+            this.cash = Math.max(0, this.cash - totalPaidOut);
+          }
+
           this.currentValuation = 0;
           this.status = 'failed';
           const failDate = currentDate ? new Date(currentDate) : (this.lastTick ? new Date(this.lastTick) : new Date());
           this.failedAt = failDate;
           this.failedAtWall = Date.now();
-          this.lastEventNote = `${closingRound.stageLabel} round collapsed twice. Operations halted.`;
+          this.lastEventNote = pmfForceCollapse
+            ? 'PMF loss too severe. Failed to raise; liquidating remaining cash to shareholders.'
+            : `${closingRound.stageLabel} round collapsed twice. Operations halted.`;
           this.currentRound = null;
           this.stageChanged = true;
           this.playerInvested = 0;
           this.pendingCommitment = 0;
           this.pendingCommitments = {};
+          this.pmfCollapseOnNextRound = false;
           this.updateFinancialsFromValuation();
           this.recordHistory(currentDate);
           this.postGateMode = false;
@@ -1639,6 +1674,16 @@
       this.playerEquityMap = this.playerEquityMap || {};
       this.postGateMode = false;
       this.postGatePending = false;
+      // Finalize any PMF loss state so it doesn't drag margins post-IPO
+      if (this.hyperPmfState && (this.hyperPmfState.active || this.hyperPmfState.recoveryActive)) {
+        this.hyperPmfState.active = false;
+        this.hyperPmfState.recoveryActive = false;
+        // Reset lastRoundMargin to terminal margin so the margin curve sync uses healthy values
+        const terminalMargin = typeof this.hypergrowthTerminalMargin === 'number'
+          ? this.hypergrowthTerminalMargin
+          : (this.postGateMargin || 0.18);
+        this.lastRoundMargin = terminalMargin;
+      }
       this.hasPipelineUpdate = true;
       this.lastEventNote = `IPO completed at $${Math.round(this.currentValuation).toLocaleString()}.`;
       this.bankrupt = false;
@@ -1691,7 +1736,10 @@
         const startMargin = this.marginCurve.s;
         const endMargin = this.marginCurve.t;
         const span = endMargin - startMargin;
-        const targetMargin = Math.max(Math.min(this.lastRoundMargin, Math.max(startMargin, endMargin)), Math.min(startMargin, endMargin));
+        const targetMargin = Math.max(
+          Math.min(this.lastRoundMargin, Math.max(startMargin, endMargin)),
+          Math.min(startMargin, endMargin)
+        );
         if (Math.abs(span) > 1e-4) {
           const ratio = Math.max(0, Math.min(1, (targetMargin - startMargin) / span));
           const targetAgeDays = ratio * this.marginCurve.y * 365;
