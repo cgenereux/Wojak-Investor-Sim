@@ -62,7 +62,8 @@
         durationYears: 0,
         kind: 'late',
         startRevenue: 0,
-        startMargin: 0
+        startMargin: 0,
+        terminalMargin: null
       };
     }
     const state = company.hyperPmfState;
@@ -87,6 +88,13 @@
           ? company.profit / company.revenue
           : (typeof company.hypergrowthInitialMargin === 'number' ? company.hypergrowthInitialMargin : -0.4);
         state.startMargin = clampValue(marginNow, -2, 0.6);
+        // Sample a terminal PMF-loss margin and trend toward it over the PMF window.
+        const terminalMarginSample = sampleRange(
+          company.pmfTerminalMarginRange,
+          -0.26,
+          -0.15
+        );
+        state.terminalMargin = clampValue(terminalMarginSample, -1.0, 0.4);
 
         // TEMP: debug PMF loss triggers
         if (typeof console !== 'undefined' && console && typeof console.log === 'function') {
@@ -139,9 +147,14 @@
       ? company.revenue + (targetRevenue - company.revenue) * smoothing
       : targetRevenue;
 
-    const badMargin = state.kind === 'early' ? -0.6 : -0.25;
+    const fallbackBadMargin = state.kind === 'early' ? -0.6 : -0.25;
+    const targetMargin = clampValue(
+      Number.isFinite(state.terminalMargin) ? state.terminalMargin : fallbackBadMargin,
+      -2,
+      0.6
+    );
     const margin = clampValue(
-      state.startMargin + (badMargin - state.startMargin) * progress,
+      state.startMargin + (targetMargin - state.startMargin) * progress,
       -2,
       0.6
     );
@@ -149,6 +162,19 @@
 
     if (state.elapsedYears >= state.durationYears) {
       state.active = false;
+      // Start a smooth margin recovery back toward a healthier long-run level.
+      const recoveryDuration = sampleRange(company.pmfRecoveryYearsRange, 3, 4);
+      const currentMargin = company.revenue !== 0 ? (company.profit / company.revenue) : targetMargin;
+      const safeCurrent = clampValue(currentMargin, -2, 0.6);
+      const baseTarget = typeof company.hypergrowthTerminalMargin === 'number'
+        ? company.hypergrowthTerminalMargin
+        : (typeof company.hypergrowthInitialMargin === 'number' ? company.hypergrowthInitialMargin : 0.18);
+      const safeTarget = clampValue(baseTarget, -0.1, 0.4);
+      state.recoveryActive = true;
+      state.recoveryElapsedYears = 0;
+      state.recoveryDurationYears = Math.max(0.25, recoveryDuration);
+      state.recoveryStartMargin = safeCurrent;
+      state.recoveryTargetMargin = safeTarget;
     }
     return true;
   }
@@ -272,10 +298,25 @@
     const nextRevenue = Math.min(Math.max(1, company.revenue * growthFactor), ceiling);
     company.revenue = nextRevenue;
 
-    const marginTarget = typeof company.hypergrowthTerminalMargin === 'number'
+    const marginBaseTarget = typeof company.hypergrowthTerminalMargin === 'number'
       ? company.hypergrowthTerminalMargin
       : (typeof company.hypergrowthInitialMargin === 'number' ? company.hypergrowthInitialMargin : 0.18);
-    const margin = clampValue(marginTarget, -0.5, 0.6);
+
+    let margin;
+    const state = company.hyperPmfState;
+    if (state && state.recoveryActive) {
+      const dur = Math.max(0.25, state.recoveryDurationYears || 1);
+      state.recoveryElapsedYears = (state.recoveryElapsedYears || 0) + dtYears;
+      const prog = clampValue(state.recoveryElapsedYears / dur, 0, 1);
+      const start = Number.isFinite(state.recoveryStartMargin) ? state.recoveryStartMargin : marginBaseTarget;
+      const target = Number.isFinite(state.recoveryTargetMargin) ? state.recoveryTargetMargin : marginBaseTarget;
+      margin = clampValue(start + (target - start) * prog, -0.5, 0.6);
+      if (state.recoveryElapsedYears >= dur) {
+        state.recoveryActive = false;
+      }
+    } else {
+      margin = clampValue(marginBaseTarget, -0.5, 0.6);
+    }
     company.profit = company.revenue * margin;
   }
 
@@ -332,7 +373,11 @@
     }
 
     advancePreGate(dtYears, dtDays, currentDate) {
-      applyPmfLoss(this.company, dtYears);
+      const pmfActive = applyPmfLoss(this.company, dtYears);
+      if (pmfActive) {
+        // While PMF loss is active, revenue and margin are driven by the PMF path.
+        return;
+      }
       if (!this.company.hypergrowthFinished) {
         advanceHypergrowthPreGate(this.company, dtYears);
       } else {

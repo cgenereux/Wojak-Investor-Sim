@@ -381,7 +381,22 @@
       this.pmfLossProbPerYear = Number(config.pmf_loss_prob_per_year ?? config.pmfLossProbPerYear ?? 0);
       this.pmfDeclineRateRange = config.pmf_decline_rate_range || config.pmf_decline_rate || config.pmfDeclineRateRange || [-0.4, -0.25];
       this.pmfDeclineDurationYears = config.pmf_decline_duration_years || config.pmf_decline_duration || config.pmfDeclineDurationYears || [2, 3];
-      this.hyperPmfState = { active: false, elapsed: 0, durationYears: 0, declineRate: 0 };
+      this.pmfTerminalMarginRange = config.pmf_terminal_margin_range || config.pmfTerminalMarginRange || [-0.40, -0.15];
+      this.pmfRecoveryYearsRange = config.pmf_recovery_years_range || config.pmfRecoveryYearsRange || [3, 4];
+      this.hyperPmfState = {
+        active: false,
+        elapsedYears: 0,
+        durationYears: 0,
+        kind: 'late',
+        startRevenue: 0,
+        startMargin: 0,
+        terminalMargin: null,
+        recoveryActive: false,
+        recoveryElapsedYears: 0,
+        recoveryDurationYears: 0,
+        recoveryStartMargin: 0,
+        recoveryTargetMargin: null
+      };
 
       this.strategy = createVentureStrategy(this);
       this.gateCleared = false;
@@ -1836,6 +1851,8 @@
           pmf_loss_prob_per_year: cfg.pmf_loss_prob_per_year ?? cfg.pmfLossProbPerYear,
           pmf_decline_rate_range: cfg.pmf_decline_rate_range || cfg.pmf_decline_rate || cfg.pmfDeclineRateRange,
           pmf_decline_duration_years: cfg.pmf_decline_duration_years || cfg.pmf_decline_duration || cfg.pmfDeclineDurationYears,
+          pmf_terminal_margin_range: cfg.pmf_terminal_margin_range || cfg.pmfTerminalMarginRange,
+          pmf_recovery_years_range: cfg.pmf_recovery_years_range || cfg.pmfRecoveryYearsRange,
           max_failures_before_collapse: cfg.max_failures_before_collapse,
           rounds: Array.isArray(cfg.rounds_override) ? cfg.rounds_override : Array.isArray(cfg.rounds) ? cfg.rounds : [],
           base_business: cfg.base_business,

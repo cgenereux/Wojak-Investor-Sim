@@ -144,6 +144,8 @@
             : 0.10;
         const defaultPmfDeclineRange = defaults.pmf_decline_rate_range || defaults.pmf_decline_rate || [-0.4, -0.25];
         const defaultPmfDeclineDuration = defaults.pmf_decline_duration_years || defaults.pmf_decline_duration || [2, 3];
+        const defaultPmfTerminalMarginRange = defaults.pmf_terminal_margin_range || defaults.pmfTerminalMarginRange || [-0.40, -0.15];
+        const defaultPmfRecoveryYearsRange = defaults.pmf_recovery_years_range || defaults.pmfRecoveryYearsRange || [3, 4];
 
         return entries.map((entry, idx) => {
             // Allow per-company overrides with sensible fallbacks to defaults.
@@ -175,6 +177,8 @@
             const pmfLossProb = entry.pmf_loss_prob_per_year ?? defaultPmfLossProb;
             const pmfDeclineRange = entry.pmf_decline_rate_range || defaultPmfDeclineRange;
             const pmfDeclineDuration = entry.pmf_decline_duration_years || defaultPmfDeclineDuration;
+            const pmfTerminalMarginRange = entry.pmf_terminal_margin_range || entry.pmfTerminalMarginRange || defaultPmfTerminalMarginRange;
+            const pmfRecoveryYearsRange = entry.pmf_recovery_years_range || entry.pmfRecoveryYearsRange || defaultPmfRecoveryYearsRange;
 
             const valuation = Math.max(1, initialRevenue * initialPs);
             return {
@@ -208,6 +212,8 @@
                 pmf_loss_prob_per_year: pmfLossProb,
                 pmf_decline_rate_range: pmfDeclineRange,
                 pmf_decline_duration_years: pmfDeclineDuration,
+                pmf_terminal_margin_range: pmfTerminalMarginRange,
+                pmf_recovery_years_range: pmfRecoveryYearsRange,
                 // structural bias fields intentionally omitted for hypergrowth for now
             };
         });
