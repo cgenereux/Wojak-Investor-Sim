@@ -177,7 +177,7 @@
       "id": "hardtech_private",
       "label": "Private Hardtech",
       "type": "private",
-      "pick": 4,
+      "pick": 6,
       "roster": [
         {
           "phase": "private",
@@ -332,7 +332,178 @@
               ]
             }
           ]
+        },
+
+        {
+          "phase": "private",
+          "post_success_mode": "ramp",
+          "name": "RocketFactory",
+          "sector": "Technology",
+          "subsector": "Space Technology",
+          "gate_stage": "series_c",
+          "ipo_stage": "series_d",
+          "rounds_override": ["seed", "series_a", "series_b", "series_c", "series_d"],
+          "initial_valuation_realization": 0.02,
+          "value_realization_ps": 9,
+          "founders": [
+            { "name": "Dr. Lena Kovacs", "degree": "PhD", "school": "MIT" },
+            { "name": "Jared Okafor", "degree": "MS", "school": "Georgia Tech" }
+          ],
+          "mission": "Driving down the cost to orbit with fully reusable launch systems and in-orbit logistics.",
+          "founding_location": "Hawthorne, CA",
+          "hypergrowth_window_years": 3.5,
+          "hypergrowth_initial_growth_rate": 0.85,
+          "hypergrowth_terminal_growth_rate": 0.18,
+          "hypergrowth_initial_margin": -0.4,
+          "hypergrowth_terminal_margin": 0.26,
+          "years_to_converge": 6,
+          "private_listing_window": { "from": 2006, "to": 2024 },
+          "pipelineTemplate": [
+            {
+              "id": "reusable_orbital_stack",
+              "label": "Reusable Orbital Launch Stack",
+              "full_revenue_usd": [15000000000, 50000000000],
+              "stages": [
+                {
+                  "id": "booster_reuse",
+                  "name": "Booster Reuse Demonstration",
+                  "duration_days": 900,
+                  "success_prob": 0.43,
+                  "value_realization": 0.06,
+                  "cost_usd": 900000000,
+                  "max_retries": 1
+                },
+                {
+                  "id": "orbital_reuse",
+                  "name": "Orbital Stack Reuse",
+                  "duration_days": 820,
+                  "depends_on": "booster_reuse",
+                  "success_prob": 0.53,
+                  "value_realization": 0.18,
+                  "cost_usd": 1400000000,
+                  "max_retries": 1
+                },
+                {
+                  "id": "high_cadence_launch",
+                  "name": "High-Cadence Launch Operations",
+                  "duration_days": 780,
+                  "depends_on": "orbital_reuse",
+                  "success_prob": 0.67,
+                  "value_realization": 0.35,
+                  "cost_usd": 1800000000,
+                  "max_retries": 1
+                },
+                {
+                  "id": "orbital_logistics",
+                  "name": "Orbital Logistics & On-Orbit Services",
+                  "duration_days": 840,
+                  "depends_on": "high_cadence_launch",
+                  "success_prob": 0.81,
+                  "value_realization": 0.6,
+                  "cost_usd": 2100000000,
+                  "max_retries": 1
+                },
+                {
+                  "id": "global_launch_network",
+                  "name": "Global Launch & Constellation Network",
+                  "duration_days": 720,
+                  "depends_on": "orbital_logistics",
+                  "success_prob": 0.9,
+                  "value_realization": 1,
+                  "cost_usd": 2400000000,
+                  "max_retries": 1,
+                  "commercialises_revenue": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "phase": "private",
+          "post_success_mode": "ramp",
+          "name": "Edison",
+          "sector": "Technology",
+          "gate_stage": "series_c",
+          "ipo_stage": "series_d",
+          "rounds_override": ["seed", "series_a", "series_b", "series_c", "series_d"],
+          "initial_valuation_realization": 0.035,
+          "value_realization_ps": 5,
+          "founders": [
+            { "name": "Amira Solberg", "degree": "MS", "school": "Stanford" },
+            { "name": "Diego Alvarez", "degree": "BS", "school": "Waterloo" },
+            { "name": "Jason Schwartz", "degree": "MS", "school": "Stanford" }
+          ],
+          "mission": "Building integrated electric vehicles and grid-scale storage for a zero-emissions grid.",
+          "founding_location": "Fremont, CA",
+          "hypergrowth_window_years": 3.2,
+          "hypergrowth_initial_growth_rate": 0.95,
+          "hypergrowth_terminal_growth_rate": 0.18,
+          "hypergrowth_initial_margin": -0.28,
+          "hypergrowth_terminal_margin": 0.24,
+          "years_to_converge": 6,
+          "private_listing_window": { "from": 2004, "to": 2020 },
+          "pipelineTemplate": [
+            {
+              "id": "helio_platform",
+              "label": "HelioDrive Vehicle & Energy Platform",
+              "full_revenue_usd": [600000000, 2100000000],
+              "stages": [
+                {
+                  "id": "battery_gigafactory",
+                  "name": "Battery Platform & Gigafactory",
+                  "duration_days": 800,
+                  "success_prob": 0.49,
+                  "value_realization": 0.1,
+                  "cost_usd": 120000000,
+                  "max_retries": 1
+                },
+                {
+                  "id": "mass_market_ev",
+                  "name": "Mass-Market EV Program",
+                  "duration_days": 900,
+                  "depends_on": "battery_gigafactory",
+                  "success_prob": 0.53,
+                  "value_realization": 0.24,
+                  "cost_usd": 250000000,
+                  "max_retries": 1
+                },
+                {
+                  "id": "energy_storage",
+                  "name": "Grid-Scale Energy Storage",
+                  "duration_days": 780,
+                  "depends_on": "mass_market_ev",
+                  "success_prob": 0.62,
+                  "value_realization": 0.62,
+                  "cost_usd": 220000000,
+                  "max_retries": 1
+                },
+                {
+                  "id": "global_gigafactories",
+                  "name": "Global Gigafactory & Charging Network",
+                  "duration_days": 820,
+                  "depends_on": "energy_storage",
+                  "success_prob": 0.78,
+                  "value_realization": 0.76,
+                  "cost_usd": 260000000,
+                  "max_retries": 1
+                },
+                {
+                  "id": "autonomy_and_services",
+                  "name": "Autonomy & Services Platform",
+                  "duration_days": 720,
+                  "depends_on": "global_gigafactories",
+                  "success_prob": 0.94,
+                  "value_realization": 1,
+                  "cost_usd": 180000000,
+                  "max_retries": 1,
+                  "commercialises_revenue": true
+                }
+              ]
+            }
+          ]
         }
+
+
       ]
     }
   ]

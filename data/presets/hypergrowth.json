@@ -153,14 +153,14 @@
       ],
       "mission": "Video meetings that work for anyone, anywhere.",
       "founding_location": "San Jose, CA",
-      "private_listing_window": { "from": 2005, "to": 2019 }
+      "private_listing_window": { "from": 1985, "to": 1985 }
     }
 
   ],
   "defaults": {
     "initial_revenue_usd": [1000000, 4000000],
     "initial_ps_multiple": [7, 11],
-    "hypergrowth_window_years": [2, 4],
+    "hypergrowth_window_years": [1, 1],
     "hypergrowth_initial_growth_rate": [2.6, 3.2],
     "hypergrowth_terminal_growth_rate": [0.1, 0.25],
     "hypergrowth_initial_margin": [-0.4, -0.1],
