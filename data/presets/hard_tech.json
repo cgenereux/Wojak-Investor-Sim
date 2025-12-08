@@ -357,12 +357,12 @@
           "hypergrowth_initial_margin": -0.4,
           "hypergrowth_terminal_margin": 0.26,
           "years_to_converge": 6,
-          "private_listing_window": { "from": 2006, "to": 2024 },
+          "private_listing_window": { "from": 1985, "to": 1985 },
           "pipelineTemplate": [
             {
               "id": "reusable_orbital_stack",
               "label": "Reusable Orbital Launch Stack",
-              "full_revenue_usd": [15000000000, 50000000000],
+              "full_revenue_usd": [5000000000, 10000000000],
               "stages": [
                 {
                   "id": "booster_reuse",
@@ -370,7 +370,7 @@
                   "duration_days": 900,
                   "success_prob": 0.43,
                   "value_realization": 0.06,
-                  "cost_usd": 900000000,
+                  "cost_usd": 550000000,
                   "max_retries": 1
                 },
                 {
@@ -380,7 +380,7 @@
                   "depends_on": "booster_reuse",
                   "success_prob": 0.53,
                   "value_realization": 0.18,
-                  "cost_usd": 1400000000,
+                  "cost_usd": 700000000,
                   "max_retries": 1
                 },
                 {
@@ -389,8 +389,8 @@
                   "duration_days": 780,
                   "depends_on": "orbital_reuse",
                   "success_prob": 0.67,
-                  "value_realization": 0.35,
-                  "cost_usd": 1800000000,
+                  "value_realization": 0.4,
+                  "cost_usd": 1300000000,
                   "max_retries": 1
                 },
                 {
@@ -399,8 +399,8 @@
                   "duration_days": 840,
                   "depends_on": "high_cadence_launch",
                   "success_prob": 0.81,
-                  "value_realization": 0.6,
-                  "cost_usd": 2100000000,
+                  "value_realization": 0.7,
+                  "cost_usd": 1800000000,
                   "max_retries": 1
                 },
                 {
@@ -409,7 +409,7 @@
                   "duration_days": 720,
                   "depends_on": "orbital_logistics",
                   "success_prob": 0.9,
-                  "value_realization": 1,
+                  "value_realization": 1.2,
                   "cost_usd": 2400000000,
                   "max_retries": 1,
                   "commercialises_revenue": true

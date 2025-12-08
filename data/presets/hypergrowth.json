@@ -152,7 +152,7 @@
         { "name": "David Chang", "degree": "BSc Computer Engineering", "school": "SJSU" }
       ],
       "mission": "Video meetings that work for anyone, anywhere.",
-      "founding_location": "San Jose, CA",
+      "founding_location": "Mountain View, CA",
       "private_listing_window": { "from": 1985, "to": 1985 }
     }
 
@@ -162,7 +162,7 @@
     "initial_ps_multiple": [15, 25],
     "terminal_ps_multiple": [4, 5],
     "hypergrowth_window_years": [6, 9],
-    "hypergrowth_initial_growth_rate": [0.6, 1.1],
+    "hypergrowth_initial_growth_rate": [0.65, 1.25],
     "hypergrowth_terminal_growth_rate": [0.2, 0.25],
     "hypergrowth_initial_margin": [-0.4, -0.1],
     "hypergrowth_terminal_margin": [0.15, 0.22],
