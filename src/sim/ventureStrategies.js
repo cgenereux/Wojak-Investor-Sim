@@ -10,6 +10,19 @@
     return between(fallbackMin, fallbackMax);
   };
 
+  function getHypergrowthPSMultiple(company) {
+    const initial = (Number.isFinite(company.initialPSMultiple) && company.initialPSMultiple > 0)
+      ? company.initialPSMultiple
+      : (company.privatePSMultiple && company.privatePSMultiple > 0 ? company.privatePSMultiple : 6);
+    const terminal = (Number.isFinite(company.terminalPSMultiple) && company.terminalPSMultiple > 0)
+      ? company.terminalPSMultiple
+      : initial;
+    const windowYears = Math.max(company.hypergrowthWindowYears || 1, 0.25);
+    const elapsed = Number.isFinite(company.hypergrowthElapsedYears) ? company.hypergrowthElapsedYears : 0;
+    const progress = Math.max(0, Math.min(1, elapsed / windowYears));
+    return initial + (terminal - initial) * progress;
+  }
+
   function computeHypergrowthFairValue(company, applyNoise = true) {
     if (!company) return 1;
     const revenueBase = Number.isFinite(company.revenue) && company.revenue > 0
@@ -17,9 +30,7 @@
       : (Number.isFinite(company.initialRevenue) && company.initialRevenue > 0
         ? company.initialRevenue
         : Math.max(1, company.currentValuation || 1));
-    const multiple = company.currentMultiple && company.currentMultiple > 0
-      ? company.currentMultiple
-      : (company.privatePSMultiple && company.privatePSMultiple > 0 ? company.privatePSMultiple : 6);
+    const multiple = getHypergrowthPSMultiple(company);
     let base = revenueBase * multiple;
     if (applyNoise) {
       base *= between(0.9, 1.1);
@@ -91,17 +102,26 @@
     if (!Number.isFinite(company.hypergrowthElapsedYears)) {
       company.hypergrowthElapsedYears = 0;
     }
-    const progress = Math.min(1, company.hypergrowthElapsedYears / Math.max(company.hypergrowthWindowYears || 1, 0.25));
+    const windowYears = Math.max(company.hypergrowthWindowYears || 1, 0.25);
+    const elapsed = company.hypergrowthElapsedYears;
     const startFactor = company.hypergrowthInitialGrowthRate || 1.6;
     const endFactor = company.hypergrowthTerminalGrowthRate || 1.15;
-    const currentFactor = startFactor + (endFactor - startFactor) * progress;
-    const growthFactor = Math.pow(Math.max(currentFactor, 1.0), dtYears);
+
+    let growthFactor = 1.0;
+    if (elapsed < windowYears && dtYears > 0) {
+      const progress = Math.min(1, elapsed / windowYears);
+      const currentFactor = startFactor + (endFactor - startFactor) * progress;
+      growthFactor = Math.pow(Math.max(currentFactor, 1.0), dtYears);
+    }
     company.revenue *= growthFactor;
-    company.hypergrowthElapsedYears += dtYears;
+    company.hypergrowthElapsedYears = elapsed + dtYears;
+    if (company.hypergrowthElapsedYears >= windowYears) {
+      company.hypergrowthFinished = true;
+    }
 
     const marginStart = typeof company.hypergrowthInitialMargin === 'number' ? company.hypergrowthInitialMargin : -0.4;
     const marginEnd = typeof company.hypergrowthTerminalMargin === 'number' ? company.hypergrowthTerminalMargin : marginStart;
-    const marginProgress = Math.min(1, company.hypergrowthElapsedYears / Math.max(company.hypergrowthWindowYears || 1, 0.25));
+    const marginProgress = Math.min(1, company.hypergrowthElapsedYears / windowYears);
     const margin = clampValue(marginStart + (marginEnd - marginStart) * marginProgress, -2, 0.6);
     company.profit = company.revenue * margin;
   }
@@ -157,6 +177,38 @@
     }
   }
 
+  function advancePostHypergrowthDrift(company, dtYears) {
+    if (!Number.isFinite(dtYears) || dtYears <= 0) return;
+    if (!Number.isFinite(company.revenue) || company.revenue <= 0) return;
+
+    const windowYears = Math.max(company.hypergrowthWindowYears || 1, 0.25);
+    const elapsed = Number.isFinite(company.hypergrowthElapsedYears) ? company.hypergrowthElapsedYears : 0;
+    const yearsSinceHyper = Math.max(0, elapsed - windowYears);
+
+    const baseRate = Number.isFinite(company.longRunGrowthRate) ? company.longRunGrowthRate : 0.15;
+    const floor = Number.isFinite(company.longRunGrowthFloor) ? company.longRunGrowthFloor : 0.05;
+    const decay = Number.isFinite(company.longRunGrowthDecay) ? company.longRunGrowthDecay : 0.3;
+
+    const span = Math.max(0, baseRate - floor);
+    const mu = floor + span * Math.exp(-decay * yearsSinceHyper);
+    const sigma = Math.max(mu * 0.6, 0.02);
+    const shock = between(-1, 1);
+    const effRate = clampValue(mu + sigma * shock, -0.5, 0.6);
+    const growthFactor = Math.pow(1 + effRate, dtYears);
+
+    const ceiling = Number.isFinite(company.longRunRevenueCeiling) && company.longRunRevenueCeiling > 0
+      ? company.longRunRevenueCeiling
+      : company.revenue * 50;
+    const nextRevenue = Math.min(Math.max(1, company.revenue * growthFactor), ceiling);
+    company.revenue = nextRevenue;
+
+    const marginTarget = typeof company.hypergrowthTerminalMargin === 'number'
+      ? company.hypergrowthTerminalMargin
+      : (typeof company.hypergrowthInitialMargin === 'number' ? company.hypergrowthInitialMargin : 0.18);
+    const margin = clampValue(marginTarget, -0.5, 0.6);
+    company.profit = company.revenue * margin;
+  }
+
   class VentureStrategy {
     constructor(company) {
       this.company = company;
@@ -203,15 +255,19 @@
       const runwayScore = clampValue(company.cachedRunwayDays / runwayDenom, 0, 1);
 
       let base = 0.5 * growthScore + 0.35 * marginScore + 0.15 * runwayScore;
-      if (company.binarySuccess && !company.gateCleared) {
+      if (company.binarySuccess) {
         base *= 0.9;
       }
       return clampValue(base, 0, 1);
     }
 
-    advancePreGate(dtYears) {
+    advancePreGate(dtYears, dtDays, currentDate) {
       applyPmfLoss(this.company, dtYears);
-      advanceHypergrowthPreGate(this.company, dtYears);
+      if (!this.company.hypergrowthFinished) {
+        advanceHypergrowthPreGate(this.company, dtYears);
+      } else {
+        advancePostHypergrowthDrift(this.company, dtYears);
+      }
     }
 
     computeFairValue(applyNoise = true) {

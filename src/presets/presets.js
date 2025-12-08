@@ -137,14 +137,45 @@
         const entries = Array.isArray(data?.companies) ? data.companies : [];
         if (entries.length === 0) return [];
         const defaults = data?.defaults || {};
-        // Native hypergrowth ventures: default PMF loss probability is 10% per year.
-        const pmfLossProb = 0.10;
-        const pmfDeclineRange = defaults.pmf_decline_rate_range || defaults.pmf_decline_rate || [-0.4, -0.25];
-        const pmfDeclineDuration = defaults.pmf_decline_duration_years || defaults.pmf_decline_duration || [2, 3];
+
+        // Native hypergrowth ventures: PMF parameters and growth/margin curves are defined in hypergrowth.json.
+        const defaultPmfLossProb = typeof defaults.pmf_loss_prob_per_year === 'number'
+            ? defaults.pmf_loss_prob_per_year
+            : 0.10;
+        const defaultPmfDeclineRange = defaults.pmf_decline_rate_range || defaults.pmf_decline_rate || [-0.4, -0.25];
+        const defaultPmfDeclineDuration = defaults.pmf_decline_duration_years || defaults.pmf_decline_duration || [2, 3];
 
         return entries.map((entry, idx) => {
-            const initialRevenue = pickRangeLocal(defaults.initial_revenue_usd, 1_000_000, 4_000_000);
-            const initialPs = pickRangeLocal(defaults.initial_ps_multiple, 7, 11);
+            // Allow per-company overrides with sensible fallbacks to defaults.
+            const initialRevenueSource = entry.initial_revenue_usd ?? defaults.initial_revenue_usd;
+            const initialPsSource = entry.initial_ps_multiple ?? defaults.initial_ps_multiple;
+            const windowYearsSource = entry.hypergrowth_window_years ?? defaults.hypergrowth_window_years;
+            const initialGrowthSource = entry.hypergrowth_initial_growth_rate ?? defaults.hypergrowth_initial_growth_rate;
+            const terminalGrowthSource = entry.hypergrowth_terminal_growth_rate ?? defaults.hypergrowth_terminal_growth_rate;
+            const initialMarginSource = entry.hypergrowth_initial_margin ?? defaults.hypergrowth_initial_margin;
+            const terminalMarginSource = entry.hypergrowth_terminal_margin ?? defaults.hypergrowth_terminal_margin;
+            const terminalPsSource = entry.terminal_ps_multiple
+                ?? defaults.terminal_ps_multiple
+                ?? entry.post_gate_initial_ps_multiple
+                ?? defaults.post_gate_initial_ps_multiple;
+            const postGateTerminalPsSource = entry.post_gate_terminal_ps_multiple ?? defaults.post_gate_terminal_ps_multiple;
+            const postGateDecayYearsSource = entry.post_gate_multiple_decay_years ?? defaults.post_gate_multiple_decay_years;
+
+            const initialRevenue = pickRangeLocal(initialRevenueSource, 1_000_000, 4_000_000);
+            const initialPs = pickRangeLocal(initialPsSource, 7, 11);
+            const hypergrowthWindowYears = pickRangeLocal(windowYearsSource, 2, 4);
+            const hypergrowthInitialGrowthRate = pickRangeLocal(initialGrowthSource, 0.6, 1.2);
+            const hypergrowthTerminalGrowthRate = pickRangeLocal(terminalGrowthSource, 0.1, 0.25);
+            const hypergrowthInitialMargin = pickRangeLocal(initialMarginSource, -0.4, -0.1);
+            const hypergrowthTerminalMargin = pickRangeLocal(terminalMarginSource, 0.15, 0.3);
+            const terminalPs = pickRangeLocal(terminalPsSource, 12, 20);
+            const postGateTerminalPs = pickRangeLocal(postGateTerminalPsSource, 4, 7);
+            const postGateDecayYears = pickRangeLocal(postGateDecayYearsSource, 5, 9);
+
+            const pmfLossProb = entry.pmf_loss_prob_per_year ?? defaultPmfLossProb;
+            const pmfDeclineRange = entry.pmf_decline_rate_range || defaultPmfDeclineRange;
+            const pmfDeclineDuration = entry.pmf_decline_duration_years || defaultPmfDeclineDuration;
+
             const valuation = Math.max(1, initialRevenue * initialPs);
             return {
                 id: makeId(`preset_hyper_${slugify(entry.name || `hyper_${idx}`)}`, idx),
@@ -161,20 +192,22 @@
                 ipo_stage: entry.ipo_stage || defaults.ipo_stage || 'series_f',
                 binary_success: entry.binary_success ?? defaults.binary_success ?? false,
                 gate_stage: entry.gate_stage || defaults.gate_stage || 'series_c',
-                hypergrowth_window_years: pickRangeLocal(defaults.hypergrowth_window_years, 2, 4),
-                hypergrowth_initial_growth_rate: pickRangeLocal(defaults.hypergrowth_initial_growth_rate, 0.6, 1.2),
-                hypergrowth_terminal_growth_rate: pickRangeLocal(defaults.hypergrowth_terminal_growth_rate, 0.1, 0.25),
-                hypergrowth_initial_margin: pickRangeLocal(defaults.hypergrowth_initial_margin, -0.4, -0.1),
-                hypergrowth_terminal_margin: pickRangeLocal(defaults.hypergrowth_terminal_margin, 0.15, 0.3),
-                post_gate_initial_ps_multiple: pickRangeLocal(defaults.post_gate_initial_ps_multiple, 12, 20),
-                post_gate_terminal_ps_multiple: pickRangeLocal(defaults.post_gate_terminal_ps_multiple, 4, 7),
-                post_gate_multiple_decay_years: pickRangeLocal(defaults.post_gate_multiple_decay_years, 5, 9),
+                hypergrowth_window_years: hypergrowthWindowYears,
+                hypergrowth_initial_growth_rate: hypergrowthInitialGrowthRate,
+                hypergrowth_terminal_growth_rate: hypergrowthTerminalGrowthRate,
+                hypergrowth_initial_margin: hypergrowthInitialMargin,
+                hypergrowth_terminal_margin: hypergrowthTerminalMargin,
+                terminal_ps_multiple: terminalPs,
+                // Back-compat for existing engine fields.
+                post_gate_initial_ps_multiple: terminalPs,
+                post_gate_terminal_ps_multiple: postGateTerminalPs,
+                post_gate_multiple_decay_years: postGateDecayYears,
                 max_failures_before_collapse: entry.max_failures_before_collapse ?? defaults.max_failures_before_collapse ?? 1,
                 private_listing_window: entry.private_listing_window || defaults.private_listing_window || null,
                 rounds: entry.rounds || defaults.rounds || DEFAULT_VC_ROUNDS,
-                pmf_loss_prob_per_year: entry.pmf_loss_prob_per_year ?? pmfLossProb,
-                pmf_decline_rate_range: entry.pmf_decline_rate_range || pmfDeclineRange,
-                pmf_decline_duration_years: entry.pmf_decline_duration_years || pmfDeclineDuration,
+                pmf_loss_prob_per_year: pmfLossProb,
+                pmf_decline_rate_range: pmfDeclineRange,
+                pmf_decline_duration_years: pmfDeclineDuration,
                 // structural bias fields intentionally omitted for hypergrowth for now
             };
         });

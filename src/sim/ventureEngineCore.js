@@ -235,9 +235,13 @@
       // P/S for converting hard-tech revenue potential to valuation (default 6)
       this.valueRealizationPS = config.value_realization_ps ?? config.valueRealizationPS ?? 6;
 
-      // Hypergrowth-specific initial revenue and PS multiple
+      // Hypergrowth-specific initial revenue and PS multiples
       this.initialRevenue = Number(config.initial_revenue_usd ?? 0);
       this.initialPSMultiple = Number(config.initial_ps_multiple ?? 0);
+      const terminalFromConfig = Number(config.terminal_ps_multiple);
+      this.terminalPSMultiple = Number.isFinite(terminalFromConfig) && terminalFromConfig > 0
+        ? terminalFromConfig
+        : this.initialPSMultiple;
 
       // For hard-tech, compute initial valuation from pipeline using initial_valuation_realization
       if (this.archetype === 'hardtech' && Array.isArray(this.products) && this.products.length > 0 && config.initial_valuation_realization != null) {
@@ -389,6 +393,7 @@
       this.hypergrowthStartMargin = null; // Set when entering post-gate mode
       this.postGateStartDate = null;
       this.hypergrowthEndDate = null;
+      this.hypergrowthFinished = false;
       // Private-phase PS multiple for hypergrowth; defaults to post-gate initial if not provided.
       this.privatePSMultiple = this.initialPSMultiple > 0 ? this.initialPSMultiple : this.postGateInitialPSMultiple;
       this.currentMultiple = this.postGateInitialPSMultiple;
@@ -498,14 +503,24 @@
       }
       const valuation = Math.max(this.currentValuation || 0, 0);
       if (this.archetype === 'hypergrowth') {
-        const ps = this.privatePSMultiple && this.privatePSMultiple > 0 ? this.privatePSMultiple : 6;
-        const marginDefault = typeof this.hypergrowthInitialMargin === 'number' ? this.hypergrowthInitialMargin : -0.4;
-        const margin = clampValue(marginDefault, -2, 0.5);
-        const revenue = this.binarySuccess ? 0 : valuation / Math.max(ps, 1e-3);
-        const profit = revenue * margin;
-        this.revenue = revenue;
-        this.profit = profit;
-        this.marketCap = this.currentValuation;
+        // For hypergrowth ventures, revenue and profit are primarily driven by the
+        // hypergrowth engine in ventureStrategies. Treat valuation as a readout for
+        // marketCap, and only derive revenue on first initialisation or on failure.
+        this.marketCap = valuation;
+        if (valuation === 0 || this.status === 'failed') {
+          this.revenue = 0;
+          this.profit = 0;
+          return;
+        }
+        if (!Number.isFinite(this.revenue) || this.revenue <= 0) {
+          const ps = this.privatePSMultiple && this.privatePSMultiple > 0 ? this.privatePSMultiple : 6;
+          const marginDefault = typeof this.hypergrowthInitialMargin === 'number' ? this.hypergrowthInitialMargin : -0.4;
+          const margin = clampValue(marginDefault, -2, 0.5);
+          const revenue = this.binarySuccess ? 0 : valuation / Math.max(ps, 1e-3);
+          const profit = revenue * margin;
+          this.revenue = revenue;
+          this.profit = profit;
+        }
         return;
       }
       const stage = this.currentStage;
@@ -857,7 +872,20 @@
         }
       } else {
         // Hypergrowth: valuation is driven by revenue × PS multiple
-        fairValue = this.computeFairValue(true);
+        // For the seed round, anchor explicitly to initial_revenue_usd × initial_ps_multiple
+        if (this.archetype === 'hypergrowth' && stage.id === 'seed') {
+          const revenueBase = Number.isFinite(this.initialRevenue) && this.initialRevenue > 0
+            ? this.initialRevenue
+            : (Number.isFinite(this.revenue) && this.revenue > 0 ? this.revenue : 1);
+          const ps = Number.isFinite(this.initialPSMultiple) && this.initialPSMultiple > 0
+            ? this.initialPSMultiple
+            : (this.privatePSMultiple && this.privatePSMultiple > 0 ? this.privatePSMultiple : 6);
+          let base = revenueBase * ps;
+          base *= between(0.9, 1.1);
+          fairValue = Math.max(1, base);
+        } else {
+          fairValue = this.computeFairValue(true);
+        }
       }
       const preMoney = fairValue;
       const raiseAmount = Math.max(500_000, fairValue * raiseFraction);
@@ -1311,27 +1339,29 @@
       this.lastRoundMargin = this.revenue > 0 ? this.profit / Math.max(this.revenue, 1) : -1;
       this.currentRound = null;
 
-      if (stageWasGate && success) {
-        this.gateCleared = true;
-        this.postGatePending = true;
-        if (!this.postGateMode) {
+      if (this.archetype === 'hardtech') {
+        if (stageWasGate && success) {
+          this.gateCleared = true;
+          this.postGatePending = true;
+          if (!this.postGateMode) {
+            this.enterPostGateMode(currentDate, {
+              baselineRevenue: baselineRevenueForPostGate,
+              baselineMargin: baselineMarginForPostGate
+            });
+            this.recordHistory(currentDate);
+          }
+        } else if (this.postGatePending && success && !this.postGateMode) {
           this.enterPostGateMode(currentDate, {
             baselineRevenue: baselineRevenueForPostGate,
             baselineMargin: baselineMarginForPostGate
           });
           this.recordHistory(currentDate);
         }
-      } else if (this.postGatePending && success && !this.postGateMode) {
-        this.enterPostGateMode(currentDate, {
-          baselineRevenue: baselineRevenueForPostGate,
-          baselineMargin: baselineMarginForPostGate
-        });
-        this.recordHistory(currentDate);
       }
 
       const reachedTarget = this.stageIndex >= this.targetStageIndex || stage.id === 'pre_ipo' || stage.id === 'ipo';
       if (reachedTarget) {
-        if (this.gateCleared && !this.postGateMode) {
+        if (this.archetype === 'hardtech' && this.gateCleared && !this.postGateMode) {
           this.enterPostGateMode(currentDate, {
             baselineRevenue: baselineRevenueForPostGate,
             baselineMargin: baselineMarginForPostGate
@@ -1619,13 +1649,22 @@
       const stage = this.getStageFinancials();
       const ps = stage && stage.ps ? stage.ps : 6;
       const macroFactor = this.macroEnv ? this.macroEnv.getValue(this.sector) : 1;
-      const revenueSnapshot = Math.max(
-        1,
-        this.revenue || 0,
-        this.lastRoundRevenue || 0,
-        this.baseRevenue || 0,
-        this.currentValuation / Math.max(ps, 1)
-      );
+      // For hypergrowth IPOs, respect the venture-side revenue curve and avoid
+      // back-solving a higher revenue level from valuation / IPO P/S.
+      const revenueSnapshot = this.archetype === 'hypergrowth'
+        ? Math.max(
+          1,
+          this.revenue || 0,
+          this.lastRoundRevenue || 0,
+          this.baseRevenue || 0
+        )
+        : Math.max(
+          1,
+          this.revenue || 0,
+          this.lastRoundRevenue || 0,
+          this.baseRevenue || 0,
+          this.currentValuation / Math.max(ps, 1)
+        );
       const denom = Math.max(1e-3, macroFactor * Math.max(this.micro || 1, 0.05) * Math.max(this.revMult || 1, 0.05));
       const pipelineSignal = (unlockedPV + optionPV) / Math.max(ps, 1);
       const normalizedBase = (revenueSnapshot + pipelineSignal + (this.flatRev || 0)) / denom;
