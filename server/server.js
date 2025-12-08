@@ -206,7 +206,7 @@ function startTickLoop(session) {
     accrueInterest(session, dtDays);
     const dividendEvents = distributeDividends(session);
     scheduleBankruptHoldingCleanup(session);
-      const payload = {
+    const payload = {
       type: 'tick',
       lastTick: session.sim.lastTick ? session.sim.lastTick.toISOString() : null,
       companies: session.sim.companies.map(c => {
@@ -930,18 +930,18 @@ function unitHostedInvalid(units) {
 const server = app.server;
 const wss = new WebSocket.Server({ noServer: true });
 
-  server.on('upgrade', (req, socket, head) => {
-    const url = new URL(req.url, 'http://localhost');
-    if (url.pathname !== '/ws') {
-      socket.destroy();
-      return;
+server.on('upgrade', (req, socket, head) => {
+  const url = new URL(req.url, 'http://localhost');
+  if (url.pathname !== '/ws') {
+    socket.destroy();
+    return;
   }
   wss.handleUpgrade(req, socket, head, (ws) => {
     wss.emit('connection', ws, req, url);
   });
-  });
+});
 
-  wss.on('connection', async (ws, req, url) => {
+wss.on('connection', async (ws, req, url) => {
   // Buffer any early messages that might arrive before session setup completes.
   const bufferedMessages = [];
   const bufferMessage = (data) => bufferedMessages.push(data);

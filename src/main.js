@@ -1458,8 +1458,9 @@ function updateDisplay() {
         ? serverPlayer.ventureCommitmentsValue
         : pendingCommitments;
 
-    // Compute net worth locally to ensure pending commitments are reflected immediately
-    const computedNetWorth = displayCash + equityValue + displayCommitments - displayDebt;
+    // Compute net worth locally in multiplayer, but avoid double-counting commitments:
+    // equityValue already includes pendingCommitments, so do not add them again.
+    const computedNetWorth = displayCash + equityValue - displayDebt;
 
     netWorthDisplay.textContent = currencyFormatter.format(isServerAuthoritative ? computedNetWorth : displayNetWorth);
     if (isServerAuthoritative && serverPlayer && playerColorMap.has(serverPlayer.id)) {
@@ -3724,7 +3725,14 @@ async function init() {
             const date = new Date(point.x);
             const dateStr = date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 
-            const rows = dataPoints.map(dp => {
+            // Sort players by higher net worth (descending) at this timestamp
+            const sortedPoints = dataPoints.slice().sort((a, b) => {
+                const aVal = a.raw?.y ?? a.parsed?.y ?? a.raw ?? a.parsed ?? 0;
+                const bVal = b.raw?.y ?? b.parsed?.y ?? b.raw ?? b.parsed ?? 0;
+                return bVal - aVal;
+            });
+
+            const rows = sortedPoints.map(dp => {
                 const dsRef = context.chart.data.datasets?.[dp.datasetIndex];
                 const rawValue = dp.raw?.y ?? dp.parsed?.y ?? dp.raw ?? dp.parsed;
                 const valueStr = currencyFormatter.format(rawValue);

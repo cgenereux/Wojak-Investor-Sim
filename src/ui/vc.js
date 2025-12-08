@@ -257,6 +257,10 @@ function buildRoundInfo(detail) {
         };
     }
 
+    const statusKey = (detail.status || '').toLowerCase();
+    const isFailed = statusKey === 'failed';
+    const isIpoReady = statusKey === 'ipo ready';
+
     if (!detail.round) {
         let info = 'No active funding round.';
         let chance = 'Success Chance: N/A';
@@ -277,6 +281,14 @@ function buildRoundInfo(detail) {
             chance = 'Success Chance: 100%';
             timer = 'IPO imminent';
         } else if (detail.status === 'Failed') {
+            info = 'Company operations have ceased.';
+            chance = 'Success Chance: 0%';
+            timer = 'No further rounds.';
+        } else if (isIpoReady) {
+            info = 'IPO paperwork in progress. No additional rounds required.';
+            chance = 'Success Chance: 100%';
+            timer = 'IPO imminent';
+        } else if (isFailed) {
             info = 'Company operations have ceased.';
             chance = 'Success Chance: 0%';
             timer = 'No further rounds.';
@@ -307,10 +319,10 @@ function buildRoundInfo(detail) {
         timer = 'Next round timing TBD';
     }
 
-    if (detail.status === 'IPO Ready') {
+    if (detail.status === 'IPO Ready' || isIpoReady) {
         info = 'IPO paperwork in progress. No additional rounds required.';
         timer = 'IPO imminent';
-    } else if (detail.status === 'Failed') {
+    } else if (detail.status === 'Failed' || isFailed) {
         info = 'Company operations have ceased.';
         timer = 'No further rounds.';
     }
@@ -320,7 +332,7 @@ function buildRoundInfo(detail) {
         info,
         chance: '',
         timer,
-        canLead: detail.status === 'Raising' && !round.playerCommitted,
+        canLead: !isFailed && statusKey === 'raising' && !round.playerCommitted,
         alreadyCommitted: round.playerCommitted,
         committedAmount
     };
@@ -328,10 +340,14 @@ function buildRoundInfo(detail) {
 
 function renderInvestmentOptions(detail, companyId = null) {
     if (!vcInvestmentOptionsEl) return;
-    if (!detail || !detail.round || typeof detail.round.equityOffered !== 'number') {
+    const idKey = companyId || (detail && (detail.id || detail.name)) || '';
+    const statusKey = (detail && detail.status) ? String(detail.status).toLowerCase() : '';
+    if (!detail || statusKey === 'failed' || !detail.round || typeof detail.round.equityOffered !== 'number') {
         vcInvestmentOptionsEl.innerHTML = '';
         if (vcRoundDilutionEl) vcRoundDilutionEl.textContent = '';
-        lastInvestmentOptionsKey.delete(companyId || detail?.id || detail?.name || '');
+        if (idKey) {
+            lastInvestmentOptionsKey.delete(idKey);
+        }
         return;
     }
     const roundStage = detail.round.stageLabel || detail.round.label || detail.stageLabel || '';
@@ -653,6 +669,8 @@ function updateVentureDetail(companyId) {
     const listingWindow = detail.listing_window || detail.listingWindow || null;
     const listingFromTs = listingWindow && listingWindow.from ? new Date(listingWindow.from).getTime() : NaN;
     const listingCutoff = Number.isFinite(listingFromTs) ? listingFromTs : null;
+    const detailStatusKey = (detail.status || '').toLowerCase();
+    const isFailed = detailStatusKey === 'failed';
 
     const normalizeHistory = (hist) => {
         if (!Array.isArray(hist) || hist.length === 0) return [];
@@ -697,16 +715,35 @@ function updateVentureDetail(companyId) {
     }
     const suggestedMin = valuation > 0 ? valuation * 0.8 : 0;
     const suggestedMax = valuation > 0 ? valuation * 1.2 : 1;
+    const firstPoint = history[0];
+    const lastPoint = history[history.length - 1];
 
     if (ventureCompanyDetailChart) {
         // Update existing chart
         ventureCompanyDetailChart.data.datasets[0].data = history.map(point => ({ x: point.x, y: point.y, stage: point.stage }));
         ventureCompanyDetailChart.options.scales.y.suggestedMin = suggestedMin;
         ventureCompanyDetailChart.options.scales.y.suggestedMax = suggestedMax;
+        if (ventureCompanyDetailChart.options.scales && ventureCompanyDetailChart.options.scales.x) {
+            if (isFailed && firstPoint && lastPoint && Number.isFinite(firstPoint.x) && Number.isFinite(lastPoint.x)) {
+                ventureCompanyDetailChart.options.scales.x.min = firstPoint.x;
+                ventureCompanyDetailChart.options.scales.x.max = lastPoint.x;
+            } else {
+                delete ventureCompanyDetailChart.options.scales.x.min;
+                delete ventureCompanyDetailChart.options.scales.x.max;
+            }
+        }
         ventureCompanyDetailChart.update('none');
         attachVCTooltipGuards(ventureCompanyDetailChart);
     } else if (vcDetailChartCtx) {
         // Create new chart
+        const xScaleConfig = {
+            type: 'time',
+            time: { unit: 'year' }
+        };
+        if (isFailed && firstPoint && lastPoint && Number.isFinite(firstPoint.x) && Number.isFinite(lastPoint.x)) {
+            xScaleConfig.min = firstPoint.x;
+            xScaleConfig.max = lastPoint.x;
+        }
         ventureCompanyDetailChart = new Chart(vcDetailChartCtx, {
             type: 'line',
             data: {
@@ -758,7 +795,7 @@ function updateVentureDetail(companyId) {
                     }
                 },
                 scales: {
-                    x: { type: 'time', time: { unit: 'year' } },
+                    x: xScaleConfig,
                     y: {
                         ticks: {
                             callback: value => vcFormatLargeNumber(value)
@@ -1190,6 +1227,21 @@ function handleVenturePurchase(pct) {
     }
     const usingServer = typeof isServerAuthoritative !== 'undefined' && isServerAuthoritative && typeof sendCommand === 'function' && typeof WebSocket !== 'undefined' && ws && ws.readyState === WebSocket.OPEN;
     if (usingServer) {
+        const serverCash = (typeof serverPlayer === 'object' && serverPlayer && typeof serverPlayer.cash === 'number')
+            ? serverPlayer.cash
+            : (Number.isFinite(availableCashSnapshot) ? availableCashSnapshot : 0);
+        if (serverCash + 1e-6 < amount) {
+            if (typeof showToast === 'function') {
+                showToast(`Insufficient cash for this package. Needed ${vcFormatCurrency(amount)}, you have ${vcFormatCurrency(serverCash)}.`, { tone: 'warn', duration: 5000 });
+            }
+            if (vcLeadRoundNoteEl) {
+                vcLeadRoundNoteEl.textContent = 'Insufficient cash for this package.';
+                vcLeadRoundNoteEl.classList.add('negative');
+                vcLeadRoundNoteEl.classList.remove('positive');
+            }
+            release();
+            return;
+        }
         sendCommand({ type: 'vc_invest', companyId: currentVentureCompanyId, pct });
         if (typeof serverPlayer === 'object' && serverPlayer) {
             serverPlayer.cash = (serverPlayer.cash || 0) - amount;

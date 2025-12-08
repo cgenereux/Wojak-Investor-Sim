@@ -1190,13 +1190,10 @@
       const equityOffered = committedAmount > 0 && committedEquity > 0 ? committedEquity : equityOfferedDefault;
       const dilutedEquity = this.playerEquity * (preMoney / postMoney);
 
-      // Early stage PMF loss with >50% revenue decline forces immediate collapse
-      const pmfForceCollapse = this.pmfCollapseOnNextRound === true;
-      if (pmfForceCollapse) {
-        success = false;
-      }
+      // PMF no longer directly forces collapse; only normal round-failure paths apply.
+      const pmfForceCollapse = false;
 
-      if (!success && (roundFailuresEnabled || pmfForceCollapse)) {
+      if (!success && roundFailuresEnabled) {
         const commitments = closingRound.playerCommitments || {};
         const singlePlayerId = closingRound.commitPlayerId || this.lastCommitPlayerId;
 
@@ -1224,7 +1221,7 @@
         });
 
         this.consecutiveFails = (this.consecutiveFails || 0) + 1;
-        const collapse = pmfForceCollapse || this.consecutiveFails >= this.maxFailuresBeforeCollapse;
+        const collapse = this.consecutiveFails >= this.maxFailuresBeforeCollapse;
 
         if (collapse) {
           // NOTE: We intentionally do NOT clear playerEquity/playerEquityMap here.
@@ -1239,8 +1236,9 @@
             this.bankruptcyAffectedPlayers[pid] = true;
           });
 
-          // PMF collapse: pay out remaining cash to shareholders based on their equity stake
-          if (pmfForceCollapse && this.playerEquityMap && this.cash > 0) {
+          // PMF-driven liquidation disabled for now; standard venture failures do not
+          // pay out residual cash to shareholders.
+          if (false && this.playerEquityMap && this.cash > 0) {
             const cashPool = Math.max(0, this.cash);
             let totalPaidOut = 0;
             Object.entries(this.playerEquityMap).forEach(([pid, equity]) => {
@@ -1270,9 +1268,7 @@
           const failDate = currentDate ? new Date(currentDate) : (this.lastTick ? new Date(this.lastTick) : new Date());
           this.failedAt = failDate;
           this.failedAtWall = Date.now();
-          this.lastEventNote = pmfForceCollapse
-            ? 'PMF loss too severe. Failed to raise; liquidating remaining cash to shareholders.'
-            : `${closingRound.stageLabel} round collapsed twice. Operations halted.`;
+          this.lastEventNote = `${closingRound.stageLabel} round collapsed twice. Operations halted.`;
           this.currentRound = null;
           this.stageChanged = true;
           this.playerInvested = 0;

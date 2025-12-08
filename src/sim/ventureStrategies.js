@@ -157,10 +157,9 @@
       ? company.revenue + (targetRevenue - company.revenue) * smoothing
       : targetRevenue;
 
-    // Early stage PMF loss: if revenue down >50% from ATH, mark for collapse on next round
-    if (state.kind === 'early' && company.revenue < startRev * 0.5) {
-      company.pmfCollapseOnNextRound = true;
-    }
+    // NOTE: PMF no longer directly forces venture bankruptcy; collapse-on-next-round
+    // is disabled for now. Early-stage PMF still damages revenue/margins but does
+    // not auto-trigger a failure.
 
     const fallbackBadMargin = state.kind === 'early' ? -0.6 : -0.25;
     const targetMargin = clampValue(

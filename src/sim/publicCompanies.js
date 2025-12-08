@@ -319,6 +319,7 @@
       // Sync basic properties
       if (typeof snapshot.marketCap === 'number') this.marketCap = snapshot.marketCap;
       if (typeof snapshot.valuation === 'number') this.currentValuation = snapshot.valuation; // Handle naming diff
+      if (typeof snapshot.bankrupt === 'boolean') this.bankrupt = snapshot.bankrupt;
       if (typeof snapshot.cash === 'number') this.cash = snapshot.cash;
       if (typeof snapshot.debt === 'number') this.debt = snapshot.debt;
       if (typeof snapshot.revenue === 'number') this.revenue = snapshot.revenue;
@@ -1244,7 +1245,8 @@
         history: tail(this.history, historyLimit),
         products: productSnapshot,
         fromVenture: this.fromVenture || false,
-        phase: this.phase || 'public'
+        phase: this.phase || 'public',
+        bankrupt: !!this.bankrupt
       };
     }
   }
