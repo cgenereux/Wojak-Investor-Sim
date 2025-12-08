@@ -357,7 +357,7 @@
           "hypergrowth_initial_margin": -0.4,
           "hypergrowth_terminal_margin": 0.26,
           "years_to_converge": 6,
-          "private_listing_window": { "from": 1985, "to": 1985 },
+          "private_listing_window": { "from": 1998, "to": 2012 },
           "pipelineTemplate": [
             {
               "id": "reusable_orbital_stack",
@@ -400,7 +400,7 @@
                   "depends_on": "high_cadence_launch",
                   "success_prob": 0.81,
                   "value_realization": 0.7,
-                  "cost_usd": 1800000000,
+                  "cost_usd": 2100000000,
                   "max_retries": 1
                 },
                 {

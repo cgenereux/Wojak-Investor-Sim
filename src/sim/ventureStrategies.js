@@ -51,36 +51,106 @@
   }
 
   function applyPmfLoss(company, dtYears) {
-    if (!company || !Number.isFinite(dtYears) || dtYears <= 0) return false;
+    if (!company || company.archetype !== 'hypergrowth' || !Number.isFinite(dtYears) || dtYears <= 0) return false;
     const prob = company.pmfLossProbPerYear || 0;
     if (!prob || prob <= 0) return false;
 
     if (!company.hyperPmfState) {
-      company.hyperPmfState = { active: false, elapsed: 0, durationYears: 0, declineRate: 0 };
+      company.hyperPmfState = {
+        active: false,
+        elapsedYears: 0,
+        durationYears: 0,
+        kind: 'late',
+        startRevenue: 0,
+        startMargin: 0
+      };
     }
     const state = company.hyperPmfState;
 
     if (!state.active) {
       const trigger = rng() < prob * dtYears;
       if (trigger) {
+        const stage = company.currentStage || null;
+        const stageId = (stage && (stage.id || stage.label)) ? String(stage.id || stage.label).toLowerCase() : '';
+        const earlyStages = ['seed', 'series_a', 'series a', 'series_b', 'series b'];
+        const isEarly = earlyStages.includes(stageId);
+        state.kind = isEarly ? 'early' : 'late';
         state.active = true;
-        state.elapsed = 0;
+        state.elapsedYears = 0;
         state.durationYears = Math.max(0.25, sampleRange(company.pmfDeclineDurationYears, 2, 3));
-        state.declineRate = sampleRange(company.pmfDeclineRateRange, -0.4, -0.25);
+        state.startRevenue = Math.max(
+          1,
+          Number.isFinite(company.revenue) && company.revenue > 0 ? company.revenue
+            : (Number.isFinite(company.initialRevenue) && company.initialRevenue > 0 ? company.initialRevenue : 1)
+        );
+        const marginNow = Number.isFinite(company.revenue) && company.revenue !== 0
+          ? company.profit / company.revenue
+          : (typeof company.hypergrowthInitialMargin === 'number' ? company.hypergrowthInitialMargin : -0.4);
+        state.startMargin = clampValue(marginNow, -2, 0.6);
+
+        // TEMP: debug PMF loss triggers
+        if (typeof console !== 'undefined' && console && typeof console.log === 'function') {
+          console.log('[PMF LOSS TRIGGERED]', {
+            id: company.id,
+            name: company.name,
+            stage: stageId || 'unknown',
+            kind: state.kind
+          });
+        }
+
+        // Enter PMF phase: end hypergrowth so post-hypergrowth drift can take over later.
+        company.hypergrowthFinished = true;
+        if (Number.isFinite(company.hypergrowthWindowYears) && company.hypergrowthWindowYears > 0) {
+          company.hypergrowthElapsedYears = company.hypergrowthWindowYears;
+        }
       }
     }
 
-    if (state.active) {
-      const factor = Math.pow(1 + state.declineRate, dtYears);
-      company.currentValuation = Math.max(1, company.currentValuation * factor);
-      state.elapsed += dtYears;
-      if (state.elapsed >= state.durationYears) {
-        state.active = false;
-        state.declineRate = 0;
+    if (!state.active) return false;
+
+    const years = dtYears;
+    const dur = Math.max(0.25, state.durationYears || 1);
+    state.elapsedYears += years;
+    const rawProgress = state.elapsedYears / dur;
+    const progress = clampValue(rawProgress, 0, 1);
+
+    const startRev = state.startRevenue || Math.max(1, company.revenue || 1);
+    let targetFactor;
+
+    if (state.kind === 'early') {
+      // Seed–Series B/C: more severe decline.
+      targetFactor = 1 - 0.8 * progress; // 1.0 -> 0.2 over PMF window
+    } else {
+      // Series C–IPO: plateau then decline.
+      const plateauFrac = 0.25;
+      if (progress < plateauFrac) {
+        const plateauProg = progress / plateauFrac;
+        targetFactor = 1 + 0.05 * plateauProg; // up to +5% then down
+      } else {
+        const declineProg = (progress - plateauFrac) / Math.max(1 - plateauFrac, 1e-3);
+        targetFactor = 1.05 - 0.65 * declineProg; // 1.05 -> ~0.4
       }
-      return true;
     }
-    return false;
+    targetFactor = clampValue(targetFactor, 0.05, 1.1);
+
+    const targetRevenue = startRev * targetFactor;
+    const smoothing = 1 - Math.exp(-3 * Math.max(years, 0));
+    company.revenue = company.revenue > 0
+      ? company.revenue + (targetRevenue - company.revenue) * smoothing
+      : targetRevenue;
+
+    const badMargin = state.kind === 'early' ? -0.6 : -0.25;
+    const margin = clampValue(
+      state.startMargin + (badMargin - state.startMargin) * progress,
+      -2,
+      0.6
+    );
+    company.profit = company.revenue * margin;
+
+    if (state.elapsedYears >= state.durationYears) {
+      state.active = false;
+    }
+    return true;
   }
 
   function advanceHypergrowthPreGate(company, dtYears) {

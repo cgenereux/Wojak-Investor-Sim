@@ -151,7 +151,7 @@
         { "name": "Eric Yuan Jr.", "degree": "MSc Computer Science", "school": "Stanford" },
         { "name": "David Chang", "degree": "BSc Computer Engineering", "school": "SJSU" }
       ],
-      "mission": "Video meetings that work for anyone, anywhere.",
+      "mission": "A social network for your next job.",
       "founding_location": "Mountain View, CA",
       "private_listing_window": { "from": 1985, "to": 1985 }
     }
