@@ -81,11 +81,16 @@
         const stageId = (stage && (stage.id || stage.label)) ? String(stage.id || stage.label).toLowerCase() : '';
         const earlyStages = ['seed', 'series_a', 'series a', 'series_b', 'series b'];
         const isEarly = earlyStages.includes(stageId);
-        state.kind = isEarly ? 'early' : 'late';
+        // Disable early-stage PMF loss entirely; allow only later stages
+        // to trigger PMF so early hypergrowth companies do not get hit.
+        if (isEarly) {
+          return false;
+        }
+        state.kind = 'late';
         state.active = true;
         state.elapsedYears = 0;
         const baseDuration = sampleRange(company.pmfDeclineDurationYears, 2, 3);
-        state.durationYears = Math.max(0.25, isEarly ? baseDuration * 2 : baseDuration);
+        state.durationYears = Math.max(0.25, baseDuration);
         state.startRevenue = Math.max(
           1,
           Number.isFinite(company.revenue) && company.revenue > 0 ? company.revenue

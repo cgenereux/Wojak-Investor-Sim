@@ -166,19 +166,34 @@
             const initialRevenue = pickRangeLocal(initialRevenueSource, 1_000_000, 4_000_000);
             const initialPs = pickRangeLocal(initialPsSource, 7, 11);
             const hypergrowthWindowYears = pickRangeLocal(windowYearsSource, 2, 4);
-            const hypergrowthInitialGrowthRate = pickRangeLocal(initialGrowthSource, 0.6, 1.2);
-            const hypergrowthTerminalGrowthRate = pickRangeLocal(terminalGrowthSource, 0.1, 0.25);
+            let hypergrowthInitialGrowthRate = pickRangeLocal(initialGrowthSource, 0.6, 1.2);
+            let hypergrowthTerminalGrowthRate = pickRangeLocal(terminalGrowthSource, 0.1, 0.25);
             const hypergrowthInitialMargin = pickRangeLocal(initialMarginSource, -0.4, -0.1);
             const hypergrowthTerminalMargin = pickRangeLocal(terminalMarginSource, 0.15, 0.3);
             const terminalPs = pickRangeLocal(terminalPsSource, 12, 20);
             const postGateTerminalPs = pickRangeLocal(postGateTerminalPsSource, 4, 7);
             const postGateDecayYears = pickRangeLocal(postGateDecayYearsSource, 5, 9);
 
-            const pmfLossProb = entry.pmf_loss_prob_per_year ?? defaultPmfLossProb;
+            let pmfLossProb = entry.pmf_loss_prob_per_year ?? defaultPmfLossProb;
             const pmfDeclineRange = entry.pmf_decline_rate_range || defaultPmfDeclineRange;
             const pmfDeclineDuration = entry.pmf_decline_duration_years || defaultPmfDeclineDuration;
             const pmfTerminalMarginRange = entry.pmf_terminal_margin_range || entry.pmfTerminalMarginRange || defaultPmfTerminalMarginRange;
             const pmfRecoveryYearsRange = entry.pmf_recovery_years_range || entry.pmfRecoveryYearsRange || defaultPmfRecoveryYearsRange;
+
+            const riskToRewardRaw = entry.risk_to_reward || defaults.risk_to_reward || 'medium';
+            const riskToReward = typeof riskToRewardRaw === 'string' ? riskToRewardRaw.toLowerCase() : 'medium';
+            const basePmfLossProb = pmfLossProb;
+            if (riskToReward === 'high') {
+                hypergrowthInitialGrowthRate *= 1.18;
+                hypergrowthTerminalGrowthRate *= 1.18;
+                // With defaults.pmf_loss_prob_per_year = 0.05, this yields ~0.08.
+                pmfLossProb = basePmfLossProb * 1.6;
+            } else if (riskToReward === 'low') {
+                hypergrowthInitialGrowthRate *= 0.84;
+                hypergrowthTerminalGrowthRate *= 0.84;
+                // With defaults.pmf_loss_prob_per_year = 0.05, this yields ~0.03.
+                pmfLossProb = basePmfLossProb * 0.6;
+            }
 
             const valuation = Math.max(1, initialRevenue * initialPs);
             return {
@@ -196,6 +211,7 @@
                 ipo_stage: entry.ipo_stage || defaults.ipo_stage || 'series_f',
                 binary_success: entry.binary_success ?? defaults.binary_success ?? false,
                 gate_stage: entry.gate_stage || defaults.gate_stage || 'series_c',
+                risk_to_reward: riskToReward,
                 hypergrowth_window_years: hypergrowthWindowYears,
                 hypergrowth_initial_growth_rate: hypergrowthInitialGrowthRate,
                 hypergrowth_terminal_growth_rate: hypergrowthTerminalGrowthRate,

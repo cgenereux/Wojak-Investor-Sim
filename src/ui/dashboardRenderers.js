@@ -469,7 +469,8 @@
       if (hasPending) {
         const inflightKey = `private:${summary.id}:inflight`;
         processedKeys.add(inflightKey);
-        const inflightName = `${summary.name} (${stageLabel}) (In Flight)`;
+        const inflightStageLabel = summary.nextStageLabel || stageLabel;
+        const inflightName = `${summary.name} (${inflightStageLabel}) (In Flight)`;
         const inflightValue = currencyFormatter.format(pendingValue);
         const pendingLabel = `Committed: ${inflightValue}`;
 

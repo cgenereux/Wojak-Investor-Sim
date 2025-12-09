@@ -793,6 +793,97 @@
       this.daysSinceLastRaise += dtDays;
     }
 
+    applyPmfPublicDecline(dtDays, currentDate) {
+      if (!this.pmfPublicDecline) return null;
+      if (this.status === 'failed' || this.status === 'delisted') return null;
+
+      const dtYears = dtDays / DAYS_PER_YEAR;
+
+      // Track age like normal step() would
+      this.ageDays = (this.ageDays || 0) + dtDays;
+      this.pmfPublicDeclineYears = (this.pmfPublicDeclineYears || 0) + dtYears;
+
+      // Continue revenue decline - same logic as early stage PMF loss
+      const state = this.hyperPmfState;
+      if (state) {
+        // Use the PMF start revenue as the baseline for decline
+        const startRev = state.startRevenue || this.pmfIpoRevenue || Math.max(1, this.revenue || 1);
+
+        // Continue the decline: revenue drops toward 20% of start over the 10 year window
+        const progress = Math.min(1, this.pmfPublicDeclineYears / this.pmfPublicDeclineMaxYears);
+        const targetFactor = clampValue(1 - 0.8 * progress, 0.05, 1.1); // 1.0 -> 0.2
+        const targetRevenue = startRev * targetFactor;
+        const smoothing = 1 - Math.exp(-3 * Math.max(dtYears, 0));
+        this.revenue = this.revenue > 0
+          ? this.revenue + (targetRevenue - this.revenue) * smoothing
+          : targetRevenue;
+
+        // Also update baseRevenue so it stays in sync
+        this.baseRevenue = this.revenue;
+
+        // Margins stay bad (same terminal margin from PMF loss)
+        const targetMargin = clampValue(
+          Number.isFinite(state.terminalMargin) ? state.terminalMargin : -0.6,
+          -2,
+          0.6
+        );
+        this.profit = this.revenue * targetMargin;
+
+        // Update valuation based on deteriorating financials
+        const ps = this.currentMultiple || 4;
+        this.currentValuation = Math.max(1, this.revenue * ps * 0.5); // Discount for poor performance
+        this.marketCap = this.currentValuation;
+        this.displayCap = this.marketCap;
+      }
+
+      // After 10 years, delist and pay out market value to shareholders
+      if (this.pmfPublicDeclineYears >= this.pmfPublicDeclineMaxYears) {
+        return this.executepmfDelist(currentDate);
+      }
+
+      return null;
+    }
+
+    executepmfDelist(currentDate) {
+      const events = [];
+      const marketValue = Math.max(0, this.marketCap || this.currentValuation || 0);
+
+      // Pay out market value to shareholders based on their equity
+      if (this.playerEquityMap && marketValue > 0) {
+        Object.entries(this.playerEquityMap).forEach(([pid, equity]) => {
+          if (equity > 0) {
+            const payout = marketValue * equity;
+            if (payout > 0) {
+              events.push({
+                type: 'venture_failed',
+                companyId: this.id,
+                name: this.name,
+                valuation: marketValue,
+                revenue: this.revenue,
+                profit: this.profit,
+                refund: payout,
+                playerId: pid,
+                isDelisting: true
+              });
+            }
+          }
+        });
+      }
+
+      // Mark as delisted/failed
+      this.status = 'failed';
+      this.pmfPublicDecline = false;
+      const failDate = currentDate ? new Date(currentDate) : new Date();
+      this.failedAt = failDate;
+      this.failedAtWall = Date.now();
+      this.lastEventNote = 'Delisted after prolonged PMF decline. Market value paid to shareholders.';
+      this.currentValuation = 0;
+      this.marketCap = 0;
+      this.bankrupt = true;
+
+      return events;
+    }
+
     shouldStartNextRound() {
       if (!this.strategy) return false;
       // If no current round and status isn't failed/exited/ipo, allow strategy to decide.
@@ -897,6 +988,7 @@
             : (this.privatePSMultiple && this.privatePSMultiple > 0 ? this.privatePSMultiple : 6);
           let base = revenueBase * ps;
           base *= between(0.9, 1.1);
+          base *= 1.2;
           fairValue = Math.max(1, base);
         } else {
           fairValue = this.computeFairValue(true);
@@ -1070,7 +1162,13 @@
 
     advance(dtDays, currentDate) {
       if (!this.isPrivatePhase) {
-        // Public phase - use parent Company step function
+        // Public phase
+        // If PMF public decline is active, handle it separately (skip normal step)
+        if (this.pmfPublicDecline) {
+          const pmfEvents = this.applyPmfPublicDecline(dtDays, currentDate);
+          return pmfEvents || [];
+        }
+        // Normal public phase - use parent Company step function
         this.step(dtDays, currentDate);
         return [];
       }
@@ -1504,6 +1602,22 @@
         const stages = Array.isArray(p.stages) ? p.stages : [];
         return stages.length > 0 && !stages.every(s => s && s.completed);
       });
+      const rounds = Array.isArray(this.roundDefinitions)
+        ? this.roundDefinitions.map((r, idx) => ({
+          id: r.id,
+          label: r.label,
+          stageLabel: r.label,
+          index: idx
+        }))
+        : [];
+      const stageIndex = Math.max(
+        0,
+        Math.min(
+          Number.isFinite(this.stageIndex) ? Math.trunc(this.stageIndex) : 0,
+          Math.max(0, rounds.length - 1)
+        )
+      );
+      const nextStage = rounds.length && stageIndex + 1 < rounds.length ? rounds[stageIndex + 1] : null;
       return {
         id: this.id,
         name: this.name,
@@ -1514,6 +1628,7 @@
         founding_location: this.foundingLocation || '',
         valuation: this.currentValuation,
         stageLabel: this.currentStage ? this.currentStage.label : 'N/A',
+        nextStageLabel: nextStage ? nextStage.label : null,
         status: this.getStatusLabel(),
         playerEquityPercent: this.playerEquity * 100,
         pendingCommitment: this.pendingCommitment || 0,
@@ -1670,15 +1785,24 @@
       this.playerEquityMap = this.playerEquityMap || {};
       this.postGateMode = false;
       this.postGatePending = false;
-      // Finalize any PMF loss state so it doesn't drag margins post-IPO
+      // Handle PMF loss state at IPO
       if (this.hyperPmfState && (this.hyperPmfState.active || this.hyperPmfState.recoveryActive)) {
-        this.hyperPmfState.active = false;
-        this.hyperPmfState.recoveryActive = false;
-        // Reset lastRoundMargin to terminal margin so the margin curve sync uses healthy values
-        const terminalMargin = typeof this.hypergrowthTerminalMargin === 'number'
-          ? this.hypergrowthTerminalMargin
-          : (this.postGateMargin || 0.18);
-        this.lastRoundMargin = terminalMargin;
+        if (this.hyperPmfState.kind === 'early') {
+          // Early stage PMF: continue decline post-IPO for 10 years, then delist
+          this.pmfPublicDecline = true;
+          this.pmfPublicDeclineStartDate = effectiveDate;
+          this.pmfPublicDeclineYears = 0;
+          this.pmfPublicDeclineMaxYears = 10;
+          // Keep the PMF state active so decline logic can reference it
+        } else {
+          // Late stage: clear PMF state normally
+          this.hyperPmfState.active = false;
+          this.hyperPmfState.recoveryActive = false;
+          const terminalMargin = typeof this.hypergrowthTerminalMargin === 'number'
+            ? this.hypergrowthTerminalMargin
+            : (this.postGateMargin || 0.18);
+          this.lastRoundMargin = terminalMargin;
+        }
       }
       this.hasPipelineUpdate = true;
       this.lastEventNote = `IPO completed at $${Math.round(this.currentValuation).toLocaleString()}.`;
@@ -1705,30 +1829,55 @@
       const stage = this.getStageFinancials();
       const ps = stage && stage.ps ? stage.ps : 6;
       const macroFactor = this.macroEnv ? this.macroEnv.getValue(this.sector) : 1;
+      const hadEarlyPmf = !!(this.hyperPmfState && this.hyperPmfState.hasTriggered && this.hyperPmfState.kind === 'early');
       // For hypergrowth IPOs, respect the venture-side revenue curve and avoid
       // back-solving a higher revenue level from valuation / IPO P/S.
-      const revenueSnapshot = this.archetype === 'hypergrowth'
-        ? Math.max(
-          1,
-          this.revenue || 0,
-          this.lastRoundRevenue || 0,
-          this.baseRevenue || 0
-        )
-        : Math.max(
+      let revenueSnapshot;
+      if (this.archetype === 'hypergrowth') {
+        if (hadEarlyPmf) {
+          // Early-PMF hypergrowth: respect the damaged venture-side revenue curve
+          // and do not resurrect pre-PMF base/round levels at IPO.
+          revenueSnapshot = Math.max(1, this.revenue || 0);
+        } else {
+          revenueSnapshot = Math.max(
+            1,
+            this.revenue || 0,
+            this.lastRoundRevenue || 0,
+            this.baseRevenue || 0
+          );
+        }
+      } else {
+        revenueSnapshot = Math.max(
           1,
           this.revenue || 0,
           this.lastRoundRevenue || 0,
           this.baseRevenue || 0,
           this.currentValuation / Math.max(ps, 1)
         );
+      }
       const denom = Math.max(1e-3, macroFactor * Math.max(this.micro || 1, 0.05) * Math.max(this.revMult || 1, 0.05));
       const pipelineSignal = (unlockedPV + optionPV) / Math.max(ps, 1);
       const normalizedBase = (revenueSnapshot + pipelineSignal + (this.flatRev || 0)) / denom;
-      this.baseRevenue = Math.max(1, normalizedBase);
-      // Preserve the stronger of existing revenue or the snapshot so we don't zero out growth on IPO.
-      this.revenue = Math.max(this.revenue || 0, revenueSnapshot);
 
-      if (this.marginCurve && isFinite(this.lastRoundMargin)) {
+      // For early PMF decline companies, don't pump revenue - keep it at current declining level
+      if (this.pmfPublicDecline) {
+        this.pmfIpoRevenue = this.revenue || 1; // Save for decline reference
+        this.baseRevenue = this.revenue || 1;
+        // Don't do the Math.max pump
+      } else if (hadEarlyPmf) {
+        // If the company was hit by early-stage PMF loss at any point, clamp
+        // the IPO-era baseRevenue to the current run-rate instead of a
+        // back-solved higher level from valuation / pipeline.
+        this.baseRevenue = Math.max(1, this.revenue || revenueSnapshot);
+        // Do not raise revenue above the current PMF-damaged path.
+      } else {
+        this.baseRevenue = Math.max(1, normalizedBase);
+        // Preserve the stronger of existing revenue or the snapshot so we don't zero out growth on IPO.
+        this.revenue = Math.max(this.revenue || 0, revenueSnapshot);
+      }
+
+      // Skip margin curve sync for early PMF companies - they handle margins separately
+      if (!this.pmfPublicDecline && this.marginCurve && isFinite(this.lastRoundMargin)) {
         const startMargin = this.marginCurve.s;
         const endMargin = this.marginCurve.t;
         const span = endMargin - startMargin;

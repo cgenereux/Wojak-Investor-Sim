@@ -1,3 +1,6 @@
 node_modules/
 server/node_modules/
 legacy/
+tests/vc_sim_runner.js
+tests/sim_output_debug.txt
+tests/sim_output.txt

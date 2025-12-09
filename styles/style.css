@@ -1259,10 +1259,16 @@ button.speed-active:hover {
     margin-bottom: 20px;
 }
 
+.detail-header-left {
+    flex: 1 1 55%;
+    min-width: 0;
+}
+
 .detail-header-right {
     display: flex;
     gap: 20px;
     align-items: flex-start;
+    flex: 0 0 40%;
 }
 
 .detail-title {
@@ -1296,6 +1302,7 @@ button.speed-active:hover {
     margin: 4px 0;
     color: #374151;
     font-size: 15px;
+    max-width: 60ch;
 }
 
 .detail-meta-row {

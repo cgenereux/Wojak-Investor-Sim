@@ -7,6 +7,7 @@
       "funding_round": "Seed",
       "ipo_stage": "series_f",
       "gate_stage": "series_c",
+      "risk_to_reward": "medium",
       "founders": [
         { "name": "Peter Johnson", "degree": "BSc Computer Science", "school": "Stanford" },
         { "name": "Eric Rovolo", "degree": "BComm", "school": "UBC" }
@@ -22,13 +23,14 @@
       "funding_round": "Seed",
       "ipo_stage": "series_f",
       "gate_stage": "series_c",
+      "risk_to_reward": "low",
       "founders": [
         { "name": "Ross Ulrich", "degree": "BSc Computer Science", "school": "UWaterloo" },
         { "name": "Alex Carr", "degree": "BSc Computer Systems", "school": "UWaterloo" }
       ],
       "mission": "Securing electronic commerce in the Internet age.",
       "founding_location": "Palo Alto, CA",
-      "private_listing_window": { "from": 2000, "to": 2008 }
+      "private_listing_window": { "from": 2010, "to": 2015 }
     },
     {
       "name": "StreamCast",
@@ -37,6 +39,7 @@
       "funding_round": "Seed",
       "ipo_stage": "series_f",
       "gate_stage": "series_c",
+      "risk_to_reward": "medium",
       "founders": [
         { "name": "Jason Shmitt", "degree": "BSc Computer Science", "school": "NYU" },
         { "name": "Jawed Chen", "degree": "BSc Computer Engineering", "school": "Columbia" }
@@ -54,6 +57,7 @@
       "funding_round": "Seed",
       "ipo_stage": "series_f",
       "gate_stage": "series_c",
+      "risk_to_reward": "high",
       "founders": [
         { "name": "Maya Torres", "degree": "BS Supply Chain Management", "school": "ASU" },
         { "name": "Daniel Park", "degree": "MS Computer Science", "school": "Stanford" }
@@ -70,6 +74,7 @@
       "funding_round": "Seed",
       "ipo_stage": "series_f",
       "gate_stage": "series_c",
+      "risk_to_reward": "high",
       "founders": [
         { "name": "Lauren Kim", "degree": "BS Mechanical Engineering", "school": "UC Berkeley" },
         { "name": "Andre Miller", "degree": "BS Computer Science", "school": "SJSU" }
@@ -86,6 +91,7 @@
       "funding_round": "Seed",
       "ipo_stage": "series_f",
       "gate_stage": "series_c",
+      "risk_to_reward": "medium",
       "founders": [
         { "name": "Carlos Ramirez", "degree": "BA Economics", "school": "UC Berkeley" },
         { "name": "Jenna Lee", "degree": "BS Information Systems", "school": "SFSU" }
@@ -100,6 +106,7 @@
       "sector": "Technology",
       "subsector": "Web Technology",
       "funding_round": "Seed",
+      "risk_to_reward": "high",
       "ipo_stage": "series_f",
       "gate_stage": "series_c",
       "founders": [
@@ -123,6 +130,7 @@
       ],
       "mission": "Making sending money as easy as sending an email.",
       "founding_location": "Palo Alto, CA",
+      "risk_to_reward": "medium",
       "private_listing_window": { "from": 1993, "to": 2007 }
     },
     {
@@ -138,7 +146,8 @@
       ],
       "mission": "Democratizing finance with commission free stock trading for everyone.",
       "founding_location": "Palo Alto, CA",
-      "private_listing_window": { "from": 2007, "to": 2021 }
+      "risk_to_reward": "high",
+      "private_listing_window": { "from": 2009, "to": 2020 }
     },
     {
       "name": "LockedIn",
@@ -147,13 +156,14 @@
       "funding_round": "Seed",
       "ipo_stage": "series_f",
       "gate_stage": "series_c",
+      "risk_to_reward": "medium",
       "founders": [
         { "name": "Eric Yuan Jr.", "degree": "MSc Computer Science", "school": "Stanford" },
         { "name": "David Chang", "degree": "BSc Computer Engineering", "school": "SJSU" }
       ],
       "mission": "A social network for your next job.",
       "founding_location": "Mountain View, CA",
-      "private_listing_window": { "from": 1985, "to": 1985 }
+      "private_listing_window": { "from": 2008, "to": 2015 }
     }
 
   ],
