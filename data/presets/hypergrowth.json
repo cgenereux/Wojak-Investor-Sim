@@ -30,7 +30,7 @@
       ],
       "mission": "Securing electronic commerce in the Internet age.",
       "founding_location": "Palo Alto, CA",
-      "private_listing_window": { "from": 2010, "to": 2015 }
+      "private_listing_window": { "from": 1985, "to": 1985 }
     },
     {
       "name": "StreamCast",
@@ -147,7 +147,7 @@
       "mission": "Democratizing finance with commission free stock trading for everyone.",
       "founding_location": "Palo Alto, CA",
       "risk_to_reward": "high",
-      "private_listing_window": { "from": 2009, "to": 2020 }
+      "private_listing_window": { "from": 1985, "to": 1985 }
     },
     {
       "name": "LockedIn",
@@ -163,7 +163,7 @@
       ],
       "mission": "A social network for your next job.",
       "founding_location": "Mountain View, CA",
-      "private_listing_window": { "from": 2008, "to": 2015 }
+      "private_listing_window": { "from": 1985, "to": 1985 }
     }
 
   ],

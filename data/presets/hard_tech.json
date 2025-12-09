@@ -441,7 +441,7 @@
           "hypergrowth_initial_margin": -0.28,
           "hypergrowth_terminal_margin": 0.24,
           "years_to_converge": 6,
-          "private_listing_window": { "from": 1995, "to": 2009 },
+          "private_listing_window": { "from": 1985, "to": 1985 },
           "pipelineTemplate": [
             {
               "id": "helio_platform",
