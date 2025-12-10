@@ -226,6 +226,7 @@ function startTickLoop(session) {
       ventureEvents,
       venture: session.ventureSim ? session.ventureSim.getTickSnapshot() : null,
       dividendEvents,
+      macroEvents: session.sim.getActiveMacroEvents ? session.sim.getActiveMacroEvents() : [],
       players: Array.from(session.players.values()).map(p => serializePlayer(p, session.sim))
     };
     cacheAndBroadcast(session, payload);

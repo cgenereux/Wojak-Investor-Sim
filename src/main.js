@@ -904,6 +904,10 @@ function applyTick(tick) {
     if (Array.isArray(tick.ventureEvents) && tick.ventureEvents.length > 0) {
         handleVentureEvents(tick.ventureEvents);
     }
+    // Handle macro events from server in multiplayer
+    if (Array.isArray(tick.macroEvents)) {
+        updateMacroEventsDisplay(tick.macroEvents);
+    }
     let activeFinancialChanged = false;
     tick.companies.forEach(update => {
         if (delistedBankruptIds.has(update.id) && update.bankrupt) {
@@ -1778,9 +1782,10 @@ function renderPlayerLeaderboard(players = []) {
     }
 }
 
-function updateMacroEventsDisplay() {
+function updateMacroEventsDisplay(serverEvents = null) {
     if (!macroEventsDisplay) return;
-    const events = (sim && typeof sim.getActiveMacroEvents === 'function') ? sim.getActiveMacroEvents() : [];
+    // Use server events in multiplayer, local sim events in single player
+    const events = serverEvents || ((sim && typeof sim.getActiveMacroEvents === 'function') ? sim.getActiveMacroEvents() : []);
     macroEventsDisplay.style.display = 'none'; // hide legacy pill bar
     macroEventsDisplay.innerHTML = '';
     macroEventsDisplay.classList.remove('active');

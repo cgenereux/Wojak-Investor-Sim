@@ -264,7 +264,7 @@
           "gate_stage": "series_c",
           "ipo_stage": "series_d",
           "rounds_override": ["seed", "series_a", "series_b", "series_c", "series_d"],
-          "initial_valuation_realization": 0.025,
+          "initial_valuation_realization": 0.008,
           "value_realization_ps": 10,
           "founders": [
             { "name": "Dr. Arjun Mehta", "degree": "PhD", "school": "MIT" },
@@ -303,7 +303,7 @@
           "gate_stage": "series_c",
           "ipo_stage": "series_d",
           "rounds_override": ["seed", "series_a", "series_b", "series_c", "series_d"],
-          "initial_valuation_realization": 0.03,
+          "initial_valuation_realization": 0.022,
           "value_realization_ps": 6,
           "founders": [
             { "name": "Liang Zhao", "degree": "PhD", "school": "Caltech" },
@@ -324,9 +324,9 @@
               "label": "SynthWeave Composite Platform",
               "full_revenue_usd": [8000000000, 34000000000],
               "stages": [
-                { "id": "novel_polymer", "name": "Novel Polymer Chemistry", "duration_days": 640, "success_prob": 0.61, "value_realization": 0.05, "cost_usd": 220000000, "max_retries": 0 },
-                { "id": "pilot_line", "name": "Pilot Line & Test Parts", "duration_days": 700, "depends_on": "novel_polymer", "success_prob": 0.64, "value_realization": 0.15, "cost_usd": 450000000, "max_retries": 0 },
-                { "id": "structural_cert", "name": "Structural Certification & Standards", "duration_days": 760, "depends_on": "pilot_line", "success_prob": 0.76, "value_realization": 0.32, "cost_usd": 650000000, "max_retries": 0 },
+                { "id": "novel_polymer", "name": "Novel Polymer Chemistry", "duration_days": 640, "success_prob": 0.61, "value_realization": 0.06, "cost_usd": 220000000, "max_retries": 0 },
+                { "id": "pilot_line", "name": "Pilot Line & Test Parts", "duration_days": 700, "depends_on": "novel_polymer", "success_prob": 0.64, "value_realization": 0.22, "cost_usd": 450000000, "max_retries": 0 },
+                { "id": "structural_cert", "name": "Structural Certification & Standards", "duration_days": 760, "depends_on": "pilot_line", "success_prob": 0.76, "value_realization": 0.43, "cost_usd": 650000000, "max_retries": 0 },
                 { "id": "gigafactory_scale", "name": "Giga-Scale Production", "duration_days": 720, "depends_on": "structural_cert", "success_prob": 0.83, "value_realization": 0.65, "cost_usd": 900000000, "max_retries": 0 },
                 { "id": "global_oem", "name": "Global OEM Integration", "duration_days": 540, "depends_on": "gigafactory_scale", "success_prob": 0.92, "value_realization": 1, "cost_usd": 800000000, "max_retries": 0, "commercialises_revenue": true }
               ]
@@ -426,7 +426,7 @@
           "gate_stage": "series_c",
           "ipo_stage": "series_d",
           "rounds_override": ["seed", "series_a", "series_b", "series_c", "series_d"],
-          "initial_valuation_realization": 0.035,
+          "initial_valuation_realization": 0.01,
           "value_realization_ps": 5,
           "founders": [
             { "name": "Amira Solberg", "degree": "MS", "school": "Stanford" },
@@ -453,7 +453,7 @@
                   "name": "Battery Platform & Gigafactory",
                   "duration_days": 800,
                   "success_prob": 0.49,
-                  "value_realization": 0.1,
+                  "value_realization": 0.04,
                   "cost_usd": 120000000,
                   "max_retries": 0
                 },
@@ -463,7 +463,7 @@
                   "duration_days": 900,
                   "depends_on": "battery_gigafactory",
                   "success_prob": 0.56,
-                  "value_realization": 0.24,
+                  "value_realization": 0.18,
                   "cost_usd": 250000000,
                   "max_retries": 0
                 },
@@ -473,7 +473,7 @@
                   "duration_days": 780,
                   "depends_on": "mass_market_ev",
                   "success_prob": 0.62,
-                  "value_realization": 0.62,
+                  "value_realization": 0.41,
                   "cost_usd": 220000000,
                   "max_retries": 0
                 },
@@ -483,7 +483,7 @@
                   "duration_days": 820,
                   "depends_on": "energy_storage",
                   "success_prob": 0.78,
-                  "value_realization": 0.76,
+                  "value_realization": 0.7,
                   "cost_usd": 260000000,
                   "max_retries": 0
                 },
