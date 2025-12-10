@@ -22,12 +22,6 @@ const PORT = process.env.PORT || 4000;
 const ANNUAL_INTEREST_RATE = 0.07;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const DEFAULT_TICK_INTERVAL_MS = 500;
-// Approximate 5 in-game years of visibility for bankrupt public/venture holdings
-// at the default tick rate. When the server tick speed is adjusted in debug mode,
-// we scale these delays inversely with the speed factor so the in-game TTL stays
-// roughly consistent in real time.
-const BANKRUPT_PURGE_DELAY_MS = Math.round((5 * 365 / 14) * DEFAULT_TICK_INTERVAL_MS);
-const VENTURE_BANKRUPT_PURGE_DELAY_MS = BANKRUPT_PURGE_DELAY_MS;
 const GAME_START_YEAR = 1985;
 const GAME_END_YEAR = 2050;
 const MAX_CONNECTIONS = Number(process.env.MAX_CONNECTIONS || 50);
@@ -49,11 +43,6 @@ function getTickIntervalMs(session) {
   const minMs = 50;
   const maxMs = 5000;
   return Math.min(maxMs, Math.max(minMs, raw));
-}
-
-function getSpeedFactor(session) {
-  const interval = getTickIntervalMs(session);
-  return DEFAULT_TICK_INTERVAL_MS / interval;
 }
 
 function canonicalizePlayerId(id) {
@@ -187,7 +176,6 @@ async function buildMatch(seed = Date.now()) {
     idleGuardTimer: null,
     clientActivity: new Map(),
     idleCheckHandle: null,
-    bankruptRemovalTimers: new Map(),
     tickIntervalMs: DEFAULT_TICK_INTERVAL_MS,
     localDebugAllowed: false
   };
@@ -223,14 +211,16 @@ function startTickLoop(session) {
     const ventureEvents = sanitizeVentureEvents(ventureEventsRaw);
     accrueInterest(session, dtDays);
     const dividendEvents = distributeDividends(session);
-    scheduleBankruptHoldingCleanup(session);
-    const payload = {
-      type: 'tick',
-      lastTick: session.sim.lastTick ? session.sim.lastTick.toISOString() : null,
-      companies: session.sim.companies.map(c => {
+    const refDate = session.sim.lastTick || GAME_START_DATE;
+    const companiesPayload = session.sim.companies
+      .filter(c => {
+        if (c && typeof c.isVisibleAt === 'function') {
+          return c.isVisibleAt(refDate);
+        }
+        return true;
+      })
+      .map(c => {
         if (typeof c.toSnapshot === 'function') {
-          // Send minimal price history for most names, but a richer tail
-          // for venture spinouts so pre-IPO history is preserved client-side.
           const fromVenture = c.fromVenture || (c.static && c.static.fromVenture);
           const historyLimit = fromVenture ? FROM_VENTURE_TICK_HISTORY_LIMIT : TICK_HISTORY_LIMIT;
           return c.toSnapshot({ historyLimit, quarterLimit: TICK_QUARTER_LIMIT });
@@ -240,7 +230,11 @@ function startTickLoop(session) {
           marketCap: c.marketCap,
           history: c.history ? c.history.slice(-1) : []
         };
-      }),
+      });
+    const payload = {
+      type: 'tick',
+      lastTick: session.sim.lastTick ? session.sim.lastTick.toISOString() : null,
+      companies: companiesPayload,
       ventureEvents,
       venture: session.ventureSim ? session.ventureSim.getTickSnapshot() : null,
       dividendEvents,
@@ -300,7 +294,6 @@ function cacheAndBroadcast(session, tick) {
 function endSession(session, reason = 'timeline_end') {
   if (session.ended) return;
   session.ended = true;
-  clearBankruptCleanupTimers(session);
   stopTickLoop(session);
   const idleSeconds = reason === 'idle_timeout' ? SESSION_IDLE_TIMEOUT_MS / 1000 : null;
   broadcast(session, {
@@ -522,58 +515,6 @@ function distributeDividends(session) {
   return events;
 }
 
-function scheduleBankruptHoldingCleanup(session) {
-  if (!session || !session.sim || !Array.isArray(session.sim.companies)) return;
-  session.sim.companies.forEach(company => {
-    if (!company || !company.bankrupt || !company.id) return;
-    if (session.bankruptRemovalTimers.has(company.id)) return;
-    const speedFactor = Math.max(0.25, getSpeedFactor(session) || 1);
-    const ttlMs = Math.max(1000, BANKRUPT_PURGE_DELAY_MS / speedFactor);
-    const timer = setTimeout(() => {
-      if (!session || session.ended) return;
-      session.players.forEach(player => {
-        if (player && player.holdings && player.holdings[company.id]) {
-          delete player.holdings[company.id];
-        }
-      });
-      session.bankruptRemovalTimers.delete(company.id);
-      broadcastPlayers(session);
-    }, ttlMs);
-    session.bankruptRemovalTimers.set(company.id, timer);
-  });
-}
-
-function clearBankruptCleanupTimers(session) {
-  if (!session || !session.bankruptRemovalTimers) return;
-  session.bankruptRemovalTimers.forEach((timer, key) => {
-    try { clearTimeout(timer); } catch (err) { /* ignore */ }
-    session.bankruptRemovalTimers.delete(key);
-  });
-}
-
-function scheduleVentureBankruptHoldingCleanup(session, companyId) {
-  if (!session || !companyId) return;
-  // Use the same map but prefix with 'vc:' to distinguish from public companies
-  const key = `vc:${companyId}`;
-  if (session.bankruptRemovalTimers.has(key)) return;
-   const speedFactor = Math.max(0.25, getSpeedFactor(session) || 1);
-   const ttlMs = Math.max(1000, VENTURE_BANKRUPT_PURGE_DELAY_MS / speedFactor);
-  const timer = setTimeout(() => {
-    if (!session || session.ended) return;
-    session.players.forEach(player => {
-      if (player && player.ventureHoldings && player.ventureHoldings[companyId]) {
-        delete player.ventureHoldings[companyId];
-      }
-      if (player && player.ventureCommitments && player.ventureCommitments[companyId]) {
-        delete player.ventureCommitments[companyId];
-      }
-    });
-    session.bankruptRemovalTimers.delete(key);
-    broadcastPlayers(session);
-  }, ttlMs);
-  session.bankruptRemovalTimers.set(key, timer);
-}
-
 function sanitizeVentureEvents(events) {
   if (!Array.isArray(events)) return [];
   return events.map(evt => {
@@ -659,8 +600,6 @@ function handleVentureEventsSession(session, events) {
           delete player.ventureCommitments[evt.companyId];
         }
       }
-      // Schedule delayed cleanup so players can see the bankrupt VC holding for a while
-      scheduleVentureBankruptHoldingCleanup(session, evt.companyId);
       return;
     }
     if (evt.type === 'venture_ipo') {
@@ -764,6 +703,82 @@ function handleCommand(session, player, msg) {
       type: 'debug_set_speed',
       speed: clamped,
       intervalMs: interval
+    };
+  }
+  if (type === 'debug_bankrupt_company') {
+    if (!session.localDebugAllowed) {
+      return { ok: false, error: 'unauthorized' };
+    }
+    const role = session.playerRoles.get(player.id) || 'guest';
+    if (role !== 'host') {
+      return { ok: false, error: 'unauthorized' };
+    }
+    const rawName = (msg.companyName || msg.name || '').toString().trim();
+    if (!rawName) {
+      return { ok: false, error: 'bad_name' };
+    }
+    const targetKey = rawName.toLowerCase();
+    const now = session.sim.lastTick ? new Date(session.sim.lastTick) : GAME_START_DATE;
+
+    // Try public market first
+    let company = null;
+    if (session.sim && Array.isArray(session.sim.companies)) {
+      company = session.sim.companies.find(c => c && typeof c.name === 'string' && c.name.toLowerCase() === targetKey);
+    }
+    if (company && typeof company.markBankrupt === 'function') {
+      try {
+        company.markBankrupt(now);
+      } catch (err) {
+        return { ok: false, error: 'failed' };
+      }
+      return {
+        ok: true,
+        type: 'debug_bankrupt_company',
+        scope: 'public',
+        companyId: company.id || null,
+        name: company.name || rawName
+      };
+    }
+
+    // Fallback: try venture companies by name
+    const ventureSim = session.ventureSim;
+    let vc = null;
+    if (ventureSim && Array.isArray(ventureSim.companies)) {
+      vc = ventureSim.companies.find(c => c && typeof c.name === 'string' && c.name.toLowerCase() === targetKey);
+    }
+    if (!vc) {
+      return { ok: false, error: 'not_found' };
+    }
+    // Use existing failure helpers where possible
+    try {
+      if (typeof vc.handleHardTechFailure === 'function') {
+        vc.handleHardTechFailure(now);
+        // handleHardTechFailure stashes a pendingHardTechFailure event; consume it so
+        // the next tick will process it as normal venture_failed.
+        const ev = vc.pendingHardTechFailure;
+        if (ev && Array.isArray(ventureSim._pendingDebugEvents)) {
+          ventureSim._pendingDebugEvents.push(ev);
+        } else if (ev) {
+          ventureSim._pendingDebugEvents = [ev];
+        }
+      } else {
+        // Generic debug failure path if no hard-tech helper is present
+        vc.status = 'failed';
+        vc.currentValuation = 0;
+        vc.marketCap = 0;
+        vc.failedAt = now;
+        vc.failedAtWall = Date.now();
+        vc.lastEventNote = 'Debug: forced failure.';
+      }
+    } catch (err) {
+      return { ok: false, error: 'failed' };
+    }
+    return {
+      ok: true,
+      type: 'debug_bankrupt_company',
+      scope: 'venture',
+      companyId: vc.id || null,
+      name: vc.name || rawName
     };
   }
   if (type === 'start_game') {

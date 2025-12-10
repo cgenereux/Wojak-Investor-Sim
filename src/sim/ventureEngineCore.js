@@ -444,7 +444,21 @@
         const idx = this.roundDefinitions.findIndex(r => r.label === snapshot.stageLabel || r.id === snapshot.stageLabel);
         if (idx >= 0) this.stageIndex = idx;
       }
-      if (snapshot.status) this.status = snapshot.status;
+      if (snapshot.status) {
+        const rawStatus = String(snapshot.status).toLowerCase();
+        if (rawStatus === 'failed') {
+          this.status = 'failed';
+        } else if (rawStatus === 'exited (ipo)' || rawStatus === 'ipo') {
+          this.status = 'ipo';
+        } else if (rawStatus === 'ipo ready' || rawStatus === 'ipo_pending') {
+          this.status = 'ipo_pending';
+        } else if (rawStatus === 'exited') {
+          this.status = 'exited';
+        } else {
+          // Fallback: keep whatever the snapshot sent
+          this.status = snapshot.status;
+        }
+      }
       if (typeof snapshot.playerEquity === 'number') this.playerEquity = snapshot.playerEquity;
       if (typeof snapshot.playerEquityPercent === 'number') this.playerEquityPercent = snapshot.playerEquityPercent; // Helper prop often sent
       if (typeof snapshot.pendingCommitment === 'number') this.pendingCommitment = snapshot.pendingCommitment;
@@ -452,6 +466,18 @@
       if (snapshot.lastEventNote) this.lastEventNote = snapshot.lastEventNote;
       if (typeof snapshot.runwayDays === 'number') this.cachedRunwayDays = snapshot.runwayDays;
       if (typeof snapshot.daysSinceRound === 'number') this.daysSinceRound = snapshot.daysSinceRound;
+
+      // Sync failure timestamps if provided (used for 5-year TTL + UI)
+      const rawFailedAt = snapshot.failedAt || snapshot.failed_at;
+      if (rawFailedAt) {
+        const d = new Date(rawFailedAt);
+        if (!Number.isNaN(d.getTime())) {
+          this.failedAt = d;
+        }
+      }
+      if (Number.isFinite(snapshot.failed_at_wall)) {
+        this.failedAtWall = snapshot.failed_at_wall;
+      }
 
       // Sync Round Info
       if (snapshot.currentRound) {
@@ -1705,6 +1731,7 @@
         founders: Array.isArray(this.founders) ? this.founders.map(f => ({ ...f })) : [],
         mission: this.mission || '',
         founding_location: this.foundingLocation || '',
+        failedAt: this.failedAt instanceof Date ? this.failedAt.toISOString() : null,
         valuation: this.currentValuation,
         stageLabel: stage ? stage.label : 'N/A',
         status: this.getStatusLabel(),
@@ -2130,9 +2157,9 @@
       return company.commitInvestment(equityFraction, playerId);
     }
 
-    getCompanySummaries(currentDate = null) {
-      const now = currentDate ? new Date(currentDate) : (this.lastTick ? new Date(this.lastTick) : new Date());
-      const cutoffMs = now.getTime() - VENTURE_FAIL_TTL_MS;
+    _refreshVisibleCompanies(now) {
+      const ref = now instanceof Date ? now : (this.lastTick ? new Date(this.lastTick) : new Date());
+      const cutoffMs = ref.getTime() - VENTURE_FAIL_TTL_MS;
 
       // Prune only long-dead failures from the master list (based on game time, not wall clock)
       this.companies = this.companies.filter(company => {
@@ -2148,19 +2175,23 @@
         return true;
       });
 
-      return this.companies
-        .filter(company => {
-          if (!company) return false;
-          if (company.exited) return false;
-          // Keep ALL failed companies visible until the 5-year TTL prunes them from the master list
-          // This allows users to see bankrupt companies in the market for context
-          if (company.status === 'failed') {
-            return true;
-          }
-          if (!company.isActiveOnDate(now) && !company.hasPlayerPosition()) return false;
+      return this.companies.filter(company => {
+        if (!company) return false;
+        if (company.exited) return false;
+        // Keep ALL failed companies visible until the 5-year TTL prunes them from the master list
+        // This allows users to see bankrupt companies in the market for context
+        if (company.status === 'failed') {
           return true;
-        })
-        .map(company => company.getSummary(now));
+        }
+        if (!company.isActiveOnDate(ref) && !company.hasPlayerPosition()) return false;
+        return true;
+      });
+    }
+
+    getCompanySummaries(currentDate = null) {
+      const now = currentDate ? new Date(currentDate) : (this.lastTick ? new Date(this.lastTick) : new Date());
+      const visible = this._refreshVisibleCompanies(now);
+      return visible.map(company => company.getSummary(now));
     }
 
     getCompanyDetail(companyId, currentDate = null) {
@@ -2210,20 +2241,23 @@
     exportState(options = {}) {
       const detail = options.detail || false;
       const now = this.lastTick ? new Date(this.lastTick) : null;
+      const visible = now ? this._refreshVisibleCompanies(now) : this.companies;
       return {
         seed: this.seed ?? null,
         lastTick: this.lastTick ? this.lastTick.toISOString() : null,
         companies: detail
-          ? this.companies.map(c => c.getDetail(now))
-          : this.companies.map(c => c.getSummary(now))
+          ? visible.map(c => c.getDetail(now))
+          : visible.map(c => c.getSummary(now))
       };
     }
 
     getTickSnapshot() {
+      const now = this.lastTick ? new Date(this.lastTick) : new Date();
+      const visible = this._refreshVisibleCompanies(now);
       return {
         seed: this.seed ?? null,
         lastTick: this.lastTick ? this.lastTick.toISOString() : null,
-        companies: this.companies.map(c => c.getTickSnapshot())
+        companies: visible.map(c => c.getTickSnapshot())
       };
     }
   }

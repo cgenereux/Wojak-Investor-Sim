@@ -595,17 +595,6 @@ const seenVentureIds = new Set();
 let unseenVentureCount = 0;
 const ENABLE_LOCAL_BANKRUPTCY_TEST = false;
 const BANKRUPTCY_TEST_DELAY_MS = 12000;
-// 5 years in game time: at 1x speed, each tick is ~500ms covering 4 game days
-// 5 years = 5 * 365 = 1825 days = ~456 ticks = ~228 seconds at 1x speed
-// With the current Simulation step of 14 game-days per 500ms tick, 5 in-game years
-// correspond to ~130 ticks. This is ~65 seconds of real time at 1x speed, and the
-// effective delay scales with the speed slider in singleplayer.
-const HOLDING_PURGE_DELAY_MS = Math.round((5 * 365 / 14) * 500);
-const BANKRUPT_CLEANUP_BASE_MS = HOLDING_PURGE_DELAY_MS; // Same delay for market visibility
-let bankruptcyTestTimer = null;
-const holdingsPurgeTimers = new Map();
-const bankruptCleanupTimers = new Map();
-const delistedBankruptIds = new Set();
 
 function resetClientStateForMultiplayer() {
     pauseGame();
@@ -913,9 +902,6 @@ function applyTick(tick) {
     }
     let activeFinancialChanged = false;
     tick.companies.forEach(update => {
-        if (delistedBankruptIds.has(update.id) && update.bankrupt) {
-            return; // keep delisted bankrupts out of the client list
-        }
         let existing = companies.find(c => c.id === update.id);
         if (existing) {
             const prevHistory = Array.isArray(existing.history) ? existing.history.slice() : [];
@@ -924,6 +910,7 @@ function applyTick(tick) {
             existing.syncFromSnapshot(update);
             // Always append the latest market cap to history for live charts
             if (!Array.isArray(existing.history)) existing.history = [];
+            const isBankrupt = !!update.bankrupt || !!existing.bankrupt;
             // Merge prior history we had locally so the chart doesn't collapse to a single point (server sends short tails)
             if (prevHistory.length) {
                 const merged = [...prevHistory, ...existing.history]
@@ -938,11 +925,14 @@ function applyTick(tick) {
                 const cap = 400;
                 existing.history = mergedArr.length > cap ? mergedArr.slice(mergedArr.length - cap) : mergedArr;
             }
-            const last = existing.history[existing.history.length - 1];
-            if (!last || last.x < tickTs) {
-                existing.history.push({ x: tickTs, y: update.marketCap });
-            } else {
-                last.y = update.marketCap;
+            // For bankrupt companies, keep history frozen at the latest snapshot point
+            if (!isBankrupt) {
+                const last = existing.history[existing.history.length - 1];
+                if (!last || last.x < tickTs) {
+                    existing.history.push({ x: tickTs, y: update.marketCap });
+                } else {
+                    last.y = update.marketCap;
+                }
             }
             const mergedFinancial = mergeFinancialData(existing, {
                 quarterHistory: prevQuarterHistory,
@@ -1014,6 +1004,13 @@ function applyTick(tick) {
     }
     if (Array.isArray(tick.players)) {
         setRosterFromServer(tick.players);
+    }
+    // Multiplayer: prune any local companies that the server no longer sends.
+    // The server already applies visibility rules (e.g., 5-year post-bankruptcy TTL),
+    // so the authoritative company list is tick.companies.
+    if (isServerAuthoritative && Array.isArray(tick.companies)) {
+        const incomingIds = new Set(tick.companies.map(c => c && c.id).filter(Boolean));
+        companies = companies.filter(c => c && incomingIds.has(c.id));
     }
     updateNetWorth();
     notifyBankruptcies(companies);
@@ -1091,7 +1088,9 @@ function applyTick(tick) {
                     }
 
                     // Manually update history for the chart
-                    if (tick.lastTick) {
+                    const statusKey = ((instance.status || vUpdate.status || '') + '').toLowerCase();
+                    const isDead = statusKey === 'failed' || statusKey === 'exited';
+                    if (tick.lastTick && !isDead) {
                         const tickTs = new Date(tick.lastTick).getTime();
                         if (!instance.history) instance.history = [];
                         const lastHist = instance.history[instance.history.length - 1];
@@ -1240,68 +1239,35 @@ function maybeScheduleBankruptcyTest() {
     }, BANKRUPTCY_TEST_DELAY_MS);
 }
 
-function scheduleLocalBankruptHoldingPurge(company) {
-    if (isServerAuthoritative || !company || !company.name) return;
-    const inPortfolio = portfolio.some(h => h && h.companyName === company.name && h.unitsOwned > 0);
-    if (!inPortfolio) return;
-    if (holdingsPurgeTimers.has(company.name)) return;
-    const timer = setTimeout(() => {
-        holdingsPurgeTimers.delete(company.name);
-        const before = portfolio.length;
-        portfolio = portfolio.filter(h => h.companyName !== company.name);
-        if (before !== portfolio.length) {
-            updateNetWorth();
-            renderPortfolio();
-            updateDisplay();
-            if (netWorthChart) netWorthChart.update();
-        }
-    }, HOLDING_PURGE_DELAY_MS);
-    holdingsPurgeTimers.set(company.name, timer);
-}
+function maybeScheduleBankruptcyTest() {
+    if (!ENABLE_LOCAL_BANKRUPTCY_TEST || isServerAuthoritative) return;
+    if (!Array.isArray(companies) || companies.length === 0) return;
+    if (bankruptcyTestTimer) clearTimeout(bankruptcyTestTimer);
 
-function markBankruptCompaniesForCleanup(companiesList = []) {
-    const speedFactor = Math.max(0.25, currentSpeed || 1);
-    const ttlMs = BANKRUPT_CLEANUP_BASE_MS / speedFactor;
-    const now = Date.now();
-    companiesList.forEach(company => {
-        if (!company || !company.id) return;
-        if (bankruptCleanupTimers.has(company.id)) return;
-        bankruptCleanupTimers.set(company.id, now + ttlMs);
-    });
-    // Periodically prune bankrupt companies after TTL
-    if (!markBankruptCompaniesForCleanup._interval) {
-        markBankruptCompaniesForCleanup._interval = setInterval(() => {
-            const cutoff = Date.now();
-            const pendingRemoval = [];
-            bankruptCleanupTimers.forEach((expireTs, companyId) => {
-                if (expireTs <= cutoff) {
-                    pendingRemoval.push(companyId);
-                }
-            });
-            if (pendingRemoval.length === 0) return;
-            pendingRemoval.forEach(companyId => {
-                bankruptCleanupTimers.delete(companyId);
-                delistedBankruptIds.add(companyId);
-                if (Array.isArray(companies)) {
-                    for (let i = companies.length - 1; i >= 0; i--) {
-                        if (companies[i] && (companies[i].id === companyId)) {
-                            companies.splice(i, 1);
-                        }
-                    }
-                }
-                if (sim && Array.isArray(sim.companies) && sim.companies !== companies) {
-                    for (let i = sim.companies.length - 1; i >= 0; i--) {
-                        if (sim.companies[i] && (sim.companies[i].id === companyId)) {
-                            sim.companies.splice(i, 1);
-                        }
-                    }
-                }
-            });
-            renderCompanies(true);
-            renderPortfolio();
-            updateDisplay();
-        }, 5000);
-    }
+    const liveCompanies = companies.filter(c => c && !c.bankrupt);
+    if (!liveCompanies.length) return;
+
+    const rng = matchRngFn || Math.random;
+    const target = liveCompanies[Math.floor(rng() * liveCompanies.length)];
+    const targetName = (target && target.name) ? target.name : 'TestCo';
+    showToast(`Testing: ${targetName} will go bankrupt soon. Buy shares to observe.`, { tone: 'warn', duration: 6000 });
+
+    bankruptcyTestTimer = setTimeout(() => {
+        if (!target || typeof target.markBankrupt !== 'function' || target.bankrupt) return;
+        const now = sim && sim.lastTick ? new Date(sim.lastTick) : new Date();
+        try {
+            target.markBankrupt(now);
+        } catch (err) {
+            console.warn('Failed to mark test bankruptcy', err);
+            return;
+        }
+        updateNetWorth();
+        renderPortfolio();
+        renderCompanies();
+        updateDisplay();
+        if (netWorthChart) netWorthChart.update();
+        showToast(`${targetName} went bankrupt for testing.`, { tone: 'warn', duration: 6000 });
+    }, BANKRUPTCY_TEST_DELAY_MS);
 }
 
 function ensureVentureSimulation(force = false) {
@@ -1454,6 +1420,105 @@ window.disableDebugMode = () => setDebugMode(false, 'console');
 const debugParam = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('debug') : null;
 if (debugParam === '1' && !isServerAuthoritative) {
     setDebugMode(true, 'query');
+}
+
+function debugBankruptCompanyByName(name) {
+    const raw = (name == null ? '' : String(name)).trim();
+    if (!raw) {
+        console.warn('[Debug] bankrupt(name): missing company name');
+        return false;
+    }
+    if (!isLocalhost) {
+        console.warn('[Debug] bankrupt(name) is only available on localhost');
+        return false;
+    }
+    const targetKey = raw.toLowerCase();
+    // Multiplayer: ask the authoritative server to mark the company bankrupt
+    if (isServerAuthoritative && typeof sendCommand === 'function' && typeof WebSocket !== 'undefined' && ws && ws.readyState === WebSocket.OPEN) {
+        sendCommand({ type: 'debug_bankrupt_company', companyName: raw });
+        console.info(`[Debug] Requested remote bankruptcy for "${raw}"`);
+        return true;
+    }
+    // Singleplayer/local sim: directly mark the company (public or venture) bankrupt
+    const hasPublicSim = sim && Array.isArray(sim.companies);
+    const hasVentureSim = ventureSim && Array.isArray(ventureSim.companies);
+    if (!hasPublicSim && !hasVentureSim) {
+        console.warn('[Debug] bankrupt(name): simulation not ready');
+        return false;
+    }
+    const now =
+        (sim && sim.lastTick instanceof Date && sim.lastTick) ||
+        (ventureSim && ventureSim.lastTick instanceof Date && ventureSim.lastTick) ||
+        (currentDate instanceof Date ? currentDate : new Date());
+
+    // Try public market first
+    if (hasPublicSim) {
+        const company = sim.companies.find(c => c && typeof c.name === 'string' && c.name.toLowerCase() === targetKey);
+        if (company && typeof company.markBankrupt === 'function') {
+            try {
+                company.markBankrupt(now);
+            } catch (err) {
+                console.warn('[Debug] bankrupt(name): failed to mark public company bankrupt', err);
+                return false;
+            }
+            updateNetWorth();
+            renderPortfolio();
+            renderCompanies(true);
+            updateDisplay();
+            if (netWorthChart) netWorthChart.update();
+            console.info(`[Debug] Marked public company "${company.name}" bankrupt locally at ${now.toISOString()}`);
+            return true;
+        }
+    }
+
+    // Fallback: try venture (VC) companies by name
+    if (hasVentureSim) {
+        const vc = ventureSim.companies.find(c => c && typeof c.name === 'string' && c.name.toLowerCase() === targetKey);
+        if (!vc) {
+            console.warn(`[Debug] bankrupt(name): company "${raw}" not found in public or venture simulations`);
+            return false;
+        }
+        try {
+            if (typeof vc.handleHardTechFailure === 'function') {
+                vc.handleHardTechFailure(now);
+            } else {
+                vc.status = 'failed';
+                vc.currentValuation = 0;
+                vc.marketCap = 0;
+                vc.failedAt = now;
+                vc.failedAtWall = Date.now();
+                vc.lastEventNote = 'Debug: forced failure.';
+            }
+        } catch (err) {
+            console.warn('[Debug] bankrupt(name): failed to mark venture company bankrupt', err);
+            return false;
+        }
+        updateNetWorth();
+        renderPortfolio();
+        renderCompanies(true);
+        updateDisplay();
+        if (typeof refreshVentureCompaniesList === 'function' && document.body.classList.contains('vc-active')) {
+            refreshVentureCompaniesList();
+        }
+        if (typeof refreshVentureDetailView === 'function' && document.body.classList.contains('vc-detail-active')) {
+            refreshVentureDetailView();
+        }
+        if (netWorthChart) netWorthChart.update();
+        console.info(`[Debug] Marked venture company "${vc.name}" bankrupt locally at ${now.toISOString()}`);
+        return true;
+    }
+
+    console.warn(`[Debug] bankrupt(name): company "${raw}" not found`);
+    updateNetWorth();
+    renderPortfolio();
+    renderCompanies(true);
+    updateDisplay();
+    if (netWorthChart) netWorthChart.update();
+    return true;
+}
+// Expose a simple console helper for debug usage: bankrupt('Company Name')
+if (typeof window !== 'undefined') {
+    window.bankrupt = debugBankruptCompanyByName;
 }
 
 // --- Synthetic Equal-Weight Index (testing-only) ---
@@ -2288,6 +2353,19 @@ function gameLoop() {
     sim.tick(currentDate);
     const companiesAfter = sim.companies.length;
 
+    // Singleplayer: prune long-dead bankrupt companies based on sim-level visibility
+    if (!isServerAuthoritative && sim && Array.isArray(sim.companies)) {
+        const refDate = sim.lastTick instanceof Date ? sim.lastTick : currentDate;
+        sim.companies = sim.companies.filter(c => {
+            if (!c) return false;
+            if (typeof c.isVisibleAt === 'function') {
+                return c.isVisibleAt(refDate);
+            }
+            return true;
+        });
+        companies = sim.companies;
+    }
+
     const ventureEvents = ventureSim ? ventureSim.tick(currentDate) : [];
     if (ventureEvents.length > 0) {
         handleVentureEvents(ventureEvents);
@@ -2311,19 +2389,6 @@ function gameLoop() {
     // Portfolio only needs a full re-render when stage/round state changes.
     if (stagesChanged) {
         renderPortfolio();
-    }
-
-    const bankruptNow = [];
-    (sim?.companies || []).forEach(company => {
-        if (company && company.bankrupt) {
-            bankruptNow.push(company);
-            if (!isServerAuthoritative) {
-                scheduleLocalBankruptHoldingPurge(company);
-            }
-        }
-    });
-    if (bankruptNow.length) {
-        markBankruptCompaniesForCleanup(bankruptNow);
     }
 
     // --- Dividend payout to player (quarterly events) ---
@@ -3480,8 +3545,11 @@ portfolioList.addEventListener('click', (event) => {
     if (!portfolioItem) return;
     const type = portfolioItem.dataset.portfolioType || 'public';
     if (type === 'public') {
-        const companyName = portfolioItem.querySelector('.company-name').textContent;
-        const company = companies.find(c => c.name === companyName);
+        const rawName = (portfolioItem.dataset.companyName || '').trim();
+        const label = portfolioItem.querySelector('.company-name')?.textContent || '';
+        const fallbackName = label.endsWith(' (Failed)') ? label.slice(0, -9) : label;
+        const companyName = rawName || fallbackName;
+        const company = companies.find(c => c && typeof c.name === 'string' && c.name === companyName);
         if (company) showCompanyDetail(company);
     } else if (type === 'private') {
         const ventureId = portfolioItem.dataset.ventureId;

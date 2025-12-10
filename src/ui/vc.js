@@ -188,7 +188,9 @@ function renderVentureCompanies(companiesData, formatLargeNumber, formatCurrency
             return (a.name || '').localeCompare(b.name || '');
         })
         .forEach(company => {
-            const isFailed = (company.status || '').toLowerCase() === 'failed';
+            const statusKey = (company.status || '').toLowerCase();
+            const hasFailureStamp = Number.isFinite(company.failed_at) || Number.isFinite(company.failed_at_wall);
+            const isFailed = statusKey === 'failed' || hasFailureStamp;
             const companyDiv = document.createElement('div');
             companyDiv.classList.add('company-box');
             if (isFailed) {
@@ -207,7 +209,8 @@ function renderVentureCompanies(companiesData, formatLargeNumber, formatCurrency
             const valuationRaw = typeof company.valuation !== 'undefined' ? company.valuation : company.valuation_usd;
             const valuationDisplay = isFailed ? 'Bankrupt' : vcFormatLargeNumber(valuationRaw || 0, 1);
             const stageDisplay = company.stageLabel || company.funding_round || 'N/A';
-            const statusDisplay = '';
+            // Mirror public-market bankrupt styling: explicit "Status: Bankrupt" label
+            const statusDisplay = isFailed ? 'Status: Bankrupt' : '';
             const playerStake = company.playerEquityPercent && company.playerEquityPercent > 0
                 ? `Your Stake: ${company.playerEquityPercent.toFixed(2)}%`
                 : '';
@@ -561,7 +564,12 @@ function updateVentureDetail(companyId) {
     vcDetailNameEl.textContent = detail.name;
     const valuation = detail.valuation || 0;
     const sectorLabel = detail.subsector || detail.sector || 'Unknown';
-    vcDetailSectorEl.textContent = `${sectorLabel} - ${detail.stageLabel}`;
+    const statusKey = (detail.status || '').toLowerCase();
+    const isFailed = statusKey === 'failed';
+    // Mirror public company detail: show a clear bankrupt status label
+    vcDetailSectorEl.textContent = isFailed
+        ? 'Status: Bankrupt'
+        : `${sectorLabel} - ${detail.stageLabel}`;
     vcDetailFundingEl.style.display = 'none';
     const mission = (detail.mission || '').trim();
     const founders = Array.isArray(detail.founders) ? detail.founders : [];
@@ -669,8 +677,14 @@ function updateVentureDetail(companyId) {
     const listingWindow = detail.listing_window || detail.listingWindow || null;
     const listingFromTs = listingWindow && listingWindow.from ? new Date(listingWindow.from).getTime() : NaN;
     const listingCutoff = Number.isFinite(listingFromTs) ? listingFromTs : null;
-    const detailStatusKey = (detail.status || '').toLowerCase();
-    const isFailed = detailStatusKey === 'failed';
+    let failedAtTs = NaN;
+    if (detail.failedAt || detail.failed_at) {
+        const raw = detail.failedAt || detail.failed_at;
+        const d = new Date(raw);
+        if (!Number.isNaN(d.getTime())) {
+            failedAtTs = d.getTime();
+        }
+    }
 
     const normalizeHistory = (hist) => {
         if (!Array.isArray(hist) || hist.length === 0) return [];
@@ -697,6 +711,23 @@ function updateVentureDetail(companyId) {
         const trimmed = history.filter(point => point.x >= listingCutoff);
         if (trimmed.length > 0) {
             history = trimmed;
+        }
+    }
+
+    // For failed ventures, freeze the valuation history at the failure date so
+    // the chart doesn't keep extending at $0 as time advances.
+    if (isFailed && Number.isFinite(failedAtTs)) {
+        const trimmed = history.filter(point => point.x <= failedAtTs);
+        history = trimmed.length > 0 ? trimmed : history;
+        if (history.length === 0) {
+            history.push({ x: failedAtTs, y: 0, stage: 'Failed' });
+        } else {
+            const last = history[history.length - 1];
+            if (last.x < failedAtTs) {
+                history.push({ x: failedAtTs, y: 0, stage: last.stage });
+            } else if (last.x === failedAtTs) {
+                history[history.length - 1] = { ...last, y: 0 };
+            }
         }
     }
 

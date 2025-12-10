@@ -351,6 +351,7 @@
       processedKeys.add(key);
       if (existingItems.has(key)) {
         const item = existingItems.get(key);
+        item.dataset.companyName = holding.companyName;
         item.querySelector('.portfolio-value').textContent = formattedValue;
         const nameEl = item.querySelector('.company-name');
         if (nameEl) nameEl.textContent = companyNameDisplay;
@@ -379,7 +380,7 @@
         existingItems.delete(key);
       } else {
         newPortfolioHtml.push(`
-          <div class="portfolio-item${sectorClass ? ` ${sectorClass}` : ''}${subsectorClass ? ` ${subsectorClass}` : ''}${bankruptClass}" data-portfolio-type="public" data-portfolio-key="${key}">
+          <div class="portfolio-item${sectorClass ? ` ${sectorClass}` : ''}${subsectorClass ? ` ${subsectorClass}` : ''}${bankruptClass}" data-portfolio-type="public" data-portfolio-key="${key}" data-company-name="${holding.companyName}">
               ${ipoYear ? `<div class="portfolio-ipo-badge">${ipoYear}</div>` : ''}
               <div class="company-name">${companyNameDisplay}</div>
               <div class="portfolio-info">

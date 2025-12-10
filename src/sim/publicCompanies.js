@@ -305,6 +305,7 @@
       this.currentQuarterProfit = 0;
       this.currentQuarterDays = 0;
       this.currentQuarterMeta = null;
+      this.failedAt = null;
 
       this.cash = 0;
       this.debt = 0;
@@ -560,6 +561,9 @@
       this.marketCap = 0;
       this.displayCap = 0;
       this.bankrupt = true;
+      if (gameDate instanceof Date && !this.failedAt) {
+        this.failedAt = new Date(gameDate);
+      }
       this.recordHistoryPoint(gameDate, 0);
       this.pendingDividendRemaining = 0;
       this.dividendInstallmentsLeft = 0;
@@ -567,6 +571,19 @@
       if (Array.isArray(this.products)) {
         this.products.length = 0;
       }
+    }
+
+    isDead() {
+      return !!this.bankrupt;
+    }
+
+    isVisibleAt(dateLike) {
+      if (!this.isDead()) return true;
+      if (!this.failedAt) return true;
+      const ref = (dateLike instanceof Date) ? dateLike : new Date(dateLike || Date.now());
+      if (Number.isNaN(ref.getTime())) return true;
+      const FIVE_YEARS_MS = 5 * 365 * 24 * 60 * 60 * 1000;
+      return (ref.getTime() - this.failedAt.getTime()) <= FIVE_YEARS_MS;
     }
 
     getFinancialTable() {
