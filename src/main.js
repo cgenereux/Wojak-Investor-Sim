@@ -597,7 +597,10 @@ const ENABLE_LOCAL_BANKRUPTCY_TEST = false;
 const BANKRUPTCY_TEST_DELAY_MS = 12000;
 // 5 years in game time: at 1x speed, each tick is ~500ms covering 4 game days
 // 5 years = 5 * 365 = 1825 days = ~456 ticks = ~228 seconds at 1x speed
-const HOLDING_PURGE_DELAY_MS = 5 * 365 * 500 / 4; // ~228 seconds (about 4 min real-time for 5 game-years at 1x)
+// With the current Simulation step of 14 game-days per 500ms tick, 5 in-game years
+// correspond to ~130 ticks. This is ~65 seconds of real time at 1x speed, and the
+// effective delay scales with the speed slider in singleplayer.
+const HOLDING_PURGE_DELAY_MS = Math.round((5 * 365 / 14) * 500);
 const BANKRUPT_CLEANUP_BASE_MS = HOLDING_PURGE_DELAY_MS; // Same delay for market visibility
 let bankruptcyTestTimer = null;
 const holdingsPurgeTimers = new Map();
@@ -1424,13 +1427,12 @@ function formatLargeNumber(num, precision = 2) {
 }
 function formatDate(date) { return date.toISOString().split('T')[0]; }
 
-// --- Debug mode (gated to localhost + singleplayer) ---
+// --- Debug mode (gated to localhost; safe for SP and MP host) ---
 const isLocalhost = typeof window !== 'undefined'
     ? ['localhost', '127.0.0.1'].includes(window.location.hostname) || window.location.hostname.endsWith('.local')
     : false;
 let debugMode = false;
 function setDebugMode(enabled, reason = 'manual') {
-    if (isServerAuthoritative) return;
     if (!isLocalhost) return;
     debugMode = !!enabled;
     window.__WOJAK_DEBUG_MODE__ = debugMode;
@@ -3103,6 +3105,17 @@ function setGameSpeed(speed) {
             gameInterval = null;
         }
         isPaused = clampedSpeed <= 0;
+        // In multiplayer, the server is authoritative for time. Allow the host
+        // (and only the host, as enforced server-side) to request a faster/slower
+        // tick rate via a debug_set_speed command. Non-local or non-host clients
+        // will receive an 'unauthorized' error from the server.
+        if (typeof sendCommand === 'function' && clampedSpeed > 0) {
+            try {
+                sendCommand({ type: 'debug_set_speed', speed: clampedSpeed });
+            } catch (err) {
+                // Best-effort only; UI still reflects the local speed slider.
+            }
+        }
         updateSpeedThumbLabel();
         return;
     }
@@ -3432,6 +3445,33 @@ function updateSpeedThumbLabel() {
 window.addEventListener('resize', () => {
     updateSpeedThumbLabel();
 });
+
+// Developer-only helper: manually request a debug_set_speed against the
+// authoritative multiplayer server from the browser console. This bypasses
+// the slider wiring so you can verify server behavior directly.
+window.setServerDebugSpeed = function setServerDebugSpeed(speed) {
+    const value = Number(speed);
+    if (!Number.isFinite(value) || value <= 0) {
+        console.warn('[Debug] setServerDebugSpeed: invalid speed', speed);
+        return;
+    }
+    if (!isServerAuthoritative) {
+        console.warn('[Debug] setServerDebugSpeed: not in multiplayer / server-authoritative mode');
+        return;
+    }
+    if (typeof sendCommand !== 'function') {
+        console.warn('[Debug] setServerDebugSpeed: sendCommand unavailable');
+        return;
+    }
+    const clamped = Math.max(0.25, Math.min(value, 16));
+    currentSpeed = clamped;
+    try {
+        sendCommand({ type: 'debug_set_speed', speed: clamped });
+    } catch (err) {
+        console.warn('[Debug] setServerDebugSpeed: failed to send command', err);
+    }
+    updateSpeedThumbLabel();
+};
 
 
 

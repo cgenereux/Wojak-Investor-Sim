@@ -31,7 +31,9 @@
   const DAYS_PER_YEAR = 365;
   const QUARTER_DAYS = DAYS_PER_YEAR / 4;
   const YEAR_MS = VC_DAY_MS * DAYS_PER_YEAR;
-  const VENTURE_FAIL_TTL_MS = YEAR_MS * 3.5;
+  // Keep failed ventures visible in the private roster for 5 in-game years
+  // before pruning them, so players can still see their bankrupt holdings.
+  const VENTURE_FAIL_TTL_MS = YEAR_MS * 5;
 
   function coerceDate(value, isEnd = false) {
     if (value == null) return null;

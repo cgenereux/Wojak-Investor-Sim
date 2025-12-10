@@ -21,10 +21,12 @@ const macroEvents = require('../data/macroEvents.json');
 const PORT = process.env.PORT || 4000;
 const ANNUAL_INTEREST_RATE = 0.07;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
-// 5 years in game time ≈ ~450 ticks at 500ms/tick with 4 game-days per tick
-// This is an approximation; for true game-time tracking we'd need to check sim dates
-// but this gives ~3.75 minutes real-time which is reasonable for visibility
-const BANKRUPT_PURGE_DELAY_MS = 5 * 365 * 500 / 4; // ~228 seconds (about 4 min real-time for 5 game-years)
+const DEFAULT_TICK_INTERVAL_MS = 500;
+// Approximate 5 in-game years of visibility for bankrupt public/venture holdings
+// at the default tick rate. When the server tick speed is adjusted in debug mode,
+// we scale these delays inversely with the speed factor so the in-game TTL stays
+// roughly consistent in real time.
+const BANKRUPT_PURGE_DELAY_MS = Math.round((5 * 365 / 14) * DEFAULT_TICK_INTERVAL_MS);
 const VENTURE_BANKRUPT_PURGE_DELAY_MS = BANKRUPT_PURGE_DELAY_MS;
 const GAME_START_YEAR = 1985;
 const GAME_END_YEAR = 2050;
@@ -40,6 +42,19 @@ const FROM_VENTURE_TICK_HISTORY_LIMIT = 400;
 const GAME_START_DATE = new Date(Date.UTC(GAME_START_YEAR, 0, 1));
 
 const app = fastify({ logger: false });
+
+function getTickIntervalMs(session) {
+  const raw = session && Number(session.tickIntervalMs);
+  if (!Number.isFinite(raw) || raw <= 0) return DEFAULT_TICK_INTERVAL_MS;
+  const minMs = 50;
+  const maxMs = 5000;
+  return Math.min(maxMs, Math.max(minMs, raw));
+}
+
+function getSpeedFactor(session) {
+  const interval = getTickIntervalMs(session);
+  return DEFAULT_TICK_INTERVAL_MS / interval;
+}
 
 function canonicalizePlayerId(id) {
   if (!id) return null;
@@ -172,12 +187,15 @@ async function buildMatch(seed = Date.now()) {
     idleGuardTimer: null,
     clientActivity: new Map(),
     idleCheckHandle: null,
-    bankruptRemovalTimers: new Map()
+    bankruptRemovalTimers: new Map(),
+    tickIntervalMs: DEFAULT_TICK_INTERVAL_MS,
+    localDebugAllowed: false
   };
 }
 
 function startTickLoop(session) {
   if (session.tickHandle || session.ended || !session.started) return;
+  const interval = getTickIntervalMs(session);
   session.tickHandle = setInterval(() => {
     if (session.ended) {
       stopTickLoop(session);
@@ -234,7 +252,7 @@ function startTickLoop(session) {
     if (newYear >= GAME_END_YEAR) {
       endSession(session);
     }
-  }, 500);
+  }, interval);
 }
 
 function stopTickLoop(session) {
@@ -245,6 +263,13 @@ function stopTickLoop(session) {
   if (session.idleCheckHandle) {
     clearInterval(session.idleCheckHandle);
     session.idleCheckHandle = null;
+  }
+}
+
+function restartTickLoop(session) {
+  stopTickLoop(session);
+  if (session && session.started && !session.ended) {
+    startTickLoop(session);
   }
 }
 
@@ -502,6 +527,8 @@ function scheduleBankruptHoldingCleanup(session) {
   session.sim.companies.forEach(company => {
     if (!company || !company.bankrupt || !company.id) return;
     if (session.bankruptRemovalTimers.has(company.id)) return;
+    const speedFactor = Math.max(0.25, getSpeedFactor(session) || 1);
+    const ttlMs = Math.max(1000, BANKRUPT_PURGE_DELAY_MS / speedFactor);
     const timer = setTimeout(() => {
       if (!session || session.ended) return;
       session.players.forEach(player => {
@@ -511,7 +538,7 @@ function scheduleBankruptHoldingCleanup(session) {
       });
       session.bankruptRemovalTimers.delete(company.id);
       broadcastPlayers(session);
-    }, BANKRUPT_PURGE_DELAY_MS);
+    }, ttlMs);
     session.bankruptRemovalTimers.set(company.id, timer);
   });
 }
@@ -529,6 +556,8 @@ function scheduleVentureBankruptHoldingCleanup(session, companyId) {
   // Use the same map but prefix with 'vc:' to distinguish from public companies
   const key = `vc:${companyId}`;
   if (session.bankruptRemovalTimers.has(key)) return;
+   const speedFactor = Math.max(0.25, getSpeedFactor(session) || 1);
+   const ttlMs = Math.max(1000, VENTURE_BANKRUPT_PURGE_DELAY_MS / speedFactor);
   const timer = setTimeout(() => {
     if (!session || session.ended) return;
     session.players.forEach(player => {
@@ -541,7 +570,7 @@ function scheduleVentureBankruptHoldingCleanup(session, companyId) {
     });
     session.bankruptRemovalTimers.delete(key);
     broadcastPlayers(session);
-  }, VENTURE_BANKRUPT_PURGE_DELAY_MS);
+  }, ttlMs);
   session.bankruptRemovalTimers.set(key, timer);
 }
 
@@ -692,7 +721,7 @@ function handleCommand(session, player, msg) {
   if (!type) {
     return { ok: false, error: 'bad_payload' };
   }
-  const allowedWhileBankrupt = (type === 'ping' || type === 'resync' || type === 'liquidate_assets');
+  const allowedWhileBankrupt = (type === 'ping' || type === 'resync' || type === 'liquidate_assets' || type === 'debug_set_speed');
   if (player.bankrupt && !allowedWhileBankrupt) {
     return { ok: false, error: 'bankrupt' };
   }
@@ -712,6 +741,29 @@ function handleCommand(session, player, msg) {
       snapshot: buildSnapshot(session),
       player: serializePlayer(player, session.sim),
       ticks: session.tickBuffer.slice()
+    };
+  }
+  if (type === 'debug_set_speed') {
+    const speed = Number(msg.speed);
+    if (!Number.isFinite(speed) || speed <= 0) {
+      return { ok: false, error: 'bad_speed' };
+    }
+    if (!session.localDebugAllowed) {
+      return { ok: false, error: 'unauthorized' };
+    }
+    const role = session.playerRoles.get(player.id) || 'guest';
+    if (role !== 'host') {
+      return { ok: false, error: 'unauthorized' };
+    }
+    const clamped = Math.max(0.25, Math.min(speed, 16));
+    const interval = DEFAULT_TICK_INTERVAL_MS / clamped;
+    session.tickIntervalMs = interval;
+    restartTickLoop(session);
+    return {
+      ok: true,
+      type: 'debug_set_speed',
+      speed: clamped,
+      intervalMs: interval
     };
   }
   if (type === 'start_game') {
@@ -972,6 +1024,9 @@ wss.on('connection', async (ws, req, url) => {
     }
     session = await buildMatch();
     sessions.set(sessionId, session);
+  }
+  if (isLocalRequest) {
+    session.localDebugAllowed = true;
   }
   session.lastActivity = Date.now();
   resetIdleTimer(session);

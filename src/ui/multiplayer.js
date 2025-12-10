@@ -146,7 +146,15 @@
             }
             setBannerButtonsVisible(true);
             document.body.classList.add('multiplayer-active');
-            if (speedSliderWrap) speedSliderWrap.style.display = 'none';
+            if (speedSliderWrap) {
+                // In local debug mode, keep the time slider visible for the host so
+                // they can drive debug_set_speed against the server. For normal
+                // multiplayer sessions, hide it to avoid confusing players.
+                const canShowDebugSlider = (typeof debugMode !== 'undefined' && debugMode) &&
+                    (typeof isLocalhost !== 'undefined' && isLocalhost) &&
+                    !!isPartyHostClient;
+                speedSliderWrap.style.display = canShowDebugSlider ? '' : 'none';
+            }
             if (multiplayerBtnContainer) multiplayerBtnContainer.style.display = 'none';
             if (multiplayerStatusDisplay) multiplayerStatusDisplay.style.display = 'block';
             if (mpSessionIdDisplay) mpSessionIdDisplay.textContent = activeSessionId || 'default';
@@ -467,6 +475,13 @@
                         notify('Failed to start game.', 'error');
                     }
                 }
+            }
+            if (msg.ok && msg.data && msg.data.type === 'debug_set_speed') {
+                const s = Number(msg.data.speed);
+                const interval = Number(msg.data.intervalMs);
+                const speedLabel = Number.isFinite(s) ? `${s}x` : 'unknown';
+                const intervalLabel = Number.isFinite(interval) ? `${interval.toFixed(0)}ms` : 'unknown';
+                notify(`Debug speed set to ${speedLabel} (${intervalLabel} per tick)`, 'info');
             }
             if (msg.ok && msg.data && (msg.data.type === 'borrow' || msg.data.type === 'repay')) {
                 clearBankingInputAndRefresh();

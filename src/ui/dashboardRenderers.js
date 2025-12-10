@@ -225,11 +225,15 @@
         ? `${company.ipoDate.getFullYear()}`
         : '';
       const isDoingRnd = !company.bankrupt && Array.isArray(company.products) && company.products.some(p => {
-        if (!p || !p.stages) return false;
-        // "Conducting R&D" if any stage exists and not all completed
+        if (!p) return false;
         const stages = Array.isArray(p.stages) ? p.stages : [];
-        const allDone = stages.length > 0 && stages.every(s => s && s.completed);
-        return !allDone;
+        const meta = p.__pipelineMeta || {};
+        // If the product's pipeline has been resolved/retired/failed, it's no longer R&D-active.
+        const status = typeof meta.status === 'string' ? meta.status.toLowerCase() : '';
+        if (meta.resolved || meta.retired || status === 'failed') return false;
+        if (stages.length === 0) return false;
+        // R&D is active if at least one stage has not yet completed.
+        return stages.some(s => s && !s.completed);
       });
       const companyId = company.id || company.name || '';
       const queueIndex = company.__queueIndex || 0;
