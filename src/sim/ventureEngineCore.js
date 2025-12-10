@@ -1069,15 +1069,18 @@
 
     getPlayerValuation(playerId = null) {
       if (this.status === 'failed' || this.status === 'exited') return 0;
+      const effectiveValuation = this.isPrivatePhase
+        ? this.currentValuation
+        : (Number.isFinite(this.marketCap) && this.marketCap > 0 ? this.marketCap : this.currentValuation);
       if (playerId && this.playerEquityMap && Number.isFinite(this.playerEquityMap[playerId])) {
         const pct = this.playerEquityMap[playerId] || 0;
-        return pct > 0 && this.currentValuation ? pct * this.currentValuation : 0;
+        return pct > 0 && effectiveValuation ? pct * effectiveValuation : 0;
       }
       const equityFromMap = this.playerEquityMap
         ? Object.values(this.playerEquityMap).filter(Number.isFinite).reduce((sum, val) => sum + val, 0)
         : 0;
       const equityFraction = equityFromMap > 0 ? equityFromMap : (this.playerEquity || 0);
-      const equityValue = equityFraction > 0 && this.currentValuation ? equityFraction * this.currentValuation : 0;
+      const equityValue = equityFraction > 0 && effectiveValuation ? equityFraction * effectiveValuation : 0;
       return equityValue > 0 ? equityValue : 0;
     }
 

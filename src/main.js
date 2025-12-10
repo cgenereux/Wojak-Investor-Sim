@@ -536,6 +536,9 @@ let matchRng = null;
 let matchRngFn = null;
 let ws;
 let wsHeartbeat = null;
+// Command queue for when WS is temporarily disconnected
+const wsCommandQueue = [];
+const WS_COMMAND_QUEUE_MAX = 20; // Prevent unbounded growth
 let serverPlayer = null;
 let clientPlayerId = null;
 let serverTicks = new Set();
@@ -1165,10 +1168,32 @@ function syncPortfolioFromServer() {
 
 function sendCommand(cmd) {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
-        console.warn('WS not ready; command skipped', cmd);
+        // Queue the command for when WS reconnects
+        if (wsCommandQueue.length < WS_COMMAND_QUEUE_MAX) {
+            wsCommandQueue.push(cmd);
+            console.log('WS not ready; command queued', cmd.type || cmd);
+        } else {
+            console.warn('WS command queue full; command dropped', cmd.type || cmd);
+        }
         return;
     }
     ws.send(JSON.stringify(cmd));
+}
+
+function flushCommandQueue() {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    while (wsCommandQueue.length > 0) {
+        const cmd = wsCommandQueue.shift();
+        try {
+            ws.send(JSON.stringify(cmd));
+            console.log('Flushed queued command:', cmd.type || cmd);
+        } catch (err) {
+            console.warn('Failed to flush command:', err);
+            // Put it back at front if send failed
+            wsCommandQueue.unshift(cmd);
+            break;
+        }
+    }
 }
 const companyRenderState = {
     lastRenderTs: 0,

@@ -140,6 +140,10 @@
             if (currentGen !== wsGeneration) return;
             console.log('WS connected');
             setConnectionStatus('Connected', 'ok');
+            // Flush any commands that were queued while disconnected
+            if (typeof flushCommandQueue === 'function') {
+                flushCommandQueue();
+            }
             setBannerButtonsVisible(true);
             document.body.classList.add('multiplayer-active');
             if (speedSliderWrap) speedSliderWrap.style.display = 'none';

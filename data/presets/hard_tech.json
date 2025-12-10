@@ -195,7 +195,7 @@
           ],
           "mission": "Building fusion reactors that can retire every gas peaker plant on Earth.",
           "founding_location": "Seattle, WA",
-          "initial_valuation_realization": 0.01,
+          "initial_valuation_realization": 0.005,
           "hypergrowth_window_years": 2.5,
           "hypergrowth_initial_growth_rate": 1.2,
           "hypergrowth_terminal_growth_rate": 0.2,
@@ -209,9 +209,9 @@
               "label": "Commercial Fusion Reactor",
               "full_revenue_usd": [2500000000, 7000000000],
               "stages": [
-                { "id": "net_energy", "name": "Net Energy Gain Demonstration", "duration_days": 1200, "success_prob": 0.54, "value_realization": 0.04, "cost_usd": 300000000, "max_retries": 0 },
-                { "id": "breakeven", "name": "Sustained Breakeven", "duration_days": 900, "depends_on": "net_energy", "success_prob": 0.66, "value_realization": 0.1, "cost_usd": 60000000, "max_retries": 0 },
-                { "id": "grid_integration", "name": "Grid Integration", "duration_days": 800, "depends_on": "breakeven", "success_prob": 0.67, "value_realization": 0.22, "cost_usd": 1020000000, "max_retries": 0 },
+                { "id": "net_energy", "name": "Net Energy Gain Demonstration", "duration_days": 1200, "success_prob": 0.54, "value_realization": 0.03, "cost_usd": 300000000, "max_retries": 0 },
+                { "id": "breakeven", "name": "Sustained Breakeven", "duration_days": 900, "depends_on": "net_energy", "success_prob": 0.66, "value_realization": 0.09, "cost_usd": 60000000, "max_retries": 0 },
+                { "id": "grid_integration", "name": "Grid Integration", "duration_days": 800, "depends_on": "breakeven", "success_prob": 0.67, "value_realization": 0.23, "cost_usd": 1020000000, "max_retries": 0 },
                 { "id": "regulatory_clearance", "name": "Regulatory Clearance", "duration_days": 750, "depends_on": "grid_integration", "success_prob": 0.78, "value_realization": 0.43, "cost_usd": 2120000000, "max_retries": 0 },
                 { "id": "commercial_ramp", "name": "Commercial Ramp", "duration_days": 600, "depends_on": "regulatory_clearance", "success_prob": 0.9, "value_realization": 0.7, "cost_usd": 2520000000, "max_retries": 0, "commercialises_revenue": true }
               ]
@@ -324,11 +324,11 @@
               "label": "SynthWeave Composite Platform",
               "full_revenue_usd": [8000000000, 34000000000],
               "stages": [
-                { "id": "novel_polymer", "name": "Novel Polymer Chemistry", "duration_days": 640, "success_prob": 0.97, "value_realization": 0.05, "cost_usd": 220000000, "max_retries": 0 },
-                { "id": "pilot_line", "name": "Pilot Line & Test Parts", "duration_days": 700, "depends_on": "novel_polymer", "success_prob": 0.96, "value_realization": 0.15, "cost_usd": 450000000, "max_retries": 0 },
-                { "id": "structural_cert", "name": "Structural Certification & Standards", "duration_days": 760, "depends_on": "pilot_line", "success_prob": 0.95, "value_realization": 0.32, "cost_usd": 650000000, "max_retries": 0 },
-                { "id": "gigafactory_scale", "name": "Giga-Scale Production", "duration_days": 720, "depends_on": "structural_cert", "success_prob": 0.95, "value_realization": 0.65, "cost_usd": 900000000, "max_retries": 0 },
-                { "id": "global_oem", "name": "Global OEM Integration", "duration_days": 540, "depends_on": "gigafactory_scale", "success_prob": 0.96, "value_realization": 1, "cost_usd": 800000000, "max_retries": 0, "commercialises_revenue": true }
+                { "id": "novel_polymer", "name": "Novel Polymer Chemistry", "duration_days": 640, "success_prob": 0.61, "value_realization": 0.05, "cost_usd": 220000000, "max_retries": 0 },
+                { "id": "pilot_line", "name": "Pilot Line & Test Parts", "duration_days": 700, "depends_on": "novel_polymer", "success_prob": 0.64, "value_realization": 0.15, "cost_usd": 450000000, "max_retries": 0 },
+                { "id": "structural_cert", "name": "Structural Certification & Standards", "duration_days": 760, "depends_on": "pilot_line", "success_prob": 0.76, "value_realization": 0.32, "cost_usd": 650000000, "max_retries": 0 },
+                { "id": "gigafactory_scale", "name": "Giga-Scale Production", "duration_days": 720, "depends_on": "structural_cert", "success_prob": 0.83, "value_realization": 0.65, "cost_usd": 900000000, "max_retries": 0 },
+                { "id": "global_oem", "name": "Global OEM Integration", "duration_days": 540, "depends_on": "gigafactory_scale", "success_prob": 0.92, "value_realization": 1, "cost_usd": 800000000, "max_retries": 0, "commercialises_revenue": true }
               ]
             }
           ]
@@ -343,8 +343,6 @@
           "gate_stage": "series_c",
           "ipo_stage": "series_d",
           "rounds_override": ["seed", "series_a", "series_b", "series_c", "series_d"],
-          "initial_valuation_realization": 0.02,
-          "value_realization_ps": 9,
           "founders": [
             { "name": "Dr. Lena Kovacs", "degree": "PhD", "school": "MIT" },
             { "name": "Jared Okafor", "degree": "MS", "school": "Georgia Tech" }
@@ -357,7 +355,9 @@
           "hypergrowth_initial_margin": -0.4,
           "hypergrowth_terminal_margin": 0.26,
           "years_to_converge": 6,
-          "private_listing_window": { "from": 1998, "to": 2012 },
+          "initial_valuation_realization": 0.015,
+          "value_realization_ps": 9,
+          "private_listing_window": { "from": 1985, "to": 1985 },
           "pipelineTemplate": [
             {
               "id": "reusable_orbital_stack",
@@ -368,7 +368,7 @@
                   "id": "booster_reuse",
                   "name": "Booster Reuse Demonstration",
                   "duration_days": 900,
-                  "success_prob": 0.43,
+                  "success_prob": 0.53,
                   "value_realization": 0.06,
                   "cost_usd": 550000000,
                   "max_retries": 0
@@ -378,7 +378,7 @@
                   "name": "Orbital Stack Reuse",
                   "duration_days": 820,
                   "depends_on": "booster_reuse",
-                  "success_prob": 0.53,
+                  "success_prob": 0.61,
                   "value_realization": 0.18,
                   "cost_usd": 700000000,
                   "max_retries": 0
