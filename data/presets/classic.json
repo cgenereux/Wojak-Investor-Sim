@@ -8,6 +8,7 @@
       "years_to_mature": [25, 45]
     },
     "multiple_curve": {
+      "initial_ps_ratio": [1.0, 3.0],
       "initial_pe_ratio": [8, 15],
       "terminal_pe_ratio": [12, 15],
       "years_to_converge": [20, 40]
@@ -38,7 +39,7 @@
         "opex_variable_ratio": [0.08, 0.16],
         "rd_base_ratio": [0.02, 0.04]
       },
-      "sector": "Banking",
+      "sector": "Finance",
       "ipo_window": { "from": 1970, "to": 1988 }
     },
     "Tech": {

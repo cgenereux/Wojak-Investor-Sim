@@ -432,7 +432,7 @@
                 const ipoRange = entry.ipo_window || ipoFallback;
                 const startMargin = pickRangeLocal(marginDefaults.start_profit_margin, 0.05, 0.1);
                 const terminalMargin = pickRangeLocal(marginDefaults.terminal_profit_margin, 0.12, 0.25);
-                const initialPs = pickRangeLocal(multipleDefaults.initial_ps_ratio ?? multipleDefaults.initial_pe_ratio, 1.2, 6);
+                const initialPs = pickRangeLocal(multipleDefaults.initial_ps_ratio, 1.2, 6);
                 const terminalPe = pickRangeLocal(multipleDefaults.terminal_pe_ratio, 10, 18);
                 const startingCashUsd = baseRevenue * (financeDefaults.starting_cash_ratio ?? 0);
                 const startingDebtUsd = baseRevenue * (financeDefaults.starting_debt_ratio ?? 0);
