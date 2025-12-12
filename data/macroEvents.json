@@ -49,5 +49,46 @@
       "Consumer demand is cooling as layoffs and spending cuts spread across industries.",
       "A moderate recession is setting in, pressuring earnings and valuations."
     ]
+  },
+  {
+    "id": "rate_shock_hike",
+    "label": "Warning: Rate Shock (Hiking Cycle)",
+    "chance": 0.6,
+    "start_year_range": [1990, 2048],
+    "impact_days": 900,
+    "recovery_days": 925,
+    "global_multiplier_range": [0.9, 0.98],
+    "valuation_compression_range": [0.7, 0.9],
+    "effects": [
+      { "type": "macro_mu_delta", "value": -0.015 },
+      { "type": "volatility_multiplier", "multiplier": 1.35 },
+      { "type": "interest_rate_shift", "delta": 0.04 }
+    ],
+    "polarity": "negative",
+    "descriptions": [
+      "Central banks hike aggressively to fight inflation; borrowing costs surge.",
+      "Rates spike into double digits, squeezing valuations and demand."
+    ]
+  },
+  {
+    "id": "rate_shock_cut",
+    "label": "Boost: Rate Shock (Cutting Cycle)",
+    "chance": 0.55,
+    "start_year_range": [1990, 2048],
+    "impact_days": 900,
+    "recovery_days": 925,
+    "global_multiplier_range": [1.02, 1.08],
+    "valuation_compression_range": [1.05, 1.15],
+    "effects": [
+      { "type": "macro_mu_delta", "value": 0.015 },
+      { "type": "revenue_multiplier", "multiplier": 1.05 },
+      { "type": "volatility_multiplier", "multiplier": 0.85 },
+      { "type": "interest_rate_shift", "delta": -0.04 }
+    ],
+    "polarity": "positive",
+    "descriptions": [
+      "Rates are slashed in a growth push; credit gets cheap and risk appetite returns.",
+      "A dovish pivot drives a multi-year expansion and higher multiples."
+    ]
   }
 ]

@@ -154,11 +154,20 @@ function renderVentureCompanies(companiesData, formatLargeNumber, formatCurrency
         const idx = techSubsectorOrder.indexOf(sub);
         return idx >= 0 ? idx : 0;
     };
+    const isFailedCompany = (company) => {
+        if (!company) return false;
+        const statusKey = (company.status || '').toLowerCase();
+        const hasFailureStamp = Number.isFinite(company.failed_at) || Number.isFinite(company.failed_at_wall);
+        return statusKey === 'failed' || hasFailureStamp;
+    };
     const sortMode = ventureSortMode || 'recent';
 
     (companiesData || [])
         .slice()
         .sort((a, b) => {
+            const aFailed = isFailedCompany(a);
+            const bFailed = isFailedCompany(b);
+            if (aFailed !== bFailed) return aFailed ? 1 : -1;
             const ta = getListingTs(a);
             const tb = getListingTs(b);
             const listingA = Number.isFinite(ta) ? ta : -Infinity;

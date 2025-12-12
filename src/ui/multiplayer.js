@@ -6,6 +6,29 @@
             alert(msg);
         }
     };
+    const COMMAND_ERROR_TOASTS = {
+        above_limit: { msg: 'Borrowing limit reached.', tone: 'warn' },
+        insufficient_cash: { msg: 'Insufficient cash for that action.', tone: 'warn' },
+        no_position: { msg: 'You do not hold that position.', tone: 'warn' },
+        amount_exceeds_position: { msg: "You don't have that many shares.", tone: 'warn' },
+        bad_amount: { msg: 'Enter a valid amount.', tone: 'warn' },
+        nothing_to_repay: { msg: 'No debt to repay.', tone: 'warn' },
+        unknown_company: { msg: 'That company is not available.', tone: 'warn' },
+        not_raising: { msg: 'That company is not raising right now.', tone: 'warn' },
+        bad_round: { msg: 'That round is not available.', tone: 'warn' },
+        bad_character: { msg: 'That character is unavailable.', tone: 'warn' },
+        bad_speed: { msg: 'Invalid speed.', tone: 'warn' },
+        bad_event: { msg: 'Invalid macro event.', tone: 'warn' },
+        sim_unavailable: { msg: 'Simulation not ready yet.', tone: 'warn' },
+        unauthorized: { msg: 'You are not allowed to do that.', tone: 'error' },
+        not_host: { msg: 'Only the host can do that.', tone: 'error' },
+        bad_payload: { msg: 'Action failed.', tone: 'warn' },
+        not_found: { msg: 'Not found.', tone: 'warn' },
+        unknown_command: { msg: 'That action is not supported.', tone: 'warn' },
+        lead_failed: { msg: 'VC lead failed.', tone: 'warn' },
+        invest_failed: { msg: 'VC investment failed.', tone: 'warn' },
+        failed: { msg: 'Action failed.', tone: 'warn' }
+    };
     const bankingAmountInput = document.getElementById('bankingAmountInput');
     const clearBankingInputAndRefresh = () => {
         if (bankingAmountInput) bankingAmountInput.value = '';
@@ -453,16 +476,23 @@
         if (msg.type === 'command_result') {
             if (!msg.ok) {
                 console.warn('Command failed', msg.error);
-                if (msg.error === 'bankrupt') {
-                    notify("You've gone bankrupt. Your assets have been liquidated to pay off your debts.", 'error');
-                } else if (msg.error === 'above_limit') {
-                    notify('Borrowing limit reached.', 'warn');
-                } else if (msg.error === 'insufficient_cash') {
-                    notify('Insufficient cash for that action.', 'warn');
-                } else if (msg.error === 'no_position') {
-                    notify('You do not hold that position.', 'warn');
-                } else if (typeof debugMode !== 'undefined' && debugMode) {
-                    notify(`Command failed: ${msg.error}`, 'warn');
+                const errorKey = msg.error || 'failed';
+                const allowVerbose = (typeof debugMode !== 'undefined' && debugMode)
+                    || (typeof isLocalhost !== 'undefined' && isLocalhost);
+                const shouldToast = !startGameRequested || errorKey === 'bankrupt';
+                if (shouldToast) {
+                    if (errorKey === 'bankrupt') {
+                        notify("You've gone bankrupt. Your assets have been liquidated to pay off your debts.", 'error');
+                    } else {
+                        const mapped = COMMAND_ERROR_TOASTS[errorKey];
+                        if (mapped) {
+                            notify(mapped.msg, mapped.tone);
+                        } else if (allowVerbose) {
+                            notify(`Command failed: ${errorKey}`, 'warn');
+                        } else {
+                            notify('Action failed.', 'warn');
+                        }
+                    }
                 }
                 if (startGameRequested) {
                     startGameRequested = false;

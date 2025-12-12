@@ -482,9 +482,14 @@ function maxBorrowable(sim, player) {
 
 function accrueInterest(session, dtDays) {
   if (!Number.isFinite(dtDays) || dtDays <= 0) return;
+  let shift = 0;
+  if (session && session.sim && session.sim.macroEventManager && typeof session.sim.macroEventManager.getInterestRateShift === 'function') {
+    shift = Number(session.sim.macroEventManager.getInterestRateShift()) || 0;
+  }
+  const annualRate = Math.max(0, ANNUAL_INTEREST_RATE + shift);
   session.players.forEach(player => {
     if (!player || player.debt <= 0) return;
-    const interest = player.debt * ANNUAL_INTEREST_RATE * (dtDays / 365);
+    const interest = player.debt * annualRate * (dtDays / 365);
     if (interest <= 0) return;
     const payFromCash = Math.min(player.cash, interest);
     player.cash -= payFromCash;

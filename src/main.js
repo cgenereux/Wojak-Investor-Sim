@@ -2170,7 +2170,12 @@ function updateNetWorth() {
 function calculateInterest() {
     if (totalBorrowed <= 0) return 0;
     const daysSinceLastInterest = (currentDate - lastInterestDate) / (1000 * 60 * 60 * 24);
-    const dailyRate = ANNUAL_INTEREST_RATE / 365.25;
+    let shift = 0;
+    if (sim && sim.macroEventManager && typeof sim.macroEventManager.getInterestRateShift === 'function') {
+        shift = Number(sim.macroEventManager.getInterestRateShift()) || 0;
+    }
+    const annualRate = Math.max(0, ANNUAL_INTEREST_RATE + shift);
+    const dailyRate = annualRate / 365.25;
     return totalBorrowed * dailyRate * daysSinceLastInterest;
 }
 
@@ -3647,12 +3652,22 @@ if (timelineEndCloseBtn) {
 // Multiplayer End popup
 if (multiplayerEndOkayBtn) {
     multiplayerEndOkayBtn.addEventListener('click', () => {
-        location.reload();
+        gameEnded = true;
+        pauseGame();
+        if (speedSlider) speedSlider.disabled = true;
+        if (multiplayerEndPopup) {
+            multiplayerEndPopup.classList.remove('show');
+        }
     });
 }
 if (multiplayerEndCloseBtn) {
     multiplayerEndCloseBtn.addEventListener('click', () => {
-        location.reload();
+        gameEnded = true;
+        pauseGame();
+        if (speedSlider) speedSlider.disabled = true;
+        if (multiplayerEndPopup) {
+            multiplayerEndPopup.classList.remove('show');
+        }
     });
 }
 

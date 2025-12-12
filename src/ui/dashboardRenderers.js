@@ -330,61 +330,28 @@
     }
     emptyPortfolioMsg.style.display = 'none';
 
-    const existingItems = new Map();
-    const processedKeys = new Set();
-    portfolioList.querySelectorAll('.portfolio-item').forEach(item => {
-      const key = item.dataset.portfolioKey || item.querySelector('.company-name').textContent;
-      existingItems.set(key, item);
-    });
+    const rows = [];
 
-    const newPortfolioHtml = [];
     portfolio.forEach(holding => {
       const company = companies.find(c => c.name === holding.companyName);
       if (!company) return;
       const isBankrupt = !!company.bankrupt;
       const sectorClass = getSectorClass(company.sector);
       const subsectorClass = getSubsectorClass(company.subsector);
-      const currentValue = isBankrupt ? 0 : company.marketCap * holding.unitsOwned;
+      const units = Number(holding.unitsOwned) || 0;
+      const cap = Number(company.marketCap) || 0;
+      const currentValue = isBankrupt ? 0 : cap * units;
       const formattedValue = currencyFormatter.format(currentValue);
       const key = `public:${holding.companyName}`;
       const bankruptClass = isBankrupt ? ' bankrupt' : '';
       const companyNameDisplay = isBankrupt ? `${holding.companyName} (Failed)` : holding.companyName;
       const statusLabel = isBankrupt ? 'Status: Bankrupt' : '';
-      // Hide sector and IPO year for bankrupt companies
       const sectorDisplay = isBankrupt ? '' : (company.subsector || company.sector || '');
       const ipoYear = (!isBankrupt && company.ipoDate) ? new Date(company.ipoDate).getFullYear() : null;
-      processedKeys.add(key);
-      if (existingItems.has(key)) {
-        const item = existingItems.get(key);
-        item.dataset.companyName = holding.companyName;
-        item.querySelector('.portfolio-value').textContent = formattedValue;
-        const nameEl = item.querySelector('.company-name');
-        if (nameEl) nameEl.textContent = companyNameDisplay;
-        const statusEl = item.querySelector('.portfolio-status');
-        if (statusEl) {
-          statusEl.textContent = statusLabel;
-          statusEl.style.display = isBankrupt ? 'block' : 'none';
-        }
-        const sectorEl = item.querySelector('.portfolio-sector');
-        if (sectorEl) {
-          sectorEl.textContent = sectorDisplay;
-          sectorEl.style.display = isBankrupt ? 'none' : 'block';
-        }
-        const ipoEl = item.querySelector('.portfolio-ipo-badge');
-        if (ipoEl) {
-          ipoEl.textContent = ipoYear || '';
-          ipoEl.style.display = isBankrupt ? 'none' : 'block';
-        }
-        applySectorClass(item, sectorClass);
-        applySubsectorClass(item, subsectorClass);
-        if (isBankrupt) {
-          item.classList.add('bankrupt');
-        } else {
-          item.classList.remove('bankrupt');
-        }
-        existingItems.delete(key);
-      } else {
-        newPortfolioHtml.push(`
+
+      rows.push({
+        sortValue: currentValue,
+        html: `
           <div class="portfolio-item${sectorClass ? ` ${sectorClass}` : ''}${subsectorClass ? ` ${subsectorClass}` : ''}${bankruptClass}" data-portfolio-type="public" data-portfolio-key="${key}" data-company-name="${holding.companyName}">
               ${ipoYear ? `<div class="portfolio-ipo-badge">${ipoYear}</div>` : ''}
               <div class="company-name">${companyNameDisplay}</div>
@@ -394,24 +361,29 @@
                   <div class="portfolio-sector" style="display:${isBankrupt ? 'none' : 'block'}">${sectorDisplay}</div>
               </div>
           </div>
-        `);
-      }
+        `
+      });
     });
 
     ventureSummaries.forEach(summary => {
       if (!summary || !ventureSim) return;
       const detail = ventureSim.getCompanyDetail(summary.id);
       if (!detail) return;
-      const valuation = Number.isFinite(detail?.valuation) ? detail.valuation : (Number.isFinite(summary?.valuation) ? summary.valuation : 0);
+      const valuation = Number.isFinite(detail?.valuation)
+        ? detail.valuation
+        : (Number.isFinite(summary?.valuation) ? summary.valuation : 0);
       const equityFraction = pickPlayerEquityFraction(detail, summary.id);
       const pendingCommitment = pickPlayerPendingCommitment(detail, summary.id);
       const hasEquity = equityFraction > 0;
       const hasPending = pendingCommitment > 0;
-      const isFailed = (detail.status || '').toLowerCase() === 'failed' || (summary.status || '').toLowerCase() === 'failed';
-      const isInFlight = hasPending && !hasEquity;
-      // Check if player was affected by this company's bankruptcy (had pending commitment when it failed)
-      const wasBankruptcyVictim = isFailed && detail.bankruptcyAffectedPlayers && activePlayerId && detail.bankruptcyAffectedPlayers[activePlayerId];
+      const isFailed = (detail.status || '').toLowerCase() === 'failed'
+        || (summary.status || '').toLowerCase() === 'failed';
+      const wasBankruptcyVictim = isFailed
+        && detail.bankruptcyAffectedPlayers
+        && activePlayerId
+        && detail.bankruptcyAffectedPlayers[activePlayerId];
       if (!hasEquity && !hasPending && !wasBankruptcyVictim) return;
+
       const equityValue = hasEquity ? equityFraction * valuation : 0;
       const pendingValue = hasPending ? pendingCommitment : 0;
       const stageLabel = detail.stageLabel || summary.stageLabel || 'Private';
@@ -419,47 +391,24 @@
       const bankruptClass = isFailed ? ' bankrupt' : '';
       const statusLabel = isFailed ? 'Status: Bankrupt' : '';
 
-      // --- Landed equity row (main pile) ---
       if (hasEquity || wasBankruptcyVictim || isFailed) {
         const mainKey = `private:${summary.id}:main`;
-        processedKeys.add(mainKey);
         const playerEquityPct = equityFraction * 100;
-        const equityFormatted = isFailed ? currencyFormatter.format(0) : (hasEquity ? currencyFormatter.format(equityValue) : '');
-        const stakeLabel = isFailed ? '' : (hasEquity ? `${playerEquityPct.toFixed(2)}% stake` : (wasBankruptcyVictim ? 'Investment failed' : 'Stake pending'));
+        const equityFormatted = isFailed
+          ? currencyFormatter.format(0)
+          : (hasEquity ? currencyFormatter.format(equityValue) : '');
+        const stakeLabel = isFailed
+          ? ''
+          : (hasEquity
+            ? `${playerEquityPct.toFixed(2)}% stake`
+            : (wasBankruptcyVictim ? 'Investment failed' : 'Stake pending'));
         const valueRowDisplay = (hasEquity || wasBankruptcyVictim || isFailed) ? 'block' : 'none';
         const stakeDisplay = isFailed ? 'none' : 'block';
         const nameLabel = isFailed ? `${summary.name} (Failed)` : `${summary.name} (${stageLabel})`;
 
-        if (existingItems.has(mainKey)) {
-          const item = existingItems.get(mainKey);
-          const valueRow = item.querySelector('.portfolio-value-row');
-          if (valueRow) valueRow.style.display = valueRowDisplay;
-          const valueEl = item.querySelector('.portfolio-value');
-          if (valueEl) valueEl.textContent = equityFormatted;
-          const stakeEl = item.querySelector('.portfolio-stake');
-          if (stakeEl) {
-            stakeEl.textContent = stakeLabel;
-            stakeEl.style.display = stakeDisplay;
-          }
-          const pendingEl = item.querySelector('.portfolio-pending');
-          if (pendingEl) {
-            pendingEl.textContent = '';
-            pendingEl.style.display = 'none';
-          }
-          const statusEl = item.querySelector('.portfolio-status');
-          if (statusEl) {
-            statusEl.textContent = statusLabel;
-            statusEl.style.display = isFailed ? 'block' : 'none';
-          }
-          const nameEl = item.querySelector('.company-name');
-          if (nameEl) {
-            nameEl.textContent = nameLabel;
-          }
-          applySectorClass(item, sectorClass);
-          if (isFailed) item.classList.add('bankrupt');
-          existingItems.delete(mainKey);
-        } else {
-          newPortfolioHtml.push(`
+        rows.push({
+          sortValue: isFailed ? 0 : equityValue,
+          html: `
             <div class="portfolio-item${sectorClass ? ` ${sectorClass}` : ''}${bankruptClass}" data-portfolio-type="private" data-venture-id="${summary.id}" data-portfolio-key="${mainKey}">
                 <div class="company-name">${nameLabel}</div>
                 <div class="portfolio-info">
@@ -471,48 +420,20 @@
                     <span class="portfolio-pending" style="display:none"></span>
                 </div>
             </div>
-          `);
-        }
+          `
+        });
       }
 
-      // --- In-flight commitment row (per-company, temporary until round lands) ---
       if (hasPending) {
         const inflightKey = `private:${summary.id}:inflight`;
-        processedKeys.add(inflightKey);
         const inflightStageLabel = summary.nextStageLabel || stageLabel;
         const inflightName = `${summary.name} (${inflightStageLabel}) (In Flight)`;
         const inflightValue = currencyFormatter.format(pendingValue);
         const pendingLabel = `Committed: ${inflightValue}`;
 
-        if (existingItems.has(inflightKey)) {
-          const item = existingItems.get(inflightKey);
-          const valueRow = item.querySelector('.portfolio-value-row');
-          if (valueRow) valueRow.style.display = 'block';
-          const valueEl = item.querySelector('.portfolio-value');
-          if (valueEl) valueEl.textContent = inflightValue;
-          const stakeEl = item.querySelector('.portfolio-stake');
-          if (stakeEl) {
-            stakeEl.textContent = 'Stake pending';
-            stakeEl.style.display = 'block';
-          }
-          const pendingEl = item.querySelector('.portfolio-pending');
-          if (pendingEl) {
-            pendingEl.textContent = pendingLabel;
-            pendingEl.style.display = 'block';
-          }
-          const statusEl = item.querySelector('.portfolio-status');
-          if (statusEl) {
-            statusEl.textContent = '';
-            statusEl.style.display = 'none';
-          }
-          const nameEl = item.querySelector('.company-name');
-          if (nameEl) {
-            nameEl.textContent = inflightName;
-          }
-          applySectorClass(item, sectorClass);
-          existingItems.delete(inflightKey);
-        } else {
-          newPortfolioHtml.push(`
+        rows.push({
+          sortValue: pendingValue,
+          html: `
             <div class="portfolio-item${sectorClass ? ` ${sectorClass}` : ''}" data-portfolio-type="private" data-venture-id="${summary.id}" data-portfolio-key="${inflightKey}">
                 <div class="company-name">${inflightName}</div>
                 <div class="portfolio-info">
@@ -524,18 +445,13 @@
                     <span class="portfolio-pending" style="display:block">${pendingLabel}</span>
                 </div>
             </div>
-          `);
-        }
+          `
+        });
       }
     });
 
-    if (newPortfolioHtml.length > 0) {
-      portfolioList.insertAdjacentHTML('beforeend', newPortfolioHtml.join(''));
-    }
-
-    if (existingItems.size > 0) {
-      existingItems.forEach(item => item.remove());
-    }
+    rows.sort((a, b) => b.sortValue - a.sortValue);
+    portfolioList.innerHTML = rows.map(row => row.html).join('');
   }
 
   global.DashboardRenderers = {
