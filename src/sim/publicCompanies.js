@@ -607,8 +607,11 @@
         const start = Math.max(0, i - 3);
         let count = 0;
         for (let j = start; j <= i; j++) {
-          revenue += ordered[j].revenue;
-          profit += ordered[j].profit;
+          const entry = ordered[j];
+          const days = (entry && Number.isFinite(entry.days) && entry.days > 0) ? entry.days : QUARTER_DAYS;
+          const scale = QUARTER_DAYS / Math.max(1, days);
+          revenue += (entry.revenue || 0) * scale;
+          profit += (entry.profit || 0) * scale;
           count++;
         }
 

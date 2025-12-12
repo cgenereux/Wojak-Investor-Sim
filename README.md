@@ -128,18 +128,4 @@
   - `pmf_decline_rate_range`: range of annual revenue/margin shock applied while PMF loss is active (e.g., −40% to −25% per year).
   - `pmf_decline_duration_years`: duration (in years) that a PMF loss event remains active before the company stabilises at a new, lower trajectory.
 
-  To Do List
-
-Technical Bugs:
-- Potentially not all toasts show in mutliplayer but im not 100% sure
-- Need to still check if the macro events works in in multiplayer — im unsure if them not showing up before was because they wouldn’t be announced with toasts or they just didn’t exist in mp
-- There was a bit of a clicking bug where when in mp, if you were pressing buttons that connect to the backend, you would have to press them multiple times occasionally, seemingly if you temporarily disconnected for a second and so your requests fell through. A queue for disconnected websocket requests in mp was added but im not sure if it actually works properly from my testing. 
-Features:
-- Let ppl hit x or close on their end game graph when the game ends on the 2050 screen. They should be able to hit this x so they can still look at the game and see their graph but they shouldn’t be able to restart time and continue playing.
-- Player portfolio holdings should be sorted by highest value in both mp and singleplayer but this has not been added yet 
-- 2 more macro events should be added to the game. These are interest rate shocks, which accompany events may similar to a recession in the negative case when rates are increased to 10-12% and to 2-3% in the positive case, which accompanies growth. These should last for 5 years and positive (2-3%) rate changes should use green toasts. 
-- Vc Market should sort bankrupt companies to the bottom / end
-- MP usernames below avatars should be in a bit smaller text. like 15% smaller.
-
-
 
