@@ -101,6 +101,39 @@ const GAME_START_YEAR = 1985;
 const GAME_START_DATE = new Date(Date.UTC(GAME_START_YEAR, 0, 1));
 const GLOBAL_BASE_INTEREST_RATE = 0.07; // shared baseline; can be adjusted by macro events later
 
+// Incremental state-store boundary (see src/state/store.js). Legacy globals remain the
+// primary runtime values for now; core mutation paths also update this store.
+const stateStore = (typeof window !== 'undefined' && window.WojakState)
+    ? window.WojakState
+    : null;
+if (stateStore && typeof stateStore.init === 'function') {
+    stateStore.init({
+        game: {
+            currentDate: GAME_START_DATE,
+            currentSpeed: 1,
+            isPaused: false,
+            isGameReady: false,
+            gameEnded: false,
+            wasAutoPaused: false
+        },
+        player: {
+            cash: 3000,
+            debt: 0,
+            portfolio: [],
+            dripEnabled: false,
+            netWorth: 3000,
+            netWorthHistory: [{ x: GAME_START_DATE.getTime(), y: 3000 }]
+        },
+        ui: {
+            view: 'market',
+            sort: 'sector',
+            filter: 'all',
+            activeCompanyId: null,
+            activeVentureId: null
+        }
+    });
+}
+
 function trackEvent(eventName, props = {}) {
     if (window.posthog) {
         window.posthog.capture(eventName, props);
@@ -520,6 +553,67 @@ let totalBorrowed = 0;
 let lastInterestDate = new Date(currentDate);
 const ANNUAL_INTEREST_RATE = GLOBAL_BASE_INTEREST_RATE;
 
+function syncLegacyFromStore() {
+    if (!stateStore) return;
+    const g = stateStore.game || {};
+    const p = stateStore.player || {};
+    const u = stateStore.ui || {};
+
+    if (g.currentDate) currentDate = new Date(g.currentDate);
+    if (typeof g.isPaused === 'boolean') isPaused = g.isPaused;
+    if (typeof g.currentSpeed === 'number') currentSpeed = g.currentSpeed;
+    if (typeof g.isGameReady === 'boolean') isGameReady = g.isGameReady;
+    if (typeof g.gameEnded === 'boolean') gameEnded = g.gameEnded;
+    if (typeof g.wasAutoPaused === 'boolean') wasAutoPaused = g.wasAutoPaused;
+
+    if (typeof p.cash === 'number') cash = p.cash;
+    if (typeof p.debt === 'number') totalBorrowed = p.debt;
+    if (Array.isArray(p.portfolio)) portfolio = p.portfolio;
+    if (typeof p.dripEnabled === 'boolean') dripEnabled = p.dripEnabled;
+    if (typeof p.netWorth === 'number') netWorth = p.netWorth;
+    if (Array.isArray(p.netWorthHistory)) netWorthHistory = p.netWorthHistory;
+
+    if (typeof u.sort === 'string') currentSort = u.sort;
+    if (typeof u.filter === 'string') currentFilter = u.filter;
+}
+
+function syncStoreFromLegacy() {
+    if (!stateStore || !stateStore.reducers) return;
+    stateStore.reducers.setGameState({
+        currentDate,
+        isPaused,
+        currentSpeed,
+        isGameReady,
+        gameEnded,
+        wasAutoPaused
+    });
+    stateStore.reducers.setPlayerState({
+        cash,
+        debt: totalBorrowed,
+        portfolio,
+        dripEnabled,
+        netWorth,
+        netWorthHistory
+    });
+    const body = (typeof document !== 'undefined') ? document.body : null;
+    const view = body && body.classList.contains('vc-detail-active')
+        ? 'vc-detail'
+        : body && body.classList.contains('vc-active')
+            ? 'vc'
+            : activeCompanyDetail
+                ? 'company'
+                : 'market';
+    stateStore.reducers.setUiState({
+        view,
+        sort: currentSort,
+        filter: currentFilter,
+        activeCompanyId: activeCompanyDetail ? (activeCompanyDetail.id || activeCompanyDetail.name) : null
+    });
+}
+
+// Safe initial store sync after all legacy state vars exist.
+syncStoreFromLegacy();
+
 // --- Global Game Constants ---
 const GAME_END_YEAR = 2050;
 
@@ -650,6 +744,7 @@ function resetClientStateForMultiplayer() {
     if (speedSlider) {
         speedSlider.disabled = false;
     }
+    syncStoreFromLegacy();
 }
 
 function initMatchContext(seedOverride = null) {
@@ -830,6 +925,7 @@ function hydrateFromSnapshot(snapshot) {
             hideCompanyDetail(true);
         }
     }
+    syncStoreFromLegacy();
 }
 
 function mergeFinancialData(existing, update) {
@@ -898,6 +994,9 @@ function applyTick(tick) {
     }
     const tickTs = tick.lastTick ? new Date(tick.lastTick).getTime() : Date.now();
     currentDate = new Date(tickTs);
+    if (stateStore && stateStore.reducers) {
+        stateStore.reducers.setDate(currentDate);
+    }
     if (Array.isArray(tick.ventureEvents) && tick.ventureEvents.length > 0) {
         handleVentureEvents(tick.ventureEvents);
     }
@@ -1162,15 +1261,23 @@ function updatePlayerFromServer(playerSummary) {
         serverPlayer.character = selectedCharacter;
     }
     if (isServerAuthoritative && serverPlayer) {
-        if (typeof serverPlayer.cash === 'number') {
-            cash = serverPlayer.cash;
+        const nextCash = (typeof serverPlayer.cash === 'number') ? serverPlayer.cash : cash;
+        const nextDebt = (typeof serverPlayer.debt === 'number') ? serverPlayer.debt : totalBorrowed;
+        const nextDrip = !!serverPlayer.dripEnabled;
+        if (stateStore && stateStore.reducers) {
+            stateStore.reducers.setPlayerState({
+                cash: nextCash,
+                debt: nextDebt,
+                dripEnabled: nextDrip
+            });
+            syncLegacyFromStore();
+        } else {
+            cash = nextCash;
+            totalBorrowed = nextDebt;
+            dripEnabled = nextDrip;
         }
-        if (typeof serverPlayer.debt === 'number') {
-            totalBorrowed = serverPlayer.debt;
-        }
-        dripEnabled = !!serverPlayer.dripEnabled;
         if (dripToggle) {
-            dripToggle.checked = dripEnabled;
+            dripToggle.checked = nextDrip;
         }
     }
     if (isServerAuthoritative && serverPlayer && serverPlayer.netWorthComponents) {
@@ -1216,6 +1323,9 @@ function syncPortfolioFromServer() {
         nextPortfolio.push({ companyName: company.name, unitsOwned: units });
     });
     portfolio = nextPortfolio;
+    if (stateStore && stateStore.reducers) {
+        stateStore.reducers.setPortfolio(portfolio);
+    }
     renderPortfolio();
 }
 
@@ -1934,6 +2044,17 @@ function updateNetWorth() {
     }
     netWorthHistory.push({ x: currentDate.getTime(), y: netWorth });
     if (netWorthHistory.length > 2000) netWorthHistory.shift();
+    if (stateStore && stateStore.reducers) {
+        stateStore.reducers.setPlayerState({
+            cash,
+            debt: totalBorrowed,
+            portfolio,
+            dripEnabled,
+            netWorth,
+            netWorthHistory
+        });
+        stateStore.reducers.setDate(currentDate);
+    }
 
     if (netWorth > netWorthAth) {
         netWorthAth = netWorth;
@@ -2035,10 +2156,18 @@ function chargeInterest() {
     const interest = calculateInterest();
     if (interest > 0) {
         const payFromCash = Math.min(cash, interest);
-        cash -= payFromCash;
         const unpaid = interest - payFromCash;
-        if (unpaid > 0) {
-            totalBorrowed += unpaid; // capitalize unpaid interest into debt
+        if (stateStore && stateStore.reducers) {
+            syncStoreFromLegacy();
+            cash = stateStore.reducers.applyCashDelta(-payFromCash);
+            if (unpaid > 0) {
+                totalBorrowed = stateStore.reducers.applyDebtDelta(unpaid); // capitalize unpaid interest into debt
+            }
+        } else {
+            cash -= payFromCash;
+            if (unpaid > 0) {
+                totalBorrowed += unpaid; // capitalize unpaid interest into debt
+            }
         }
         lastInterestDate = new Date(currentDate);
     }
@@ -2175,13 +2304,23 @@ function handleVentureEvents(events) {
         } else if (event.type === 'venture_failed') {
             // Credit refund/liquidation payout if it's for this player (or no playerId specified)
             if (!isServerAuthoritative && event.refund && event.refund > 0 && (!event.playerId || event.playerId === activePlayerId)) {
-                cash += event.refund;
+                if (stateStore && stateStore.reducers) {
+                    syncStoreFromLegacy();
+                    cash = stateStore.reducers.applyCashDelta(event.refund);
+                } else {
+                    cash += event.refund;
+                }
             }
             removeVentureSpinoutFromMarket(event.name);
             needsRefresh = true;
         } else if (event.type === 'venture_round_failed') {
             if (!isServerAuthoritative && event.refund && event.refund > 0 && (!event.playerId || event.playerId === activePlayerId)) {
-                cash += event.refund;
+                if (stateStore && stateStore.reducers) {
+                    syncStoreFromLegacy();
+                    cash = stateStore.reducers.applyCashDelta(event.refund);
+                } else {
+                    cash += event.refund;
+                }
             }
             needsRefresh = true;
         } else if (event.type === 'venture_round_closed') {
@@ -2233,8 +2372,14 @@ function borrow(amount) {
     }
     const maxBorrowing = getMaxBorrowing();
     if (amount > maxBorrowing) { showToast(`You can only borrow up to ${currencyFormatter.format(maxBorrowing)}.`, { tone: 'warn' }); return; }
-    totalBorrowed += amount;
-    cash += amount;
+    if (stateStore && stateStore.reducers) {
+        syncStoreFromLegacy();
+        totalBorrowed = stateStore.reducers.applyDebtDelta(amount);
+        cash = stateStore.reducers.applyCashDelta(amount);
+    } else {
+        totalBorrowed += amount;
+        cash += amount;
+    }
     lastInterestDate = new Date(currentDate); // Reset interest timer on borrow
     updateNetWorth(); updateDisplay(); clearBankingInputAndRefresh();
 }
@@ -2249,8 +2394,14 @@ function repay(amount) {
     }
     if (amount > totalBorrowed) { showToast(`You only owe ${currencyFormatter.format(totalBorrowed)}.`, { tone: 'warn' }); return; }
     if (amount > cash) { showToast("You don't have enough cash to repay this amount.", { tone: 'warn' }); return; }
-    totalBorrowed -= amount;
-    cash -= amount;
+    if (stateStore && stateStore.reducers) {
+        syncStoreFromLegacy();
+        totalBorrowed = stateStore.reducers.applyDebtDelta(-amount);
+        cash = stateStore.reducers.applyCashDelta(-amount);
+    } else {
+        totalBorrowed -= amount;
+        cash -= amount;
+    }
     lastInterestDate = new Date(currentDate); // Reset interest timer on repay
     updateNetWorth(); updateDisplay(); clearBankingInputAndRefresh();
 }
@@ -2316,6 +2467,13 @@ function liquidatePlayerAssets() {
     portfolio = [];
     if (ventureSim && typeof ventureSim.resetPlayerHoldings === 'function') {
         ventureSim.resetPlayerHoldings();
+    }
+    if (stateStore && stateStore.reducers) {
+        stateStore.reducers.setPlayerState({
+            cash,
+            debt: totalBorrowed,
+            portfolio
+        });
     }
     updateNetWorth();
     updateDisplay();
@@ -2420,6 +2578,9 @@ function gameLoop() {
 
     if (currentDate.getFullYear() >= GAME_END_YEAR) { endGame("timeline_end"); return; }
     currentDate.setDate(currentDate.getDate() + sim.dtDays);
+    if (stateStore && stateStore.reducers) {
+        stateStore.reducers.setDate(currentDate);
+    }
 
     const companiesBefore = sim.companies.length;
     sim.tick(currentDate);
@@ -2486,7 +2647,12 @@ function gameLoop() {
                     const units = playerShare / company.marketCap;
                     holding.unitsOwned += units;
                 } else {
-                    cash += playerShare;
+                    if (stateStore && stateStore.reducers) {
+                        syncStoreFromLegacy();
+                        cash = stateStore.reducers.applyCashDelta(playerShare);
+                    } else {
+                        cash += playerShare;
+                    }
                 }
             });
         });
@@ -2562,11 +2728,18 @@ function buy(companyName, amount, opts = {}) {
     }
     if (amount > cash) { return; }
     if (company.marketCap < 0.0001) { return; }
-    cash -= amount;
     const unitsToBuy = amount / company.marketCap;
-    let holding = portfolio.find(h => h.companyName === companyName);
-    if (holding) { holding.unitsOwned += unitsToBuy; }
-    else { portfolio.push({ companyName: companyName, unitsOwned: unitsToBuy }); }
+    if (stateStore && stateStore.reducers) {
+        syncStoreFromLegacy();
+        cash = stateStore.reducers.applyCashDelta(-amount);
+        stateStore.reducers.upsertPublicHolding(companyName, unitsToBuy);
+        portfolio = stateStore.player.portfolio;
+    } else {
+        cash -= amount;
+        let holding = portfolio.find(h => h.companyName === companyName);
+        if (holding) { holding.unitsOwned += unitsToBuy; }
+        else { portfolio.push({ companyName: companyName, unitsOwned: unitsToBuy }); }
+    }
     updateNetWorth(); updateDisplay(); renderPortfolio(); updateInvestmentPanel(company);
 }
 
@@ -2588,11 +2761,18 @@ function sell(companyName, amount, opts = {}) {
     }
     const currentValue = company.marketCap * holding.unitsOwned;
     if (amount > currentValue) { return; }
-    cash += amount;
     const unitsToSell = (amount / currentValue) * holding.unitsOwned;
-    holding.unitsOwned -= unitsToSell;
-    if (holding.unitsOwned < 1e-9) {
-        portfolio = portfolio.filter(h => h.companyName !== companyName);
+    if (stateStore && stateStore.reducers) {
+        syncStoreFromLegacy();
+        cash = stateStore.reducers.applyCashDelta(amount);
+        stateStore.reducers.upsertPublicHolding(companyName, -unitsToSell);
+        portfolio = stateStore.player.portfolio;
+    } else {
+        cash += amount;
+        holding.unitsOwned -= unitsToSell;
+        if (holding.unitsOwned < 1e-9) {
+            portfolio = portfolio.filter(h => h.companyName !== companyName);
+        }
     }
     updateNetWorth(); updateDisplay(); renderPortfolio(); updateInvestmentPanel(company);
 }
@@ -2624,7 +2804,12 @@ function leadVentureRound(companyId) {
         return result;
     }
 
-    cash -= requiredAmount;
+    if (stateStore && stateStore.reducers) {
+        syncStoreFromLegacy();
+        cash = stateStore.reducers.applyCashDelta(-requiredAmount);
+    } else {
+        cash -= requiredAmount;
+    }
     updateNetWorth();
     updateDisplay();
     if (netWorthChart) { netWorthChart.update(); }
@@ -3217,6 +3402,9 @@ function hideCompanyDetail(skipHistory = false) {
 function pauseGame() {
     if (isPaused) return;
     isPaused = true;
+    if (stateStore && stateStore.reducers) {
+        stateStore.reducers.setPaused(true);
+    }
     clearInterval(gameInterval);
 }
 
@@ -3225,6 +3413,9 @@ function resumeGame() {
     if (!isPaused) return;
     isPaused = false;
     wasAutoPaused = false;
+    if (stateStore && stateStore.reducers) {
+        stateStore.reducers.setPaused(false);
+    }
     const targetSpeed = currentSpeed > 0 ? currentSpeed : 1;
     setGameSpeed(targetSpeed);
 }
@@ -3253,6 +3444,12 @@ function setGameSpeed(speed) {
                 // Best-effort only; UI still reflects the local speed slider.
             }
         }
+        if (stateStore && stateStore.reducers) {
+            stateStore.reducers.setGameState({
+                currentSpeed: clampedSpeed,
+                isPaused
+            });
+        }
         updateSpeedThumbLabel();
         return;
     }
@@ -3263,6 +3460,12 @@ function setGameSpeed(speed) {
         clearInterval(gameInterval);
         gameInterval = setInterval(gameLoop, 400 / clampedSpeed);
         isPaused = false;
+    }
+    if (stateStore && stateStore.reducers) {
+        stateStore.reducers.setGameState({
+            currentSpeed: clampedSpeed,
+            isPaused
+        });
     }
     if (speedSlider) {
         const idx = SPEED_STEPS.findIndex(step => step === clampedSpeed);
