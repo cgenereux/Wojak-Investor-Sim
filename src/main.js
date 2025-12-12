@@ -471,6 +471,10 @@ let lastRosterSnapshot = [];
 
 let wojakManager = null;
 let handlingBankruptcy = false;
+// Multiplayer: track if we've already fully handled a server-side bankruptcy this match.
+// This is used inside endGame() to prevent duplicate popups/liquidations if multiple
+// ticks report bankrupt: true.
+let hasHandledServerBankruptcy = false;
 let gameEnded = false;
 if (wojakImage) {
     wojakManager = wojakFactory.createWojakManager({
@@ -601,6 +605,7 @@ function resetClientStateForMultiplayer() {
     isPaused = true;
     isGameReady = false;
     handlingBankruptcy = false;
+    hasHandledServerBankruptcy = false;
     gameEnded = false;
     isMillionaire = false;
     isBillionaire = false;
@@ -998,6 +1003,19 @@ function applyTick(tick) {
         if (isServerAuthoritative) {
             updateNetWorthSeriesFromPlayers(tickTs, tick.players);
         }
+        if (isServerAuthoritative) {
+            const myId = (serverPlayer && serverPlayer.id) || clientPlayerId || me?.id;
+            const meState = tick.players.find(p => p && (p.id === myId || p.name === myId));
+            if (meState && meState.bankrupt) {
+                console.debug('[MP Bankruptcy DEBUG] tick state', {
+                    id: myId,
+                    bankrupt: meState.bankrupt,
+                    netWorth: meState.netWorth
+                });
+                endGame("bankrupt");
+                return;
+            }
+        }
     }
     if (tick.lastTick) {
         maybeTrackDecadeNetWorth(new Date(tick.lastTick), tick.players || []);
@@ -1013,6 +1031,9 @@ function applyTick(tick) {
         companies = companies.filter(c => c && incomingIds.has(c.id));
     }
     updateNetWorth();
+    if (isServerAuthoritative) {
+        maybeHandleServerBankruptcy();
+    }
     notifyBankruptcies(companies);
     updateBankingDisplay();
     renderCompanies();
@@ -1150,6 +1171,32 @@ function updatePlayerFromServer(playerSummary) {
         dripEnabled = !!serverPlayer.dripEnabled;
         if (dripToggle) {
             dripToggle.checked = dripEnabled;
+        }
+    }
+    if (isServerAuthoritative && serverPlayer && serverPlayer.netWorthComponents) {
+        const c = serverPlayer.netWorthComponents;
+        try {
+            console.debug('[MP NetWorth DEBUG]', {
+                id: serverPlayer.id,
+                cash: c.cash,
+                debt: c.debt,
+                equity: c.equity,
+                ventureEquity: c.ventureEquity,
+                commitments: c.commitments,
+                netWorth: c.netWorth,
+                bankrupt: !!serverPlayer.bankrupt
+            });
+        } catch (err) {
+            // ignore logging failures
+        }
+        if (serverPlayer.bankrupt) {
+            console.debug('[MP Bankruptcy DEBUG] from updatePlayerFromServer', {
+                id: serverPlayer.id,
+                netWorth: c.netWorth,
+                debt: c.debt
+            });
+            endGame("bankrupt");
+            return;
         }
     }
     applySelectedCharacter(serverPlayer);
@@ -1541,7 +1588,7 @@ function updateDisplay() {
     const equityValue = publicAssets + privateAssets + pendingCommitments;
     const localTotalAssets = cash + equityValue;
 
-    const displayNetWorth = serverPlayer && typeof serverPlayer.netWorth === 'number'
+    const displayNetWorth = (isServerAuthoritative && serverPlayer && typeof serverPlayer.netWorth === 'number')
         ? serverPlayer.netWorth
         : netWorth;
     const displayCash = serverPlayer && typeof serverPlayer.cash === 'number'
@@ -1554,16 +1601,11 @@ function updateDisplay() {
         ? serverPlayer.ventureCommitmentsValue
         : pendingCommitments;
 
-    // Compute net worth locally in multiplayer, but avoid double-counting commitments:
-    // equityValue already includes pendingCommitments, so do not add them again.
-    const computedNetWorth = displayCash + equityValue - displayDebt;
-
-    netWorthDisplay.textContent = currencyFormatter.format(isServerAuthoritative ? computedNetWorth : displayNetWorth);
+    netWorthDisplay.textContent = currencyFormatter.format(displayNetWorth);
     if (isServerAuthoritative && serverPlayer && playerColorMap.has(serverPlayer.id)) {
         netWorthDisplay.style.color = playerColorMap.get(serverPlayer.id);
     } else {
-        const colorBasis = isServerAuthoritative ? computedNetWorth : displayNetWorth;
-        netWorthDisplay.style.color = colorBasis >= 0 ? '#00c742' : '#dc3545';
+        netWorthDisplay.style.color = displayNetWorth >= 0 ? '#00c742' : '#dc3545';
     }
     currentDateDisplay.textContent = formatDate(currentDate);
 
@@ -1571,20 +1613,13 @@ function updateDisplay() {
     subFinancialDisplay.textContent = `Equities: ${currencyFormatter.format(equityValue)} | Cash: ${currencyFormatter.format(displayCash)} | Liabilities: ${currencyFormatter.format(displayDebt)}`;
 
     const singleplayerBankrupt = !isServerAuthoritative && netWorth <= 0;
-    const multiplayerBankrupt = isServerAuthoritative && netWorth < 0;
-    if (!handlingBankruptcy && (singleplayerBankrupt || multiplayerBankrupt)) {
+    if (!handlingBankruptcy && singleplayerBankrupt) {
         handlingBankruptcy = true;
         endGame("bankrupt");
         return;
     }
-    // In singleplayer, bankruptcy is final - don't allow recovery
-    // Only multiplayer can recover (server manages that state)
-    if (handlingBankruptcy && isServerAuthoritative) {
-        const resolved = netWorth >= 0 && displayDebt <= 0 && serverPlayer && !serverPlayer.bankrupt;
-        if (resolved) {
-            handlingBankruptcy = false;
-        }
-    }
+    // In singleplayer, bankruptcy is final - don't allow recovery.
+    // Multiplayer bankruptcy is server-authoritative and sticky.
     updateMacroEventsDisplay();
 }
 
@@ -1885,18 +1920,11 @@ function parseUserAmount(input) {
 // --- Game Logic ---
 function updateNetWorth() {
     const activePlayerId = (serverPlayer && serverPlayer.id) || clientPlayerId || 'local_player';
-    if (serverPlayer && isServerAuthoritative) {
-        const publicValue = portfolio.reduce((sum, holding) => {
-            const company = companies.find(c => c.name === holding.companyName);
-            return sum + (company ? company.marketCap * holding.unitsOwned : 0);
-        }, 0);
-        const privateValue = typeof serverPlayer.ventureEquity === 'number' ? serverPlayer.ventureEquity : (ventureSim ? ventureSim.getPlayerHoldingsValue(activePlayerId) : 0);
-        const pendingCommitments = typeof serverPlayer.ventureCommitmentsValue === 'number' ? serverPlayer.ventureCommitmentsValue : (ventureSim ? ventureSim.getPendingCommitments(activePlayerId) : 0);
-        const displayCash = typeof serverPlayer.cash === 'number' ? serverPlayer.cash : cash;
-        const displayDebt = typeof serverPlayer.debt === 'number' ? serverPlayer.debt : totalBorrowed;
-        netWorth = displayCash + publicValue + privateValue + pendingCommitments - displayDebt;
+    // Multiplayer: trust the authoritative server net worth when available.
+    if (serverPlayer && isServerAuthoritative && typeof serverPlayer.netWorth === 'number') {
+        netWorth = serverPlayer.netWorth;
     } else {
-        let totalHoldingsValue = portfolio.reduce((sum, holding) => {
+        const totalHoldingsValue = portfolio.reduce((sum, holding) => {
             const company = companies.find(c => c.name === holding.companyName);
             return sum + (company ? company.marketCap * holding.unitsOwned : 0);
         }, 0);
@@ -1975,12 +2003,26 @@ function updateNetWorth() {
         vcBtn.parentElement.classList.remove('disabled');
         ensureVentureSimulation();
         updateVentureBadge();
-    } else {
-        vcBtn.disabled = true;
-        vcBtn.parentElement.classList.add('disabled');
-        setVentureBadgeCount(0);
-    }
-}
+	    } else {
+	        vcBtn.disabled = true;
+	        vcBtn.parentElement.classList.add('disabled');
+	        setVentureBadgeCount(0);
+	    }
+	}
+
+	function maybeHandleServerBankruptcy() {
+	    if (!isServerAuthoritative || !serverPlayer) return;
+	    if (serverPlayer.bankrupt) {
+            console.debug('[MP Bankruptcy DEBUG] maybeHandleServerBankruptcy', {
+                id: serverPlayer.id,
+                netWorth: serverPlayer.netWorth,
+                debt: serverPlayer.debt,
+                handlingBankruptcy,
+                hasHandledServerBankruptcy
+            });
+	        endGame("bankrupt");
+	    }
+	}
 
 function calculateInterest() {
     if (totalBorrowed <= 0) return 0;
@@ -2132,13 +2174,13 @@ function handleVentureEvents(events) {
             needsRefresh = true;
         } else if (event.type === 'venture_failed') {
             // Credit refund/liquidation payout if it's for this player (or no playerId specified)
-            if (event.refund && event.refund > 0 && (!event.playerId || event.playerId === activePlayerId)) {
+            if (!isServerAuthoritative && event.refund && event.refund > 0 && (!event.playerId || event.playerId === activePlayerId)) {
                 cash += event.refund;
             }
             removeVentureSpinoutFromMarket(event.name);
             needsRefresh = true;
         } else if (event.type === 'venture_round_failed') {
-            if (event.refund && event.refund > 0 && (!event.playerId || event.playerId === activePlayerId)) {
+            if (!isServerAuthoritative && event.refund && event.refund > 0 && (!event.playerId || event.playerId === activePlayerId)) {
                 cash += event.refund;
             }
             needsRefresh = true;
@@ -2246,21 +2288,27 @@ function showBankingModal() { updateBankingDisplay(); bankingModal.classList.add
 function hideBankingModal() { bankingModal.classList.remove('active'); bankingAmountInput.value = ''; }
 
 function liquidatePlayerAssets() {
-    handlingBankruptcy = true;
+    console.debug('[MP Bankruptcy DEBUG] liquidatePlayerAssets called', {
+        isServerAuthoritative,
+        serverPlayerId: serverPlayer && serverPlayer.id,
+        serverCash: serverPlayer && serverPlayer.cash,
+        serverDebt: serverPlayer && serverPlayer.debt,
+        localCash: cash,
+        localDebt: totalBorrowed
+    });
     if (isServerAuthoritative) {
         sendCommand({ type: 'liquidate_assets' });
-        // Optimistically clear local state so the UI reflects the reset immediately
-        if (!serverPlayer) {
-            serverPlayer = { id: clientPlayerId || 'player', holdings: {}, ventureHoldings: {}, ventureCommitments: {}, ventureCashInvested: {} };
+        // Optimistically clear local view so the UI reflects the reset immediately.
+        // Do not alter bankrupt state; the server is authoritative.
+        if (serverPlayer) {
+            serverPlayer.cash = 0;
+            serverPlayer.debt = 0;
+            serverPlayer.holdings = {};
+            serverPlayer.ventureHoldings = {};
+            serverPlayer.ventureCommitments = {};
+            serverPlayer.ventureCashInvested = {};
+            serverPlayer.netWorth = 0;
         }
-        serverPlayer.cash = 0;
-        serverPlayer.debt = 0;
-        serverPlayer.holdings = {};
-        serverPlayer.ventureHoldings = {};
-        serverPlayer.ventureCommitments = {};
-        serverPlayer.ventureCashInvested = {};
-        serverPlayer.netWorth = 0;
-        serverPlayer.bankrupt = false;
     }
     // Fallback and local UI: wipe positions and debt, set balances to zero
     cash = 0;
@@ -2275,8 +2323,32 @@ function liquidatePlayerAssets() {
 }
 
 function endGame(reason) {
+    const isMpBankrupt = (reason === "bankrupt" && isServerAuthoritative);
+
+    console.debug('[MP Bankruptcy DEBUG] endGame called', {
+        reason,
+        isServerAuthoritative,
+        handlingBankruptcy,
+        hasHandledServerBankruptcy,
+        gameEnded,
+        localNetWorth: netWorth,
+        serverNetWorth: serverPlayer && serverPlayer.netWorth,
+        cash,
+        totalBorrowed
+    });
+
+    // For multiplayer bankruptcies, ensure we only handle this once per match
+    // even if multiple ticks/updates report bankrupt: true.
+    if (isMpBankrupt && hasHandledServerBankruptcy) {
+        console.debug('[MP Bankruptcy DEBUG] endGame already handled MP bankruptcy; skipping duplicate.');
+        return;
+    }
+
     if (reason === "bankrupt") {
         handlingBankruptcy = true;
+        if (isMpBankrupt) {
+            hasHandledServerBankruptcy = true;
+        }
     }
 
     // Permanently end game state for singleplayer bankruptcy or timeline end

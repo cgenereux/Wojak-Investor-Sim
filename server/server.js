@@ -93,6 +93,7 @@ function createPlayer(id) {
     id,
     cash: 3000,
     debt: 0,
+    bankrupt: false,
     character: 'wojak',
     dripEnabled: false,
     holdings: {}, // companyId -> units
@@ -392,9 +393,17 @@ function serializePlayer(player, sim) {
   const equity = computeEquity(sim, holdings);
   const ventureValue = computeVentureEquity(sim._ventureSim, player.ventureHoldings || {}, player.id);
   const commitments = computeVentureCommitments(player.ventureCommitments || {}, sim._ventureSim, player.id);
-  const netWorth = player.cash + equity + ventureValue + commitments - player.debt;
+  const netWorth = computeNetWorth(sim, player);
   const bankrupt = netWorth < 0 && player.debt > 0;
   player.bankrupt = bankrupt;
+  const netWorthComponents = {
+    cash: player.cash,
+    debt: player.debt,
+    equity,
+    ventureEquity: ventureValue,
+    commitments,
+    netWorth
+  };
   const character = player.character || 'wojak';
   return {
     id: player.id,
@@ -411,7 +420,8 @@ function serializePlayer(player, sim) {
     bankrupt,
     ventureHoldings: player.ventureHoldings || {},
     ventureCommitments: player.ventureCommitments || {},
-    ventureCashInvested: player.ventureCashInvested || {}
+    ventureCashInvested: player.ventureCashInvested || {},
+    netWorthComponents
   };
 }
 
@@ -455,12 +465,18 @@ function computeVentureCommitments(commitments, ventureSim = null, playerId = nu
   return total;
 }
 
-function maxBorrowable(sim, player) {
+function computeNetWorth(sim, player) {
+  if (!sim || !player) return 0;
   const equity = computeEquity(sim, player.holdings || {});
   const ventureValue = computeVentureEquity(sim._ventureSim, player.ventureHoldings || {}, player.id);
   const commitments = computeVentureCommitments(player.ventureCommitments || {}, sim._ventureSim, player.id);
-  const netWorth = player.cash + equity + ventureValue + commitments - player.debt;
-  const cap = Math.max(0, netWorth) * 5;
+  return player.cash + equity + ventureValue + commitments - player.debt;
+}
+
+function maxBorrowable(sim, player) {
+  const netWorth = computeNetWorth(sim, player);
+  // Borrowing cap is 4× net worth (matches singleplayer + README).
+  const cap = Math.max(0, netWorth) * 4;
   return Math.max(0, cap - player.debt);
 }
 
@@ -661,7 +677,9 @@ function handleCommand(session, player, msg) {
     return { ok: false, error: 'bad_payload' };
   }
   const allowedWhileBankrupt = (type === 'ping' || type === 'resync' || type === 'liquidate_assets' || type === 'debug_set_speed');
-  if (player.bankrupt && !allowedWhileBankrupt) {
+  const currentNetWorth = computeNetWorth(session.sim, player);
+  const isBankruptNow = currentNetWorth < 0 && player.debt > 0;
+  if (isBankruptNow && !allowedWhileBankrupt) {
     return { ok: false, error: 'bankrupt' };
   }
   if (type !== 'ping') {
@@ -868,7 +886,6 @@ function handleCommand(session, player, msg) {
     player.ventureHoldings = {};
     player.ventureCommitments = {};
     player.ventureCashInvested = {};
-    player.bankrupt = false;
     player.lastCommandTs = Date.now();
     broadcastPlayers(session);
     return { ok: true, type: 'liquidate_assets' };

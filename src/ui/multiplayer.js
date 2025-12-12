@@ -453,6 +453,15 @@
         if (msg.type === 'command_result') {
             if (!msg.ok) {
                 console.warn('Command failed', msg.error);
+                if (msg.error === 'bankrupt') {
+                    notify("You've gone bankrupt. Your assets have been liquidated to pay off your debts.", 'error');
+                } else if (msg.error === 'above_limit') {
+                    notify('Borrowing limit reached.', 'warn');
+                } else if (msg.error === 'insufficient_cash') {
+                    notify('Insufficient cash for that action.', 'warn');
+                } else if (msg.error === 'no_position') {
+                    notify('You do not hold that position.', 'warn');
+                }
                 if (startGameRequested) {
                     startGameRequested = false;
                     startGameSent = false;
