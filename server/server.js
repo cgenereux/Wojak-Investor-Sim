@@ -799,6 +799,32 @@ function handleCommand(session, player, msg) {
       name: vc.name || rawName
     };
   }
+  if (type === 'debug_trigger_macro_event') {
+    if (!session.localDebugAllowed) {
+      return { ok: false, error: 'unauthorized' };
+    }
+    const role = session.playerRoles.get(player.id) || 'guest';
+    if (role !== 'host') {
+      return { ok: false, error: 'unauthorized' };
+    }
+    const eventIdRaw = (msg.eventId || msg.id || msg.macroId || '').toString().trim();
+    if (!eventIdRaw) {
+      return { ok: false, error: 'bad_event' };
+    }
+    if (!session.sim || typeof session.sim.triggerMacroEvent !== 'function') {
+      return { ok: false, error: 'sim_unavailable' };
+    }
+    const instance = session.sim.triggerMacroEvent(eventIdRaw);
+    if (!instance) {
+      return { ok: false, error: 'not_found' };
+    }
+    return {
+      ok: true,
+      type: 'debug_trigger_macro_event',
+      eventId: instance.id || eventIdRaw,
+      label: instance.label || null
+    };
+  }
   if (type === 'start_game') {
     if (!session.hostId) {
       session.hostId = player.id;

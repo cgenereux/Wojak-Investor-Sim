@@ -461,6 +461,8 @@
                     notify('Insufficient cash for that action.', 'warn');
                 } else if (msg.error === 'no_position') {
                     notify('You do not hold that position.', 'warn');
+                } else if (typeof debugMode !== 'undefined' && debugMode) {
+                    notify(`Command failed: ${msg.error}`, 'warn');
                 }
                 if (startGameRequested) {
                     startGameRequested = false;
@@ -491,6 +493,14 @@
                 const speedLabel = Number.isFinite(s) ? `${s}x` : 'unknown';
                 const intervalLabel = Number.isFinite(interval) ? `${interval.toFixed(0)}ms` : 'unknown';
                 notify(`Debug speed set to ${speedLabel} (${intervalLabel} per tick)`, 'info');
+            }
+            if (msg.ok && msg.data && msg.data.type === 'debug_trigger_macro_event') {
+                const allowDebugToast = (typeof debugMode !== 'undefined' && debugMode)
+                    || (typeof isLocalhost !== 'undefined' && isLocalhost);
+                if (allowDebugToast) {
+                    const label = msg.data.label || msg.data.eventId || 'Macro event';
+                    notify(`Macro event triggered: ${label}`, 'info');
+                }
             }
             if (msg.ok && msg.data && (msg.data.type === 'borrow' || msg.data.type === 'repay')) {
                 clearBankingInputAndRefresh();

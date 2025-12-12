@@ -435,16 +435,36 @@ const {
 } = multiplayerModule;
 
 window.triggerMacroEvent = function (eventId) {
+    const id = (eventId || '').toString().trim();
+    if (!id) {
+        console.warn('Macro event id required.');
+        return null;
+    }
+    // Multiplayer: server is authoritative; ask it to force-trigger the event.
+    if (isServerAuthoritative) {
+        if (typeof sendCommand !== 'function') {
+            console.warn('sendCommand not ready; cannot trigger macro event in multiplayer.');
+            return null;
+        }
+        sendCommand({ type: 'debug_trigger_macro_event', eventId: id });
+        console.info(`[Debug] Requested macro event "${id}" from server.`);
+        const allowDebugToast = (typeof debugMode !== 'undefined' && debugMode) || isLocal;
+        if (allowDebugToast) {
+            showToast(`Requested macro event "${id}" from host server.`, { tone: 'info', duration: 4000 });
+        }
+        return { requested: true, id };
+    }
+    // Singleplayer/local sim: trigger directly.
     if (!sim || typeof sim.triggerMacroEvent !== 'function') {
         console.warn('Simulation not ready; cannot trigger macro event.');
         return null;
     }
-    const event = sim.triggerMacroEvent(eventId);
+    const event = sim.triggerMacroEvent(id);
     if (event) {
         console.log(`Macro event triggered: ${event.label}`);
         updateMacroEventsDisplay();
     } else {
-        console.warn('Macro event not found or failed to trigger:', eventId);
+        console.warn('Macro event not found or failed to trigger:', id);
     }
     return event;
 };
@@ -724,6 +744,10 @@ function resetClientStateForMultiplayer() {
     latestServerPlayers = [];
     lastRosterSnapshot = [];
     resetDecadeTracking();
+    bankruptNotifiedIds.clear();
+    macroEventNotifiedIds.clear();
+    seenVentureIds.clear();
+    unseenVentureCount = 0;
     if (playerNetWorthSeries && typeof playerNetWorthSeries.clear === 'function') {
         playerNetWorthSeries.clear();
     }
@@ -2004,8 +2028,6 @@ function updateMacroEventsDisplay(serverEvents = null) {
     if (!events || events.length === 0) return;
     events.forEach(evt => {
         if (!evt || !evt.id) return;
-        const progress = Number.isFinite(evt.progress) ? evt.progress : 1;
-        if (progress < 0.3) return;
         if (macroEventNotifiedIds.has(evt.id)) return;
         macroEventNotifiedIds.add(evt.id);
         const label = evt.label || 'Macro event';
