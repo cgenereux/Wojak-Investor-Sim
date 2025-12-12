@@ -201,6 +201,14 @@ body.vc-active.vc-detail-active #main-view {
     padding: 15px 34px 15px 16px;
 }
 
+.toast-macro-neutral {
+    border-color: #93c5fd;
+    background: #eff6ff;
+    font-size: 17px;
+    line-height: 1.4;
+    padding: 15px 34px 15px 16px;
+}
+
 .toast-error {
     border-color: #fca5a5;
     background: #fff1f2;
@@ -306,7 +314,7 @@ body.vc-active.vc-detail-active #main-view {
 
 .party-avatar-name {
     margin-top: 4px;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
     color: #0f172a;
     text-align: center;
@@ -343,7 +351,7 @@ body.vc-active.vc-detail-active #main-view {
 
 .header-content.many-players .party-avatar-name {
     margin-top: 3px;
-    font-size: 9px;
+    font-size: 10px;
 }
 
 .header-content.many-players .party-avatar-dot {

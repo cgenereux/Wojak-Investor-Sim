@@ -529,7 +529,9 @@
                     || (typeof isLocalhost !== 'undefined' && isLocalhost);
                 if (allowDebugToast) {
                     const label = msg.data.label || msg.data.eventId || 'Macro event';
-                    notify(`Macro event triggered: ${label}`, 'info');
+                    const rate = Number(msg.data.interestRateAnnual);
+                    const rateLabel = Number.isFinite(rate) ? ` (${(rate * 100).toFixed(0)}%)` : '';
+                    notify(`Macro event triggered: ${label}${rateLabel}`, 'info');
                 }
             }
             if (msg.ok && msg.data && (msg.data.type === 'borrow' || msg.data.type === 'repay')) {

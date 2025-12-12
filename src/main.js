@@ -483,6 +483,7 @@ const bankingCashDisplay = document.getElementById('bankingCashDisplay');
 const bankingNetWorthDisplay = document.getElementById('bankingNetWorthDisplay');
 const currentDebtDisplay = document.getElementById('currentDebtDisplay');
 const maxBorrowDisplay = document.getElementById('maxBorrowDisplay');
+const bankingInterestRateLabel = document.getElementById('bankingInterestRateLabel');
 const bankingAmountInput = document.getElementById('bankingAmountInput');
 const borrowBtn = document.getElementById('borrowBtn');
 const repayBtn = document.getElementById('repayBtn');
@@ -709,6 +710,9 @@ let disconnectButtonEl = null;
 const emittedDecadeKeys = new Set();
 const bankruptNotifiedIds = new Set();
 const macroEventNotifiedIds = new Set();
+const macroEventEndedNotifiedIds = new Set();
+let latestServerMacroEvents = [];
+let lastActiveMacroEventsById = new Map();
 const seenVentureIds = new Set();
 let unseenVentureCount = 0;
 const ENABLE_LOCAL_BANKRUPTCY_TEST = false;
@@ -746,6 +750,9 @@ function resetClientStateForMultiplayer() {
     resetDecadeTracking();
     bankruptNotifiedIds.clear();
     macroEventNotifiedIds.clear();
+    macroEventEndedNotifiedIds.clear();
+    latestServerMacroEvents = [];
+    lastActiveMacroEventsById = new Map();
     seenVentureIds.clear();
     unseenVentureCount = 0;
     if (playerNetWorthSeries && typeof playerNetWorthSeries.clear === 'function') {
@@ -869,13 +876,17 @@ function hydrateFromSnapshot(snapshot) {
             // Fallback: keep plain objects so UI can at least list them
             ventureSim = { companies: snapshot.venture.companies };
         }
-    }
+	    }
 
-    serverPlayer = snapshot.player || null;
-    if (snapshot.lastTick) {
-        currentDate = new Date(snapshot.lastTick);
-    }
-    syncPortfolioFromServer();
+	    serverPlayer = snapshot.player || null;
+	    if (snapshot.sim && Array.isArray(snapshot.sim.macroEvents)) {
+	        latestServerMacroEvents = snapshot.sim.macroEvents;
+	        updateMacroEventsDisplay(snapshot.sim.macroEvents);
+	    }
+	    if (snapshot.lastTick) {
+	        currentDate = new Date(snapshot.lastTick);
+	    }
+	    syncPortfolioFromServer();
     updateNetWorth();
     renderCompanies(true);
     updateDisplay();
@@ -1026,6 +1037,7 @@ function applyTick(tick) {
     }
     // Handle macro events from server in multiplayer
     if (Array.isArray(tick.macroEvents)) {
+        latestServerMacroEvents = tick.macroEvents;
         updateMacroEventsDisplay(tick.macroEvents);
     }
     let activeFinancialChanged = false;
@@ -1049,8 +1061,10 @@ function applyTick(tick) {
                         return acc;
                     }, { map: new Map() });
                 const mergedArr = Array.from(merged.map.values()).sort((a, b) => (a.x || 0) - (b.x || 0));
-                // Keep a reasonable tail to avoid unbounded growth
-                const cap = 400;
+                // Keep a reasonable tail to avoid unbounded growth.
+                // Needs to be large enough to cover the full game horizon so the chart
+                // doesn't "slide" forward in multiplayer.
+                const cap = 2500;
                 existing.history = mergedArr.length > cap ? mergedArr.slice(mergedArr.length - cap) : mergedArr;
             }
             // For bankrupt companies, keep history frozen at the latest snapshot point
@@ -1500,19 +1514,19 @@ function resetVentureBadgeState() {
     setVentureBadgeCount(0);
 }
 
-async function loadCompaniesData() {
-    try {
-        initMatchContext();
-        resetVentureBadgeState();
-        ventureCompanies = [];
-        const presetOptions = matchRngFn ? { rng: matchRngFn } : {};
-        const [
-            macroEvents,
-            presetClassicCompanies,
-            presetHardTechCompanies,
-            presetVentureCompanies,
-            hardTechCompanies
-        ] = await Promise.all([
+	async function loadCompaniesData() {
+	    try {
+	        initMatchContext();
+	        resetVentureBadgeState();
+	        ventureCompanies = [];
+	        const presetOptions = matchRngFn ? { rng: matchRngFn } : {};
+	        const [
+	            macroEventsData,
+	            presetClassicCompanies,
+	            presetHardTechCompanies,
+	            presetVentureCompanies,
+	            hardTechCompanies
+	        ] = await Promise.all([
             fetch('data/macroEvents.json').then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status} for macroEvents.json`);
@@ -1521,11 +1535,10 @@ async function loadCompaniesData() {
             }),
             generateClassicCompanies(presetOptions),
             generatePublicHardTechPresetCompanies(null, presetOptions),
-            generateHypergrowthPresetCompanies(presetOptions),
-            generatePrivateHardTechCompanies(null, presetOptions)
-        ]);
-
-        let filteredCompanies = [];
+	            generateHypergrowthPresetCompanies(presetOptions),
+	            generatePrivateHardTechCompanies(null, presetOptions)
+	        ]);
+	        let filteredCompanies = [];
         if (Array.isArray(presetClassicCompanies)) {
             filteredCompanies.push(...presetClassicCompanies);
         }
@@ -1539,18 +1552,18 @@ async function loadCompaniesData() {
             ventureCompanies.push(...hardTechCompanies);
         }
 
-        ensureVentureSimulation(true);
-        updateVentureBadge();
-        const simOptions = matchRngFn
-            ? { macroEvents, seed: matchSeed, rng: matchRngFn, startYear: GAME_START_YEAR }
-            : { macroEvents, startYear: GAME_START_YEAR };
-        return new Simulation(filteredCompanies, simOptions);
-    } catch (error) {
-        console.error("Could not load data:", error);
-        showToast("Failed to load game data. Please ensure JSON files are in the same directory and a local server is running.", { tone: 'error', duration: 6000 });
-        return null;
-    }
-}
+	        ensureVentureSimulation(true);
+	        updateVentureBadge();
+	        const simOptions = matchRngFn
+	            ? { macroEvents: macroEventsData, seed: matchSeed, rng: matchRngFn, startYear: GAME_START_YEAR }
+	            : { macroEvents: macroEventsData, startYear: GAME_START_YEAR };
+	        return new Simulation(filteredCompanies, simOptions);
+	    } catch (error) {
+	        console.error("Could not load data:", error);
+	        showToast("Failed to load game data. Please ensure JSON files are in the same directory and a local server is running.", { tone: 'error', duration: 6000 });
+	        return null;
+	    }
+	}
 
 // --- Chart Objects ---
 let netWorthChart, companyDetailChart, financialYoyChart;
@@ -1754,7 +1767,11 @@ function updateDisplay() {
     }
     // In singleplayer, bankruptcy is final - don't allow recovery.
     // Multiplayer bankruptcy is server-authoritative and sticky.
-    updateMacroEventsDisplay();
+    if (isServerAuthoritative) {
+        updateMacroEventsDisplay(latestServerMacroEvents);
+    } else {
+        updateMacroEventsDisplay();
+    }
 }
 
 function isWojakCharacterSelected() {
@@ -1910,8 +1927,8 @@ function updateNetWorthSeriesFromPlayers(ts, players) {
         } else {
             series.push({ x: ts, y: nw });
         }
-        if (series.length > 1000) {
-            series.splice(0, series.length - 800);
+        if (series.length > 2000) {
+            series.splice(0, series.length - 2000);
         }
     });
 }
@@ -2022,20 +2039,71 @@ function updateMacroEventsDisplay(serverEvents = null) {
     if (!macroEventsDisplay) return;
     // Use server events in multiplayer, local sim events in single player
     const events = serverEvents || ((sim && typeof sim.getActiveMacroEvents === 'function') ? sim.getActiveMacroEvents() : []);
+    const currentIds = new Set((events || []).map(e => e && e.id).filter(Boolean));
+    const currentById = new Map(
+        (events || [])
+            .filter(e => e && e.id)
+            .map(e => [
+                e.id,
+                {
+                    interestRateShift: Number.isFinite(e.interestRateShift) ? e.interestRateShift : 0,
+                    interestRateAnnual: Number.isFinite(e.interestRateAnnual) ? e.interestRateAnnual : null
+                }
+            ])
+    );
+
+    // Detect ended events (used for interest-rate shock "reverted" toasts).
+    if (lastActiveMacroEventsById && lastActiveMacroEventsById.size) {
+        Array.from(lastActiveMacroEventsById.entries()).forEach(([id, meta]) => {
+            if (!id || currentIds.has(id) || macroEventEndedNotifiedIds.has(id)) return;
+            const lastAnnual = meta && Number.isFinite(meta.interestRateAnnual) ? meta.interestRateAnnual : null;
+            // Only show "reverted" toasts for absolute-rate events (rate shocks).
+            if (!Number.isFinite(lastAnnual)) return;
+            macroEventEndedNotifiedIds.add(id);
+
+            const currentShift = Array.from(currentById.values()).reduce((acc, m) => acc + (Number.isFinite(m.interestRateShift) ? m.interestRateShift : 0), 0);
+            let currentOverride = null;
+            (events || []).forEach(evt => {
+                if (evt && Number.isFinite(evt.interestRateAnnual)) {
+                    currentOverride = evt.interestRateAnnual;
+                }
+            });
+            const annualRate = Number.isFinite(currentOverride)
+                ? Math.max(0, currentOverride)
+                : Math.max(0, ANNUAL_INTEREST_RATE + currentShift);
+            const isBackToDefault = Math.abs(annualRate - ANNUAL_INTEREST_RATE) < 1e-9;
+            if (isBackToDefault) {
+                showToast(`Interest rates have been reverted to the default rate (${(ANNUAL_INTEREST_RATE * 100).toFixed(0)}%).`, { tone: 'macro-neutral', duration: 8000 });
+            } else {
+                const pct = annualRate * 100;
+                const pctLabel = (Math.round(pct * 10) / 10).toString().replace(/\\.0$/, '');
+                showToast(`Macro cycle ended. Current interest rate is ${pctLabel}% annually.`, { tone: 'macro-neutral', duration: 8000 });
+            }
+        });
+    }
+    lastActiveMacroEventsById = currentById;
     macroEventsDisplay.style.display = 'none'; // hide legacy pill bar
     macroEventsDisplay.innerHTML = '';
     macroEventsDisplay.classList.remove('active');
-    if (!events || events.length === 0) return;
+    if (!events || events.length === 0) {
+        if (bankingModal && bankingModal.classList.contains('active')) {
+            updateBankingDisplay();
+        }
+        return;
+    }
     events.forEach(evt => {
         if (!evt || !evt.id) return;
         if (macroEventNotifiedIds.has(evt.id)) return;
         macroEventNotifiedIds.add(evt.id);
         const label = evt.label || 'Macro event';
         const desc = evt.description || '';
-        const message = desc ? `${label}: ${desc}` : label;
+        const messageBase = desc ? `${label}: ${desc}` : label;
         const tone = evt.isPositive ? 'macro-good' : (evt.isNegative ? 'macro-bad' : 'macro');
-        showToast(message, { tone, duration: 10000 });
+        showToast(messageBase, { tone, duration: 10000 });
     });
+    if (bankingModal && bankingModal.classList.contains('active')) {
+        updateBankingDisplay();
+    }
 }
 
 // --- Utility: Parse user-entered currency/number strings ---
@@ -2170,11 +2238,14 @@ function updateNetWorth() {
 function calculateInterest() {
     if (totalBorrowed <= 0) return 0;
     const daysSinceLastInterest = (currentDate - lastInterestDate) / (1000 * 60 * 60 * 24);
-    let shift = 0;
-    if (sim && sim.macroEventManager && typeof sim.macroEventManager.getInterestRateShift === 'function') {
-        shift = Number(sim.macroEventManager.getInterestRateShift()) || 0;
+    let annualRate = ANNUAL_INTEREST_RATE;
+    if (sim && sim.macroEventManager && typeof sim.macroEventManager.getInterestRateAnnual === 'function') {
+        annualRate = Number(sim.macroEventManager.getInterestRateAnnual(ANNUAL_INTEREST_RATE)) || ANNUAL_INTEREST_RATE;
+    } else if (sim && sim.macroEventManager && typeof sim.macroEventManager.getInterestRateShift === 'function') {
+        const shift = Number(sim.macroEventManager.getInterestRateShift()) || 0;
+        annualRate = Math.max(0, ANNUAL_INTEREST_RATE + shift);
     }
-    const annualRate = Math.max(0, ANNUAL_INTEREST_RATE + shift);
+    annualRate = Math.max(0, annualRate);
     const dailyRate = annualRate / 365.25;
     return totalBorrowed * dailyRate * daysSinceLastInterest;
 }
@@ -2460,6 +2531,34 @@ function updateBankingDisplay() {
     currentDebtDisplay.textContent = currencyFormatter.format(displayDebt);
     currentDebtDisplay.className = `stat-value ${displayDebt > 0 ? 'negative' : 'positive'}`;
     maxBorrowDisplay.textContent = currencyFormatter.format(maxBorrowing);
+    if (bankingInterestRateLabel) {
+        let annualRate = ANNUAL_INTEREST_RATE;
+        if (!isServerAuthoritative && sim && sim.macroEventManager) {
+            if (typeof sim.macroEventManager.getInterestRateAnnual === 'function') {
+                const resolved = Number(sim.macroEventManager.getInterestRateAnnual(ANNUAL_INTEREST_RATE));
+                annualRate = Number.isFinite(resolved) ? resolved : ANNUAL_INTEREST_RATE;
+            } else if (typeof sim.macroEventManager.getInterestRateShift === 'function') {
+                const shift = Number(sim.macroEventManager.getInterestRateShift()) || 0;
+                annualRate = Math.max(0, ANNUAL_INTEREST_RATE + shift);
+            }
+        } else if (isServerAuthoritative && Array.isArray(latestServerMacroEvents)) {
+            let override = null;
+            let shift = 0;
+            latestServerMacroEvents.forEach(evt => {
+                if (evt && Number.isFinite(evt.interestRateAnnual)) {
+                    override = evt.interestRateAnnual;
+                }
+                if (evt && Number.isFinite(evt.interestRateShift)) {
+                    shift += evt.interestRateShift;
+                }
+            });
+            annualRate = Number.isFinite(override) ? override : Math.max(0, ANNUAL_INTEREST_RATE + shift);
+        }
+        annualRate = Math.max(0, annualRate);
+        const pct = annualRate * 100;
+        const pctLabel = (Math.round(pct * 10) / 10).toString().replace(/\\.0$/, '');
+        bankingInterestRateLabel.textContent = `Interest Rate: ${pctLabel}% annually`;
+    }
 }
 
 function showBankingModal() { updateBankingDisplay(); bankingModal.classList.add('active'); }
@@ -2772,7 +2871,7 @@ function buy(companyName, amount, opts = {}) {
 
 function sell(companyName, amount, opts = {}) {
     const { skipEmptyWarning = false } = opts || {};
-    amount = parseFloat(amount);
+    amount = parseUserAmount(amount);
     if (isNaN(amount) || amount <= 0) {
         if (!skipEmptyWarning) {
             showToast("Enter an amount to sell.", { tone: 'warn' });
@@ -2797,7 +2896,7 @@ function sell(companyName, amount, opts = {}) {
     } else {
         cash += amount;
         holding.unitsOwned -= unitsToSell;
-        if (holding.unitsOwned < 1e-9) {
+        if (holding.unitsOwned <= 1e-15) {
             portfolio = portfolio.filter(h => h.companyName !== companyName);
         }
     }

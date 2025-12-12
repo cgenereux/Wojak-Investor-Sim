@@ -62,12 +62,12 @@
     "effects": [
       { "type": "macro_mu_delta", "value": -0.015 },
       { "type": "volatility_multiplier", "multiplier": 1.35 },
-      { "type": "interest_rate_shift", "delta": 0.04 }
+      { "type": "interest_rate_annual", "values": [0.09, 0.10, 0.11] }
     ],
     "polarity": "negative",
     "descriptions": [
-      "Central banks hike aggressively to fight inflation; borrowing costs surge.",
-      "Rates spike into double digits, squeezing valuations and demand."
+      "Central banks hike aggressively to {rate} to fight inflation; borrowing costs surge.",
+      "Rates spike into double digits ({rate}), squeezing valuations and demand."
     ]
   },
   {
@@ -83,12 +83,12 @@
       { "type": "macro_mu_delta", "value": 0.015 },
       { "type": "revenue_multiplier", "multiplier": 1.05 },
       { "type": "volatility_multiplier", "multiplier": 0.85 },
-      { "type": "interest_rate_shift", "delta": -0.04 }
+      { "type": "interest_rate_annual", "values": [0.04, 0.05] }
     ],
     "polarity": "positive",
     "descriptions": [
-      "Rates are slashed in a growth push; credit gets cheap and risk appetite returns.",
-      "A dovish pivot drives a multi-year expansion and higher multiples."
+      "Rates are slashed to {rate} in a growth push; credit gets cheap and risk appetite returns.",
+      "A dovish pivot cuts rates to {rate}, driving a multi-year expansion and higher multiples."
     ]
   }
 ]

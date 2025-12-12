@@ -1350,7 +1350,11 @@
         });
 
         this.consecutiveFails = (this.consecutiveFails || 0) + 1;
-        const collapse = this.consecutiveFails >= this.maxFailuresBeforeCollapse;
+        // Final-stage fundraising failures should be terminal; otherwise, allow a limited number
+        // of retries before collapse.
+        const stageId = stage && stage.id ? String(stage.id) : '';
+        const reachedTarget = this.stageIndex >= this.targetStageIndex || stageId === 'pre_ipo' || stageId === 'ipo';
+        const collapse = reachedTarget || this.consecutiveFails >= this.maxFailuresBeforeCollapse;
 
         if (collapse) {
           // NOTE: We intentionally do NOT clear playerEquity/playerEquityMap here.
@@ -1397,7 +1401,9 @@
           const failDate = currentDate ? new Date(currentDate) : (this.lastTick ? new Date(this.lastTick) : new Date());
           this.failedAt = failDate;
           this.failedAtWall = Date.now();
-          this.lastEventNote = `${closingRound.stageLabel} round collapsed twice. Operations halted.`;
+          this.lastEventNote = reachedTarget
+            ? `${closingRound.stageLabel} round failed at IPO stage. Operations halted.`
+            : `${closingRound.stageLabel} round collapsed twice. Operations halted.`;
           this.currentRound = null;
           this.stageChanged = true;
           this.playerInvested = 0;

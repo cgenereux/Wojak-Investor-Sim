@@ -27,6 +27,26 @@
     return def.description || def.notes || '';
   };
 
+  const applyTemplate = (text, vars = {}) => {
+    if (typeof text !== 'string' || !text) return text;
+    let out = text;
+    Object.entries(vars).forEach(([key, value]) => {
+      const needle = `{${key}}`;
+      const replacement = value == null ? '' : String(value);
+      // Use split/join for broad compatibility.
+      out = out.split(needle).join(replacement);
+    });
+    return out;
+  };
+
+  const pickFromValues = (values, rngFn = getRng()) => {
+    if (!Array.isArray(values) || values.length === 0) return null;
+    const filtered = values.filter(v => typeof v === 'number' && Number.isFinite(v));
+    if (filtered.length === 0) return null;
+    const idx = Math.floor(rngFn() * filtered.length);
+    return filtered[Math.max(0, Math.min(filtered.length - 1, idx))];
+  };
+
   class MacroEventManager {
     constructor(definitions = [], baseYear = 1990) {
       this.baseYear = baseYear;
@@ -50,8 +70,8 @@
       const rngFn = getRng();
       if (!force && rngFn() > chance) return null;
       const id = def.id || `macro_event_${Math.floor(rngFn() * 1e9).toString(36)}`;
-      const label = def.label || 'Macro Event';
-      const description = pickDescription(def, rngFn);
+      const rawLabel = def.label || 'Macro Event';
+      const rawDescription = pickDescription(def, rngFn);
       const startRange = Array.isArray(def.start_year_range) && def.start_year_range.length === 2
         ? def.start_year_range
         : [def.start_year || this.baseYear + 2, def.start_year || this.baseYear + 2];
@@ -86,11 +106,48 @@
       const polarity = typeof def.polarity === 'string' ? def.polarity.toLowerCase() : '';
       const isPositive = def.good === true || def.positive === true || polarity === 'positive' || polarity === 'good';
       const isNegative = def.bad === true || def.negative === true || polarity === 'negative' || polarity === 'bad';
+      const resolvedEffects = (Array.isArray(def.effects) ? def.effects : []).map(effect => {
+        if (!effect || typeof effect !== 'object') return effect;
+        const copy = { ...effect };
+        if (copy.type === 'interest_rate_shift') {
+          if (Array.isArray(copy.delta_range) && copy.delta_range.length >= 2) {
+            const [min, max] = copy.delta_range;
+            if (typeof min === 'number' && typeof max === 'number' && Number.isFinite(min) && Number.isFinite(max)) {
+              copy.delta = randBetween(Math.min(min, max), Math.max(min, max), rngFn);
+            }
+            delete copy.delta_range;
+          }
+        }
+        if (copy.type === 'interest_rate_annual') {
+          if (Array.isArray(copy.values)) {
+            const picked = pickFromValues(copy.values, rngFn);
+            if (typeof picked === 'number') {
+              copy.value = picked;
+            }
+            delete copy.values;
+          } else if (Array.isArray(copy.value_range) && copy.value_range.length >= 2) {
+            const [min, max] = copy.value_range;
+            if (typeof min === 'number' && typeof max === 'number' && Number.isFinite(min) && Number.isFinite(max)) {
+              copy.value = randBetween(Math.min(min, max), Math.max(min, max), rngFn);
+            }
+            delete copy.value_range;
+          }
+        }
+        return copy;
+      });
+      const annualRateEffect = resolvedEffects.find(e => e && e.type === 'interest_rate_annual' && typeof e.value === 'number' && Number.isFinite(e.value));
+      const annualRate = annualRateEffect ? annualRateEffect.value : null;
+      const ratePct = Number.isFinite(annualRate) ? Math.round(annualRate * 100) : null;
+      const templateVars = Number.isFinite(ratePct)
+        ? { rate: `${ratePct}%`, rate_pct: String(ratePct) }
+        : {};
+      const label = applyTemplate(rawLabel, templateVars);
+      const description = applyTemplate(rawDescription, templateVars);
       return {
         id,
         label,
         description,
-        effects: Array.isArray(def.effects) ? def.effects : [],
+        effects: resolvedEffects,
         startDate,
         endDate,
         impactDays,
@@ -130,6 +187,24 @@
         polarity: evt.polarity || 'neutral',
         isPositive: !!evt.isPositive,
         isNegative: !!evt.isNegative,
+        interestRateAnnual: (() => {
+          if (!Array.isArray(evt.effects)) return null;
+          for (let i = 0; i < evt.effects.length; i++) {
+            const effect = evt.effects[i];
+            if (effect && effect.type === 'interest_rate_annual' && typeof effect.value === 'number' && Number.isFinite(effect.value)) {
+              return effect.value;
+            }
+          }
+          return null;
+        })(),
+        interestRateShift: Array.isArray(evt.effects)
+          ? evt.effects.reduce((acc, effect) => {
+              if (effect && effect.type === 'interest_rate_shift' && typeof effect.delta === 'number' && Number.isFinite(effect.delta)) {
+                acc += effect.delta;
+              }
+              return acc;
+            }, 0)
+          : 0,
         totalDays: evt.totalDays || Math.max(1, Math.ceil((evt.endDate - evt.startDate) / DAY_MS)),
         progress: (() => {
           const elapsed = Math.max(0, (ref - evt.startDate) / DAY_MS);
@@ -138,6 +213,32 @@
         })(),
         daysRemaining: Math.max(0, Math.ceil((evt.endDate - ref) / DAY_MS))
       }));
+    }
+
+    getInterestRateAnnual(baseAnnualRate = 0) {
+      const base = (typeof baseAnnualRate === 'number' && Number.isFinite(baseAnnualRate)) ? baseAnnualRate : 0;
+      const shift = this.getInterestRateShift();
+      const shifted = Math.max(0, base + shift);
+      if (!this.activeEvents.length) return shifted;
+      const ref = this.currentDate || new Date();
+      let chosen = null;
+      let chosenStart = null;
+      this.activeEvents.forEach(evt => {
+        if (!evt || !Array.isArray(evt.effects)) return;
+        const rateEffect = evt.effects.find(e => e && e.type === 'interest_rate_annual' && typeof e.value === 'number' && Number.isFinite(e.value));
+        if (!rateEffect) return;
+        const start = evt.startDate instanceof Date ? evt.startDate : null;
+        if (!start) return;
+        if (start > ref) return;
+        if (!chosenStart || start > chosenStart) {
+          chosenStart = start;
+          chosen = rateEffect.value;
+        }
+      });
+      if (typeof chosen === 'number' && Number.isFinite(chosen)) {
+        return Math.max(0, chosen);
+      }
+      return shifted;
     }
 
     getMacroMuDelta() {

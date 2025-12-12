@@ -139,14 +139,14 @@
             if (!delta) return null;
             const list = store.player.portfolio;
             const idx = list.findIndex(h => h && h.companyName === name);
-            if (idx >= 0) {
-                const holding = list[idx];
-                holding.unitsOwned = toNumber(holding.unitsOwned, 0) + delta;
-                if (holding.unitsOwned < 1e-9) {
-                    list.splice(idx, 1);
+                if (idx >= 0) {
+                    const holding = list[idx];
+                    holding.unitsOwned = toNumber(holding.unitsOwned, 0) + delta;
+                if (holding.unitsOwned <= 1e-15) {
+                        list.splice(idx, 1);
+                    }
+                    return holding;
                 }
-                return holding;
-            }
             const holding = { companyName: name, unitsOwned: delta };
             list.push(holding);
             return holding;
@@ -162,4 +162,3 @@
     store.reducers = reducers;
     global.WojakState = store;
 })(typeof globalThis !== 'undefined' ? globalThis : window);
-

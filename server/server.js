@@ -482,11 +482,15 @@ function maxBorrowable(sim, player) {
 
 function accrueInterest(session, dtDays) {
   if (!Number.isFinite(dtDays) || dtDays <= 0) return;
-  let shift = 0;
-  if (session && session.sim && session.sim.macroEventManager && typeof session.sim.macroEventManager.getInterestRateShift === 'function') {
-    shift = Number(session.sim.macroEventManager.getInterestRateShift()) || 0;
+  let annualRate = ANNUAL_INTEREST_RATE;
+  if (session && session.sim && session.sim.macroEventManager && typeof session.sim.macroEventManager.getInterestRateAnnual === 'function') {
+    const resolved = Number(session.sim.macroEventManager.getInterestRateAnnual(ANNUAL_INTEREST_RATE));
+    annualRate = Number.isFinite(resolved) ? resolved : ANNUAL_INTEREST_RATE;
+  } else if (session && session.sim && session.sim.macroEventManager && typeof session.sim.macroEventManager.getInterestRateShift === 'function') {
+    const shift = Number(session.sim.macroEventManager.getInterestRateShift()) || 0;
+    annualRate = Math.max(0, ANNUAL_INTEREST_RATE + shift);
   }
-  const annualRate = Math.max(0, ANNUAL_INTEREST_RATE + shift);
+  annualRate = Math.max(0, annualRate);
   session.players.forEach(player => {
     if (!player || player.debt <= 0) return;
     const interest = player.debt * annualRate * (dtDays / 365);
@@ -823,11 +827,17 @@ function handleCommand(session, player, msg) {
     if (!instance) {
       return { ok: false, error: 'not_found' };
     }
+    let interestRateAnnual = null;
+    if (instance && Array.isArray(instance.effects)) {
+      const effect = instance.effects.find(e => e && e.type === 'interest_rate_annual' && typeof e.value === 'number' && Number.isFinite(e.value));
+      if (effect) interestRateAnnual = effect.value;
+    }
     return {
       ok: true,
       type: 'debug_trigger_macro_event',
       eventId: instance.id || eventIdRaw,
-      label: instance.label || null
+      label: instance.label || null,
+      interestRateAnnual
     };
   }
   if (type === 'start_game') {
@@ -880,7 +890,7 @@ function handleCommand(session, player, msg) {
     }
     const unitsToSell = amount / company.marketCap;
     player.holdings[companyId] = Math.max(0, unitsOwned - unitsToSell);
-    if (player.holdings[companyId] < 1e-9) delete player.holdings[companyId];
+    if (player.holdings[companyId] <= 1e-15) delete player.holdings[companyId];
     player.cash += amount;
     return { ok: true, type: 'sell', companyId, amount, units: unitsToSell };
   }
