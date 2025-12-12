@@ -855,7 +855,7 @@ function getFinancialTableHTML(history) {
         return '<p>No annual data available yet</p>';
     }
 
-    const rows = history.slice().reverse().map(entry => {
+    const rows = history.slice(Math.max(0, history.length - 10)).reverse().map(entry => {
         const revenue = vcFormatCurrency(entry.revenue || 0);
         const profit = vcFormatCurrency(entry.profit || 0);
         const cash = vcFormatCurrency(entry.cash || 0);

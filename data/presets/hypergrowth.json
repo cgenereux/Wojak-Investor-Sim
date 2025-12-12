@@ -25,12 +25,12 @@
       "gate_stage": "series_c",
       "risk_to_reward": "low",
       "founders": [
-        { "name": "Ross Ulrich", "degree": "BSc Computer Science", "school": "UWaterloo" },
+        { "name": "Paul Bartly", "degree": "BSc Computer Science", "school": "UWaterloo" },
         { "name": "Alex Carr", "degree": "BSc Computer Systems", "school": "UWaterloo" }
       ],
       "mission": "Securing electronic commerce in the Internet age.",
       "founding_location": "Palo Alto, CA",
-      "private_listing_window": { "from": 1985, "to": 1985 }
+      "private_listing_window": { "from": 2005, "to": 2017 }
     },
     {
       "name": "StreamCast",
@@ -42,11 +42,11 @@
       "risk_to_reward": "medium",
       "founders": [
         { "name": "Jason Shmitt", "degree": "BSc Computer Science", "school": "NYU" },
-        { "name": "Jawed Chen", "degree": "BSc Computer Engineering", "school": "Columbia" }
+        { "name": "Jensen Hatfield", "degree": "BSc Computer Engineering", "school": "Columbia" }
       ],
       "mission": "Live broadcasting for the Internet age.",
       "founding_location": "San Francisco, CA",
-      "private_listing_window": { "from": 1996, "to": 2011 }
+      "private_listing_window": { "from": 1996, "to": 2013 }
     },
 
 
@@ -111,7 +111,7 @@
       "gate_stage": "series_c",
       "founders": [
         { "name": "Joseph Smith", "degree": "BSc Computer Science", "school": "Harvard" },
-        { "name": "Dustin Park", "degree": "BSc Economics", "school": "Harvard" }
+        { "name": "Ryan Johnson", "degree": "BSc Economics", "school": "Harvard" }
       ],
       "mission": "Connecting people with their real world social networks online.",
       "founding_location": "Boston, MA",
@@ -141,13 +141,13 @@
       "ipo_stage": "series_f",
       "gate_stage": "series_c",
       "founders": [
-        { "name": "Vlad Petrov", "degree": "BSc Physics", "school": "Stanford" },
-        { "name": "Baiju Prasad", "degree": "BSc Mathematics", "school": "Stanford" }
+        { "name": "Christian Johnson", "degree": "BSc Physics", "school": "Stanford" },
+        { "name": "Simon Lesly", "degree": "BSc Mathematics", "school": "Stanford" }
       ],
       "mission": "Democratizing finance with commission free stock trading for everyone.",
       "founding_location": "Palo Alto, CA",
       "risk_to_reward": "high",
-      "private_listing_window": { "from": 1985, "to": 1985 }
+      "private_listing_window": { "from": 2008, "to": 2015 }
     },
     {
       "name": "LockedIn",
@@ -158,12 +158,77 @@
       "gate_stage": "series_c",
       "risk_to_reward": "medium",
       "founders": [
-        { "name": "Eric Yuan Jr.", "degree": "MSc Computer Science", "school": "Stanford" },
-        { "name": "David Chang", "degree": "BSc Computer Engineering", "school": "SJSU" }
+        { "name": "David Fields", "degree": "MSc Computer Science", "school": "Stanford" },
+        { "name": "Simon Chang", "degree": "BSc Computer Engineering", "school": "SJSU" }
       ],
       "mission": "A social network for your next job.",
       "founding_location": "Mountain View, CA",
-      "private_listing_window": { "from": 2002, "to": 2002 }
+      "private_listing_window": { "from": 2004, "to": 2017 }
+    },
+
+    {
+      "name": "ChainNet",
+      "sector": "Technology",
+      "subsector": "FinTech",
+      "funding_round": "Seed",
+      "ipo_stage": "series_f",
+      "gate_stage": "series_c",
+      "risk_to_reward": "high",
+      "founders": [
+        { "name": "Ronan Matthews", "degree": "BS Computer Science", "school": "Waterloo" },
+        { "name": "Terence Barber", "degree": "PhD Computer Science", "school": "York" }
+      ],
+      "mission": "A decentralized world computer that anyone can program.",
+      "founding_location": "Toronto, Canada",
+      "private_listing_window": { "from": 2016, "to": 2024 }
+    },
+    {
+      "name": "Omen Ontologies",
+      "sector": "Technology",
+      "subsector": "Technology",
+      "funding_round": "Seed",
+      "ipo_stage": "series_f",
+      "gate_stage": "series_c",
+      "risk_to_reward": "high",
+      "founders": [
+        { "name": "Christina Cheng", "degree": "Dropout", "school": "Stanford" },
+        { "name": "Rob Ager", "degree": "MS Computer Science", "school": "MIT" }
+      ],
+      "mission": "Applying AI for enterprise data analytics and services.",
+      "founding_location": "San Francisco, CA",
+      "private_listing_window": { "from": 2023, "to": 2029 }
+    },
+    {
+      "name": "Aegis Systems",
+      "sector": "Technology",
+      "subsector": "Defense",
+      "funding_round": "Seed",
+      "ipo_stage": "series_f",
+      "gate_stage": "series_c",
+      "risk_to_reward": "medium",
+      "founders": [
+        { "name": "Kyle Edward", "degree": "Dropout", "school": "CSULB" },
+        { "name": "Samantha White", "degree": "BS Engineering", "school": "Georgetown" }
+      ],
+      "mission": "Rebuilding the arsenal of democracy with software-defined autonomous systems.",
+      "founding_location": "Costa Mesa, CA",
+      "private_listing_window": { "from": 2026, "to": 2032 }
+    },
+    {
+      "name": "TerraForm",
+      "sector": "Energy",
+      "subsector": "Climate Tech",
+      "funding_round": "Seed",
+      "ipo_stage": "series_f",
+      "gate_stage": "series_c",
+      "risk_to_reward": "high",
+      "founders": [
+        { "name": "Dr. Jennifer D.", "degree": "PhD Chemistry", "school": "Berkeley" },
+        { "name": "Clive S.", "degree": "PhD Physics", "school": "Oxford" }
+      ],
+      "mission": "Reversing climate change by turning atmospheric CO2 into useful fuel.",
+      "founding_location": "Squamish, BC",
+      "private_listing_window": { "from": 2029, "to": 2036 }
     }
 
   ],

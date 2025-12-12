@@ -388,6 +388,7 @@
       const pendingValue = hasPending ? pendingCommitment : 0;
       const stageLabel = detail.stageLabel || summary.stageLabel || 'Private';
       const sectorClass = getSectorClass(detail.sector || summary.sector);
+      const subsectorClass = getSubsectorClass(detail.subsector || summary.subsector);
       const bankruptClass = isFailed ? ' bankrupt' : '';
       const statusLabel = isFailed ? 'Status: Bankrupt' : '';
 
@@ -409,7 +410,7 @@
         rows.push({
           sortValue: isFailed ? 0 : equityValue,
           html: `
-            <div class="portfolio-item${sectorClass ? ` ${sectorClass}` : ''}${bankruptClass}" data-portfolio-type="private" data-venture-id="${summary.id}" data-portfolio-key="${mainKey}">
+            <div class="portfolio-item${sectorClass ? ` ${sectorClass}` : ''}${subsectorClass ? ` ${subsectorClass}` : ''}${bankruptClass}" data-portfolio-type="private" data-venture-id="${summary.id}" data-portfolio-key="${mainKey}">
                 <div class="company-name">${nameLabel}</div>
                 <div class="portfolio-info">
                     <span class="portfolio-status" style="display:${isFailed ? 'block' : 'none'}">${statusLabel}</span>
@@ -434,7 +435,7 @@
         rows.push({
           sortValue: pendingValue,
           html: `
-            <div class="portfolio-item${sectorClass ? ` ${sectorClass}` : ''}" data-portfolio-type="private" data-venture-id="${summary.id}" data-portfolio-key="${inflightKey}">
+            <div class="portfolio-item${sectorClass ? ` ${sectorClass}` : ''}${subsectorClass ? ` ${subsectorClass}` : ''}" data-portfolio-type="private" data-venture-id="${summary.id}" data-portfolio-key="${inflightKey}">
                 <div class="company-name">${inflightName}</div>
                 <div class="portfolio-info">
                     <span class="portfolio-status" style="display:none"></span>

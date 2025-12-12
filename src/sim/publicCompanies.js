@@ -588,7 +588,7 @@
 
     getFinancialTable() {
       if (this.financialHistory.length === 0) return null;
-      return this.financialHistory.slice().reverse();
+      return this.financialHistory.slice(Math.max(0, this.financialHistory.length - 10)).reverse();
     }
 
     getYoySeries(limit = 8) {

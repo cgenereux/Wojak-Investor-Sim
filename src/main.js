@@ -3347,7 +3347,9 @@ function renderCompanyFinancialHistory(company) {
 }
 
 function getCompanyFinancialTableHTML(company) {
-    const data = company.financialHistory ? company.financialHistory.slice().reverse() : [];
+    const data = company.financialHistory
+        ? company.financialHistory.slice(Math.max(0, company.financialHistory.length - 10)).reverse()
+        : [];
     if (!data || data.length === 0) return '<p>No annual data available yet</p>';
 
     const fmtMoney = (v) => {

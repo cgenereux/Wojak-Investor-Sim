@@ -93,7 +93,7 @@
           "sector": "Automotive"
         },
         {
-          "name": "Sterling National Bank",
+          "name": "Harborstone National Bank",
           "mission": "Anchoring American commerce with trusted lending and capital markets.",
           "founders": [ { "name": "James Sterling" }, { "name": "Catherine Aldrich" } ],
           "founding_location": "New York, NY",
@@ -184,7 +184,15 @@
           ],
           "founding_location": "Houston, TX",
           "ipo_window": { "from": 1973, "to": 1988 }
-         }
+         },
+         {
+          "name": "Meridian",
+          "mission": "Building infastructure for electronic payments, cards, and merchant networks.",
+          "founders": [ { "name": "Evelyn Grant" }, { "name": "Samir Patel" } ],
+          "founding_location": "New York, NY",
+          "sector": "Finance",
+          "ipo_window": { "from": 1978, "to": 1986 }
+        }
       ]
     },
     {
@@ -240,23 +248,9 @@
       "id": "classic_2000s",
       "label": "2000s",
       "pick": 3,
-      "pick_by_sector": { "Biotech": 2, "Technology": 1 },
-      "defaults": { "ipo_window": { "from": 2000, "to": 2009 } },
+      "pick_by_sector": { "Energy": 1, "Technology": 1 },
+      "defaults": { "ipo_window": { "from": 1990, "to": 2010 } },
       "roster": [
-        {
-          "name": "Genova Therapeutics",
-          "mission": "Scaling biologics manufacturing for frontline therapies.",
-          "founders": [ { "name": "Dr. Priya Malhotra" }, { "name": "Evan Brooks" } ],
-          "founding_location": "Cambridge, MA",
-          "sector": "Biotech"
-        },
-        {
-          "name": "Regeneron Therapeutics",
-          "mission": "Developing and distributing life-saving pharmaceuticals.",
-          "founders": [ { "name": "Dr. Lena Romero" }, { "name": "Marcus Lee" } ],
-          "founding_location": "San Diego, CA",
-          "sector": "Biotech"
-        },
         {
           "name": "Marston Aerospace",
           "mission": "Building next-gen aircraft and space systems for the US military.",
@@ -265,6 +259,15 @@
           "ipo_window": { "from": 1995, "to": 2009 },
           "sector": "Technology",
           "subsector": "Aerospace Technology"
+        },
+        {
+          "name": "GridNest Energy",
+          "mission": "Modernizing the power grid with smart meters, demand response, and analytics.",
+          "founders": [ { "name": "Maya Singh" }, { "name": "Colin Avery" } ],
+          "founding_location": "Denver, CO",
+          "ipo_window": { "from": 2006, "to": 2015 },
+          "sector": "Energy",
+          "subsector": "Grid Tech"
         }
       ]
     },

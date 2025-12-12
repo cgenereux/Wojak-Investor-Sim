@@ -66,15 +66,15 @@
           "initial_valuation_realization": 0.06,
           "value_realization_ps": 4,
           "founding_location": "Cambridge, MA",
-          "ipo_window": { "from": 1988, "to": 2004 },
+          "ipo_window": { "from": 1990, "to": 2010 },
           "pipeline": [
             {
               "id": "sickle_cell_gene_therapy",
               "label": "Sickle Cell Gene Therapy",
               "full_revenue_usd": 18000000000,
               "stages": [
-                { "id": "phase_1", "name": "Phase 1 Trials", "duration_days": 730, "success_prob": 0.3, "value_realization": 0.14, "cost_usd": 130000000, "max_retries": 2 },
-                { "id": "phase_2", "name": "Phase 2 Trials", "duration_days": 1095, "depends_on": "phase_1", "success_prob": 0.45, "value_realization": 0.28, "cost_usd": 240000000, "max_retries": 0 },
+                { "id": "phase_1", "name": "Phase 1 Trials", "duration_days": 730, "success_prob": 0.48, "value_realization": 0.14, "cost_usd": 130000000, "max_retries": 2 },
+                { "id": "phase_2", "name": "Phase 2 Trials", "duration_days": 1095, "depends_on": "phase_1", "success_prob": 0.53, "value_realization": 0.28, "cost_usd": 240000000, "max_retries": 0 },
                 { "id": "phase_3", "name": "Phase 3 Trials", "duration_days": 1460, "depends_on": "phase_2", "success_prob": 0.58, "value_realization": 0.6, "cost_usd": 350000000, "max_retries": 0 },
                 { "id": "fda_review", "name": "FDA Review", "duration_days": 365, "depends_on": "phase_3", "success_prob": 0.78, "value_realization": 0.88, "cost_usd": 90000000, "max_retries": 0, "commercialises_revenue": true }
               ]
@@ -93,15 +93,15 @@
           "founding_location": "Baltimore, MD",
           "initial_valuation_realization": 0.06,
           "value_realization_ps": 4,
-          "ipo_window": { "from": 1999, "to": 2006 },
+          "ipo_window": { "from": 1990, "to": 2011 },
           "pipeline": [
             {
               "id": "neuroimmune_alzheimers",
               "label": "Alzheimer's Neuroimmune Therapy",
               "full_revenue_usd": 14000000000,
               "stages": [
-                { "id": "phase_1", "name": "Phase 1 Trials", "duration_days": 730, "success_prob": 0.42, "value_realization": 0.15, "cost_usd": 95000000, "max_retries": 0 },
-                { "id": "phase_2", "name": "Phase 2 Trials", "duration_days": 1095, "depends_on": "phase_1", "success_prob": 0.51, "value_realization": 0.3, "cost_usd": 180000000, "max_retries": 0 },
+                { "id": "phase_1", "name": "Phase 1 Trials", "duration_days": 730, "success_prob": 0.53, "value_realization": 0.15, "cost_usd": 95000000, "max_retries": 0 },
+                { "id": "phase_2", "name": "Phase 2 Trials", "duration_days": 1095, "depends_on": "phase_1", "success_prob": 0.56, "value_realization": 0.3, "cost_usd": 180000000, "max_retries": 0 },
                 { "id": "phase_3", "name": "Phase 3 Trials", "duration_days": 1460, "depends_on": "phase_2", "success_prob": 0.68, "value_realization": 0.46, "cost_usd": 320000000, "max_retries": 0 },
                 { "id": "fda_review", "name": "FDA Review", "duration_days": 365, "depends_on": "phase_3", "success_prob": 0.86, "value_realization": 0.78, "cost_usd": 85000000, "max_retries": 0, "commercialises_revenue": true }
               ]
@@ -120,53 +120,17 @@
           ],
           "mission": "Eradicating deadly cancers with ultra-early diagnostics and precision treatments.",
           "founding_location": "San Diego, CA",
-          "ipo_window": { "from": 1988, "to": 1997 },
+          "ipo_window": { "from": 1993, "to": 2014 },
           "pipeline": [
             {
               "id": "precision_oncology_platform",
               "label": "Precision Oncology Platform",
               "full_revenue_usd": 16000000000,
               "stages": [
-                {
-                  "id": "liquid_biopsy_panel",
-                  "name": "Liquid Biopsy Panel Trials",
-                  "duration_days": 730,
-                  "success_prob": 0.38,
-                  "value_realization": 0.16,
-                  "cost_usd": 140000000,
-                  "max_retries": 0
-                },
-                {
-                  "id": "adaptive_combo_trials",
-                  "name": "Adaptive Combo Therapy Trials",
-                  "duration_days": 1095,
-                  "depends_on": "liquid_biopsy_panel",
-                  "success_prob": 0.52,
-                  "value_realization": 0.36,
-                  "cost_usd": 260000000,
-                  "max_retries": 0
-                },
-                {
-                  "id": "registrational_studies",
-                  "name": "Registrational Studies",
-                  "duration_days": 1275,
-                  "depends_on": "adaptive_combo_trials",
-                  "success_prob": 0.64,
-                  "value_realization": 0.62,
-                  "cost_usd": 340000000,
-                  "max_retries": 0
-                },
-                {
-                  "id": "global_guidelines",
-                  "name": "Global Guidelines & Label Expansion",
-                  "duration_days": 730,
-                  "depends_on": "registrational_studies",
-                  "success_prob": 0.82,
-                  "value_realization": 0.9,
-                  "cost_usd": 120000000,
-                  "max_retries": 0,
-                  "commercialises_revenue": true
-                }
+                { "id": "liquid_biopsy_panel", "name": "Liquid Biopsy Panel Trials", "duration_days": 730, "success_prob": 0.51, "value_realization": 0.16, "cost_usd": 140000000, "max_retries": 0 },
+                { "id": "adaptive_combo_trials", "name": "Adaptive Combo Therapy Trials", "duration_days": 1095, "depends_on": "liquid_biopsy_panel", "success_prob": 0.58, "value_realization": 0.36, "cost_usd": 260000000, "max_retries": 0 },
+                { "id": "registrational_studies", "name": "Registrational Studies", "duration_days": 1275, "depends_on": "adaptive_combo_trials", "success_prob": 0.64, "value_realization": 0.62, "cost_usd": 340000000, "max_retries": 0 },
+                { "id": "global_guidelines", "name": "Global Guidelines & Label Expansion", "duration_days": 730, "depends_on": "registrational_studies", "success_prob": 0.82, "value_realization": 0.9, "cost_usd": 120000000, "max_retries": 0, "commercialises_revenue": true }
               ]
             }
           ]
@@ -357,7 +321,7 @@
           "years_to_converge": 6,
           "initial_valuation_realization": 0.015,
           "value_realization_ps": 9,
-          "private_listing_window": { "from": 1985, "to": 1985 },
+          "private_listing_window": { "from": 1998, "to": 2014 },
           "pipelineTemplate": [
             {
               "id": "reusable_orbital_stack",
@@ -441,7 +405,7 @@
           "hypergrowth_initial_margin": -0.28,
           "hypergrowth_terminal_margin": 0.24,
           "years_to_converge": 6,
-          "private_listing_window": { "from": 1985, "to": 1985 },
+          "private_listing_window": { "from": 2003, "to": 2014 },
           "pipelineTemplate": [
             {
               "id": "helio_platform",
@@ -502,8 +466,6 @@
             }
           ]
         }
-
-
       ]
     }
   ]
