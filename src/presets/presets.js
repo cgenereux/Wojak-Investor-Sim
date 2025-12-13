@@ -1,5 +1,5 @@
 (function (global) {
-    const GLOBAL_BASE_INTEREST_RATE = 0.07;
+    const GLOBAL_BASE_INTEREST_RATE = 0.085;
     const shared = global.SimShared || {};
     const normalizeSector = typeof shared.normalizeSector === 'function'
         ? shared.normalizeSector
@@ -297,7 +297,7 @@
                 finance: {
                     starting_cash_usd: baseRevenue * (financeDefaults.starting_cash_ratio ?? 0.06),
                     starting_debt_usd: baseRevenue * (financeDefaults.starting_debt_ratio ?? 0.01),
-                    interest_rate_annual: financeDefaults.interest_rate_annual ?? GLOBAL_BASE_INTEREST_RATE ?? 0.07
+                    interest_rate_annual: financeDefaults.interest_rate_annual ?? GLOBAL_BASE_INTEREST_RATE ?? 0.085
                 },
                 costs: {
                     opex_fixed_usd: pickRangeLocal(costDefaults.opex_fixed_usd, 220_000_000, 480_000_000),
@@ -436,7 +436,7 @@
                 const terminalPe = pickRangeLocal(multipleDefaults.terminal_pe_ratio, 10, 18);
                 const startingCashUsd = baseRevenue * (financeDefaults.starting_cash_ratio ?? 0);
                 const startingDebtUsd = baseRevenue * (financeDefaults.starting_debt_ratio ?? 0);
-                const sharedInterestRate = GLOBAL_BASE_INTEREST_RATE ?? 0.07;
+                const sharedInterestRate = GLOBAL_BASE_INTEREST_RATE ?? 0.085;
                 companies.push({
                     id,
                     static: {
@@ -671,7 +671,7 @@
                 const finance = {
                     starting_cash_usd: initialRevenue * randBetween(6, 12),
                     starting_debt_usd: 0,
-                    interest_rate_annual: GLOBAL_BASE_INTEREST_RATE ?? 0.07
+                    interest_rate_annual: GLOBAL_BASE_INTEREST_RATE ?? 0.085
                 };
                 const costs = {
                     opex_fixed_usd: randBetween(30_000_000, 60_000_000),

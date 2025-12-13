@@ -171,7 +171,7 @@
     const finance = cfg.finance || {
       starting_cash_usd: cfg.starting_cash_usd ?? Math.max(2_000_000, (cfg.valuation_usd || 10_000_000) * 0.05),
       starting_debt_usd: cfg.starting_debt_usd ?? 0,
-      interest_rate_annual: cfg.interest_rate_annual ?? 0.07
+      interest_rate_annual: cfg.interest_rate_annual ?? 0.085
     };
     const costs = cfg.costs || {
       opex_variable_ratio: cfg.opex_variable_ratio ?? 0.2,

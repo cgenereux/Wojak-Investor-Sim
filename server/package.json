@@ -8,9 +8,10 @@
     "dev": "node server.js"
   },
   "dependencies": {
-    "@fastify/cors": "^11.1.0",
+    "@fastify/cors": "^8.5.0",
     "@fastify/http-proxy": "^11.3.0",
     "fastify": "^4.26.2",
+    "nodemailer": "^6.9.16",
     "ws": "^8.16.0"
   }
 }

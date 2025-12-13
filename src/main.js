@@ -84,6 +84,12 @@ const multiplayerEndOkayBtn = document.getElementById('multiplayerEndOkayBtn');
 const multiplayerEndTitle = document.getElementById('multiplayerEndTitle');
 const multiplayerEndSubtitle = document.getElementById('multiplayerEndSubtitle');
 const multiplayerEndHeading = document.getElementById('multiplayerEndHeading');
+const timelineEndFeedbackBtn = document.getElementById('timelineEndFeedbackBtn');
+const multiplayerEndFeedbackBtn = document.getElementById('multiplayerEndFeedbackBtn');
+const feedbackOverlay = document.getElementById('feedbackOverlay');
+const feedbackCloseBtn = document.getElementById('feedbackCloseBtn');
+const feedbackSendBtn = document.getElementById('feedbackSendBtn');
+const feedbackInput = document.getElementById('feedbackInput');
 let storedPlayerName = null;
 let selectedCharacter = null;
 
@@ -99,7 +105,7 @@ const MALDING_WOJAK_SRC = 'wojaks/malding-wojak.png';
 const HAPPY_WOJAK_SRC = 'wojaks/happywojak.png';
 const GAME_START_YEAR = 1985;
 const GAME_START_DATE = new Date(Date.UTC(GAME_START_YEAR, 0, 1));
-const GLOBAL_BASE_INTEREST_RATE = 0.07; // shared baseline; can be adjusted by macro events later
+const GLOBAL_BASE_INTEREST_RATE = 0.085; // shared baseline; can be adjusted by macro events later
 
 // Incremental state-store boundary (see src/state/store.js). Legacy globals remain the
 // primary runtime values for now; core mutation paths also update this store.
@@ -322,29 +328,99 @@ function maybeTrackDecadeNetWorth(dateLike, players = null) {
         const isHostClient = isPartyHostClient || (clientPlayerId && currentHostId && clientPlayerId === currentHostId);
         if (!isHostClient) return; // avoid duplicate events from every participant
     }
+
+    const coerceNum = (v) => (typeof v === 'number' && Number.isFinite(v)) ? v : null;
+    const buildComponentsFromPlayer = (p) => {
+        if (!p) return null;
+        const c = (p && typeof p.netWorthComponents === 'object' && p.netWorthComponents) ? p.netWorthComponents : null;
+        const cashUsd = coerceNum(c?.cash) ?? coerceNum(p.cash);
+        const liabilitiesUsd = coerceNum(c?.debt) ?? coerceNum(p.debt);
+        const publicEquityUsd = coerceNum(c?.equity) ?? coerceNum(p.equity);
+        const ventureEquityUsd = coerceNum(c?.ventureEquity) ?? coerceNum(p.ventureEquity);
+        const commitmentsUsd = coerceNum(c?.commitments) ?? coerceNum(p.ventureCommitmentsValue);
+        const netWorthUsd = coerceNum(c?.netWorth) ?? coerceNum(p.netWorth) ?? coerceNum(p.net_worth);
+        const assetsUsd = (
+            (cashUsd ?? 0) +
+            (publicEquityUsd ?? 0) +
+            (ventureEquityUsd ?? 0) +
+            (commitmentsUsd ?? 0)
+        );
+        return {
+            cash_usd: cashUsd,
+            liabilities_usd: liabilitiesUsd,
+            assets_usd: assetsUsd,
+            public_equity_usd: publicEquityUsd,
+            venture_equity_usd: ventureEquityUsd,
+            commitments_usd: commitmentsUsd,
+            net_worth_usd: netWorthUsd
+        };
+    };
+
+    const buildSoloComponents = () => {
+        const activePlayerId = (serverPlayer && serverPlayer.id) || clientPlayerId || 'local_player';
+        const totalHoldingsValue = portfolio.reduce((sum, holding) => {
+            const company = companies.find(c => c.name === holding.companyName);
+            return sum + (company ? company.marketCap * holding.unitsOwned : 0);
+        }, 0);
+        const ventureHoldingsValue = ventureSim ? ventureSim.getPlayerHoldingsValue(activePlayerId) : 0;
+        const pendingCommitments = ventureSim ? ventureSim.getPendingCommitments(activePlayerId) : 0;
+        const cashUsd = coerceNum(cash) ?? 0;
+        const liabilitiesUsd = coerceNum(totalBorrowed) ?? 0;
+        const publicEquityUsd = coerceNum(totalHoldingsValue) ?? 0;
+        const ventureEquityUsd = coerceNum(ventureHoldingsValue) ?? 0;
+        const commitmentsUsd = coerceNum(pendingCommitments) ?? 0;
+        const assetsUsd = cashUsd + publicEquityUsd + ventureEquityUsd + commitmentsUsd;
+        const netWorthUsd = assetsUsd - liabilitiesUsd;
+        return {
+            cash_usd: cashUsd,
+            liabilities_usd: liabilitiesUsd,
+            assets_usd: assetsUsd,
+            public_equity_usd: publicEquityUsd,
+            venture_equity_usd: ventureEquityUsd,
+            commitments_usd: commitmentsUsd,
+            net_worth_usd: netWorthUsd
+        };
+    };
+
     let playerSnapshots = [];
     if (isServerAuthoritative && Array.isArray(players)) {
         playerSnapshots = players.map(p => {
             const netWorthVal = typeof p.netWorth === 'number' ? p.netWorth : (typeof p.net_worth === 'number' ? p.net_worth : null);
+            const components = buildComponentsFromPlayer(p);
             return {
                 player_id: p?.id || null,
                 player_name: p?.id || null,
-                net_worth: netWorthVal
+                net_worth: netWorthVal,
+                ...components
             };
         }).filter(p => p.player_id && Number.isFinite(p.net_worth));
     } else {
         const soloNetWorth = netWorth;
+        const components = buildSoloComponents();
         playerSnapshots = [{
             player_id: clientPlayerId || 'local_player',
             player_name: clientPlayerId || 'local_player',
-            net_worth: soloNetWorth
+            net_worth: soloNetWorth,
+            ...components
         }];
     }
     if (!playerSnapshots.length) return;
+
+    // Add top-level numeric fields for easy PostHog querying (arrays are harder to slice).
+    let reportingPlayer = null;
+    if (isServerAuthoritative && Array.isArray(players) && players.length) {
+        const myId = (serverPlayer && serverPlayer.id) || clientPlayerId || null;
+        reportingPlayer = (myId && players.find(p => p && (p.id === myId || p.name === myId))) || players[0] || null;
+    }
+    const reportingComponents = isServerAuthoritative
+        ? (buildComponentsFromPlayer(reportingPlayer) || {})
+        : buildSoloComponents();
     trackEvent('decade_net_worth', {
         decade_year: decadeYear,
         mode: isServerAuthoritative ? 'multiplayer' : 'singleplayer',
         match_id: matchId,
+        reporting_player_id: (reportingPlayer && (reportingPlayer.id || reportingPlayer.name)) || (clientPlayerId || 'local_player'),
+        ...reportingComponents,
         players: playerSnapshots
     });
     emittedDecadeKeys.add(key);
@@ -530,6 +606,7 @@ let handlingBankruptcy = false;
 // ticks report bankrupt: true.
 let hasHandledServerBankruptcy = false;
 let gameEnded = false;
+let feedbackSentThisMatch = false;
 if (wojakImage) {
     wojakManager = wojakFactory.createWojakManager({
         imageElement: wojakImage,
@@ -1881,6 +1958,10 @@ function renderMultiplayerEndSummary(players = [], finalYear = null) {
         });
     }
     multiplayerEndPopup.classList.add('show');
+    if (multiplayerEndFeedbackBtn) {
+        multiplayerEndFeedbackBtn.style.display = feedbackSentThisMatch ? 'none' : 'inline-flex';
+        multiplayerEndFeedbackBtn.disabled = feedbackSentThisMatch;
+    }
 }
 
 function renderCompanies(force = false) {
@@ -2072,8 +2153,12 @@ function updateMacroEventsDisplay(serverEvents = null) {
                 ? Math.max(0, currentOverride)
                 : Math.max(0, ANNUAL_INTEREST_RATE + currentShift);
             const isBackToDefault = Math.abs(annualRate - ANNUAL_INTEREST_RATE) < 1e-9;
+            const fmtPct = (rate) => {
+                const pct = (Number(rate) || 0) * 100;
+                return (Math.round(pct * 10) / 10).toString().replace(/\\.0$/, '');
+            };
             if (isBackToDefault) {
-                showToast(`Interest rates have been reverted to the default rate (${(ANNUAL_INTEREST_RATE * 100).toFixed(0)}%).`, { tone: 'macro-neutral', duration: 8000 });
+                showToast(`Interest rates have been reverted to the default rate (${fmtPct(ANNUAL_INTEREST_RATE)}%).`, { tone: 'macro-neutral', duration: 8000 });
             } else {
                 const pct = annualRate * 100;
                 const pctLabel = (Math.round(pct * 10) / 10).toString().replace(/\\.0$/, '');
@@ -2693,6 +2778,10 @@ function endGame(reason) {
         }
         if (timelineEndPopup) {
             timelineEndPopup.classList.add('show');
+        }
+        if (timelineEndFeedbackBtn) {
+            timelineEndFeedbackBtn.style.display = feedbackSentThisMatch ? 'none' : 'inline-flex';
+            timelineEndFeedbackBtn.disabled = feedbackSentThisMatch;
         }
     }
 }
@@ -3771,6 +3860,122 @@ if (multiplayerEndCloseBtn) {
         }
     });
 }
+
+function getFeedbackBackendUrl() {
+    try {
+        const stored = localStorage.getItem(BACKEND_URL_KEY);
+        if (stored && typeof stored === 'string') return stored;
+    } catch (err) { /* ignore */ }
+    return DEFAULT_BACKEND_URL;
+}
+
+function showFeedbackOverlay() {
+    if (!feedbackOverlay) return;
+    feedbackOverlay.style.display = 'flex';
+    if (feedbackInput) {
+        feedbackInput.focus();
+    }
+}
+
+function hideFeedbackOverlay() {
+    if (!feedbackOverlay) return;
+    feedbackOverlay.style.display = 'none';
+    if (feedbackInput) feedbackInput.value = '';
+    if (feedbackSendBtn) feedbackSendBtn.disabled = false;
+}
+
+async function sendFeedbackMessage(message) {
+    const trimmed = String(message || '').trim();
+    if (!trimmed) {
+        showToast('Please enter feedback before sending.', { duration: 4000 });
+        return false;
+    }
+    if (trimmed.length < 5) {
+        showToast('Feedback is too short.', { duration: 4000 });
+        return false;
+    }
+    const endpoint = `${getFeedbackBackendUrl().replace(/\/$/, '')}/api/feedback`;
+    const payload = {
+        message: trimmed,
+        context: {
+            mode: isServerAuthoritative ? 'multiplayer' : 'singleplayer',
+            session_id: activeSessionId || null,
+            player_id: clientPlayerId || storedPlayerName || null,
+            role: isServerAuthoritative
+                ? ((isPartyHostClient || (clientPlayerId && currentHostId && clientPlayerId === currentHostId)) ? 'host' : 'guest')
+                : 'solo',
+            end_year: currentDate instanceof Date ? currentDate.getFullYear() : null,
+            net_worth: (isServerAuthoritative && serverPlayer && typeof serverPlayer.netWorth === 'number')
+                ? serverPlayer.netWorth
+                : netWorth,
+            url: (typeof window !== 'undefined' && window.location) ? window.location.href : null,
+            ua: (typeof navigator !== 'undefined') ? navigator.userAgent : null
+        }
+    };
+    try {
+        const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json || json.ok !== true) {
+            const errMsg = (json && json.error) ? String(json.error) : 'Unable to send feedback right now.';
+            showToast(errMsg, { duration: 6000 });
+            return false;
+        }
+        return true;
+    } catch (err) {
+        showToast('Unable to send feedback right now.', { duration: 6000 });
+        return false;
+    }
+}
+
+function markFeedbackSent() {
+    feedbackSentThisMatch = true;
+    if (timelineEndFeedbackBtn) timelineEndFeedbackBtn.style.display = 'none';
+    if (multiplayerEndFeedbackBtn) multiplayerEndFeedbackBtn.style.display = 'none';
+}
+
+if (timelineEndFeedbackBtn) {
+    timelineEndFeedbackBtn.addEventListener('click', () => {
+        if (feedbackSentThisMatch) return;
+        showFeedbackOverlay();
+    });
+}
+if (multiplayerEndFeedbackBtn) {
+    multiplayerEndFeedbackBtn.addEventListener('click', () => {
+        if (feedbackSentThisMatch) return;
+        showFeedbackOverlay();
+    });
+}
+if (feedbackCloseBtn) {
+    feedbackCloseBtn.addEventListener('click', hideFeedbackOverlay);
+}
+if (feedbackOverlay) {
+    feedbackOverlay.addEventListener('click', (evt) => {
+        if (evt.target === feedbackOverlay) hideFeedbackOverlay();
+    });
+}
+if (feedbackSendBtn) {
+    feedbackSendBtn.addEventListener('click', async () => {
+        if (feedbackSentThisMatch) return;
+        if (feedbackSendBtn) feedbackSendBtn.disabled = true;
+        const ok = await sendFeedbackMessage(feedbackInput ? feedbackInput.value : '');
+        if (ok) {
+            hideFeedbackOverlay();
+            markFeedbackSent();
+            showToast('Thanks — feedback sent.', { duration: 5000 });
+        } else if (feedbackSendBtn) {
+            feedbackSendBtn.disabled = false;
+        }
+    });
+}
+document.addEventListener('keydown', (evt) => {
+    if (evt.key !== 'Escape') return;
+    if (!feedbackOverlay || feedbackOverlay.style.display !== 'flex') return;
+    hideFeedbackOverlay();
+});
 
 // Buy Max: buy as much as possible with available cash
 buyMaxBtn.addEventListener('click', () => {

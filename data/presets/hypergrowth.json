@@ -169,7 +169,7 @@
     {
       "name": "ChainNet",
       "sector": "Technology",
-      "subsector": "FinTech",
+      "subsector": "Web Technology",
       "funding_round": "Seed",
       "ipo_stage": "series_f",
       "gate_stage": "series_c",
@@ -217,7 +217,7 @@
     {
       "name": "TerraForm",
       "sector": "Energy",
-      "subsector": "Climate Tech",
+      "subsector": "Technology",
       "funding_round": "Seed",
       "ipo_stage": "series_f",
       "gate_stage": "series_c",

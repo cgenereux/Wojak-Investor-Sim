@@ -2683,6 +2683,89 @@ button.speed-active:hover {
     font-weight: 700;
 }
 
+/* Feedback */
+.feedback-btn {
+    background: #2f80ed !important;
+    border: none;
+}
+
+.feedback-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.55);
+    padding: 16px;
+}
+
+.feedback-modal {
+    width: min(640px, 92vw);
+    background: #fff;
+    border-radius: 14px;
+    padding: 18px 18px 16px 18px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.feedback-close-btn {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    background: rgba(255, 255, 255, 0.85);
+    color: #111;
+    font-size: 20px;
+    line-height: 30px;
+    cursor: pointer;
+}
+
+.feedback-title {
+    font-size: 24px;
+    font-weight: 800;
+    color: #111;
+    padding-right: 44px;
+}
+
+.feedback-input {
+    width: 100%;
+    min-height: 180px;
+    resize: vertical;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    font-size: 14px;
+    line-height: 1.4;
+    outline: none;
+}
+
+.feedback-input:focus {
+    border-color: rgba(47, 128, 237, 0.8);
+    box-shadow: 0 0 0 4px rgba(47, 128, 237, 0.15);
+}
+
+.feedback-send-btn {
+    background: #27ae60;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.feedback-send-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .mp-end-avatar {
     height: 64px;
     width: auto;

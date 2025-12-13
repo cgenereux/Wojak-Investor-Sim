@@ -19,7 +19,7 @@
   } = shared;
 
   // Shared baseline interest; can be overridden via finance configs or future macro hooks.
-  const GLOBAL_BASE_INTEREST_RATE = 0.07;
+  const GLOBAL_BASE_INTEREST_RATE = 0.085;
 
   const QUARTER_DAYS = 365 / 4;
   const MAX_QUARTER_HISTORY = 400;

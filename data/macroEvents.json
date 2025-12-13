@@ -55,14 +55,14 @@
     "label": "Warning: Rate Shock (Hiking Cycle)",
     "chance": 0.6,
     "start_year_range": [1990, 2048],
-    "impact_days": 900,
-    "recovery_days": 925,
+    "impact_days_range": [1000, 1200],
+    "recovery_days_range": [1200, 1355],
     "global_multiplier_range": [0.9, 0.98],
     "valuation_compression_range": [0.7, 0.9],
     "effects": [
       { "type": "macro_mu_delta", "value": -0.015 },
       { "type": "volatility_multiplier", "multiplier": 1.35 },
-      { "type": "interest_rate_annual", "values": [0.09, 0.10, 0.11] }
+      { "type": "interest_rate_annual", "values": [0.11, 0.12] }
     ],
     "polarity": "negative",
     "descriptions": [
@@ -83,7 +83,7 @@
       { "type": "macro_mu_delta", "value": 0.015 },
       { "type": "revenue_multiplier", "multiplier": 1.05 },
       { "type": "volatility_multiplier", "multiplier": 0.85 },
-      { "type": "interest_rate_annual", "values": [0.04, 0.05] }
+      { "type": "interest_rate_annual", "values": [0.05] }
     ],
     "polarity": "positive",
     "descriptions": [

@@ -19,7 +19,7 @@ const Presets = global.PresetGenerators || {};
 const macroEvents = require('../data/macroEvents.json');
 
 const PORT = process.env.PORT || 4000;
-const ANNUAL_INTEREST_RATE = 0.07;
+const ANNUAL_INTEREST_RATE = 0.085;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const DEFAULT_TICK_INTERVAL_MS = 500;
 const GAME_START_YEAR = 1985;
@@ -36,6 +36,39 @@ const FROM_VENTURE_TICK_HISTORY_LIMIT = 400;
 const GAME_START_DATE = new Date(Date.UTC(GAME_START_YEAR, 0, 1));
 
 const app = fastify({ logger: false });
+
+app.register(require('@fastify/cors'), {
+  origin: true,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type']
+});
+
+function getClientIp(req) {
+  const xfwd = req && req.headers && (req.headers['x-forwarded-for'] || req.headers['X-Forwarded-For']);
+  if (typeof xfwd === 'string' && xfwd.trim()) {
+    return xfwd.split(',')[0].trim();
+  }
+  return (req && (req.ip || (req.socket && req.socket.remoteAddress))) || 'unknown';
+}
+
+const FEEDBACK_RATE_WINDOW_MS = 60 * 60 * 1000;
+const FEEDBACK_RATE_MAX = 3;
+const feedbackRateByIp = new Map();
+
+function checkFeedbackRateLimit(ip) {
+  const now = Date.now();
+  const entry = feedbackRateByIp.get(ip);
+  if (!entry || now >= entry.resetAt) {
+    feedbackRateByIp.set(ip, { count: 1, resetAt: now + FEEDBACK_RATE_WINDOW_MS });
+    return { ok: true };
+  }
+  if (entry.count >= FEEDBACK_RATE_MAX) {
+    const waitMs = Math.max(0, entry.resetAt - now);
+    return { ok: false, waitMs };
+  }
+  entry.count += 1;
+  return { ok: true };
+}
 
 function getTickIntervalMs(session) {
   const raw = session && Number(session.tickIntervalMs);
@@ -360,6 +393,73 @@ app.register(require('@fastify/http-proxy'), {
 }); */
 
 app.get('/health', async () => ({ ok: true }));
+
+app.post('/api/feedback', async (req, reply) => {
+  const ip = getClientIp(req);
+  const rate = checkFeedbackRateLimit(ip);
+  if (!rate.ok) {
+    reply.code(429);
+    return { ok: false, error: 'Too many feedback messages. Please try again later.' };
+  }
+
+  const body = req.body || {};
+  const message = (body && typeof body.message === 'string') ? body.message.trim() : '';
+  if (!message) {
+    reply.code(400);
+    return { ok: false, error: 'Missing feedback message.' };
+  }
+  if (message.length > 2000) {
+    reply.code(400);
+    return { ok: false, error: 'Feedback is too long.' };
+  }
+
+  const smtpHost = process.env.FEEDBACK_SMTP_HOST || '';
+  const smtpUser = process.env.FEEDBACK_SMTP_USER || '';
+  const smtpPass = process.env.FEEDBACK_SMTP_PASS || '';
+  const smtpPort = Number(process.env.FEEDBACK_SMTP_PORT || 465);
+  const smtpSecure = String(process.env.FEEDBACK_SMTP_SECURE || 'true').toLowerCase() !== 'false';
+  const mailTo = process.env.FEEDBACK_MAIL_TO || 'wojakinvestorsim@gmail.com';
+  const mailFrom = process.env.FEEDBACK_MAIL_FROM || smtpUser || 'no-reply@wojak-investor-sim';
+
+  if (!smtpHost || !smtpUser || !smtpPass) {
+    reply.code(501);
+    return { ok: false, error: 'Feedback email is not configured.' };
+  }
+
+  const context = body && typeof body.context === 'object' && body.context ? body.context : {};
+  const subject = `Wojak Investor Sim Feedback (${context.mode || 'unknown'})`;
+  const contextLines = [
+    `ip: ${ip}`,
+    `session: ${context.session_id || ''}`,
+    `player: ${context.player_id || ''}`,
+    `role: ${context.role || ''}`,
+    `end_year: ${context.end_year || ''}`,
+    `net_worth: ${typeof context.net_worth === 'number' ? context.net_worth : ''}`,
+    `url: ${context.url || ''}`,
+    `ua: ${context.ua || ''}`
+  ].filter(Boolean);
+  const text = `${message}\n\n---\n${contextLines.join('\n')}\n`;
+
+  try {
+    const nodemailer = require('nodemailer');
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpSecure,
+      auth: { user: smtpUser, pass: smtpPass }
+    });
+    await transporter.sendMail({
+      from: mailFrom,
+      to: mailTo,
+      subject,
+      text
+    });
+    return { ok: true };
+  } catch (err) {
+    reply.code(500);
+    return { ok: false, error: 'Failed to send feedback email.' };
+  }
+});
 
 app.get('/session/:id', async (req, res) => {
   const { id } = req.params;

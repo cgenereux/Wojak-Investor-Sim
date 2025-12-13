@@ -25,7 +25,7 @@
     server.js:createPlayer, src/main.js).
   - Net worth = cash + public equity + venture equity + pending commitments − debt; bankruptcy triggers when net worth < 0 and debt > 0 (single-player shows restart popup; multiplayer liquidates your
     positions).
-  - Borrowing: up to 4× net worth cap at 7% APR; borrow/repay commands and UI in the banking modal (server/server.js, src/main.js).
+  - Borrowing: up to 4× net worth cap at 8.5% APR; borrow/repay commands and UI in the banking modal (server/server.js, src/main.js).
   - Dividends accrue quarterly; optional DRIP reinvests payouts into more shares (server/server.js:distributeDividends, src/main.js).
   - Cosmetic states: suits unlock at millionaire/billionaire/trillionaire, “malding” Wojak on >50% drawdowns, happy Wojak on a 5x returns within 3.5 years, favicon/avatar swaps (src/main.js, src/ui/wojakManager.js).
 
@@ -95,7 +95,8 @@
 
   Analytics & Debug
 
-  - PostHog instrumentation for match start/end and decade net-worth checkpoints; frontend includes the PostHog SDK (index.html, src/main.js).
+  - PostHog instrumentation for match start/end and decade net-worth checkpoints; frontend includes the PostHog SDK (index.html, src/main.js). PostHog is configured with `person_profiles: 'always'`, so anonymous visitors also get a person profile (it “IDs” everyone).
+  - End-of-match “Give Feedback” sends to email via `POST /api/feedback` on the backend; configure SMTP env vars (`FEEDBACK_SMTP_HOST`, `FEEDBACK_SMTP_PORT`, `FEEDBACK_SMTP_SECURE`, `FEEDBACK_SMTP_USER`, `FEEDBACK_SMTP_PASS`, optional `FEEDBACK_MAIL_TO`/`FEEDBACK_MAIL_FROM`).
   - Debug helpers: manual macro trigger `window.triggerMacroEvent(id)` (e.g., `'global_recession'`, `'pandemic_global'`), set cash to M/B/T buttons, and server-side `debug_set_cash` command.
   - Local-only debug mode: add `?debug=1` when running on localhost singleplayer to unlock extra speed steps and show debug controls; this is intentionally disabled in multiplayer/server-authoritative mode.
 
@@ -127,5 +128,3 @@
   - `pmf_loss_prob_per_year`: annual chance a native hypergrowth company enters a product–market-fit loss phase.
   - `pmf_decline_rate_range`: range of annual revenue/margin shock applied while PMF loss is active (e.g., −40% to −25% per year).
   - `pmf_decline_duration_years`: duration (in years) that a PMF loss event remains active before the company stabilises at a new, lower trajectory.
-
-
