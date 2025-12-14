@@ -611,6 +611,7 @@ let handlingBankruptcy = false;
 let hasHandledServerBankruptcy = false;
 let gameEnded = false;
 let feedbackSentThisMatch = false;
+let feedbackDraft = '';
 if (wojakImage) {
     wojakManager = wojakFactory.createWojakManager({
         imageElement: wojakImage,
@@ -3895,14 +3896,25 @@ function showFeedbackOverlay() {
     if (!feedbackOverlay) return;
     feedbackOverlay.style.display = 'flex';
     if (feedbackInput) {
+        if (!feedbackInput.value && feedbackDraft) {
+            feedbackInput.value = feedbackDraft;
+        }
         feedbackInput.focus();
     }
 }
 
-function hideFeedbackOverlay() {
+function hideFeedbackOverlay(options = {}) {
+    const { preserveText = false } = options || {};
     if (!feedbackOverlay) return;
     feedbackOverlay.style.display = 'none';
-    if (feedbackInput) feedbackInput.value = '';
+    if (feedbackInput) {
+        if (preserveText) {
+            feedbackDraft = String(feedbackInput.value || '');
+        } else {
+            feedbackInput.value = '';
+            feedbackDraft = '';
+        }
+    }
     if (feedbackSendBtn) feedbackSendBtn.disabled = false;
 }
 
@@ -3910,10 +3922,6 @@ async function sendFeedbackMessage(message) {
     const trimmed = String(message || '').trim();
     if (!trimmed) {
         showToast('Please enter feedback before sending.', { duration: 4000 });
-        return false;
-    }
-    if (trimmed.length < 5) {
-        showToast('Feedback is too short.', { duration: 4000 });
         return false;
     }
     const endpoint = `${getFeedbackBackendUrl().replace(/\/$/, '')}/api/feedback`;
@@ -3935,10 +3943,16 @@ async function sendFeedbackMessage(message) {
         }
     };
     try {
+        const controller = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+        const timeoutMs = 8000;
+        const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
         const res = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
+            signal: controller ? controller.signal : undefined
+        }).finally(() => {
+            if (timer) clearTimeout(timer);
         });
         const json = await res.json().catch(() => ({}));
         if (!res.ok || !json || json.ok !== true) {
@@ -3948,6 +3962,10 @@ async function sendFeedbackMessage(message) {
         }
         return true;
     } catch (err) {
+        if (err && (err.name === 'AbortError' || err.code === 'ABORT_ERR')) {
+            showToast('Feedback send timed out. Please try again.', { duration: 6000 });
+            return false;
+        }
         showToast('Unable to send feedback right now.', { duration: 6000 });
         return false;
     }
@@ -3982,15 +4000,28 @@ if (feedbackOverlay) {
 if (feedbackSendBtn) {
     feedbackSendBtn.addEventListener('click', async () => {
         if (feedbackSentThisMatch) return;
-        if (feedbackSendBtn) feedbackSendBtn.disabled = true;
-        const ok = await sendFeedbackMessage(feedbackInput ? feedbackInput.value : '');
-        if (ok) {
-            hideFeedbackOverlay();
-            markFeedbackSent();
-            showToast('Thanks — feedback sent.', { duration: 5000 });
-        } else if (feedbackSendBtn) {
-            feedbackSendBtn.disabled = false;
+        const raw = feedbackInput ? feedbackInput.value : '';
+        const trimmed = String(raw || '').trim();
+        if (!trimmed) {
+            showToast('Please enter feedback before sending.', { duration: 4000 });
+            return;
         }
+        if (trimmed.length > 2000) {
+            showToast('Feedback is too long.', { duration: 4000 });
+            return;
+        }
+
+        feedbackDraft = trimmed;
+        feedbackSendBtn.disabled = true;
+        // Close immediately so the UI never gets stuck waiting on the network.
+        hideFeedbackOverlay({ preserveText: true });
+        sendFeedbackMessage(trimmed).then((ok) => {
+            if (ok) {
+                feedbackDraft = '';
+                markFeedbackSent();
+                showToast('Thanks — feedback sent.', { duration: 5000 });
+            }
+        });
     });
 }
 document.addEventListener('keydown', (evt) => {
