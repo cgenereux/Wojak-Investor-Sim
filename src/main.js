@@ -523,7 +523,9 @@ window.triggerMacroEvent = function (eventId) {
             return null;
         }
         sendCommand({ type: 'debug_trigger_macro_event', eventId: id });
-        console.info(`[Debug] Requested macro event "${id}" from server.`);
+        if (typeof window !== 'undefined' && window.__WOJAK_DEBUG_MODE__) {
+            console.info(`[Debug] Requested macro event "${id}" from server.`);
+        }
         const allowDebugToast = (typeof debugMode !== 'undefined' && debugMode) || isLocal;
         if (allowDebugToast) {
             showToast(`Requested macro event "${id}" from host server.`, { tone: 'info', duration: 4000 });
@@ -537,7 +539,9 @@ window.triggerMacroEvent = function (eventId) {
     }
     const event = sim.triggerMacroEvent(id);
     if (event) {
-        console.log(`Macro event triggered: ${event.label}`);
+        if (typeof window !== 'undefined' && window.__WOJAK_DEBUG_MODE__) {
+            console.log(`Macro event triggered: ${event.label}`);
+        }
         updateMacroEventsDisplay();
     } else {
         console.warn('Macro event not found or failed to trigger:', id);
@@ -1221,11 +1225,13 @@ function applyTick(tick) {
             const myId = (serverPlayer && serverPlayer.id) || clientPlayerId || me?.id;
             const meState = tick.players.find(p => p && (p.id === myId || p.name === myId));
             if (meState && meState.bankrupt) {
-                console.debug('[MP Bankruptcy DEBUG] tick state', {
-                    id: myId,
-                    bankrupt: meState.bankrupt,
-                    netWorth: meState.netWorth
-                });
+                if (typeof window !== 'undefined' && window.__WOJAK_DEBUG_MODE__) {
+                    console.debug('[MP Bankruptcy DEBUG] tick state', {
+                        id: myId,
+                        bankrupt: meState.bankrupt,
+                        netWorth: meState.netWorth
+                    });
+                }
                 endGame("bankrupt");
                 return;
             }
@@ -1397,26 +1403,30 @@ function updatePlayerFromServer(playerSummary) {
     }
     if (isServerAuthoritative && serverPlayer && serverPlayer.netWorthComponents) {
         const c = serverPlayer.netWorthComponents;
-        try {
-            console.debug('[MP NetWorth DEBUG]', {
-                id: serverPlayer.id,
-                cash: c.cash,
-                debt: c.debt,
-                equity: c.equity,
-                ventureEquity: c.ventureEquity,
-                commitments: c.commitments,
-                netWorth: c.netWorth,
-                bankrupt: !!serverPlayer.bankrupt
-            });
-        } catch (err) {
-            // ignore logging failures
+        if (typeof window !== 'undefined' && window.__WOJAK_DEBUG_MODE__) {
+            try {
+                console.debug('[MP NetWorth DEBUG]', {
+                    id: serverPlayer.id,
+                    cash: c.cash,
+                    debt: c.debt,
+                    equity: c.equity,
+                    ventureEquity: c.ventureEquity,
+                    commitments: c.commitments,
+                    netWorth: c.netWorth,
+                    bankrupt: !!serverPlayer.bankrupt
+                });
+            } catch (err) {
+                // ignore logging failures
+            }
         }
         if (serverPlayer.bankrupt) {
-            console.debug('[MP Bankruptcy DEBUG] from updatePlayerFromServer', {
-                id: serverPlayer.id,
-                netWorth: c.netWorth,
-                debt: c.debt
-            });
+            if (typeof window !== 'undefined' && window.__WOJAK_DEBUG_MODE__) {
+                console.debug('[MP Bankruptcy DEBUG] from updatePlayerFromServer', {
+                    id: serverPlayer.id,
+                    netWorth: c.netWorth,
+                    debt: c.debt
+                });
+            }
             endGame("bankrupt");
             return;
         }
@@ -1449,7 +1459,9 @@ function sendCommand(cmd) {
         // Queue the command for when WS reconnects
         if (wsCommandQueue.length < WS_COMMAND_QUEUE_MAX) {
             wsCommandQueue.push(cmd);
-            console.log('WS not ready; command queued', cmd.type || cmd);
+            if (typeof window !== 'undefined' && window.__WOJAK_DEBUG_MODE__) {
+                console.log('WS not ready; command queued', cmd.type || cmd);
+            }
         } else {
             console.warn('WS command queue full; command dropped', cmd.type || cmd);
         }
@@ -1464,7 +1476,9 @@ function flushCommandQueue() {
         const cmd = wsCommandQueue.shift();
         try {
             ws.send(JSON.stringify(cmd));
-            console.log('Flushed queued command:', cmd.type || cmd);
+            if (typeof window !== 'undefined' && window.__WOJAK_DEBUG_MODE__) {
+                console.log('Flushed queued command:', cmd.type || cmd);
+            }
         } catch (err) {
             console.warn('Failed to flush command:', err);
             // Put it back at front if send failed
@@ -2306,19 +2320,21 @@ function updateNetWorth() {
 	    }
 	}
 
-	function maybeHandleServerBankruptcy() {
-	    if (!isServerAuthoritative || !serverPlayer) return;
-	    if (serverPlayer.bankrupt) {
-            console.debug('[MP Bankruptcy DEBUG] maybeHandleServerBankruptcy', {
-                id: serverPlayer.id,
-                netWorth: serverPlayer.netWorth,
-                debt: serverPlayer.debt,
-                handlingBankruptcy,
-                hasHandledServerBankruptcy
-            });
-	        endGame("bankrupt");
-	    }
-	}
+function maybeHandleServerBankruptcy() {
+    if (!isServerAuthoritative || !serverPlayer) return;
+    if (serverPlayer.bankrupt) {
+            if (typeof window !== 'undefined' && window.__WOJAK_DEBUG_MODE__) {
+                console.debug('[MP Bankruptcy DEBUG] maybeHandleServerBankruptcy', {
+                    id: serverPlayer.id,
+                    netWorth: serverPlayer.netWorth,
+                    debt: serverPlayer.debt,
+                    handlingBankruptcy,
+                    hasHandledServerBankruptcy
+                });
+            }
+        endGame("bankrupt");
+    }
+}
 
 function calculateInterest() {
     if (totalBorrowed <= 0) return 0;
@@ -2650,14 +2666,16 @@ function showBankingModal() { updateBankingDisplay(); bankingModal.classList.add
 function hideBankingModal() { bankingModal.classList.remove('active'); bankingAmountInput.value = ''; }
 
 function liquidatePlayerAssets() {
-    console.debug('[MP Bankruptcy DEBUG] liquidatePlayerAssets called', {
-        isServerAuthoritative,
-        serverPlayerId: serverPlayer && serverPlayer.id,
-        serverCash: serverPlayer && serverPlayer.cash,
-        serverDebt: serverPlayer && serverPlayer.debt,
-        localCash: cash,
-        localDebt: totalBorrowed
-    });
+    if (typeof window !== 'undefined' && window.__WOJAK_DEBUG_MODE__) {
+        console.debug('[MP Bankruptcy DEBUG] liquidatePlayerAssets called', {
+            isServerAuthoritative,
+            serverPlayerId: serverPlayer && serverPlayer.id,
+            serverCash: serverPlayer && serverPlayer.cash,
+            serverDebt: serverPlayer && serverPlayer.debt,
+            localCash: cash,
+            localDebt: totalBorrowed
+        });
+    }
     if (isServerAuthoritative) {
         sendCommand({ type: 'liquidate_assets' });
         // Optimistically clear local view so the UI reflects the reset immediately.
@@ -2694,22 +2712,26 @@ function liquidatePlayerAssets() {
 function endGame(reason) {
     const isMpBankrupt = (reason === "bankrupt" && isServerAuthoritative);
 
-    console.debug('[MP Bankruptcy DEBUG] endGame called', {
-        reason,
-        isServerAuthoritative,
-        handlingBankruptcy,
-        hasHandledServerBankruptcy,
-        gameEnded,
-        localNetWorth: netWorth,
-        serverNetWorth: serverPlayer && serverPlayer.netWorth,
-        cash,
-        totalBorrowed
-    });
+    if (typeof window !== 'undefined' && window.__WOJAK_DEBUG_MODE__) {
+        console.debug('[MP Bankruptcy DEBUG] endGame called', {
+            reason,
+            isServerAuthoritative,
+            handlingBankruptcy,
+            hasHandledServerBankruptcy,
+            gameEnded,
+            localNetWorth: netWorth,
+            serverNetWorth: serverPlayer && serverPlayer.netWorth,
+            cash,
+            totalBorrowed
+        });
+    }
 
     // For multiplayer bankruptcies, ensure we only handle this once per match
     // even if multiple ticks/updates report bankrupt: true.
     if (isMpBankrupt && hasHandledServerBankruptcy) {
-        console.debug('[MP Bankruptcy DEBUG] endGame already handled MP bankruptcy; skipping duplicate.');
+        if (typeof window !== 'undefined' && window.__WOJAK_DEBUG_MODE__) {
+            console.debug('[MP Bankruptcy DEBUG] endGame already handled MP bankruptcy; skipping duplicate.');
+        }
         return;
     }
 

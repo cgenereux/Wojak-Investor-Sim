@@ -40,7 +40,9 @@
     }
 
     function setConnectionStatus(text, tone = 'info') {
-        console.log(`[Multiplayer Status] ${text} (${tone})`);
+        if (global && global.__WOJAK_DEBUG_MODE__) {
+            console.log(`[Multiplayer Status] ${text} (${tone})`);
+        }
     }
 
     function setBannerButtonsVisible(show) {
@@ -161,7 +163,9 @@
         }
         ws.onopen = () => {
             if (currentGen !== wsGeneration) return;
-            console.log('WS connected');
+            if (global && global.__WOJAK_DEBUG_MODE__) {
+                console.log('WS connected');
+            }
             setConnectionStatus('Connected', 'ok');
             // Flush any commands that were queued while disconnected
             if (typeof flushCommandQueue === 'function') {

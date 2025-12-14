@@ -111,8 +111,8 @@
         state.terminalMargin = clampValue(terminalMarginSample, -1.0, 0.4);
         state.hasTriggered = true;
 
-        // TEMP: debug PMF loss triggers
-        if (typeof console !== 'undefined' && console && typeof console.log === 'function') {
+        // Debug PMF loss triggers (disabled unless debug mode is enabled).
+        if (typeof globalThis !== 'undefined' && globalThis.__WOJAK_DEBUG_MODE__ && typeof console !== 'undefined' && console && typeof console.log === 'function') {
           console.log('[PMF LOSS TRIGGERED]', {
             id: company.id,
             name: company.name,

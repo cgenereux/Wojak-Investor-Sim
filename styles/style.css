@@ -2712,21 +2712,6 @@ button.speed-active:hover {
     gap: 12px;
 }
 
-.feedback-close-btn {
-    position: absolute;
-    top: 10px;
-    right: 12px;
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-    border: 1px solid rgba(0, 0, 0, 0.15);
-    background: rgba(255, 255, 255, 0.85);
-    color: #111;
-    font-size: 20px;
-    line-height: 30px;
-    cursor: pointer;
-}
-
 .feedback-title {
     font-size: 24px;
     font-weight: 800;
