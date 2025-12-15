@@ -6,6 +6,376 @@
             alert(msg);
         }
     };
+
+    const mpOnlinePlayersPanel = document.getElementById('mpOnlinePlayersPanel');
+    const mpOnlinePlayersList = document.getElementById('mpOnlinePlayersList');
+    const mpPublicPartiesPanel = document.getElementById('mpPublicPartiesPanel');
+    const mpPublicPartiesList = document.getElementById('mpPublicPartiesList');
+    const mpPublicPartiesBadge = document.getElementById('mpPublicPartiesBadge');
+    const mpPartyStatusRow = document.getElementById('mpPartyStatusRow');
+    const mpPartyStatusBtn = document.getElementById('mpPartyStatusBtn');
+
+    const INVITES_MUTED_SESSION_KEY = 'wojak_invites_muted_session';
+    let invitesMutedThisSession = false;
+    try {
+        invitesMutedThisSession = sessionStorage.getItem(INVITES_MUTED_SESSION_KEY) === 'true';
+    } catch (err) { /* ignore */ }
+
+    let currentPartyIsPublic = true;
+    let latestPresenceInviteableUsers = [];
+    let latestPresencePublicParties = [];
+    let latestPresencePublicPartyCount = 0;
+    const localInviteCooldownByTarget = new Map(); // playerId -> expiresAt
+
+    let presenceWs = null;
+    let presenceWsGeneration = 0;
+    let presenceReconnectTimer = null;
+    let lastPresenceWsOrigin = null;
+
+    function isInPartySession() {
+        return (typeof isServerAuthoritative !== 'undefined' && isServerAuthoritative)
+            && (typeof activeSessionId !== 'undefined' && activeSessionId)
+            && activeSessionId !== 'singleplayer_local';
+    }
+
+    function getPresenceBackendBase() {
+        try {
+            const stored = localStorage.getItem(BACKEND_URL_KEY);
+            if (stored) return stored;
+        } catch (err) { /* ignore */ }
+        if (typeof activeBackendUrl !== 'undefined' && activeBackendUrl) return activeBackendUrl;
+        if (typeof DEFAULT_BACKEND_URL !== 'undefined' && DEFAULT_BACKEND_URL) return DEFAULT_BACKEND_URL;
+        return '';
+    }
+
+    function getPresenceWsOrigin() {
+        const base = getPresenceBackendBase();
+        const normalized = normalizeHttpUrl(base);
+        if (!normalized) return '';
+        if (normalized.startsWith('ws:') || normalized.startsWith('wss:')) return normalized;
+        return normalized.replace(/^http/, 'ws');
+    }
+
+    function getPresenceDisplayName() {
+        const raw = (typeof storedPlayerName !== 'undefined' && storedPlayerName)
+            ? storedPlayerName
+            : (global.localStorage ? global.localStorage.getItem('wojak_player_name') : null);
+        const cleaned = (raw || '').toString().trim().replace(/\s+/g, ' ').slice(0, 30);
+        return cleaned || null;
+    }
+
+    function updatePublicPartyBadge(count) {
+        if (!mpPublicPartiesBadge) return;
+        const n = Number(count) || 0;
+        if (n <= 0) {
+            mpPublicPartiesBadge.style.display = 'none';
+            mpPublicPartiesBadge.textContent = '0';
+            return;
+        }
+        mpPublicPartiesBadge.style.display = 'flex';
+        mpPublicPartiesBadge.textContent = n > 99 ? '99+' : String(n);
+    }
+
+    function renderInviteableUsersPanel() {
+        if (!mpOnlinePlayersPanel || !mpOnlinePlayersList) return;
+        if (!isInPartySession()) {
+            mpOnlinePlayersPanel.style.display = 'none';
+            mpOnlinePlayersList.innerHTML = '';
+            return;
+        }
+        const users = Array.isArray(latestPresenceInviteableUsers) ? latestPresenceInviteableUsers : [];
+        if (users.length === 0) {
+            mpOnlinePlayersPanel.style.display = 'none';
+            mpOnlinePlayersList.innerHTML = '';
+            return;
+        }
+        mpOnlinePlayersPanel.style.display = 'block';
+        mpOnlinePlayersList.innerHTML = '';
+        users.slice(0, 10).forEach((u) => {
+            if (!u || !u.playerId) return;
+            const name = u.displayName || (Number.isFinite(u.anonNumber) ? `Unidentified_Wojak_#${u.anonNumber}` : 'Unidentified_Wojak');
+            const row = document.createElement('li');
+            row.className = 'mp-online-item';
+
+            const label = document.createElement('div');
+            label.className = 'mp-online-name';
+            label.textContent = name;
+
+            const actions = document.createElement('div');
+            actions.className = 'mp-online-actions';
+
+            const inviteBtn = document.createElement('button');
+            inviteBtn.type = 'button';
+            inviteBtn.className = 'mp-invite-btn';
+            inviteBtn.textContent = 'Invite';
+
+            const expiresAt = localInviteCooldownByTarget.get(u.playerId) || 0;
+            const now = Date.now();
+            const onCooldown = expiresAt && now < expiresAt;
+            if (u.muted) {
+                inviteBtn.disabled = true;
+                inviteBtn.classList.add('mp-muted');
+                inviteBtn.textContent = 'Muted';
+            } else if (onCooldown) {
+                inviteBtn.disabled = true;
+                inviteBtn.textContent = 'Cooldown';
+            }
+
+            inviteBtn.addEventListener('click', () => {
+                if (!presenceWs || presenceWs.readyState !== WebSocket.OPEN) {
+                    notify('Invite unavailable (disconnected).', 'warn');
+                    return;
+                }
+                inviteBtn.disabled = true;
+                try {
+                    presenceWs.send(JSON.stringify({ type: 'party_invite', toPlayerId: u.playerId }));
+                } catch (err) {
+                    notify('Invite failed.', 'warn');
+                }
+            });
+
+            actions.appendChild(inviteBtn);
+            row.appendChild(label);
+            row.appendChild(actions);
+            mpOnlinePlayersList.appendChild(row);
+        });
+    }
+
+    function renderPublicPartiesPanel() {
+        if (!mpPublicPartiesPanel || !mpPublicPartiesList) return;
+        const parties = Array.isArray(latestPresencePublicParties) ? latestPresencePublicParties : [];
+        if (isInPartySession() || parties.length === 0) {
+            mpPublicPartiesPanel.style.display = 'none';
+            mpPublicPartiesList.innerHTML = '';
+            return;
+        }
+        mpPublicPartiesPanel.style.display = 'block';
+        mpPublicPartiesList.innerHTML = '';
+        parties.slice(0, 10).forEach((p) => {
+            if (!p || !p.sessionId) return;
+            const host = (p.hostId || '').toString().trim() || 'Player';
+            const playerCount = Number.isFinite(p.playerCount) ? p.playerCount : null;
+            const maxPlayers = Number.isFinite(p.maxPlayers) ? p.maxPlayers : 4;
+            const name = `${host}'s Public Party (${playerCount !== null ? playerCount : '?'} / ${maxPlayers})`;
+
+            const row = document.createElement('li');
+            row.className = 'mp-public-party-item';
+
+            const label = document.createElement('div');
+            label.className = 'mp-public-party-name';
+            label.textContent = name;
+
+            const actions = document.createElement('div');
+            actions.className = 'mp-public-party-actions';
+
+            const joinBtn = document.createElement('button');
+            joinBtn.type = 'button';
+            joinBtn.className = 'mp-join-public-btn';
+            joinBtn.textContent = 'Join';
+            joinBtn.addEventListener('click', () => {
+                if (typeof showMultiplayerModal === 'function') showMultiplayerModal();
+                if (typeof setMultiplayerState === 'function') {
+                    // local fn exists below; this guard is mostly for safety
+                }
+                if (mpJoinCodeInput) mpJoinCodeInput.value = String(p.sessionId).trim().toUpperCase();
+                setMultiplayerState('join');
+                attemptJoinParty();
+            });
+
+            actions.appendChild(joinBtn);
+            row.appendChild(label);
+            row.appendChild(actions);
+            mpPublicPartiesList.appendChild(row);
+        });
+    }
+
+    function renderPartyStatusControl() {
+        if (!mpPartyStatusRow || !mpPartyStatusBtn) return;
+        if (!isInPartySession()) {
+            mpPartyStatusRow.style.display = 'none';
+            return;
+        }
+        mpPartyStatusRow.style.display = 'flex';
+        const isHostClient = (typeof isPartyHostClient !== 'undefined' && isPartyHostClient)
+            || (typeof clientPlayerId !== 'undefined' && clientPlayerId && typeof currentHostId !== 'undefined' && currentHostId && clientPlayerId === currentHostId);
+        const canToggle = isHostClient && !(typeof matchStarted !== 'undefined' && matchStarted);
+        mpPartyStatusBtn.textContent = currentPartyIsPublic ? 'Public' : 'Private';
+        mpPartyStatusBtn.classList.toggle('mp-public', currentPartyIsPublic);
+        mpPartyStatusBtn.classList.toggle('mp-private', !currentPartyIsPublic);
+        mpPartyStatusBtn.disabled = !canToggle;
+        mpPartyStatusBtn.setAttribute('aria-disabled', canToggle ? 'false' : 'true');
+    }
+
+    function syncPresenceState() {
+        if (!presenceWs || presenceWs.readyState !== WebSocket.OPEN) return;
+        const partyId = isInPartySession() ? (typeof activeSessionId !== 'undefined' ? activeSessionId : null) : null;
+        try {
+            presenceWs.send(JSON.stringify({
+                type: 'presence_update',
+                displayName: getPresenceDisplayName(),
+                partyId: partyId || null
+            }));
+        } catch (err) { /* ignore */ }
+    }
+
+    function schedulePresenceReconnect() {
+        if (presenceReconnectTimer) return;
+        presenceReconnectTimer = setTimeout(() => {
+            presenceReconnectTimer = null;
+            connectPresenceWebSocket();
+        }, 2000);
+    }
+
+    function connectPresenceWebSocket() {
+        const wsOrigin = getPresenceWsOrigin();
+        if (!wsOrigin) return;
+        if (presenceWs && (presenceWs.readyState === WebSocket.OPEN || presenceWs.readyState === WebSocket.CONNECTING)) {
+            if (lastPresenceWsOrigin === wsOrigin) {
+                syncPresenceState();
+                return;
+            }
+            try { presenceWs.close(); } catch (err) { /* ignore */ }
+        }
+        lastPresenceWsOrigin = wsOrigin;
+
+        let playerId = (typeof clientPlayerId !== 'undefined' && clientPlayerId) ? clientPlayerId : null;
+        if (!playerId) {
+            try {
+                playerId = localStorage.getItem('wojak_player_id');
+            } catch (err) { /* ignore */ }
+        }
+        if (!playerId) {
+            playerId = `p_${Math.floor(Math.random() * 1e9).toString(36)}`;
+            try { localStorage.setItem('wojak_player_id', playerId); } catch (err) { /* ignore */ }
+            if (typeof clientPlayerId !== 'undefined') {
+                clientPlayerId = playerId;
+            }
+        }
+
+        const url = `${wsOrigin}/presence?player=${encodeURIComponent(playerId)}`;
+        const currentGen = ++presenceWsGeneration;
+        try {
+            presenceWs = new WebSocket(url);
+        } catch (err) {
+            presenceWs = null;
+            schedulePresenceReconnect();
+            return;
+        }
+        presenceWs.onopen = () => {
+            if (currentGen !== presenceWsGeneration) return;
+            syncPresenceState();
+            try { presenceWs.send(JSON.stringify({ type: 'presence_request_public_parties' })); } catch (err) { /* ignore */ }
+        };
+        presenceWs.onclose = () => {
+            if (currentGen !== presenceWsGeneration) return;
+            presenceWs = null;
+            schedulePresenceReconnect();
+        };
+        presenceWs.onerror = () => {
+            if (currentGen !== presenceWsGeneration) return;
+        };
+        presenceWs.onmessage = (event) => {
+            if (currentGen !== presenceWsGeneration) return;
+            let msg;
+            try { msg = JSON.parse(event.data); } catch (err) { return; }
+            if (!msg || typeof msg !== 'object') return;
+            if (msg.type === 'presence_update') {
+                latestPresenceInviteableUsers = Array.isArray(msg.inviteableUsers) ? msg.inviteableUsers : [];
+                latestPresencePublicParties = Array.isArray(msg.publicParties) ? msg.publicParties : [];
+                latestPresencePublicPartyCount = Number(msg.publicPartyCount) || 0;
+                updatePublicPartyBadge(latestPresencePublicPartyCount);
+                renderInviteableUsersPanel();
+                renderPublicPartiesPanel();
+                return;
+            }
+            if (msg.type === 'presence_public_parties') {
+                latestPresencePublicParties = Array.isArray(msg.publicParties) ? msg.publicParties : [];
+                latestPresencePublicPartyCount = Number(msg.publicPartyCount) || latestPresencePublicParties.length || 0;
+                updatePublicPartyBadge(latestPresencePublicPartyCount);
+                renderPublicPartiesPanel();
+                return;
+            }
+            if (msg.type === 'party_invite_result') {
+                if (msg.ok) {
+                    const toLabel = msg.toLabel || 'player';
+                    const toPlayerId = msg.toPlayerId || null;
+                    const cooldownMs = Number(msg.cooldownMs) || 0;
+                    if (toPlayerId && cooldownMs > 0) {
+                        localInviteCooldownByTarget.set(toPlayerId, Date.now() + cooldownMs);
+                        setTimeout(() => {
+                            const expiresAt = localInviteCooldownByTarget.get(toPlayerId) || 0;
+                            if (expiresAt && Date.now() >= expiresAt) {
+                                localInviteCooldownByTarget.delete(toPlayerId);
+                                renderInviteableUsersPanel();
+                            }
+                        }, Math.min(cooldownMs + 50, 10_000));
+                    }
+                    notify(`Invited ${toLabel} to the party!`, 'success');
+                    renderInviteableUsersPanel();
+                } else {
+                    const errKey = msg.error || 'failed';
+                    if (errKey === 'invite_cooldown') {
+                        notify('Invite cooldown active. Try again later.', 'warn');
+                        const waitMs = Number(msg.waitMs) || 0;
+                        if (waitMs > 0) {
+                            // Re-render after cooldown likely expires
+                            setTimeout(renderInviteableUsersPanel, Math.min(waitMs + 50, 10_000));
+                        }
+                    } else if (errKey === 'target_muted') {
+                        notify('That player has muted invites.', 'warn');
+                    } else if (errKey === 'not_in_party') {
+                        notify('Invites only work from inside a party lobby.', 'warn');
+                    } else if (errKey === 'rate_limited') {
+                        notify('Invite rate limited. Try again later.', 'warn');
+                    } else {
+                        notify('Invite failed.', 'warn');
+                    }
+                }
+                return;
+            }
+            if (msg.type === 'party_invite_received') {
+                if (invitesMutedThisSession) return;
+                const fromLabel = msg.fromLabel || 'Player';
+                const partyId = msg.partyId || null;
+                if (!partyId) return;
+                const toastEl = global.showToast
+                    ? global.showToast(`${fromLabel} sent you a party invitation!`, {
+                        tone: 'success',
+                        duration: 90000,
+                        actions: [
+                            {
+                                label: 'Join',
+                                className: 'toast-action-primary',
+                                onClick: () => {
+                                    if (typeof showMultiplayerModal === 'function') showMultiplayerModal();
+                                    if (mpJoinCodeInput) mpJoinCodeInput.value = String(partyId).trim().toUpperCase();
+                                    setMultiplayerState('join');
+                                    attemptJoinParty();
+                                }
+                            },
+                            {
+                                label: 'Mute Invites',
+                                className: 'toast-action-secondary',
+                                onClick: () => {
+                                    invitesMutedThisSession = true;
+                                    try { sessionStorage.setItem(INVITES_MUTED_SESSION_KEY, 'true'); } catch (err) { /* ignore */ }
+                                    try {
+                                        if (presenceWs && presenceWs.readyState === WebSocket.OPEN) {
+                                            presenceWs.send(JSON.stringify({ type: 'presence_mute_invites' }));
+                                        }
+                                    } catch (err) { /* ignore */ }
+                                    notify('Invites muted for this session.', 'success');
+                                }
+                            }
+                        ]
+                    })
+                    : null;
+                if (toastEl && typeof toastEl === 'object') {
+                    // no-op, toast system handles removal
+                }
+            }
+        };
+    }
     const COMMAND_ERROR_TOASTS = {
         above_limit: { msg: 'Borrowing limit reached.', tone: 'warn' },
         insufficient_cash: { msg: 'Insufficient cash for that action.', tone: 'warn' },
@@ -98,6 +468,7 @@
         if (speedSliderWrap) speedSliderWrap.style.display = '';
         if (multiplayerBtnContainer) multiplayerBtnContainer.style.display = '';
         if (multiplayerStatusDisplay) multiplayerStatusDisplay.style.display = 'none';
+        syncPresenceState();
     }
 
     function killRemoteSession() {
@@ -186,6 +557,7 @@
             if (multiplayerStatusDisplay) multiplayerStatusDisplay.style.display = 'block';
             if (mpSessionIdDisplay) mpSessionIdDisplay.textContent = activeSessionId || 'default';
             lastNameTaken = false;
+            syncPresenceState();
             sendStartGameIfReady();
             if (selectedCharacter) {
                 try { ws.send(JSON.stringify({ type: 'set_character', character: selectedCharacter })); } catch (err) { /* ignore */ }
@@ -415,6 +787,10 @@
         }
         if (msg.type === 'snapshot') {
             matchStarted = !!msg.started;
+            if (typeof msg.isPublic === 'boolean') {
+                currentPartyIsPublic = msg.isPublic;
+                renderPartyStatusControl();
+            }
             hydrateFromSnapshot(msg);
             applyTicks(msg.ticks || []);
             setConnectionStatus('Synced', 'ok');
@@ -429,6 +805,13 @@
             }
             return;
         }
+        if (msg.type === 'party_privacy') {
+            if (typeof msg.isPublic === 'boolean') {
+                currentPartyIsPublic = msg.isPublic;
+                renderPartyStatusControl();
+            }
+            return;
+        }
         if (msg.type === 'resync') {
             if (msg.snapshot) {
                 hydrateFromSnapshot({ ...msg.snapshot, player: msg.player, ticks: msg.ticks });
@@ -437,6 +820,10 @@
             setConnectionStatus('Resynced', 'ok');
             if (msg.hostId) {
                 currentHostId = msg.hostId;
+            }
+            if (typeof msg.snapshot?.isPublic === 'boolean') {
+                currentPartyIsPublic = msg.snapshot.isPublic;
+                renderPartyStatusControl();
             }
             if (Array.isArray(msg.snapshot?.players)) {
                 setRosterFromServer(msg.snapshot.players);
@@ -456,6 +843,7 @@
             startGameRequested = false;
             startGameSent = false;
             matchStarted = true;
+            renderPartyStatusControl();
             currentHostId = msg.hostId || currentHostId;
             if (startPartyBtn) {
                 startPartyBtn.disabled = true;
@@ -557,6 +945,12 @@
                     startPartyBtn.textContent = 'Started';
                 }
                 hideMultiplayerModal();
+            }
+            if (msg.ok && msg.data && msg.data.type === 'party_set_privacy') {
+                if (typeof msg.data.isPublic === 'boolean') {
+                    currentPartyIsPublic = msg.data.isPublic;
+                    renderPartyStatusControl();
+                }
             }
             if (msg.player) {
                 updatePlayerFromServer(msg.player);
@@ -861,8 +1255,11 @@
         if (mpNameInput) {
             mpNameInput.classList.remove('input-error');
             const placeholder = NAME_PLACEHOLDERS[Math.floor(Math.random() * NAME_PLACEHOLDERS.length)] || '';
-            mpNameInput.placeholder = placeholder || 'Bloomer4000';
-            mpNameInput.value = '';
+            const storedName = (() => {
+                try { return localStorage.getItem('wojak_player_name') || ''; } catch (err) { return ''; }
+            })();
+            mpNameInput.placeholder = storedName || placeholder || 'Bloomer4000';
+            mpNameInput.value = storedName || '';
         }
         if (mpNameError) mpNameError.classList.remove('visible');
         if (mpJoinError) mpJoinError.classList.remove('visible');
@@ -887,13 +1284,16 @@
             startPartyBtn.disabled = false;
             startPartyBtn.textContent = 'Start Game';
         }
-        setMultiplayerState('idle');
+        setMultiplayerState('join');
         hideCharacterOverlay();
         pendingPartyAction = null;
         shouldPromptCharacterAfterConnect = false;
         if (partyAvatars) partyAvatars.innerHTML = '';
         if (leadAvatarName) leadAvatarName.textContent = '';
         refreshJoinUi();
+        renderPublicPartiesPanel();
+        renderInviteableUsersPanel();
+        renderPartyStatusControl();
     }
 
     function attemptJoinParty() {
@@ -1035,6 +1435,25 @@
             try { ws.close(); } catch (err) { /* ignore */ }
             ws = null;
         }
+        connectPresenceWebSocket();
+        syncPresenceState();
+        renderInviteableUsersPanel();
+        renderPublicPartiesPanel();
+        renderPartyStatusControl();
+    }
+
+    function handlePartyStatusToggle() {
+        if (!mpPartyStatusBtn) return;
+        if (!isInPartySession()) return;
+        const isHostClient = (typeof isPartyHostClient !== 'undefined' && isPartyHostClient)
+            || (typeof clientPlayerId !== 'undefined' && clientPlayerId && typeof currentHostId !== 'undefined' && currentHostId && clientPlayerId === currentHostId);
+        if (!isHostClient) return;
+        const next = !currentPartyIsPublic;
+        sendCommand({ type: 'party_set_privacy', isPublic: next });
+    }
+
+    if (mpPartyStatusBtn) {
+        mpPartyStatusBtn.addEventListener('click', handlePartyStatusToggle);
     }
 
     function updateCharacterLocksFromServer(players) {
@@ -1263,6 +1682,11 @@
         handleServerMessage,
         normalizeHttpUrl,
         wakeBackend,
+        connectPresenceWebSocket,
+        syncPresenceState,
+        renderInviteableUsersPanel,
+        renderPublicPartiesPanel,
+        renderPartyStatusControl,
         sanitizePlayerName,
         isNameTaken,
         setNameErrorVisible,

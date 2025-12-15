@@ -34,6 +34,15 @@ const TICK_QUARTER_LIMIT = 40;
 // to singleplayer. Limit this to spinouts to avoid bloating every tick.
 const FROM_VENTURE_TICK_HISTORY_LIMIT = 400;
 const GAME_START_DATE = new Date(Date.UTC(GAME_START_YEAR, 0, 1));
+const MAX_PUBLIC_PARTIES_LIST = 10;
+const MAX_INVITEABLE_USERS_LIST = 10;
+const MAX_PARTY_PLAYERS = 4;
+
+const INVITE_COOLDOWN_MS = 5 * 60 * 1000;
+const INVITE_RATE_MINUTE_WINDOW_MS = 60 * 1000;
+const INVITE_RATE_MINUTE_MAX = 6;
+const INVITE_RATE_HOUR_WINDOW_MS = 60 * 60 * 1000;
+const INVITE_RATE_HOUR_MAX = 30;
 
 const app = fastify({ logger: false });
 
@@ -121,6 +130,136 @@ function getTotalClientCount() {
   return total;
 }
 
+// Presence layer (global across sessions; used for invites + public party discovery)
+const MAX_PRESENCE_CONNECTIONS = Number(process.env.MAX_PRESENCE_CONNECTIONS || 200);
+const presenceClients = new Set(); // ws sockets
+const presenceBySocket = new Map(); // ws -> { playerId, displayName, anonNumber, partyId, muted, ip }
+const presenceSocketByPlayerId = new Map(); // lower(playerId) -> ws
+const presenceAssignedAnon = new Set();
+const inviteCooldownByPair = new Map(); // "from|to" -> expiresAt
+const inviteRateBySender = new Map(); // playerIdLower -> { minuteCount, minuteResetAt, hourCount, hourResetAt }
+const presenceConnectionsByIp = new Map(); // ip -> count
+
+function allocateAnonNumber() {
+  for (let i = 0; i < 10_000; i += 1) {
+    if (!presenceAssignedAnon.has(i)) {
+      presenceAssignedAnon.add(i);
+      return i;
+    }
+  }
+  return Math.floor(Math.random() * 1e9);
+}
+
+function releaseAnonNumber(n) {
+  if (Number.isFinite(n) && n >= 0) {
+    presenceAssignedAnon.delete(n);
+  }
+}
+
+function normalizePartyId(id) {
+  if (!id) return null;
+  const cleaned = id.toString().trim().toUpperCase().slice(0, 12);
+  return cleaned || null;
+}
+
+function partyIsJoinable(session) {
+  return !!session && !session.ended && !session.started && !!session.isPublic && session.clients && session.clients.size > 0;
+}
+
+function getJoinablePublicPartiesSnapshot() {
+  const list = [];
+  sessions.forEach((session, id) => {
+    if (!partyIsJoinable(session)) return;
+    const hostId = session.hostId || '';
+    list.push({
+      sessionId: id,
+      hostId,
+      playerCount: session.players ? session.players.size : 0,
+      maxPlayers: MAX_PARTY_PLAYERS,
+      createdAt: Number(session.createdAt) || 0
+    });
+  });
+  list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  return list.slice(0, MAX_PUBLIC_PARTIES_LIST);
+}
+
+function computeInviteableUsersForClient(self) {
+  if (!self || !self.partyId) return [];
+  const out = [];
+  presenceBySocket.forEach((other) => {
+    if (!other) return;
+    if (other.playerId === self.playerId) return;
+    if (other.partyId && other.partyId === self.partyId) return;
+    out.push({
+      playerId: other.playerId,
+      displayName: other.displayName || null,
+      anonNumber: Number.isFinite(other.anonNumber) ? other.anonNumber : null,
+      muted: !!other.muted
+    });
+  });
+  out.sort((a, b) => (Number(a.anonNumber) || 0) - (Number(b.anonNumber) || 0));
+  return out.slice(0, MAX_INVITEABLE_USERS_LIST);
+}
+
+function sendPresence(ws, payload) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  try {
+    ws.send(JSON.stringify(payload));
+  } catch (err) { /* ignore */ }
+}
+
+function broadcastPresenceUpdate() {
+  const publicParties = getJoinablePublicPartiesSnapshot();
+  const publicPartyCount = publicParties.length;
+  presenceClients.forEach((ws) => {
+    const self = presenceBySocket.get(ws) || null;
+    sendPresence(ws, {
+      type: 'presence_update',
+      publicPartyCount,
+      publicParties,
+      inviteableUsers: computeInviteableUsersForClient(self),
+      onlineCount: presenceClients.size
+    });
+  });
+}
+
+function isPlayerConnectedToSession(session, playerId) {
+  if (!session || !session.clientPlayers || !playerId) return false;
+  for (const pid of session.clientPlayers.values()) {
+    if (pid === playerId) return true;
+  }
+  return false;
+}
+
+function checkInviteRateLimit(senderLower) {
+  const now = Date.now();
+  const entry = inviteRateBySender.get(senderLower);
+  if (!entry) {
+    inviteRateBySender.set(senderLower, {
+      minuteCount: 1,
+      minuteResetAt: now + INVITE_RATE_MINUTE_WINDOW_MS,
+      hourCount: 1,
+      hourResetAt: now + INVITE_RATE_HOUR_WINDOW_MS
+    });
+    return { ok: true };
+  }
+  if (now >= entry.minuteResetAt) {
+    entry.minuteCount = 0;
+    entry.minuteResetAt = now + INVITE_RATE_MINUTE_WINDOW_MS;
+  }
+  if (now >= entry.hourResetAt) {
+    entry.hourCount = 0;
+    entry.hourResetAt = now + INVITE_RATE_HOUR_WINDOW_MS;
+  }
+  if (entry.minuteCount >= INVITE_RATE_MINUTE_MAX || entry.hourCount >= INVITE_RATE_HOUR_MAX) {
+    const waitMs = Math.max(0, Math.min(entry.minuteResetAt - now, entry.hourResetAt - now));
+    return { ok: false, waitMs };
+  }
+  entry.minuteCount += 1;
+  entry.hourCount += 1;
+  return { ok: true };
+}
+
 function createPlayer(id) {
   return {
     id,
@@ -193,6 +332,8 @@ async function buildMatch(seed = Date.now()) {
     ventureSim,
     rngFn,
     started: false,
+    createdAt: Date.now(),
+    isPublic: true,
     hostId: null,
     playerRoles: new Map(),
     clients: new Set(),
@@ -337,6 +478,7 @@ function endSession(session, reason = 'timeline_end') {
     lastTick: session.sim.lastTick ? session.sim.lastTick.toISOString() : null,
     idleSeconds
   });
+  broadcastPresenceUpdate();
   scheduleSessionCleanup(session);
 }
 
@@ -349,6 +491,7 @@ function scheduleSessionCleanup(session) {
         break;
       }
     }
+    broadcastPresenceUpdate();
   }, SESSION_CLEANUP_DELAY_MS);
 }
 
@@ -769,6 +912,7 @@ function buildSnapshot(session) {
     type: 'snapshot',
     seed: session.seed,
     started: session.started,
+    isPublic: !!session.isPublic,
     hostId: session.hostId,
     lastTick: session.sim.lastTick ? session.sim.lastTick.toISOString() : null,
     sim: simState,
@@ -952,7 +1096,27 @@ function handleCommand(session, player, msg) {
     session.started = true;
     startTickLoop(session);
     broadcast(session, { type: 'match_started', hostId: session.hostId || player.id });
+    broadcastPresenceUpdate();
     return { ok: true, type: 'start_game' };
+  }
+  if (type === 'party_set_privacy') {
+    if (!session.hostId) {
+      session.hostId = player.id;
+    }
+    if (session.hostId !== player.id) {
+      return { ok: false, error: 'not_host' };
+    }
+    if (session.started) {
+      return { ok: false, error: 'match_started' };
+    }
+    const isPublic = msg.isPublic;
+    if (typeof isPublic !== 'boolean') {
+      return { ok: false, error: 'bad_payload' };
+    }
+    session.isPublic = isPublic;
+    broadcast(session, { type: 'party_privacy', isPublic: !!session.isPublic });
+    broadcastPresenceUpdate();
+    return { ok: true, type: 'party_set_privacy', isPublic: !!session.isPublic };
   }
   if (type === 'buy') {
     const { companyId, amount } = msg;
@@ -1155,15 +1319,202 @@ function unitHostedInvalid(units) {
 
 const server = app.server;
 const wss = new WebSocket.Server({ noServer: true });
+const wssPresence = new WebSocket.Server({ noServer: true });
 
 server.on('upgrade', (req, socket, head) => {
   const url = new URL(req.url, 'http://localhost');
-  if (url.pathname !== '/ws') {
-    socket.destroy();
+  if (url.pathname === '/ws') {
+    wss.handleUpgrade(req, socket, head, (ws) => {
+      wss.emit('connection', ws, req, url);
+    });
     return;
   }
-  wss.handleUpgrade(req, socket, head, (ws) => {
-    wss.emit('connection', ws, req, url);
+  if (url.pathname === '/presence') {
+    wssPresence.handleUpgrade(req, socket, head, (ws) => {
+      wssPresence.emit('connection', ws, req, url);
+    });
+    return;
+  }
+  socket.destroy();
+});
+
+wssPresence.on('connection', (ws, req, url) => {
+  const remoteAddr = (req.socket && req.socket.remoteAddress) || '';
+  const hostHeader = (req.headers && req.headers.host) || '';
+  const isLocalRequest = /(^127\.0\.0\.1)|(::1)|(^localhost)|(\.local$)/i.test(remoteAddr) ||
+    /(^127\.0\.0\.1)|(::1)|(^localhost)|(\.local$)/i.test(hostHeader);
+
+  if (presenceClients.size >= MAX_PRESENCE_CONNECTIONS && !isLocalRequest) {
+    try {
+      ws.send(JSON.stringify({ type: 'error', error: 'server_full' }));
+      ws.close(4009, 'server_full');
+    } catch (err) { /* ignore */ }
+    return;
+  }
+
+  const ip = remoteAddr || 'unknown';
+  const ipCount = (presenceConnectionsByIp.get(ip) || 0) + 1;
+  presenceConnectionsByIp.set(ip, ipCount);
+  if (!isLocalRequest && ipCount > 10) {
+    try {
+      ws.send(JSON.stringify({ type: 'error', error: 'ip_limit' }));
+      ws.close(4011, 'ip_limit');
+    } catch (err) { /* ignore */ }
+    presenceConnectionsByIp.set(ip, ipCount - 1);
+    return;
+  }
+
+  const rawPlayerId = url.searchParams.get('player') || `p_${Math.floor(Math.random() * 1e9).toString(36)}`;
+  const playerId = canonicalizePlayerId(rawPlayerId) || `p_${Math.floor(Math.random() * 1e9).toString(36)}`;
+  const lowerPid = playerId.toLowerCase();
+  const existing = presenceSocketByPlayerId.get(lowerPid);
+  if (existing && existing !== ws && (existing.readyState === WebSocket.OPEN || existing.readyState === WebSocket.CONNECTING)) {
+    try { existing.close(4001, 'replaced'); } catch (err) { /* ignore */ }
+  }
+  presenceSocketByPlayerId.set(lowerPid, ws);
+
+  const anonNumber = allocateAnonNumber();
+  const record = {
+    playerId,
+    displayName: null,
+    anonNumber,
+    partyId: null,
+    muted: false,
+    ip
+  };
+  presenceClients.add(ws);
+  presenceBySocket.set(ws, record);
+
+  sendPresence(ws, { type: 'presence_welcome', playerId, anonNumber });
+  broadcastPresenceUpdate();
+
+  ws.on('message', (data) => {
+    let msg;
+    try {
+      msg = JSON.parse(data.toString());
+    } catch (err) {
+      sendPresence(ws, { type: 'error', error: 'bad_json' });
+      return;
+    }
+    const self = presenceBySocket.get(ws);
+    if (!self) return;
+
+    if (msg && (msg.type === 'presence_hello' || msg.type === 'presence_update')) {
+      const nameRaw = (msg.displayName || msg.name || '').toString().trim().replace(/\s+/g, ' ').slice(0, 30);
+      self.displayName = nameRaw || null;
+      self.partyId = normalizePartyId(msg.partyId || msg.sessionId || null);
+      broadcastPresenceUpdate();
+      return;
+    }
+
+    if (msg && msg.type === 'presence_mute_invites') {
+      self.muted = true;
+      sendPresence(ws, { type: 'presence_mute_invites', ok: true });
+      broadcastPresenceUpdate();
+      return;
+    }
+
+    if (msg && msg.type === 'presence_unmute_invites') {
+      self.muted = false;
+      sendPresence(ws, { type: 'presence_unmute_invites', ok: true });
+      broadcastPresenceUpdate();
+      return;
+    }
+
+    if (msg && msg.type === 'presence_request_public_parties') {
+      const publicParties = getJoinablePublicPartiesSnapshot();
+      sendPresence(ws, { type: 'presence_public_parties', publicPartyCount: publicParties.length, publicParties });
+      return;
+    }
+
+    if (msg && msg.type === 'party_invite') {
+      const toRaw = canonicalizePlayerId(msg.toPlayerId || msg.to || msg.playerId || null);
+      if (!toRaw) {
+        sendPresence(ws, { type: 'party_invite_result', ok: false, error: 'bad_payload' });
+        return;
+      }
+      const toLower = toRaw.toLowerCase();
+      const sessionId = normalizePartyId(self.partyId);
+      const session = sessionId ? sessions.get(sessionId) : null;
+      if (!sessionId || !session || session.ended || session.started || !isPlayerConnectedToSession(session, self.playerId)) {
+        sendPresence(ws, { type: 'party_invite_result', ok: false, error: 'not_in_party' });
+        return;
+      }
+      const targetWs = presenceSocketByPlayerId.get(toLower);
+      const target = targetWs ? presenceBySocket.get(targetWs) : null;
+      if (!targetWs || !target || targetWs.readyState !== WebSocket.OPEN) {
+        sendPresence(ws, { type: 'party_invite_result', ok: false, error: 'not_found' });
+        return;
+      }
+      if (target.playerId === self.playerId) {
+        sendPresence(ws, { type: 'party_invite_result', ok: false, error: 'bad_payload' });
+        return;
+      }
+      if (target.partyId && target.partyId === sessionId) {
+        sendPresence(ws, { type: 'party_invite_result', ok: false, error: 'already_in_party' });
+        return;
+      }
+      if (target.muted) {
+        sendPresence(ws, { type: 'party_invite_result', ok: false, error: 'target_muted' });
+        return;
+      }
+
+      const now = Date.now();
+      const pairKey = `${self.playerId.toLowerCase()}|${toLower}`;
+      const cooldownUntil = inviteCooldownByPair.get(pairKey) || 0;
+      if (cooldownUntil && now < cooldownUntil) {
+        sendPresence(ws, { type: 'party_invite_result', ok: false, error: 'invite_cooldown', waitMs: Math.max(0, cooldownUntil - now) });
+        return;
+      }
+      if (cooldownUntil && now >= cooldownUntil) {
+        inviteCooldownByPair.delete(pairKey);
+      }
+      const rate = checkInviteRateLimit(self.playerId.toLowerCase());
+      if (!rate.ok) {
+        sendPresence(ws, { type: 'party_invite_result', ok: false, error: 'rate_limited', waitMs: rate.waitMs || 0 });
+        return;
+      }
+
+      inviteCooldownByPair.set(pairKey, now + INVITE_COOLDOWN_MS);
+
+      const fromLabel = self.displayName || `Unidentified_Wojak_#${self.anonNumber}`;
+      const toLabel = target.displayName || `Unidentified_Wojak_#${target.anonNumber}`;
+      sendPresence(ws, {
+        type: 'party_invite_result',
+        ok: true,
+        toPlayerId: target.playerId,
+        toLabel,
+        cooldownMs: INVITE_COOLDOWN_MS
+      });
+      sendPresence(targetWs, {
+        type: 'party_invite_received',
+        fromPlayerId: self.playerId,
+        fromLabel,
+        partyId: sessionId,
+        hostId: session.hostId || null,
+        playerCount: session.players ? session.players.size : 0,
+        maxPlayers: MAX_PARTY_PLAYERS,
+        isPublic: !!session.isPublic
+      });
+      return;
+    }
+  });
+
+  ws.on('close', () => {
+    presenceClients.delete(ws);
+    const info = presenceBySocket.get(ws);
+    presenceBySocket.delete(ws);
+    if (info) {
+      releaseAnonNumber(info.anonNumber);
+      const lower = info.playerId ? info.playerId.toLowerCase() : null;
+      if (lower && presenceSocketByPlayerId.get(lower) === ws) {
+        presenceSocketByPlayerId.delete(lower);
+      }
+      const nextCount = Math.max(0, (presenceConnectionsByIp.get(info.ip) || 1) - 1);
+      if (nextCount <= 0) presenceConnectionsByIp.delete(info.ip);
+      else presenceConnectionsByIp.set(info.ip, nextCount);
+    }
+    broadcastPresenceUpdate();
   });
 });
 
@@ -1342,6 +1693,7 @@ wss.on('connection', async (ws, req, url) => {
   }
   // Notify everyone of the updated roster
   broadcastPlayers(session);
+  broadcastPresenceUpdate();
 
   if (session.started) {
     startTickLoop(session);
@@ -1356,6 +1708,7 @@ wss.on('connection', async (ws, req, url) => {
       session.players.delete(playerId);
     }
     broadcastPlayers(session);
+    broadcastPresenceUpdate();
     if (session.clients.size === 0) {
       stopTickLoop(session);
       // Hard kill session after short grace when no clients remain

@@ -60,6 +60,7 @@
                     <div class="header-controls">
                         <div class="tooltip-container" id="multiplayerBtnContainer">
                             <button id="multiplayerBtn">Play Multiplayer</button>
+                            <span id="mpPublicPartiesBadge" class="mp-public-parties-badge" style="display:none">0</span>
                             <span class="tooltip-text">Join a shared session to compete with friends.</span>
                         </div>
                         <div id="multiplayerStatusDisplay" style="display: none; text-align: center;">
@@ -392,13 +393,25 @@
                         <div class="input-label">Display Name</div>
                         <input type="text" id="mpNameInput" placeholder="Bloomer4000">
                         <div id="mpNameError" class="mp-name-error">Name taken</div>
+                        <div id="mpOnlinePlayersPanel" class="mp-online-panel" style="display:none">
+                            <div class="input-label mp-online-label">Players Online</div>
+                            <ul id="mpOnlinePlayersList" class="mp-online-list"></ul>
+                        </div>
                     </div>
                     <div class="multiplayer-actions">
                         <button id="createPartyBtn" class="borrow-btn">Create Party</button>
                         <button id="joinPartyBtn" class="borrow-btn">Join Party</button>
                     </div>
                 </div>
+                <div id="mpPartyStatusRow" class="mp-party-status-row" style="display:none">
+                    <div class="input-label mp-party-status-label">Party Status:</div>
+                    <button id="mpPartyStatusBtn" class="borrow-btn mp-party-status-btn" type="button" title="Click to Change">Public</button>
+                </div>
                 <div id="multiplayerJoinState" class="multiplayer-state">
+                    <div id="mpPublicPartiesPanel" class="mp-public-parties-panel" style="display:none">
+                        <div class="input-label players-label">Open Public Parties</div>
+                        <ul id="mpPublicPartiesList" class="mp-public-party-list"></ul>
+                    </div>
                     <div class="input-label join-code-label" id="mpJoinCodeLabel">Enter a party code</div>
                     <div class="mp-join-row">
                         <button id="confirmJoinPartyBtn" class="borrow-btn join-action-btn">Join</button>

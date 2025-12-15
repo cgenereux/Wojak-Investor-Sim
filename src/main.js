@@ -152,7 +152,7 @@ function resetDecadeTracking() {
 
 const DEFAULT_TOAST_DURATION = 4500;
 function showToast(message, options = {}) {
-    const { tone = 'info', duration = DEFAULT_TOAST_DURATION } = options;
+    const { tone = 'info', duration = DEFAULT_TOAST_DURATION, actions = null } = options;
     const msg = typeof message === 'string' ? message : String(message || '');
     let container = document.getElementById('toast-container');
     if (!container) {
@@ -163,15 +163,46 @@ function showToast(message, options = {}) {
     }
     const toastEl = document.createElement('div');
     toastEl.className = `toast toast-${tone}`;
-    toastEl.textContent = msg;
+
+    const closeToast = () => {
+        toastEl.classList.add('hide');
+        setTimeout(() => toastEl.remove(), 150);
+    };
+
+    if (Array.isArray(actions) && actions.length) {
+        const msgEl = document.createElement('div');
+        msgEl.className = 'toast-message';
+        msgEl.textContent = msg;
+        toastEl.appendChild(msgEl);
+
+        const actionsEl = document.createElement('div');
+        actionsEl.className = 'toast-actions';
+        actions.slice(0, 3).forEach((action) => {
+            if (!action || !action.label) return;
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `toast-action-btn${action.className ? ` ${action.className}` : ''}`;
+            btn.textContent = String(action.label);
+            btn.addEventListener('click', () => {
+                try {
+                    if (typeof action.onClick === 'function') action.onClick();
+                } finally {
+                    if (action.autoClose !== false) closeToast();
+                }
+            });
+            actionsEl.appendChild(btn);
+        });
+        toastEl.appendChild(actionsEl);
+    } else {
+        toastEl.textContent = msg;
+    }
 
     const closeBtn = document.createElement('button');
     closeBtn.className = 'toast-close';
     closeBtn.type = 'button';
     closeBtn.textContent = '×';
     closeBtn.addEventListener('click', () => {
-        toastEl.classList.add('hide');
-        setTimeout(() => toastEl.remove(), 150);
+        closeToast();
     });
 
     toastEl.appendChild(closeBtn);
@@ -181,8 +212,7 @@ function showToast(message, options = {}) {
     const ttl = Number.isFinite(duration) ? duration : DEFAULT_TOAST_DURATION;
     if (ttl > 0) {
         setTimeout(() => {
-            toastEl.classList.add('hide');
-            setTimeout(() => toastEl.remove(), 200);
+            closeToast();
         }, ttl);
     }
     window.showToast = showToast;
@@ -4446,6 +4476,14 @@ async function init() {
     ensureConnectionBanner();
     setBannerButtonsVisible(false);
     setConnectionStatus('Offline', 'warn');
+
+    if (window.MultiplayerModule && typeof window.MultiplayerModule.connectPresenceWebSocket === 'function') {
+        window.MultiplayerModule.connectPresenceWebSocket();
+        if (typeof window.MultiplayerModule.syncPresenceState === 'function') {
+            window.MultiplayerModule.syncPresenceState();
+        }
+    }
+
     if (!isServerAuthoritative) {
         sim = await loadCompaniesData();
         if (!sim) { return; }

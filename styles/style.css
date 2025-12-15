@@ -231,6 +231,39 @@ body.vc-active.vc-detail-active #main-view {
     padding: 2px;
 }
 
+.toast-message {
+    white-space: pre-wrap;
+    line-height: 1.35;
+}
+
+.toast-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.toast-action-btn {
+    border-radius: 10px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #0f172a;
+    font-weight: 800;
+    font-size: 12px;
+    padding: 7px 10px;
+    cursor: pointer;
+}
+
+.toast-action-btn.toast-action-primary {
+    border-color: #16a34a;
+    color: #16a34a;
+}
+
+.toast-action-btn.toast-action-secondary {
+    border-color: #94a3b8;
+    color: #475569;
+}
+
 .lead-avatar {
     display: flex;
     flex-direction: column;
@@ -406,6 +439,30 @@ body.vc-active.vc-detail-active #main-view {
     font-size: 16px;
     padding: 13px 26px;
     font-weight: 500;
+}
+
+#multiplayerBtnContainer {
+    position: relative;
+    display: inline-block;
+}
+
+.mp-public-parties-badge {
+    position: absolute;
+    right: -6px;
+    bottom: -6px;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: #3b82f6;
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #ffffff;
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.18);
+    pointer-events: none;
 }
 
 .drip-toggle {
@@ -2129,6 +2186,115 @@ button.speed-active:hover {
 
 .multiplayer-actions button {
     flex: 1 1 0;
+}
+
+.mp-party-status-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.mp-party-status-label {
+    font-weight: 800;
+}
+
+.mp-party-status-btn.mp-public {
+    background: #16a34a;
+    border-color: #16a34a;
+}
+
+.mp-party-status-btn.mp-private {
+    background: #dc2626;
+    border-color: #dc2626;
+}
+
+.mp-party-status-btn[aria-disabled="true"] {
+    opacity: 0.9;
+    cursor: not-allowed;
+}
+
+.mp-online-panel {
+    margin-top: 10px;
+    padding: 10px 10px 8px 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #f8fafc;
+}
+
+.mp-online-label {
+    color: #0f172a !important;
+    font-weight: 800 !important;
+    text-align: center;
+}
+
+.mp-online-list,
+.mp-public-party-list {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.mp-online-item,
+.mp-public-party-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+}
+
+.mp-online-name,
+.mp-public-party-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+    max-width: 250px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mp-online-actions,
+.mp-public-party-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex: 0 0 auto;
+}
+
+.mp-invite-btn,
+.mp-join-public-btn {
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid #16a34a;
+    background: #16a34a;
+    color: #ffffff;
+    font-weight: 800;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.mp-invite-btn:disabled,
+.mp-join-public-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.mp-invite-btn.mp-muted {
+    background: #94a3b8;
+    border-color: #94a3b8;
+}
+
+.mp-public-parties-panel {
+    margin-bottom: 10px;
 }
 
 .input-error {
