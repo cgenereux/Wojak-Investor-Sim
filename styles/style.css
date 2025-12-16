@@ -433,6 +433,16 @@ body.vc-active.vc-detail-active #main-view {
     align-self: start;
     margin-top: 26px;
     margin-right: -20px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+}
+
+.header-controls-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 #multiplayerBtn {
@@ -529,15 +539,20 @@ body:not(.multiplayer-active) .drip-toggle {
 }
 
 .net-worth-help-wrap {
-    position: absolute;
-    top: 4px;
-    right: -26px;
+    position: relative;
+    display: inline-block;
     z-index: 40;
 }
 
 .net-worth-help-btn {
     width: 20px;
+    min-width: 20px;
+    max-width: 20px;
     height: 20px;
+    min-height: 20px;
+    max-height: 20px;
+    flex: 0 0 20px;
+    aspect-ratio: 1 / 1;
     border-radius: 50%;
     border: 2px solid rgba(17, 17, 17, 0.5);
     background: rgba(255, 255, 255, 0.95);
@@ -550,6 +565,10 @@ body:not(.multiplayer-active) .drip-toggle {
     justify-content: center;
     cursor: pointer;
     padding: 0;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    appearance: none;
+    -webkit-appearance: none;
 }
 
 .net-worth-help-btn:hover {
@@ -1177,32 +1196,38 @@ button.speed-active:hover {
 }
 
 .companies-grid .company-box:not(.bankrupt).sector-tech.subsector-space-tech {
-    background: #ddcffd; /* 1 – space technology */
+    background: #ddcffd;
+    /* 1 – space technology */
     border-color: #ccb5fb;
 }
 
 .companies-grid .company-box:not(.bankrupt).sector-tech.subsector-aero-tech {
-    background: #d0d0ff; /* 2 – aerospace technology */
+    background: #d0d0ff;
+    /* 2 – aerospace technology */
     border-color: #b8b8ff;
 }
 
 .companies-grid .company-box:not(.bankrupt).sector-tech.subsector-material-tech {
-    background: #c8d6ff; /* 3 – material technology */
+    background: #c8d6ff;
+    /* 3 – material technology */
     border-color: #acbff7;
 }
 
 .companies-grid .company-box:not(.bankrupt).sector-tech.subsector-hardware-tech {
-    background: #ccd9ff; /* 4 – hardware technology */
+    background: #ccd9ff;
+    /* 4 – hardware technology */
     border-color: #b3c4f2;
 }
 
 .companies-grid .company-box:not(.bankrupt).sector-tech.subsector-web-tech {
-    background: #d9e6ff; /* 5 – web technology */
+    background: #d9e6ff;
+    /* 5 – web technology */
     border-color: #bfd2f5;
 }
 
 .companies-grid .company-box:not(.bankrupt).sector-tech {
-    background: #e6f3ff; /* 6 – technology */
+    background: #e6f3ff;
+    /* 6 – technology */
     border-color: #cadff1;
 }
 
@@ -2194,18 +2219,6 @@ button.speed-active:hover {
     z-index: 100;
 }
 
-/* Header Controls */
-.header-controls {
-    display: flex;
-    align-items: center;
-    justify-self: end;
-}
-
-.header-controls button {
-    padding: 8px 16px;
-    font-size: 14px;
-}
-
 /* Multiplayer Modal Adjustments */
 #multiplayerModal .banking-panel {
     max-width: 750px;
@@ -2251,7 +2264,7 @@ button.speed-active:hover {
     gap: 10px;
 }
 
-.multiplayer-right > .multiplayer-actions {
+.multiplayer-right>.multiplayer-actions {
     align-self: stretch;
 }
 
@@ -2289,13 +2302,13 @@ button.speed-active:hover {
     align-items: flex-end;
 }
 
-.multiplayer-actions > button,
-.multiplayer-actions > .mp-party-status-control {
+.multiplayer-actions>button,
+.multiplayer-actions>.mp-party-status-control {
     flex: 1 1 0;
     min-width: 0;
 }
 
-.multiplayer-actions > button {
+.multiplayer-actions>button {
     padding: 15px 20px;
 }
 
