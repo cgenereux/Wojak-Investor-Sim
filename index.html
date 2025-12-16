@@ -1,14 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wojak Investor Sim</title>
-    <meta http-equiv="Content-Security-Policy" content="
-        default-src 'self';
-        script-src 'self' 'unsafe-inline' https://us.i.posthog.com https://us-assets.i.posthog.com https://cdn.jsdelivr.net;
-        connect-src 'self' http://localhost:4000 ws://localhost:4000 https://wojak-backend.graysand-55f0f3f9.eastus2.azurecontainerapps.io wss://wojak-backend.graysand-55f0f3f9.eastus2.azurecontainerapps.io https://us.i.posthog.com https://us-assets.i.posthog.com;
+	<head>
+	    <meta charset="UTF-8">
+	    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+	    <title>Wojak Investor Sim</title>
+	    <meta name="description" content="Play as Wojak in an interactive investment sim">
+	    <link rel="canonical" href="https://wojakinvestorsim.com/">
+	    <meta property="og:type" content="website">
+	    <meta property="og:title" content="Wojak Investor Sim">
+	    <meta property="og:description" content="Play as Wojak in an interactive investment sim">
+	    <meta property="og:url" content="https://wojakinvestorsim.com/">
+	    <meta property="og:image" content="https://wojakinvestorsim.com/wojaks/favicon-512.png">
+	    <meta name="twitter:card" content="summary">
+	    <meta name="twitter:title" content="Wojak Investor Sim">
+	    <meta name="twitter:description" content="Play as Wojak in an interactive investment sim">
+	    <meta name="twitter:image" content="https://wojakinvestorsim.com/wojaks/favicon-512.png">
+	    <meta http-equiv="Content-Security-Policy" content="
+	        default-src 'self';
+	        script-src 'self' 'unsafe-inline' https://us.i.posthog.com https://us-assets.i.posthog.com https://cdn.jsdelivr.net;
+	        connect-src 'self' http://localhost:4000 ws://localhost:4000 https://wojak-backend.graysand-55f0f3f9.eastus2.azurecontainerapps.io wss://wojak-backend.graysand-55f0f3f9.eastus2.azurecontainerapps.io https://us.i.posthog.com https://us-assets.i.posthog.com;
         img-src 'self' data:;
         style-src 'self' 'unsafe-inline';
     ">
@@ -31,13 +42,18 @@
         });
     </script>
 
-    <!-- CSS and JS -->
-    <link rel="stylesheet" href="styles/style.css">
-    <link rel="stylesheet" href="styles/vc.css">
-    <link rel="icon" type="image/png" sizes="32x32" href="./wojaks/favicon-32.png" id="faviconLink" />
-    <link rel="icon" type="image/png" sizes="192x192" href="./wojaks/favicon-192.png" />
-    <link rel="shortcut icon" type="image/png" href="./wojaks/favicon-32.png" />
-</head>
+	    <!-- CSS and JS -->
+	    <link rel="stylesheet" href="styles/style.css">
+	    <link rel="stylesheet" href="styles/vc.css">
+	    <link rel="icon" href="./wojaks/favicon.ico" sizes="any">
+	    <link rel="icon" type="image/png" sizes="16x16" href="./wojaks/favicon-16.png">
+	    <link rel="icon" type="image/png" sizes="32x32" href="./wojaks/favicon-32.png" id="faviconLink" />
+	    <link rel="icon" type="image/png" sizes="48x48" href="./wojaks/favicon-48.png">
+	    <link rel="icon" type="image/png" sizes="192x192" href="./wojaks/favicon-192.png" />
+	    <link rel="icon" type="image/png" sizes="512x512" href="./wojaks/favicon-512.png">
+	    <link rel="apple-touch-icon" sizes="180x180" href="./wojaks/apple-touch-icon.png">
+	    <link rel="shortcut icon" href="./wojaks/favicon.ico">
+	</head>
 
 <body>
     <div class="container">
@@ -52,11 +68,25 @@
                         </div>
                         <div class="party-avatars" id="partyAvatars"></div>
                     </div>
-                    <div class="financial-info">
-                        <div class="net-worth" id="netWorthDisplay">$3,000.00</div>
-                        <div class="date" id="currentDateDisplay">1990-01-01</div>
-                        <div class="sub-financial-display" id="subFinancialDisplay"></div>
-                    </div>
+	                    <div class="financial-info">
+	                        <div class="net-worth-wrap">
+	                            <div class="net-worth" id="netWorthDisplay">$3,000.00</div>
+	                            <div class="net-worth-help-wrap">
+	                                <button id="netWorthHelpBtn" class="net-worth-help-btn" type="button" aria-label="About this version">?</button>
+	                                <div id="netWorthHelpPopover" class="net-worth-help-popover" role="dialog" aria-label="About Wojak Investor Sim">
+	                                    <div class="net-worth-help-meta">
+	                                        <div>This Match Start Year: <span id="netWorthHelpStartYear">1985</span></div>
+	                                        <div>This Match End Year: <span id="netWorthHelpEndYear">2050</span></div>
+	                                        <div>Version: <span id="netWorthHelpVersion">wojaksim-v0.2.0</span></div>
+	                                    </div>
+	                                    <div id="netWorthHelpGreeting" class="net-worth-help-greeting">Hello my Wojaks! Thank you for playing. I hope you like version 0.2. Please write me with the feedback button if you have any comments, questions, or thoughts.</div>
+	                                    <button id="netWorthHelpFeedbackBtn" class="bankruptcy-btn feedback-btn" type="button">Give Feedback</button>
+	                                </div>
+	                            </div>
+	                        </div>
+	                        <div class="date" id="currentDateDisplay">1990-01-01</div>
+	                        <div class="sub-financial-display" id="subFinancialDisplay"></div>
+	                    </div>
                     <div class="header-controls">
                         <div class="tooltip-container" id="multiplayerBtnContainer">
                             <button id="multiplayerBtn">Play Multiplayer</button>
@@ -386,63 +416,69 @@
                     <img src="wojaks/bloomer.png" alt="Bloomer" class="multiplayer-wojak-icon">
                 </div>
                 <button class="close-btn" id="closeMultiplayerBtn">×</button>
-            </div>
-            <div class="banking-controls multiplayer-controls">
-                <div class="multiplayer-action-row">
-                    <div class="banking-input-group multiplayer-name-inline">
-                        <div class="input-label">Display Name</div>
-                        <input type="text" id="mpNameInput" placeholder="Bloomer4000">
-                        <div id="mpNameError" class="mp-name-error">Name taken</div>
-                        <div id="mpOnlinePlayersPanel" class="mp-online-panel" style="display:none">
-                            <div class="input-label mp-online-label">Players Online</div>
-                            <ul id="mpOnlinePlayersList" class="mp-online-list"></ul>
+	            </div>
+	                <div class="banking-controls multiplayer-controls">
+	                    <div class="multiplayer-layout">
+	                        <div class="multiplayer-left">
+	                            <div class="banking-input-group multiplayer-name-inline">
+	                                <div class="input-label">Display Name</div>
+	                                <input type="text" id="mpNameInput" placeholder="Bloomer4000">
+	                                <div id="mpNameError" class="mp-name-error">Name taken</div>
+	                            </div>
+                            <div id="mpOnlinePlayersPanel" class="mp-online-panel" style="display:none">
+                                <div class="input-label mp-online-label">Players Online</div>
+                                <ul id="mpOnlinePlayersList" class="mp-online-list"></ul>
+                            </div>
+                        </div>
+                        <div class="multiplayer-right">
+	                            <div class="multiplayer-actions">
+	                                <div id="mpPartyStatusControl" class="mp-party-status-control" style="display:none">
+	                                    <div class="input-label mp-party-status-label">Party Status</div>
+	                                    <button id="mpPartyStatusBtn" class="borrow-btn mp-party-status-btn" type="button" title="Click to Change">Public</button>
+	                                </div>
+	                                <button id="createPartyBtn" class="borrow-btn">Create Party</button>
+	                                <button id="joinPartyBtn" class="borrow-btn">Join Party</button>
+	                            </div>
+	                            <div id="multiplayerIdleState" class="multiplayer-state empty">
+	                                <div id="mpPublicPartiesPanel" class="mp-public-parties-panel" style="display:none">
+	                                    <div class="input-label players-label">Open Public Parties</div>
+	                                    <ul id="mpPublicPartiesList" class="mp-public-party-list"></ul>
+	                                </div>
+	                            </div>
+	                            <div id="multiplayerJoinState" class="multiplayer-state">
+	                                <div class="input-label join-code-label" id="mpJoinCodeLabel">Enter a party code</div>
+	                                <div class="mp-join-row">
+	                                    <button id="confirmJoinPartyBtn" class="borrow-btn join-action-btn">Join</button>
+                                    <input type="text" id="mpJoinCodeInput" placeholder="ABC123">
+                                </div>
+                                <div id="mpJoinError" class="mp-name-error">Invalid party code</div>
+                                <div class="mp-roster-panel">
+                                    <div class="input-label players-label">Players in this party</div>
+                                    <ul id="mpPlayersListJoin" class="mp-player-list">
+                                        <li class="mp-player-placeholder">Waiting for players...</li>
+                                    </ul>
+                                    <div id="mpWaitingForHost" class="mp-waiting-host"></div>
+                                </div>
+                            </div>
+                            <div id="multiplayerCreateState" class="multiplayer-state">
+                                <div class="input-label">Share this party code</div>
+                                <div class="party-code-row">
+                                    <input type="text" id="mpPartyCodeDisplay" placeholder="------" readonly>
+                                    <button id="copyPartyCodeBtn" class="copy-code-btn" aria-label="Copy party code">Copy</button>
+                                </div>
+                                <div class="mp-roster-panel">
+                                    <div class="input-label players-label">Players in this party</div>
+                                    <ul id="mpPlayersListHost" class="mp-player-list">
+                                        <li class="mp-player-placeholder">Waiting for players...</li>
+                                    </ul>
+                                </div>
+                                <button id="startPartyBtn" class="borrow-btn start-game-btn">Start Game</button>
+                                <div id="mpHostColdStartHint" class="mp-coldstart-hint">
+                                    Server is cold starting; it may take up to 30 seconds to start...
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="multiplayer-actions">
-                        <button id="createPartyBtn" class="borrow-btn">Create Party</button>
-                        <button id="joinPartyBtn" class="borrow-btn">Join Party</button>
-                    </div>
-                </div>
-                <div id="mpPartyStatusRow" class="mp-party-status-row" style="display:none">
-                    <div class="input-label mp-party-status-label">Party Status:</div>
-                    <button id="mpPartyStatusBtn" class="borrow-btn mp-party-status-btn" type="button" title="Click to Change">Public</button>
-                </div>
-                <div id="multiplayerJoinState" class="multiplayer-state">
-                    <div id="mpPublicPartiesPanel" class="mp-public-parties-panel" style="display:none">
-                        <div class="input-label players-label">Open Public Parties</div>
-                        <ul id="mpPublicPartiesList" class="mp-public-party-list"></ul>
-                    </div>
-                    <div class="input-label join-code-label" id="mpJoinCodeLabel">Enter a party code</div>
-                    <div class="mp-join-row">
-                        <button id="confirmJoinPartyBtn" class="borrow-btn join-action-btn">Join</button>
-                        <input type="text" id="mpJoinCodeInput" placeholder="ABC123">
-                    </div>
-                    <div id="mpJoinError" class="mp-name-error">Invalid party code</div>
-                    <div class="mp-roster-panel">
-                        <div class="input-label players-label">Players in this party</div>
-                        <ul id="mpPlayersListJoin" class="mp-player-list">
-                            <li class="mp-player-placeholder">Waiting for players...</li>
-                        </ul>
-                        <div id="mpWaitingForHost" class="mp-waiting-host"></div>
-                    </div>
-                </div>
-                <div id="multiplayerCreateState" class="multiplayer-state">
-                    <div class="input-label">Share this party code</div>
-                    <div class="party-code-row">
-                        <input type="text" id="mpPartyCodeDisplay" placeholder="------" readonly>
-                        <button id="copyPartyCodeBtn" class="copy-code-btn" aria-label="Copy party code">Copy</button>
-                    </div>
-                    <div class="mp-roster-panel">
-                        <div class="input-label players-label">Players in this party</div>
-                        <ul id="mpPlayersListHost" class="mp-player-list">
-                            <li class="mp-player-placeholder">Waiting for players...</li>
-                        </ul>
-                    </div>
-                    <button id="startPartyBtn" class="borrow-btn start-game-btn">Start Game</button>
-                    <div id="mpHostColdStartHint" class="mp-coldstart-hint">
-                        Server is cold starting; it may take up to 30 seconds to start...
-                    </div>
-                </div>
 
                 <!-- Character Select Overlay -->
                 <div id="characterSelectOverlay" class="character-overlay">

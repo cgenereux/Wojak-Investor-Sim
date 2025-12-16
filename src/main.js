@@ -22,6 +22,13 @@ const leadAvatarName = document.getElementById('leadAvatarName');
 const partyAvatars = document.getElementById('partyAvatars');
 const faviconLink = document.getElementById('faviconLink');
 const macroEventsDisplay = document.getElementById('macroEventsDisplay');
+const netWorthHelpBtn = document.getElementById('netWorthHelpBtn');
+const netWorthHelpPopover = document.getElementById('netWorthHelpPopover');
+const netWorthHelpGreeting = document.getElementById('netWorthHelpGreeting');
+const netWorthHelpVersion = document.getElementById('netWorthHelpVersion');
+const netWorthHelpStartYear = document.getElementById('netWorthHelpStartYear');
+const netWorthHelpEndYear = document.getElementById('netWorthHelpEndYear');
+const netWorthHelpFeedbackBtn = document.getElementById('netWorthHelpFeedbackBtn');
 const buyMaxBtn = document.getElementById('buyMaxBtn');
 const sellMaxBtn = document.getElementById('sellMaxBtn');
 const vcBtn = document.getElementById('vcBtn');
@@ -103,9 +110,16 @@ if (typeof window !== 'undefined' && window.innerWidth <= 768) {
 const DEFAULT_WOJAK_SRC = 'wojaks/wojak.png';
 const MALDING_WOJAK_SRC = 'wojaks/malding-wojak.png';
 const HAPPY_WOJAK_SRC = 'wojaks/happywojak.png';
+const WOJAK_SIM_VERSION_SHORT = '0.2.0';
+const WOJAK_SIM_VERSION = `wojaksim-v${WOJAK_SIM_VERSION_SHORT}`;
+const COMMUNITY_MESSAGE =
+    "Hello my Wojaks! Thank you for playing. I hope you like version 0.2. Please write me with the feedback button if you have any comments, questions, or thoughts.";
 const GAME_START_YEAR = 1985;
 const GAME_START_DATE = new Date(Date.UTC(GAME_START_YEAR, 0, 1));
 const GLOBAL_BASE_INTEREST_RATE = 0.085; // shared baseline; can be adjusted by macro events later
+if (typeof window !== 'undefined') {
+    window.WOJAK_SIM_VERSION = WOJAK_SIM_VERSION;
+}
 
 // Incremental state-store boundary (see src/state/store.js). Legacy globals remain the
 // primary runtime values for now; core mutation paths also update this store.
@@ -1692,7 +1706,7 @@ let netWorthChart, companyDetailChart, financialYoyChart;
 let financialYoyChartOwner = null;
 let currentChartRange = 80; // Default to 20Y (80 quarters)
 const BASE_SPEED_STEPS = [0, 0.5, 1, 1.5, 2, 2.5, 3];
-const DEBUG_SPEED_STEPS = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 10, 12, 16];
+const DEBUG_SPEED_STEPS = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 10, 12, 16, 32];
 let SPEED_STEPS = BASE_SPEED_STEPS.slice();
 
 // --- Formatting ---
@@ -3933,6 +3947,23 @@ function showFeedbackOverlay() {
     }
 }
 
+function initNetWorthHelpPopover() {
+    if (!netWorthHelpPopover || !netWorthHelpBtn) return;
+    if (netWorthHelpGreeting) netWorthHelpGreeting.textContent = COMMUNITY_MESSAGE;
+    if (netWorthHelpVersion) netWorthHelpVersion.textContent = WOJAK_SIM_VERSION;
+    if (netWorthHelpStartYear) netWorthHelpStartYear.textContent = String(GAME_START_YEAR);
+    if (netWorthHelpEndYear) netWorthHelpEndYear.textContent = String(GAME_END_YEAR);
+
+    if (netWorthHelpFeedbackBtn) {
+        netWorthHelpFeedbackBtn.style.display = feedbackSentThisMatch ? 'none' : 'inline-flex';
+        netWorthHelpFeedbackBtn.disabled = feedbackSentThisMatch;
+        netWorthHelpFeedbackBtn.addEventListener('click', () => {
+            if (feedbackSentThisMatch) return;
+            showFeedbackOverlay();
+        });
+    }
+}
+
 function hideFeedbackOverlay(options = {}) {
     const { preserveText = false } = options || {};
     if (!feedbackOverlay) return;
@@ -4005,6 +4036,7 @@ function markFeedbackSent() {
     feedbackSentThisMatch = true;
     if (timelineEndFeedbackBtn) timelineEndFeedbackBtn.style.display = 'none';
     if (multiplayerEndFeedbackBtn) multiplayerEndFeedbackBtn.style.display = 'none';
+    if (netWorthHelpFeedbackBtn) netWorthHelpFeedbackBtn.style.display = 'none';
 }
 
 if (timelineEndFeedbackBtn) {
@@ -4059,6 +4091,8 @@ document.addEventListener('keydown', (evt) => {
     if (!feedbackOverlay || feedbackOverlay.style.display !== 'flex') return;
     hideFeedbackOverlay();
 });
+
+initNetWorthHelpPopover();
 
 // Buy Max: buy as much as possible with available cash
 buyMaxBtn.addEventListener('click', () => {
@@ -4229,7 +4263,7 @@ window.setServerDebugSpeed = function setServerDebugSpeed(speed) {
         console.warn('[Debug] setServerDebugSpeed: sendCommand unavailable');
         return;
     }
-    const clamped = Math.max(0.25, Math.min(value, 16));
+    const clamped = Math.max(0.25, Math.min(value, 32));
     currentSpeed = clamped;
     try {
         sendCommand({ type: 'debug_set_speed', speed: clamped });
@@ -4445,6 +4479,9 @@ function showMultiplayerModal() {
     resetMultiplayerModal();
     multiplayerModal.classList.add('active');
     startLobbyRefresh();
+    if (window.MultiplayerModule && typeof window.MultiplayerModule.setMultiplayerModalHeightLock === 'function') {
+        window.MultiplayerModule.setMultiplayerModalHeightLock(true);
+    }
 }
 
 function hideMultiplayerModal() {
@@ -4452,6 +4489,9 @@ function hideMultiplayerModal() {
     stopLobbyRefresh();
     multiplayerModal.classList.remove('active');
     hideCharacterOverlay();
+    if (window.MultiplayerModule && typeof window.MultiplayerModule.setMultiplayerModalHeightLock === 'function') {
+        window.MultiplayerModule.setMultiplayerModalHeightLock(false);
+    }
 }
 
 // --- Initialization ---

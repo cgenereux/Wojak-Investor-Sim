@@ -965,7 +965,7 @@ function handleCommand(session, player, msg) {
     if (role !== 'host') {
       return { ok: false, error: 'unauthorized' };
     }
-    const clamped = Math.max(0.25, Math.min(speed, 16));
+    const clamped = Math.max(0.25, Math.min(speed, 32));
     const interval = DEFAULT_TICK_INTERVAL_MS / clamped;
     session.tickIntervalMs = interval;
     restartTickLoop(session);
@@ -1367,10 +1367,8 @@ wssPresence.on('connection', (ws, req, url) => {
   const rawPlayerId = url.searchParams.get('player') || `p_${Math.floor(Math.random() * 1e9).toString(36)}`;
   const playerId = canonicalizePlayerId(rawPlayerId) || `p_${Math.floor(Math.random() * 1e9).toString(36)}`;
   const lowerPid = playerId.toLowerCase();
-  const existing = presenceSocketByPlayerId.get(lowerPid);
-  if (existing && existing !== ws && (existing.readyState === WebSocket.OPEN || existing.readyState === WebSocket.CONNECTING)) {
-    try { existing.close(4001, 'replaced'); } catch (err) { /* ignore */ }
-  }
+  // Presence is best-effort: allow multiple tabs/windows to share a playerId without
+  // forcing a disconnect loop. We just route invites to the most-recent socket.
   presenceSocketByPlayerId.set(lowerPid, ws);
 
   const anonNumber = allocateAnonNumber();

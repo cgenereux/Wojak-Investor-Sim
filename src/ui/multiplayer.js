@@ -12,8 +12,11 @@
     const mpPublicPartiesPanel = document.getElementById('mpPublicPartiesPanel');
     const mpPublicPartiesList = document.getElementById('mpPublicPartiesList');
     const mpPublicPartiesBadge = document.getElementById('mpPublicPartiesBadge');
-    const mpPartyStatusRow = document.getElementById('mpPartyStatusRow');
+    const mpPartyStatusControl = document.getElementById('mpPartyStatusControl');
     const mpPartyStatusBtn = document.getElementById('mpPartyStatusBtn');
+    const multiplayerIdleState = document.getElementById('multiplayerIdleState');
+    const multiplayerModalEl = document.getElementById('multiplayerModal');
+    const multiplayerModalPanel = multiplayerModalEl ? multiplayerModalEl.querySelector('.banking-panel') : null;
 
     const INVITES_MUTED_SESSION_KEY = 'wojak_invites_muted_session';
     let invitesMutedThisSession = false;
@@ -26,11 +29,46 @@
     let latestPresencePublicParties = [];
     let latestPresencePublicPartyCount = 0;
     const localInviteCooldownByTarget = new Map(); // playerId -> expiresAt
+    let lastInviteableUsersSignature = '';
+    let lastPublicPartiesSignature = '';
 
     let presenceWs = null;
     let presenceWsGeneration = 0;
     let presenceReconnectTimer = null;
     let lastPresenceWsOrigin = null;
+
+    let modalHeightLockObserver = null;
+    let modalMaxHeightPx = 0;
+
+    function setMultiplayerModalHeightLock(enabled) {
+        if (!multiplayerModalPanel) return;
+        if (!enabled) {
+            if (modalHeightLockObserver) {
+                try { modalHeightLockObserver.disconnect(); } catch (err) { /* ignore */ }
+                modalHeightLockObserver = null;
+            }
+            modalMaxHeightPx = 0;
+            multiplayerModalPanel.style.minHeight = '';
+            return;
+        }
+        const applyLock = () => {
+            if (!multiplayerModalEl || !multiplayerModalEl.classList.contains('active')) return;
+            const h = multiplayerModalPanel.getBoundingClientRect().height;
+            if (!Number.isFinite(h) || h <= 0) return;
+            if (h > modalMaxHeightPx) {
+                modalMaxHeightPx = h;
+                multiplayerModalPanel.style.minHeight = `${Math.ceil(modalMaxHeightPx)}px`;
+            }
+        };
+        // Seed immediately and then observe future resizes; lock to the largest height seen
+        applyLock();
+        if (!modalHeightLockObserver && typeof ResizeObserver !== 'undefined') {
+            modalHeightLockObserver = new ResizeObserver(() => applyLock());
+            try { modalHeightLockObserver.observe(multiplayerModalPanel); } catch (err) { /* ignore */ }
+        }
+        // Some layout changes happen on the next frame (fonts/images); lock again then.
+        requestAnimationFrame(applyLock);
+    }
 
     function isInPartySession() {
         return (typeof isServerAuthoritative !== 'undefined' && isServerAuthoritative)
@@ -81,14 +119,29 @@
         if (!isInPartySession()) {
             mpOnlinePlayersPanel.style.display = 'none';
             mpOnlinePlayersList.innerHTML = '';
+            lastInviteableUsersSignature = '';
             return;
         }
         const users = Array.isArray(latestPresenceInviteableUsers) ? latestPresenceInviteableUsers : [];
         if (users.length === 0) {
             mpOnlinePlayersPanel.style.display = 'none';
             mpOnlinePlayersList.innerHTML = '';
+            lastInviteableUsersSignature = '';
             return;
         }
+        const now = Date.now();
+        const signature = users.slice(0, 10).map((u) => {
+            if (!u || !u.playerId) return '';
+            const expiresAt = localInviteCooldownByTarget.get(u.playerId) || 0;
+            const onCooldown = expiresAt && now < expiresAt;
+            return `${u.playerId}|${u.displayName || ''}|${Number.isFinite(u.anonNumber) ? u.anonNumber : ''}|${u.muted ? 1 : 0}|${onCooldown ? 1 : 0}`;
+        }).join('~');
+        if (signature === lastInviteableUsersSignature) {
+            mpOnlinePlayersPanel.style.display = 'block';
+            return;
+        }
+        lastInviteableUsersSignature = signature;
+
         mpOnlinePlayersPanel.style.display = 'block';
         mpOnlinePlayersList.innerHTML = '';
         users.slice(0, 10).forEach((u) => {
@@ -110,7 +163,6 @@
             inviteBtn.textContent = 'Invite';
 
             const expiresAt = localInviteCooldownByTarget.get(u.playerId) || 0;
-            const now = Date.now();
             const onCooldown = expiresAt && now < expiresAt;
             if (u.muted) {
                 inviteBtn.disabled = true;
@@ -147,9 +199,30 @@
         if (isInPartySession() || parties.length === 0) {
             mpPublicPartiesPanel.style.display = 'none';
             mpPublicPartiesList.innerHTML = '';
+            if (multiplayerIdleState) multiplayerIdleState.classList.add('empty');
+            lastPublicPartiesSignature = '';
             return;
         }
+        if (typeof multiplayerState !== 'undefined' && multiplayerState !== 'idle') {
+            mpPublicPartiesPanel.style.display = 'none';
+            mpPublicPartiesList.innerHTML = '';
+            if (multiplayerIdleState) multiplayerIdleState.classList.add('empty');
+            lastPublicPartiesSignature = '';
+            return;
+        }
+        const signature = parties.slice(0, 10).map((p) => {
+            if (!p || !p.sessionId) return '';
+            return `${p.sessionId}|${p.hostId || ''}|${Number(p.playerCount) || 0}|${Number(p.maxPlayers) || 4}`;
+        }).join('~');
+        if (signature === lastPublicPartiesSignature) {
+            mpPublicPartiesPanel.style.display = 'block';
+            if (multiplayerIdleState) multiplayerIdleState.classList.remove('empty');
+            return;
+        }
+        lastPublicPartiesSignature = signature;
+
         mpPublicPartiesPanel.style.display = 'block';
+        if (multiplayerIdleState) multiplayerIdleState.classList.remove('empty');
         mpPublicPartiesList.innerHTML = '';
         parties.slice(0, 10).forEach((p) => {
             if (!p || !p.sessionId) return;
@@ -190,12 +263,12 @@
     }
 
     function renderPartyStatusControl() {
-        if (!mpPartyStatusRow || !mpPartyStatusBtn) return;
+        if (!mpPartyStatusControl || !mpPartyStatusBtn) return;
         if (!isInPartySession()) {
-            mpPartyStatusRow.style.display = 'none';
+            mpPartyStatusControl.style.display = 'none';
             return;
         }
-        mpPartyStatusRow.style.display = 'flex';
+        mpPartyStatusControl.style.display = 'flex';
         const isHostClient = (typeof isPartyHostClient !== 'undefined' && isPartyHostClient)
             || (typeof clientPlayerId !== 'undefined' && clientPlayerId && typeof currentHostId !== 'undefined' && currentHostId && clientPlayerId === currentHostId);
         const canToggle = isHostClient && !(typeof matchStarted !== 'undefined' && matchStarted);
@@ -352,6 +425,11 @@
                                     setMultiplayerState('join');
                                     attemptJoinParty();
                                 }
+                            },
+                            {
+                                label: 'Decline',
+                                className: 'toast-action-secondary',
+                                onClick: () => { /* auto-close only */ }
                             },
                             {
                                 label: 'Mute Invites',
@@ -1186,7 +1264,7 @@
 
     function setMultiplayerState(state) {
         multiplayerState = state;
-        // multiplayerIdleState removed from HTML
+        if (multiplayerIdleState) multiplayerIdleState.classList.toggle('active', state === 'idle');
         if (multiplayerJoinState) multiplayerJoinState.classList.toggle('active', state === 'join');
         if (multiplayerCreateState) multiplayerCreateState.classList.toggle('active', state === 'create');
         const alreadyJoinedGuest = hasJoinedPartyAsGuest && state === 'join' && !isPartyHostClient;
@@ -1212,6 +1290,7 @@
             }
         }
         refreshJoinUi(getHostLabelFromRoster(latestServerPlayers));
+        renderPublicPartiesPanel();
     }
 
     function renderLobbyPlayers(players = []) {
@@ -1224,7 +1303,11 @@
                 return `<li><span class="mp-player-dot"></span><span class="mp-player-name">${name}</span></li>`;
             }).join('')
             : '<li class="mp-player-placeholder">Waiting for players...</li>';
-        lists.forEach(list => { list.innerHTML = html; });
+        lists.forEach(list => {
+            if (list._lastHtml === html) return;
+            list.innerHTML = html;
+            list._lastHtml = html;
+        });
         if (mpHostColdStartHint) {
             const showHint = isPartyHostClient && multiplayerState === 'create' && !shouldRender;
             mpHostColdStartHint.style.display = showHint ? 'block' : 'none';
@@ -1234,12 +1317,7 @@
     function startLobbyRefresh() {
         stopLobbyRefresh();
         renderLobbyPlayers(latestServerPlayers);
-        lobbyRefreshTimer = setInterval(() => {
-            renderLobbyPlayers(latestServerPlayers);
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                sendCommand({ type: 'resync' });
-            }
-        }, 2000);
+        // Avoid polling resync/DOM updates; rely on server push (snapshot/players_update).
     }
 
     function stopLobbyRefresh() {
@@ -1284,7 +1362,7 @@
             startPartyBtn.disabled = false;
             startPartyBtn.textContent = 'Start Game';
         }
-        setMultiplayerState('join');
+        setMultiplayerState('idle');
         hideCharacterOverlay();
         pendingPartyAction = null;
         shouldPromptCharacterAfterConnect = false;
@@ -1294,6 +1372,7 @@
         renderPublicPartiesPanel();
         renderInviteableUsersPanel();
         renderPartyStatusControl();
+        setMultiplayerModalHeightLock(true);
     }
 
     function attemptJoinParty() {
@@ -1687,6 +1766,7 @@
         renderInviteableUsersPanel,
         renderPublicPartiesPanel,
         renderPartyStatusControl,
+        setMultiplayerModalHeightLock,
         sanitizePlayerName,
         isNameTaken,
         setNameErrorVisible,
