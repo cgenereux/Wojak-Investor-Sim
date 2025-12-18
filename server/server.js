@@ -547,6 +547,8 @@ app.post('/api/feedback', async (req, reply) => {
 
   const body = req.body || {};
   const message = (body && typeof body.message === 'string') ? body.message.trim() : '';
+  const emailRaw = (body && typeof body.email === 'string') ? body.email.trim() : '';
+  const email = emailRaw.replace(/[\r\n]+/g, '');
   if (!message) {
     reply.code(400);
     return { ok: false, error: 'Missing feedback message.' };
@@ -554,6 +556,14 @@ app.post('/api/feedback', async (req, reply) => {
   if (message.length > 2000) {
     reply.code(400);
     return { ok: false, error: 'Feedback is too long.' };
+  }
+  if (email && email.length > 320) {
+    reply.code(400);
+    return { ok: false, error: 'Email is too long.' };
+  }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    reply.code(400);
+    return { ok: false, error: 'Invalid email.' };
   }
 
   const smtpHost = process.env.FEEDBACK_SMTP_HOST || '';
@@ -573,6 +583,7 @@ app.post('/api/feedback', async (req, reply) => {
   const subject = `Wojak Investor Sim Feedback (${context.mode || 'unknown'})`;
   const contextLines = [
     `ip: ${ip}`,
+    `email: ${email || ''}`,
     `session: ${context.session_id || ''}`,
     `player: ${context.player_id || ''}`,
     `role: ${context.role || ''}`,
@@ -594,6 +605,7 @@ app.post('/api/feedback', async (req, reply) => {
     await transporter.sendMail({
       from: mailFrom,
       to: mailTo,
+      replyTo: email || undefined,
       subject,
       text
     });

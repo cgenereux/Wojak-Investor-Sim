@@ -265,10 +265,15 @@
     function renderPartyStatusControl() {
         if (!mpPartyStatusControl || !mpPartyStatusBtn) return;
         if (!isInPartySession()) {
-            mpPartyStatusControl.style.display = 'none';
+            // Keep a reserved slot in the initial (idle) layout so buttons don't jump.
+            mpPartyStatusControl.style.display = 'flex';
+            mpPartyStatusControl.classList.add('mp-party-status-reserved');
+            mpPartyStatusBtn.disabled = true;
+            mpPartyStatusBtn.setAttribute('aria-disabled', 'true');
             return;
         }
         mpPartyStatusControl.style.display = 'flex';
+        mpPartyStatusControl.classList.remove('mp-party-status-reserved');
         const isHostClient = (typeof isPartyHostClient !== 'undefined' && isPartyHostClient)
             || (typeof clientPlayerId !== 'undefined' && clientPlayerId && typeof currentHostId !== 'undefined' && currentHostId && clientPlayerId === currentHostId);
         const canToggle = isHostClient && !(typeof matchStarted !== 'undefined' && matchStarted);
@@ -1264,6 +1269,9 @@
 
     function setMultiplayerState(state) {
         multiplayerState = state;
+        if (multiplayerModalEl) {
+            multiplayerModalEl.classList.toggle('mp-state-idle', state === 'idle');
+        }
         if (multiplayerIdleState) multiplayerIdleState.classList.toggle('active', state === 'idle');
         if (multiplayerJoinState) multiplayerJoinState.classList.toggle('active', state === 'join');
         if (multiplayerCreateState) multiplayerCreateState.classList.toggle('active', state === 'create');

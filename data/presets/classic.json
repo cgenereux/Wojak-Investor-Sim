@@ -105,6 +105,35 @@
           "founders": [ { "name": "Theodore Hargrove III" }, { "name": "Edmund Whitmore" } ],
           "founding_location": "New York, NY",
           "sector": "Banking"
+        },
+
+        {
+          "name": "Keystone Clearinghouse",
+          "mission": "Automating interbank payment clearing and settlement.",
+          "founders": [ { "name": "Marian Caldwell" }, { "name": "Omar Haddad" } ],
+          "founding_location": "Chicago, IL",
+          "sector": "Banking"
+        },
+        {
+          "name": "Union Meridian Trust",
+          "mission": "Custody and capital services for institutions.",
+          "founders": [ { "name": "Brandon Shaw" }, { "name": "Ravi Menon" } ],
+          "founding_location": "New York, NY",
+          "sector": "Banking"
+        },
+        {
+          "name": "Hearthstone Catalog & Supply",
+          "mission": "Mail-order household goods with fast delivery.",
+          "founders": [ { "name": "Patricia Kline" }, { "name": "Miguel Santoro" } ],
+          "founding_location": "Columbus, OH",
+          "sector": "Retail"
+        },
+        {
+          "name": "Solstice Motor Company",
+          "mission": "Fuel-efficient cars and trucks for working families.",
+          "founders": [ { "name": "Gerald Johnson" }, { "name": "Monica Vasquez" } ],
+          "founding_location": "Detroit, MI",
+          "sector": "Automotive"
         }
       ]
     },
@@ -192,6 +221,37 @@
           "founding_location": "New York, NY",
           "sector": "Finance",
           "ipo_window": { "from": 1978, "to": 1986 }
+        },
+
+        {
+          "name": "ClubCrown Wholesale",
+          "founders": [ { "name": "Howard Lin" }, { "name": "Grace Mbaye" } ],
+          "sector": "Retail",
+          "mission": "Membership warehouse retail with low prices.",
+          "founding_location": "Dallas, TX"
+        },
+        {
+          "name": "Ironwood Systems",
+          "sector": "Tech",
+          "mission": "Business software for finance, inventory, and payroll.",
+          "founders": [ { "name": "Peter Halvorsen" }, { "name": "Anita Desai" } ],
+          "founding_location": "San Mateo, CA",
+          "ipo_window": { "from": 1983, "to": 1993 }
+        },
+        {
+          "name": "Vector Robotics & Automation",
+          "sector": "Tech",
+          "mission": "Industrial automation for factories.",
+          "founders": [ { "name": "Jae-min Choi" }, { "name": "Caroline Bishop" } ],
+          "founding_location": "Pittsburgh, PA"
+        },
+        {
+          "name": "SunGrid Storage",
+          "sector": "Energy",
+          "mission": "High-reliability battery systems for utilities and industry.",
+          "founders": [ { "name": "Nora Feldman" }, { "name": "Abdul Rahman" } ],
+          "founding_location": "Phoenix, AZ",
+          "ipo_window": { "from": 1984, "to": 1996 }
         }
       ]
     },

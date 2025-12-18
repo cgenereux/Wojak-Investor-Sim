@@ -96,6 +96,7 @@ const multiplayerEndFeedbackBtn = document.getElementById('multiplayerEndFeedbac
 const feedbackOverlay = document.getElementById('feedbackOverlay');
 const feedbackCloseBtn = document.getElementById('feedbackCloseBtn');
 const feedbackSendBtn = document.getElementById('feedbackSendBtn');
+const feedbackEmailInput = document.getElementById('feedbackEmail');
 const feedbackInput = document.getElementById('feedbackInput');
 let storedPlayerName = null;
 let selectedCharacter = null;
@@ -656,6 +657,8 @@ let hasHandledServerBankruptcy = false;
 let gameEnded = false;
 let feedbackSentThisMatch = false;
 let feedbackDraft = '';
+let feedbackEmailDraft = '';
+let feedbackOpenSource = 'home'; // 'home' | 'end'
 if (wojakImage) {
     wojakManager = wojakFactory.createWojakManager({
         imageElement: wojakImage,
@@ -3936,9 +3939,16 @@ function getFeedbackBackendUrl() {
     return DEFAULT_BACKEND_URL;
 }
 
-function showFeedbackOverlay() {
+function showFeedbackOverlay(options = {}) {
+    const { source = 'home' } = options || {};
+    feedbackOpenSource = source === 'end' ? 'end' : 'home';
     if (!feedbackOverlay) return;
     feedbackOverlay.style.display = 'flex';
+    if (feedbackEmailInput) {
+        if (!feedbackEmailInput.value && feedbackEmailDraft) {
+            feedbackEmailInput.value = feedbackEmailDraft;
+        }
+    }
     if (feedbackInput) {
         if (!feedbackInput.value && feedbackDraft) {
             feedbackInput.value = feedbackDraft;
@@ -3955,11 +3965,10 @@ function initNetWorthHelpPopover() {
     if (netWorthHelpEndYear) netWorthHelpEndYear.textContent = String(GAME_END_YEAR);
 
     if (netWorthHelpFeedbackBtn) {
-        netWorthHelpFeedbackBtn.style.display = feedbackSentThisMatch ? 'none' : 'inline-flex';
-        netWorthHelpFeedbackBtn.disabled = feedbackSentThisMatch;
+        netWorthHelpFeedbackBtn.style.display = 'inline-flex';
+        netWorthHelpFeedbackBtn.disabled = false;
         netWorthHelpFeedbackBtn.addEventListener('click', () => {
-            if (feedbackSentThisMatch) return;
-            showFeedbackOverlay();
+            showFeedbackOverlay({ source: 'home' });
         });
     }
 }
@@ -3968,6 +3977,14 @@ function hideFeedbackOverlay(options = {}) {
     const { preserveText = false } = options || {};
     if (!feedbackOverlay) return;
     feedbackOverlay.style.display = 'none';
+    if (feedbackEmailInput) {
+        if (preserveText) {
+            feedbackEmailDraft = String(feedbackEmailInput.value || '');
+        } else {
+            feedbackEmailInput.value = '';
+            feedbackEmailDraft = '';
+        }
+    }
     if (feedbackInput) {
         if (preserveText) {
             feedbackDraft = String(feedbackInput.value || '');
@@ -3985,9 +4002,21 @@ async function sendFeedbackMessage(message) {
         showToast('Please enter feedback before sending.', { duration: 4000 });
         return false;
     }
+    const emailRaw = feedbackEmailInput ? String(feedbackEmailInput.value || '') : '';
+    const emailTrimmed = emailRaw.trim();
+    const email = emailTrimmed.replace(/[\r\n]+/g, '');
+    if (email && email.length > 320) {
+        showToast('Email is too long.', { duration: 4000 });
+        return false;
+    }
+    if (email && feedbackEmailInput && typeof feedbackEmailInput.checkValidity === 'function' && !feedbackEmailInput.checkValidity()) {
+        showToast('Please enter a valid email (or leave it blank).', { duration: 5000 });
+        return false;
+    }
     const endpoint = `${getFeedbackBackendUrl().replace(/\/$/, '')}/api/feedback`;
     const payload = {
         message: trimmed,
+        email: email || null,
         context: {
             mode: isServerAuthoritative ? 'multiplayer' : 'singleplayer',
             session_id: activeSessionId || null,
@@ -4036,19 +4065,18 @@ function markFeedbackSent() {
     feedbackSentThisMatch = true;
     if (timelineEndFeedbackBtn) timelineEndFeedbackBtn.style.display = 'none';
     if (multiplayerEndFeedbackBtn) multiplayerEndFeedbackBtn.style.display = 'none';
-    if (netWorthHelpFeedbackBtn) netWorthHelpFeedbackBtn.style.display = 'none';
 }
 
 if (timelineEndFeedbackBtn) {
     timelineEndFeedbackBtn.addEventListener('click', () => {
         if (feedbackSentThisMatch) return;
-        showFeedbackOverlay();
+        showFeedbackOverlay({ source: 'end' });
     });
 }
 if (multiplayerEndFeedbackBtn) {
     multiplayerEndFeedbackBtn.addEventListener('click', () => {
         if (feedbackSentThisMatch) return;
-        showFeedbackOverlay();
+        showFeedbackOverlay({ source: 'end' });
     });
 }
 if (feedbackCloseBtn) {
@@ -4061,7 +4089,8 @@ if (feedbackOverlay) {
 }
 if (feedbackSendBtn) {
     feedbackSendBtn.addEventListener('click', async () => {
-        if (feedbackSentThisMatch) return;
+        const sourceAtSend = feedbackOpenSource;
+        if (sourceAtSend === 'end' && feedbackSentThisMatch) return;
         const raw = feedbackInput ? feedbackInput.value : '';
         const trimmed = String(raw || '').trim();
         if (!trimmed) {
@@ -4074,13 +4103,17 @@ if (feedbackSendBtn) {
         }
 
         feedbackDraft = trimmed;
+        if (feedbackEmailInput) feedbackEmailDraft = String(feedbackEmailInput.value || '');
         feedbackSendBtn.disabled = true;
         // Close immediately so the UI never gets stuck waiting on the network.
         hideFeedbackOverlay({ preserveText: true });
         sendFeedbackMessage(trimmed).then((ok) => {
             if (ok) {
                 feedbackDraft = '';
-                markFeedbackSent();
+                feedbackEmailDraft = '';
+                if (sourceAtSend === 'end') {
+                    markFeedbackSent();
+                }
                 showToast('Thanks — feedback sent.', { duration: 5000 });
             }
         });
@@ -4194,7 +4227,7 @@ function updateSpeedThumbLabel() {
             const sliderMax = Number(slider.max) || Math.max(SPEED_STEPS.length - 1, 1);
             const ratio = (val - sliderMin) / Math.max(1, sliderMax - sliderMin);
             const trackWidth = slider.clientWidth || 0;
-            const thumbWidth = 16;
+            const thumbWidth = Number.parseFloat(getComputedStyle(slider).fontSize) || 16;
             const pos = ratio * Math.max(0, trackWidth - thumbWidth) + thumbWidth / 2;
 
             label.style.left = `${pos}px`;

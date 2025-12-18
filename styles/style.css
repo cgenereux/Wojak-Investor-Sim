@@ -22,11 +22,16 @@
     box-sizing: border-box;
 }
 
+html {
+    /* Never scale above desktop; gently shrink for small screens */
+    font-size: clamp(12px, 2.222vw, 16px);
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: #ffffff;
     color: #1a1a1a;
-    padding: 20px;
+    padding: 1.25rem;
     display: flex;
     justify-content: center;
     overflow-x: hidden;
@@ -109,16 +114,16 @@ body.vc-active.vc-detail-active #main-view {
     justify-items: center;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 20px;
-    gap: 24px;
+    padding: 0 1.25rem;
+    gap: 1.5rem;
 }
 
 .wojak-image {
-    width: 144px;
-    height: 144px;
+    width: 9rem;
+    height: 9rem;
     object-fit: contain;
     background: #ffffff;
-    border-radius: 12px;
+    border-radius: 0.75rem;
     border: none;
     flex-shrink: 0;
     transition: transform 0.15s ease;
@@ -446,8 +451,8 @@ body.vc-active.vc-detail-active #main-view {
 }
 
 #multiplayerBtn {
-    font-size: 16px;
-    padding: 13px 26px;
+    font-size: 1rem;
+    padding: 0.8125rem 1.625rem;
     font-weight: 500;
 }
 
@@ -477,7 +482,7 @@ body.vc-active.vc-detail-active #main-view {
 .drip-toggle {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 0.625rem;
     font-weight: 600;
     padding: 0;
     border: none;
@@ -487,11 +492,11 @@ body.vc-active.vc-detail-active #main-view {
 }
 
 body:not(.multiplayer-active) .drip-toggle {
-    margin-left: 12px;
+    margin-left: 0.75rem;
 }
 
 .drip-label {
-    font-size: 16px;
+    font-size: 1rem;
     text-transform: none;
     color: #111;
     letter-spacing: 0;
@@ -499,10 +504,10 @@ body:not(.multiplayer-active) .drip-toggle {
 
 .drip-toggle input[type="checkbox"] {
     appearance: none;
-    width: 18px;
-    height: 18px;
-    border: 2px solid #097a32;
-    border-radius: 4px;
+    width: 1.125rem;
+    height: 1.125rem;
+    border: 0.125rem solid #097a32;
+    border-radius: 0.25rem;
     background: #ffffff;
     position: relative;
     cursor: pointer;
@@ -516,20 +521,20 @@ body:not(.multiplayer-active) .drip-toggle {
 .drip-toggle input[type="checkbox"]:checked::after {
     content: '';
     position: absolute;
-    left: 5px;
-    top: 1px;
-    width: 4px;
-    height: 9px;
+    left: 0.3125rem;
+    top: 0.0625rem;
+    width: 0.25rem;
+    height: 0.5625rem;
     border: solid #ffffff;
-    border-width: 0 2px 2px 0;
+    border-width: 0 0.125rem 0.125rem 0;
     transform: rotate(45deg);
 }
 
 .net-worth {
-    font-size: 48px;
+    font-size: 3rem;
     font-weight: 600;
     color: #00c742;
-    margin-bottom: 5px;
+    margin-bottom: 0.3125rem;
     letter-spacing: -1.5px;
 }
 
@@ -632,13 +637,13 @@ body:not(.multiplayer-active) .drip-toggle {
 }
 
 .date {
-    font-size: 18px;
+    font-size: 1.125rem;
     color: #555;
     font-weight: 500;
 }
 
 .sub-financial-display {
-    font-size: 14px;
+    font-size: 0.875rem;
     color: #666;
     font-weight: 400;
     margin-top: 8px;
@@ -670,19 +675,19 @@ body:not(.multiplayer-active) .drip-toggle {
 
 .chart-container {
     background: #fdfdfd;
-    border-radius: 12px;
-    padding: 20px;
-    height: 400px;
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    height: 25rem;
     position: relative;
     border: 1px solid #e8e8e8;
-    margin-bottom: 20px;
+    margin-bottom: 1.25rem;
 }
 
 .controls {
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: 0.625rem;
     width: 100%;
     max-width: 900px;
     /* Allow more width for groups */
@@ -694,7 +699,7 @@ body:not(.multiplayer-active) .drip-toggle {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 10px;
+    gap: 0.625rem;
     flex: 1;
     padding-right: 5px;
     /* Half of the 10px gap between buttons */
@@ -704,7 +709,7 @@ body:not(.multiplayer-active) .drip-toggle {
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    gap: 10px;
+    gap: 0.625rem;
     flex: 1;
     padding-left: 5px;
     /* Half of the 10px gap between buttons */
@@ -730,11 +735,11 @@ body.multiplayer-active .controls-group-right {
 }
 
 button {
-    padding: 10px 20px;
+    padding: 0.625rem 1.25rem;
     border: 1px solid #ddd;
     background: #fff;
-    border-radius: 8px;
-    font-size: 16px;
+    border-radius: 0.5rem;
+    font-size: 1rem;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -807,10 +812,10 @@ body.multiplayer-active .company-detail-controls {
 
 .speed-slider-wrap label {
     position: absolute;
-    bottom: -17px;
+    bottom: -1.0625rem;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 15px;
+    font-size: 0.9375rem;
     white-space: nowrap;
     pointer-events: none;
 }
@@ -818,7 +823,7 @@ body.multiplayer-active .company-detail-controls {
 .time-controls-row {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 0.75rem;
 }
 
 .playback-controls {
@@ -834,20 +839,20 @@ body.multiplayer-active .company-detail-controls {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 30px;
-    height: 30px;
+    width: 1.875rem;
+    height: 1.875rem;
     padding: 0;
-    border: 1.5px solid #097a32;
+    border: 0.09375rem solid #097a32;
     background: transparent;
     color: #097a32;
     cursor: pointer;
-    border-radius: 6px;
+    border-radius: 0.375rem;
     /* Rounded square */
 }
 
 .playback-btn svg {
-    width: 14px;
-    height: 14px;
+    width: 0.875rem;
+    height: 0.875rem;
 }
 
 .playback-btn:hover {
@@ -863,13 +868,13 @@ body.multiplayer-active .company-detail-controls {
 .speed-slider-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 0.625rem;
     position: relative;
-    min-width: 179px;
+    min-width: 11.1875rem;
 }
 
 #speedSlider {
-    width: 162px;
+    width: 10.125rem;
     margin: 0;
     background: transparent;
     appearance: none;
@@ -880,46 +885,46 @@ body.multiplayer-active .company-detail-controls {
     background: #f0fff4;
     border: 1px solid #cbd5e1;
     border-radius: 999px;
-    height: 8px;
+    height: 0.5rem;
 }
 
 #speedSlider::-moz-range-track {
     background: #f0fff4;
     border: 1px solid #cbd5e1;
     border-radius: 999px;
-    height: 8px;
+    height: 0.5rem;
 }
 
 #speedSlider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 16px;
+    width: 1rem;
     /* ~5% smaller than previous WebKit size */
-    height: 16px;
-    margin-top: -4.5px;
+    height: 1rem;
+    margin-top: -0.28125rem;
     /* centers thumb on 8px track */
     border-radius: 50%;
     background: #097a32;
-    border: 2px solid #097a32;
+    border: 0.125rem solid #097a32;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
 }
 
 #speedSlider::-moz-range-thumb {
-    width: 11.22px;
+    width: 0.7rem;
     /* ~2% larger than previous Firefox size */
-    height: 11.22px;
+    height: 0.7rem;
     border-radius: 50%;
     background: #097a32;
-    border: 2px solid #097a32;
+    border: 0.125rem solid #097a32;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
 }
 
 #speedThumbLabel {
     position: absolute;
-    top: -18px;
+    top: -1.125rem;
     left: 0;
     transform: translateX(-50%);
-    font-size: 14px;
+    font-size: 0.875rem;
     color: #0a7a32;
     font-weight: 700;
     pointer-events: none;
@@ -929,7 +934,7 @@ body.multiplayer-active .company-detail-controls {
 
 @media screen and (-webkit-min-device-pixel-ratio:0) {
     #speedThumbLabel {
-        top: -22px;
+        top: -1.375rem;
         /* raise label a bit more for WebKit browsers (Chrome/Edge/Safari) */
     }
 }
@@ -1026,16 +1031,16 @@ button.speed-active:hover {
 .companies-grid,
 .portfolio-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 15px;
+    grid-template-columns: repeat(auto-fill, minmax(15.625rem, 1fr));
+    gap: 0.9375rem;
 }
 
 .company-box,
 .portfolio-item {
     background: #f8f8f8;
     border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    padding: 15px;
+    border-radius: 0.5rem;
+    padding: 0.9375rem;
     transition: all 0.2s ease;
     cursor: grab;
     position: relative;
@@ -1620,9 +1625,9 @@ button.speed-active:hover {
 
 .banking-panel {
     background: white;
-    border-radius: 12px;
-    padding: 30px;
-    max-width: 640px;
+    border-radius: 0.75rem;
+    padding: 1.875rem;
+    max-width: 40rem;
     width: 90%;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
@@ -1656,12 +1661,12 @@ button.speed-active:hover {
 .close-btn {
     background: none;
     border: none;
-    font-size: 24px;
+    font-size: 1.5rem;
     cursor: pointer;
     color: #999;
     padding: 0;
-    width: 30px;
-    height: 30px;
+    width: 1.875rem;
+    height: 1.875rem;
 }
 
 .close-btn:hover {
@@ -2225,6 +2230,57 @@ button.speed-active:hover {
     position: relative;
 }
 
+#multiplayerModal.mp-state-idle .multiplayer-layout {
+    display: grid;
+    grid-template-columns: minmax(220px, 1.25fr) repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    align-items: end;
+}
+
+#multiplayerModal.mp-state-idle .multiplayer-left,
+#multiplayerModal.mp-state-idle .multiplayer-right {
+    display: contents;
+}
+
+#multiplayerModal.mp-state-idle .multiplayer-name-inline {
+    grid-column: 1;
+}
+
+#multiplayerModal.mp-state-idle #mpPartyStatusControl {
+    grid-column: 2;
+}
+
+#multiplayerModal.mp-state-idle #createPartyBtn {
+    grid-column: 3;
+}
+
+#multiplayerModal.mp-state-idle #joinPartyBtn {
+    grid-column: 4;
+}
+
+#multiplayerModal.mp-state-idle .multiplayer-actions {
+    display: contents;
+}
+
+#multiplayerModal.mp-state-idle #multiplayerIdleState,
+#multiplayerModal.mp-state-idle #multiplayerJoinState,
+#multiplayerModal.mp-state-idle #multiplayerCreateState {
+    grid-column: 1 / -1;
+}
+
+.mp-party-status-control.mp-party-status-reserved {
+    display: flex;
+    pointer-events: none;
+}
+
+.mp-party-status-control.mp-party-status-reserved .mp-party-status-label {
+    display: none;
+}
+
+.mp-party-status-control.mp-party-status-reserved .mp-party-status-btn {
+    visibility: hidden;
+}
+
 #multiplayerModal .banking-header {
     min-height: 180px;
 }
@@ -2295,25 +2351,36 @@ button.speed-active:hover {
 }
 
 .multiplayer-actions {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
     gap: 10px;
-    flex: 0 0 auto;
-    justify-content: flex-end;
-    align-items: flex-end;
+    align-items: end;
 }
 
 .multiplayer-actions>button,
 .multiplayer-actions>.mp-party-status-control {
-    flex: 1 1 0;
     min-width: 0;
 }
 
 .multiplayer-actions>button {
     padding: 15px 20px;
+    width: 100%;
+    height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    white-space: nowrap;
 }
 
 .mp-party-status-btn {
     padding: 15px 20px;
+    height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    white-space: nowrap;
 }
 
 .mp-party-status-control {
@@ -2346,7 +2413,6 @@ button.speed-active:hover {
 
 .mp-party-status-btn {
     width: 100%;
-    height: 100%;
 }
 
 .mp-party-status-btn:disabled.mp-public {
@@ -3020,7 +3086,7 @@ button.speed-active:hover {
 }
 
 .feedback-modal {
-    width: min(640px, 92vw);
+    width: min(512px, 92vw);
     background: #fff;
     border-radius: 14px;
     padding: 18px 18px 16px 18px;
@@ -3029,6 +3095,35 @@ button.speed-active:hover {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    transform: translateY(-6vh);
+}
+
+.feedback-email-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.feedback-email-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #111;
+}
+
+.feedback-email-input {
+    width: 100%;
+    border-radius: 10px;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    padding: 12px;
+    font-size: 14px;
+    line-height: 1.4;
+    font-family: inherit;
+    outline: none;
+}
+
+.feedback-email-input:focus {
+    border-color: rgba(47, 128, 237, 0.8);
+    box-shadow: 0 0 0 4px rgba(47, 128, 237, 0.15);
 }
 
 .feedback-title {
@@ -3040,14 +3135,22 @@ button.speed-active:hover {
 
 .feedback-input {
     width: 100%;
-    min-height: 180px;
+    min-height: 145px;
     resize: vertical;
     padding: 12px;
     border-radius: 10px;
     border: 1px solid rgba(0, 0, 0, 0.18);
     font-size: 14px;
     line-height: 1.4;
+    font-family: inherit;
     outline: none;
+}
+
+.feedback-email-input::placeholder,
+.feedback-input::placeholder {
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: 400;
 }
 
 .feedback-input:focus {
