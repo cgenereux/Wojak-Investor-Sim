@@ -269,6 +269,12 @@ body.vc-active.vc-detail-active #main-view {
     color: #475569;
 }
 
+.toast-action-btn.toast-action-danger {
+    border-color: #fda4af;
+    background: #ffffff;
+    color: #e11d48;
+}
+
 .lead-avatar {
     display: flex;
     flex-direction: column;
@@ -2228,57 +2234,132 @@ button.speed-active:hover {
 #multiplayerModal .banking-panel {
     max-width: 750px;
     position: relative;
+    overflow: hidden;
 }
 
-#multiplayerModal.mp-state-idle .multiplayer-layout {
-    display: grid;
-    grid-template-columns: minmax(220px, 1.25fr) repeat(3, minmax(0, 1fr));
+.mp-leave-confirm-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    border-radius: 0;
+}
+
+.mp-leave-confirm-box {
+    width: min(420px, 92%);
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    padding: 18px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.mp-leave-confirm-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 8px;
+}
+
+.mp-leave-confirm-text {
+    font-size: 14px;
+    color: #111827;
+    line-height: 1.35;
+}
+
+.mp-leave-confirm-actions {
+    display: flex;
     gap: 10px;
+    justify-content: flex-end;
+    margin-top: 14px;
+}
+
+.mp-leave-confirm-actions button {
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-weight: 800;
+    cursor: pointer;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #0f172a;
+}
+
+.mp-leave-confirm-yes {
+    border-color: #dc2626;
+    color: #dc2626;
+}
+
+.mp-leave-confirm-no {
+    border-color: #94a3b8;
+    color: #475569;
+}
+
+#multiplayerModal.mp-state-idle .multiplayer-layout,
+#multiplayerModal.mp-state-join .multiplayer-layout {
+    display: grid;
+    grid-template-columns: minmax(250px, 1.4fr) repeat(3, minmax(0, 1fr));
+    column-gap: 10px;
+    row-gap: 22px;
     align-items: end;
 }
 
 #multiplayerModal.mp-state-idle .multiplayer-left,
-#multiplayerModal.mp-state-idle .multiplayer-right {
+#multiplayerModal.mp-state-idle .multiplayer-right,
+#multiplayerModal.mp-state-join .multiplayer-left,
+#multiplayerModal.mp-state-join .multiplayer-right {
     display: contents;
 }
 
-#multiplayerModal.mp-state-idle .multiplayer-name-inline {
+#multiplayerModal.mp-state-idle .multiplayer-name-inline,
+#multiplayerModal.mp-state-join .multiplayer-name-inline {
     grid-column: 1;
 }
 
-#multiplayerModal.mp-state-idle #mpPartyStatusControl {
+#multiplayerModal.mp-state-idle #mpPartyStatusControl,
+#multiplayerModal.mp-state-join #mpPartyStatusControl {
     grid-column: 2;
 }
 
-#multiplayerModal.mp-state-idle #createPartyBtn {
+#multiplayerModal.mp-state-idle #createPartyBtn,
+#multiplayerModal.mp-state-join #createPartyBtn {
     grid-column: 3;
 }
 
-#multiplayerModal.mp-state-idle #joinPartyBtn {
+#multiplayerModal.mp-state-idle #joinPartyBtn,
+#multiplayerModal.mp-state-join #joinPartyBtn {
     grid-column: 4;
 }
 
-#multiplayerModal.mp-state-idle .multiplayer-actions {
+#multiplayerModal.mp-state-idle .multiplayer-actions,
+#multiplayerModal.mp-state-join .multiplayer-actions {
     display: contents;
 }
 
-#multiplayerModal.mp-state-idle #multiplayerIdleState,
-#multiplayerModal.mp-state-idle #multiplayerJoinState,
-#multiplayerModal.mp-state-idle #multiplayerCreateState {
-    grid-column: 1 / -1;
+#multiplayerModal.mp-state-idle #multiplayerIdleState {
+    grid-column: 1;
 }
 
-.mp-party-status-control.mp-party-status-reserved {
-    display: flex;
-    pointer-events: none;
+#multiplayerModal.mp-state-idle .mp-public-parties-panel {
+    width: 100%;
 }
 
-.mp-party-status-control.mp-party-status-reserved .mp-party-status-label {
-    display: none;
+#multiplayerModal.mp-state-join #multiplayerJoinState {
+    grid-column: 3 / 5;
 }
 
-.mp-party-status-control.mp-party-status-reserved .mp-party-status-btn {
-    visibility: hidden;
+#multiplayerModal.mp-state-join.mp-party-status-visible #multiplayerJoinState {
+    grid-column: 2 / 5;
+}
+
+#multiplayerModal.mp-state-join .mp-roster-panel {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
 }
 
 #multiplayerModal .banking-header {
@@ -2348,6 +2429,29 @@ button.speed-active:hover {
 
 .mp-name-error.visible {
     display: block;
+}
+
+/* Display-name error shouldn't shift the top-row buttons */
+.multiplayer-name-inline {
+    position: relative;
+}
+
+.multiplayer-name-inline .mp-name-error {
+    display: block;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -18px;
+    margin-top: 0;
+    height: 14px;
+    line-height: 14px;
+    white-space: nowrap;
+    visibility: hidden;
+}
+
+.multiplayer-name-inline .mp-name-error.visible {
+    display: block;
+    visibility: visible;
 }
 
 .multiplayer-actions {
@@ -2438,8 +2542,8 @@ button.speed-active:hover {
 }
 
 .mp-online-label {
-    color: #0f172a !important;
-    font-weight: 800 !important;
+    color: #22c55e;
+    font-weight: 700;
     text-align: center;
 }
 
@@ -2608,6 +2712,15 @@ button.speed-active:hover {
     display: flex;
     align-items: center;
     gap: 8px;
+    margin-top: 6px;
+}
+
+/* Nudge MP section headings slightly lower */
+.mp-roster-panel > .input-label,
+.mp-join-share > .input-label,
+#multiplayerCreateState > .input-label {
+    position: relative;
+    top: 3px;
 }
 
 #mpPartyCodeDisplay {
@@ -2657,7 +2770,8 @@ button.speed-active:hover {
     background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 10px;
-    width: 100%;
+    width: 72%;
+    margin: 0 auto;
 }
 
 .mp-player-placeholder {
@@ -2677,6 +2791,10 @@ button.speed-active:hover {
     color: #0f172a;
     flex: 1;
     text-align: left;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .start-game-btn {

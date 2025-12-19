@@ -42,6 +42,11 @@ const multiplayerStatusDisplay = document.getElementById('multiplayerStatusDispl
 const mpSessionIdDisplay = document.getElementById('mpSessionIdDisplay');
 const multiplayerModal = document.getElementById('multiplayerModal');
 const closeMultiplayerBtn = document.getElementById('closeMultiplayerBtn');
+const mpLeaveConfirmOverlay = document.getElementById('mpLeaveConfirmOverlay');
+const mpLeaveConfirmTitle = document.getElementById('mpLeaveConfirmTitle');
+const mpLeaveConfirmText = document.getElementById('mpLeaveConfirmText');
+const mpLeaveConfirmYesBtn = document.getElementById('mpLeaveConfirmYesBtn');
+const mpLeaveConfirmNoBtn = document.getElementById('mpLeaveConfirmNoBtn');
 const mpNameInput = document.getElementById('mpNameInput');
 const createPartyBtn = document.getElementById('createPartyBtn');
 const joinPartyBtn = document.getElementById('joinPartyBtn');
@@ -552,7 +557,8 @@ const {
     promptCharacterIfPending,
     setLocalCharacterSelection,
     mergeLocalCharacter,
-    setRosterFromServer
+    setRosterFromServer,
+    suppressNextIdleExitAlert
 } = multiplayerModule;
 
 window.triggerMacroEvent = function (eventId) {
@@ -4379,10 +4385,93 @@ backToMainBtn.addEventListener('click', () => {
 });
 
 if (multiplayerBtn) multiplayerBtn.addEventListener('click', showMultiplayerModal);
-if (closeMultiplayerBtn) closeMultiplayerBtn.addEventListener('click', hideMultiplayerModal);
+function isInMultiplayerPartySession() {
+    return !!(typeof isServerAuthoritative !== 'undefined'
+        && isServerAuthoritative
+        && typeof activeSessionId !== 'undefined'
+        && activeSessionId
+        && activeSessionId !== 'singleplayer_local');
+}
+
+function isLocalPartyHost() {
+    if (typeof isPartyHostClient !== 'undefined' && isPartyHostClient) return true;
+    if (typeof clientPlayerId === 'undefined' || typeof currentHostId === 'undefined') return false;
+    return !!(clientPlayerId && currentHostId && clientPlayerId === currentHostId);
+}
+
+function hideMpLeaveConfirm() {
+    if (!mpLeaveConfirmOverlay) return;
+    mpLeaveConfirmOverlay.style.display = 'none';
+    mpLeaveConfirmOverlay.setAttribute('aria-hidden', 'true');
+}
+
+function showMpLeaveConfirm(message, onYes, titleText = null) {
+    if (!mpLeaveConfirmOverlay || !mpLeaveConfirmText || !mpLeaveConfirmYesBtn || !mpLeaveConfirmNoBtn) {
+        if (window.confirm(message)) onYes();
+        return;
+    }
+    if (mpLeaveConfirmTitle) {
+        mpLeaveConfirmTitle.textContent = titleText || 'Leave Party?';
+    }
+    mpLeaveConfirmText.textContent = message;
+    mpLeaveConfirmOverlay.style.display = 'flex';
+    mpLeaveConfirmOverlay.setAttribute('aria-hidden', 'false');
+    const cleanup = () => {
+        mpLeaveConfirmYesBtn.onclick = null;
+        mpLeaveConfirmNoBtn.onclick = null;
+        mpLeaveConfirmOverlay.onclick = null;
+    };
+    mpLeaveConfirmYesBtn.onclick = () => {
+        cleanup();
+        hideMpLeaveConfirm();
+        onYes();
+    };
+    mpLeaveConfirmNoBtn.onclick = () => {
+        cleanup();
+        hideMpLeaveConfirm();
+    };
+    mpLeaveConfirmOverlay.onclick = (e) => {
+        if (e.target === mpLeaveConfirmOverlay) {
+            cleanup();
+            hideMpLeaveConfirm();
+        }
+    };
+}
+
+function leaveOrDisbandParty() {
+    if (typeof suppressNextIdleExitAlert === 'function') suppressNextIdleExitAlert();
+    const host = isLocalPartyHost();
+    if (host && typeof killRemoteSession === 'function') {
+        killRemoteSession();
+        setTimeout(() => {
+            if (typeof disconnectMultiplayer === 'function') disconnectMultiplayer();
+            try { window.location.reload(); } catch (err) { /* ignore */ }
+        }, 150);
+        return;
+    }
+    if (typeof disconnectMultiplayer === 'function') disconnectMultiplayer();
+    try { window.location.reload(); } catch (err) { /* ignore */ }
+}
+
+function handleCloseMultiplayerModal() {
+    if (!isInMultiplayerPartySession()) {
+        hideMultiplayerModal();
+        return;
+    }
+    const host = isLocalPartyHost();
+    const title = host ? 'Disband Party?' : 'Leave Party?';
+    const msg = host
+        ? 'Are you sure you want to disband this party?'
+        : 'Are you sure you want to leave this party?';
+    showMpLeaveConfirm(msg, leaveOrDisbandParty, title);
+}
+
+if (closeMultiplayerBtn) closeMultiplayerBtn.addEventListener('click', handleCloseMultiplayerModal);
 if (multiplayerModal) {
     multiplayerModal.addEventListener('click', (event) => {
-        if (event.target === multiplayerModal) hideMultiplayerModal();
+        if (event.target !== multiplayerModal) return;
+        if (isInMultiplayerPartySession()) return;
+        hideMultiplayerModal();
     });
 }
 const ventureModal = document.getElementById('vc-view');
@@ -4409,6 +4498,15 @@ function isValidPartyCode(code) {
 
 if (joinPartyBtn) {
     joinPartyBtn.addEventListener('click', () => {
+        if (isInMultiplayerPartySession()) {
+            const host = isLocalPartyHost();
+            const title = host ? 'Disband Party?' : 'Leave Party?';
+            const msg = host
+                ? 'Are you sure you want to disband this party?'
+                : 'Are you sure you want to leave this party?';
+            showMpLeaveConfirm(msg, leaveOrDisbandParty, title);
+            return;
+        }
         setMultiplayerState('join');
     });
 }

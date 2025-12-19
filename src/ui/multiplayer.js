@@ -17,6 +17,9 @@
     const multiplayerIdleState = document.getElementById('multiplayerIdleState');
     const multiplayerModalEl = document.getElementById('multiplayerModal');
     const multiplayerModalPanel = multiplayerModalEl ? multiplayerModalEl.querySelector('.banking-panel') : null;
+    const mpJoinSharePanel = document.getElementById('mpJoinSharePanel');
+    const mpPartyCodeDisplayJoin = document.getElementById('mpPartyCodeDisplayJoin');
+    const copyPartyCodeBtnJoin = document.getElementById('copyPartyCodeBtnJoin');
 
     const INVITES_MUTED_SESSION_KEY = 'wojak_invites_muted_session';
     let invitesMutedThisSession = false;
@@ -36,9 +39,12 @@
     let presenceWsGeneration = 0;
     let presenceReconnectTimer = null;
     let lastPresenceWsOrigin = null;
+    let lastPresencePlayerId = null;
 
     let modalHeightLockObserver = null;
     let modalMaxHeightPx = 0;
+    let joinedToastSessionId = null;
+    let suppressIdleExitAlertOnce = false;
 
     function setMultiplayerModalHeightLock(enabled) {
         if (!multiplayerModalPanel) return;
@@ -70,6 +76,15 @@
         requestAnimationFrame(applyLock);
     }
 
+    function setSessionNamePlaceholder() {
+        if (!mpNameInput) return;
+        const list = (typeof NAME_PLACEHOLDERS !== 'undefined' && Array.isArray(NAME_PLACEHOLDERS) && NAME_PLACEHOLDERS.length)
+            ? NAME_PLACEHOLDERS
+            : ['TheGrug850', 'Bloomer4000', 'TheRealWojak', 'WiseZoomer24'];
+        const idx = Math.floor(Math.random() * list.length);
+        mpNameInput.placeholder = String(list[idx] || 'Bloomer4000');
+    }
+
     function isInPartySession() {
         return (typeof isServerAuthoritative !== 'undefined' && isServerAuthoritative)
             && (typeof activeSessionId !== 'undefined' && activeSessionId)
@@ -97,7 +112,7 @@
     function getPresenceDisplayName() {
         const raw = (typeof storedPlayerName !== 'undefined' && storedPlayerName)
             ? storedPlayerName
-            : (global.localStorage ? global.localStorage.getItem('wojak_player_name') : null);
+            : null;
         const cleaned = (raw || '').toString().trim().replace(/\s+/g, ' ').slice(0, 30);
         return cleaned || null;
     }
@@ -122,7 +137,29 @@
             lastInviteableUsersSignature = '';
             return;
         }
-        const users = Array.isArray(latestPresenceInviteableUsers) ? latestPresenceInviteableUsers : [];
+        const isHostClient = (typeof isPartyHostClient !== 'undefined' && isPartyHostClient)
+            || (typeof clientPlayerId !== 'undefined'
+                && typeof currentHostId !== 'undefined'
+                && clientPlayerId
+                && currentHostId
+                && clientPlayerId === currentHostId);
+        if (!isHostClient) {
+            mpOnlinePlayersPanel.style.display = 'none';
+            mpOnlinePlayersList.innerHTML = '';
+            lastInviteableUsersSignature = '';
+            return;
+        }
+        const rawUsers = Array.isArray(latestPresenceInviteableUsers) ? latestPresenceInviteableUsers : [];
+        const users = [];
+        const seen = new Set();
+        for (const u of rawUsers) {
+            if (!u || !u.playerId || u.muted) continue;
+            const key = String(u.playerId).toLowerCase();
+            if (seen.has(key)) continue;
+            seen.add(key);
+            users.push(u);
+            if (users.length >= 5) break;
+        }
         if (users.length === 0) {
             mpOnlinePlayersPanel.style.display = 'none';
             mpOnlinePlayersList.innerHTML = '';
@@ -144,9 +181,9 @@
 
         mpOnlinePlayersPanel.style.display = 'block';
         mpOnlinePlayersList.innerHTML = '';
-        users.slice(0, 10).forEach((u) => {
+        users.forEach((u) => {
             if (!u || !u.playerId) return;
-            const name = u.displayName || (Number.isFinite(u.anonNumber) ? `Unidentified_Wojak_#${u.anonNumber}` : 'Unidentified_Wojak');
+            const name = u.displayName || (Number.isFinite(u.anonNumber) ? `Unidentified_Wojak#${u.anonNumber}` : 'Unidentified_Wojak');
             const row = document.createElement('li');
             row.className = 'mp-online-item';
 
@@ -164,11 +201,7 @@
 
             const expiresAt = localInviteCooldownByTarget.get(u.playerId) || 0;
             const onCooldown = expiresAt && now < expiresAt;
-            if (u.muted) {
-                inviteBtn.disabled = true;
-                inviteBtn.classList.add('mp-muted');
-                inviteBtn.textContent = 'Muted';
-            } else if (onCooldown) {
+            if (onCooldown) {
                 inviteBtn.disabled = true;
                 inviteBtn.textContent = 'Cooldown';
             }
@@ -229,7 +262,7 @@
             const host = (p.hostId || '').toString().trim() || 'Player';
             const playerCount = Number.isFinite(p.playerCount) ? p.playerCount : null;
             const maxPlayers = Number.isFinite(p.maxPlayers) ? p.maxPlayers : 4;
-            const name = `${host}'s Public Party (${playerCount !== null ? playerCount : '?'} / ${maxPlayers})`;
+            const name = `${host}'s Party (${playerCount !== null ? playerCount : '?'}/${maxPlayers})`;
 
             const row = document.createElement('li');
             row.className = 'mp-public-party-item';
@@ -246,7 +279,8 @@
             joinBtn.className = 'mp-join-public-btn';
             joinBtn.textContent = 'Join';
             joinBtn.addEventListener('click', () => {
-                if (typeof showMultiplayerModal === 'function') showMultiplayerModal();
+                const modalIsActive = !!(multiplayerModalEl && multiplayerModalEl.classList.contains('active'));
+                if (!modalIsActive && typeof showMultiplayerModal === 'function') showMultiplayerModal();
                 if (typeof setMultiplayerState === 'function') {
                     // local fn exists below; this guard is mostly for safety
                 }
@@ -265,15 +299,12 @@
     function renderPartyStatusControl() {
         if (!mpPartyStatusControl || !mpPartyStatusBtn) return;
         if (!isInPartySession()) {
-            // Keep a reserved slot in the initial (idle) layout so buttons don't jump.
-            mpPartyStatusControl.style.display = 'flex';
-            mpPartyStatusControl.classList.add('mp-party-status-reserved');
-            mpPartyStatusBtn.disabled = true;
-            mpPartyStatusBtn.setAttribute('aria-disabled', 'true');
+            mpPartyStatusControl.style.display = 'none';
+            if (multiplayerModalEl) multiplayerModalEl.classList.remove('mp-party-status-visible');
             return;
         }
         mpPartyStatusControl.style.display = 'flex';
-        mpPartyStatusControl.classList.remove('mp-party-status-reserved');
+        if (multiplayerModalEl) multiplayerModalEl.classList.add('mp-party-status-visible');
         const isHostClient = (typeof isPartyHostClient !== 'undefined' && isPartyHostClient)
             || (typeof clientPlayerId !== 'undefined' && clientPlayerId && typeof currentHostId !== 'undefined' && currentHostId && clientPlayerId === currentHostId);
         const canToggle = isHostClient && !(typeof matchStarted !== 'undefined' && matchStarted);
@@ -308,7 +339,12 @@
         const wsOrigin = getPresenceWsOrigin();
         if (!wsOrigin) return;
         if (presenceWs && (presenceWs.readyState === WebSocket.OPEN || presenceWs.readyState === WebSocket.CONNECTING)) {
-            if (lastPresenceWsOrigin === wsOrigin) {
+            const desiredPlayerId = (typeof clientPlayerId !== 'undefined' && clientPlayerId)
+                ? clientPlayerId
+                : (() => {
+                    try { return localStorage.getItem('wojak_player_id'); } catch (err) { return null; }
+                })();
+            if (lastPresenceWsOrigin === wsOrigin && desiredPlayerId && desiredPlayerId === lastPresencePlayerId) {
                 syncPresenceState();
                 return;
             }
@@ -329,6 +365,7 @@
                 clientPlayerId = playerId;
             }
         }
+        lastPresencePlayerId = playerId;
 
         const url = `${wsOrigin}/presence?player=${encodeURIComponent(playerId)}`;
         const currentGen = ++presenceWsGeneration;
@@ -433,12 +470,12 @@
                             },
                             {
                                 label: 'Decline',
-                                className: 'toast-action-secondary',
+                                className: 'toast-action-danger',
                                 onClick: () => { /* auto-close only */ }
                             },
                             {
                                 label: 'Mute Invites',
-                                className: 'toast-action-secondary',
+                                className: 'toast-action-danger',
                                 onClick: () => {
                                     invitesMutedThisSession = true;
                                     try { sessionStorage.setItem(INVITES_MUTED_SESSION_KEY, 'true'); } catch (err) { /* ignore */ }
@@ -589,8 +626,6 @@
         isServerAuthoritative = true;
         ensureConnectionBanner();
         setConnectionStatus('Connecting...', 'warn');
-        const storedName = localStorage.getItem('wojak_player_name');
-        if (storedName) ensurePlayerIdentity(storedName);
         let playerId = clientPlayerId || localStorage.getItem('wojak_player_id');
         if (!playerId) {
             playerId = `p_${Math.floor(Math.random() * 1e9).toString(36)}`;
@@ -1149,10 +1184,11 @@
         if (!cleaned) return null;
         cachedPlayerName = cleaned;
         storedPlayerName = cleaned;
-        localStorage.setItem('wojak_player_name', cleaned);
         const pid = makePlayerIdFromName(cleaned) || `p_${Math.floor(Math.random() * 1e9).toString(36)}`;
         localStorage.setItem('wojak_player_id', pid);
         clientPlayerId = pid;
+        connectPresenceWebSocket();
+        syncPresenceState();
         if (window.posthog) {
             window.posthog.identify(cleaned);
         }
@@ -1188,6 +1224,10 @@
     }
 
     function handleIdleExit(reason = 'idle_timeout', idleSeconds = null) {
+        if (suppressIdleExitAlertOnce) {
+            suppressIdleExitAlertOnce = false;
+            return;
+        }
         if (idleExitHandled) return;
         idleExitHandled = true;
         const secs = Number.isFinite(idleSeconds)
@@ -1220,6 +1260,10 @@
         } catch (err) { /* ignore */ }
     }
 
+    function suppressNextIdleExitAlert() {
+        suppressIdleExitAlertOnce = true;
+    }
+
     function getHostLabelFromRoster(roster = latestServerPlayers) {
         if (Array.isArray(roster) && roster.length) {
             if (currentHostId) {
@@ -1240,7 +1284,10 @@
         if (host) lastKnownHostLabel = host;
         const joinRow = multiplayerJoinState ? multiplayerJoinState.querySelector('.mp-join-row') : null;
         if (multiplayerJoinState) multiplayerJoinState.classList.toggle('joined', joinedGuest);
-        if (joinRow) joinRow.classList.toggle('joined', joinedGuest);
+        if (joinRow) {
+            joinRow.classList.toggle('joined', joinedGuest);
+            joinRow.style.display = joinedGuest ? 'none' : '';
+        }
         if (mpJoinCodeLabel) mpJoinCodeLabel.style.display = joinedGuest ? 'none' : '';
         if (mpJoinCodeInput) {
             mpJoinCodeInput.style.display = joinedGuest ? 'none' : '';
@@ -1248,11 +1295,25 @@
         }
         if (mpJoinError && joinedGuest) mpJoinError.classList.remove('visible');
         if (confirmJoinPartyBtn) {
-            const joinedLabel = host ? `Joined ${host}'s Party` : 'Joined Party';
-            confirmJoinPartyBtn.textContent = joinedGuest ? joinedLabel : 'Join';
-            confirmJoinPartyBtn.disabled = joinedGuest;
-            confirmJoinPartyBtn.classList.toggle('joined', joinedGuest);
-            confirmJoinPartyBtn.setAttribute('aria-disabled', joinedGuest ? 'true' : 'false');
+            confirmJoinPartyBtn.textContent = 'Join';
+            confirmJoinPartyBtn.disabled = false;
+            confirmJoinPartyBtn.classList.remove('joined');
+            confirmJoinPartyBtn.setAttribute('aria-disabled', 'false');
+        }
+        if (mpJoinSharePanel) {
+            mpJoinSharePanel.style.display = joinedGuest ? 'block' : 'none';
+        }
+        if (joinedGuest) {
+            const sessionCode = (typeof activeSessionId !== 'undefined' && activeSessionId)
+                ? String(activeSessionId).trim().toUpperCase()
+                : (mpJoinCodeInput ? String(mpJoinCodeInput.value || '').trim().toUpperCase() : '');
+            if (mpPartyCodeDisplayJoin) {
+                mpPartyCodeDisplayJoin.value = sessionCode || '------';
+            }
+            if (sessionCode && joinedToastSessionId !== sessionCode) {
+                joinedToastSessionId = sessionCode;
+                notify(host ? `Joined ${host}'s party.` : 'Joined party.', 'success');
+            }
         }
         if (mpWaitingForHost) {
             if (joinedGuest) {
@@ -1271,6 +1332,8 @@
         multiplayerState = state;
         if (multiplayerModalEl) {
             multiplayerModalEl.classList.toggle('mp-state-idle', state === 'idle');
+            multiplayerModalEl.classList.toggle('mp-state-join', state === 'join');
+            multiplayerModalEl.classList.toggle('mp-state-create', state === 'create');
         }
         if (multiplayerIdleState) multiplayerIdleState.classList.toggle('active', state === 'idle');
         if (multiplayerJoinState) multiplayerJoinState.classList.toggle('active', state === 'join');
@@ -1338,14 +1401,12 @@
     function resetMultiplayerModal() {
         if (mpJoinCodeInput) mpJoinCodeInput.value = '';
         if (mpPartyCodeDisplay) mpPartyCodeDisplay.value = '';
+        if (mpPartyCodeDisplayJoin) mpPartyCodeDisplayJoin.value = '';
+        joinedToastSessionId = null;
         if (mpNameInput) {
             mpNameInput.classList.remove('input-error');
-            const placeholder = NAME_PLACEHOLDERS[Math.floor(Math.random() * NAME_PLACEHOLDERS.length)] || '';
-            const storedName = (() => {
-                try { return localStorage.getItem('wojak_player_name') || ''; } catch (err) { return ''; }
-            })();
-            mpNameInput.placeholder = storedName || placeholder || 'Bloomer4000';
-            mpNameInput.value = storedName || '';
+            mpNameInput.value = '';
+            setSessionNamePlaceholder();
         }
         if (mpNameError) mpNameError.classList.remove('visible');
         if (mpJoinError) mpJoinError.classList.remove('visible');
@@ -1442,6 +1503,23 @@
         } catch (err) {
             console.warn('Copy failed', err);
             copyPartyCodeBtn.textContent = previousText || 'Copy';
+        }
+    }
+
+    async function handleCopyPartyCodeJoin() {
+        if (!mpPartyCodeDisplayJoin || !copyPartyCodeBtnJoin) return;
+        const code = (mpPartyCodeDisplayJoin.value || '').trim();
+        if (!code) return;
+        const previousText = copyPartyCodeBtnJoin.textContent;
+        try {
+            await navigator.clipboard.writeText(code);
+            copyPartyCodeBtnJoin.textContent = 'Copied!';
+            setTimeout(() => {
+                copyPartyCodeBtnJoin.textContent = previousText || 'Copy';
+            }, 1200);
+        } catch (err) {
+            console.warn('Copy failed', err);
+            copyPartyCodeBtnJoin.textContent = previousText || 'Copy';
         }
     }
 
@@ -1792,6 +1870,7 @@
         attemptJoinParty,
         handleCreateParty,
         handleCopyPartyCode,
+        handleCopyPartyCodeJoin,
         handleStartParty,
         updateCharacterLocksFromServer,
         updatePlayerColors,
@@ -1803,6 +1882,11 @@
         setLocalCharacterSelection,
         mergeLocalCharacter,
         setRosterFromServer,
+        suppressNextIdleExitAlert,
         setMultiplayerState
     };
+
+    if (copyPartyCodeBtnJoin) {
+        copyPartyCodeBtnJoin.addEventListener('click', handleCopyPartyCodeJoin);
+    }
 })(window);

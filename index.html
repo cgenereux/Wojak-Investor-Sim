@@ -408,9 +408,9 @@
     </div>
     <!-- Multiplayer Modal -->
     <div id="multiplayerModal" class="banking-modal">
-        <div class="banking-panel">
-            <div class="banking-header">
-                <h2 class="banking-title">Play With<br>Friends</h2>
+	        <div class="banking-panel">
+	            <div class="banking-header">
+	                <h2 class="banking-title">Play With<br>Friends</h2>
                 <div class="multiplayer-wojaks">
                     <img src="wojaks/grug.png" alt="Grug" class="multiplayer-wojak-icon">
                     <img src="wojaks/zoomer.png" alt="Zoomer" class="multiplayer-wojak-icon">
@@ -418,8 +418,8 @@
                 </div>
                 <button class="close-btn" id="closeMultiplayerBtn">×</button>
             </div>
-            <div class="banking-controls multiplayer-controls">
-                <div class="multiplayer-layout">
+	            <div class="banking-controls multiplayer-controls">
+	                <div class="multiplayer-layout">
                     <div class="multiplayer-left">
                         <div class="banking-input-group multiplayer-name-inline">
                             <div class="input-label">Display Name</div>
@@ -427,7 +427,7 @@
                             <div id="mpNameError" class="mp-name-error">Name taken</div>
                         </div>
                         <div id="mpOnlinePlayersPanel" class="mp-online-panel" style="display:none">
-                            <div class="input-label mp-online-label">Players Online</div>
+                            <div class="input-label mp-online-label">Players to Invite</div>
                             <ul id="mpOnlinePlayersList" class="mp-online-list"></ul>
                         </div>
                     </div>
@@ -447,17 +447,24 @@
                                 <ul id="mpPublicPartiesList" class="mp-public-party-list"></ul>
                             </div>
                         </div>
-                        <div id="multiplayerJoinState" class="multiplayer-state">
-                            <div class="input-label join-code-label" id="mpJoinCodeLabel">Enter a party code</div>
-                            <div class="mp-join-row">
-                                <button id="confirmJoinPartyBtn" class="borrow-btn join-action-btn">Join</button>
-                                <input type="text" id="mpJoinCodeInput" placeholder="ABC123">
-                            </div>
-                            <div id="mpJoinError" class="mp-name-error">Invalid party code</div>
-                            <div class="mp-roster-panel">
-                                <div class="input-label players-label">Players in this party</div>
-                                <ul id="mpPlayersListJoin" class="mp-player-list">
-                                    <li class="mp-player-placeholder">Waiting for players...</li>
+	                        <div id="multiplayerJoinState" class="multiplayer-state">
+	                            <div class="input-label join-code-label" id="mpJoinCodeLabel">Enter a party code</div>
+	                            <div class="mp-join-row">
+	                                <button id="confirmJoinPartyBtn" class="borrow-btn join-action-btn">Join</button>
+	                                <input type="text" id="mpJoinCodeInput" placeholder="ABC123">
+	                            </div>
+	                            <div id="mpJoinError" class="mp-name-error">Invalid party code</div>
+	                            <div id="mpJoinSharePanel" class="mp-join-share" style="display:none">
+	                                <div class="input-label">Share this party code</div>
+	                                <div class="party-code-row">
+	                                    <input type="text" id="mpPartyCodeDisplayJoin" placeholder="------" readonly>
+	                                    <button id="copyPartyCodeBtnJoin" class="copy-code-btn" aria-label="Copy party code">Copy</button>
+	                                </div>
+	                            </div>
+	                            <div class="mp-roster-panel">
+	                                <div class="input-label players-label">Players in this party</div>
+	                                <ul id="mpPlayersListJoin" class="mp-player-list">
+	                                    <li class="mp-player-placeholder">Waiting for players...</li>
                                 </ul>
                                 <div id="mpWaitingForHost" class="mp-waiting-host"></div>
                             </div>
@@ -481,12 +488,23 @@
                             </div>
                         </div>
                     </div>
-                </div>
+	                </div>
 
-                <!-- Character Select Overlay -->
-                <div id="characterSelectOverlay" class="character-overlay">
-                    <div class="character-overlay-header">
-                        <h3>Pick a playable character</h3>
+	                <div id="mpLeaveConfirmOverlay" class="mp-leave-confirm-overlay" style="display:none" aria-hidden="true">
+	                    <div class="mp-leave-confirm-box" role="dialog" aria-modal="true" aria-labelledby="mpLeaveConfirmTitle">
+	                        <div id="mpLeaveConfirmTitle" class="mp-leave-confirm-title">Leave Party?</div>
+	                        <div id="mpLeaveConfirmText" class="mp-leave-confirm-text"></div>
+	                        <div class="mp-leave-confirm-actions">
+	                            <button id="mpLeaveConfirmYesBtn" class="mp-leave-confirm-yes" type="button">Yes</button>
+	                            <button id="mpLeaveConfirmNoBtn" class="mp-leave-confirm-no" type="button">No</button>
+	                        </div>
+	                    </div>
+	                </div>
+
+	                <!-- Character Select Overlay -->
+	                <div id="characterSelectOverlay" class="character-overlay">
+	                    <div class="character-overlay-header">
+	                        <h3>Pick a playable character</h3>
                         <p>Select who you want to play as before joining.</p>
                     </div>
                     <div class="character-option-row">
