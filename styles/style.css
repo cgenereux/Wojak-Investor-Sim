@@ -3333,3 +3333,292 @@ button.speed-active:hover {
     color: #444;
     white-space: nowrap;
 }
+
+@media (max-width: 420px) {
+    body {
+        padding: 0.625rem;
+    }
+
+    .detail-header {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: stretch;
+    }
+
+    .detail-header-right {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    .detail-title {
+        font-size: 1.6rem;
+        line-height: 1.15;
+    }
+
+    .detail-title-row {
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .header-content {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.875rem;
+        padding: 0 0.5rem;
+    }
+
+    .player-avatar-stack {
+        min-width: 0;
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .party-avatars {
+        max-width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .wojak-image {
+        width: 6.25rem;
+        height: 6.25rem;
+    }
+
+    .header-controls {
+        margin-top: 0;
+        margin-right: 0;
+        align-self: center;
+        align-items: center;
+    }
+
+    .header-controls-row {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .net-worth {
+        font-size: 2.25rem;
+        letter-spacing: -1px;
+    }
+
+    .chart-container {
+        padding: 0.875rem;
+        height: 18rem;
+    }
+
+    .investment-panel {
+        padding: 14px;
+    }
+
+    .investment-stats-row {
+        flex-direction: column;
+        gap: 4px;
+        font-size: 0.95rem;
+    }
+
+    .invest-panel {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .investment-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .investment-actions button {
+        min-width: 0;
+        flex: 1 1 calc(50% - 10px);
+        padding: 0.5625rem 0.75rem;
+    }
+
+    .investment-input {
+        width: 100%;
+    }
+
+    .chart-controls {
+        justify-content: flex-start !important;
+        flex-wrap: wrap !important;
+        gap: 8px;
+    }
+
+    .chart-controls h3 {
+        width: 100%;
+        font-size: 1.05rem;
+    }
+
+    .chart-controls > div {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .chart-range-btn {
+        flex: 1 1 auto;
+        padding: 4px 10px !important;
+        font-size: 12px !important;
+    }
+
+    .financial-table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .financial-table table {
+        font-size: 12px;
+        min-width: 520px;
+    }
+
+    .financial-table th,
+    .financial-table td {
+        padding: 6px 8px;
+    }
+
+    .controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+        max-width: none;
+    }
+
+    .controls-group-left,
+    .controls-group-right {
+        width: 100%;
+        flex: initial;
+        justify-content: center;
+        flex-wrap: wrap;
+        padding: 0;
+    }
+
+    .time-controls-row {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .speed-slider-row {
+        min-width: 0;
+    }
+
+    .speed-slider-wrap label {
+        position: static;
+        bottom: auto;
+        left: auto;
+        transform: none;
+        margin-top: 0.375rem;
+        pointer-events: auto;
+    }
+
+    #speedSlider {
+        width: min(220px, 70vw);
+    }
+
+    .drip-toggle {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    body:not(.multiplayer-active) .drip-toggle {
+        margin-left: 0;
+    }
+
+    .market-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .market-controls {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    .sort-controls,
+    .filter-controls {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.375rem;
+    }
+
+    .sort-controls select,
+    .filter-controls select {
+        width: 100%;
+    }
+
+    .companies-grid,
+    .portfolio-list {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+
+    .company-box,
+    .portfolio-item {
+        padding: 0.75rem;
+    }
+
+    .toast-container {
+        left: 8px;
+        right: 8px;
+        top: 8px;
+    }
+
+    .toast {
+        min-width: 0;
+        max-width: none;
+        width: 100%;
+    }
+
+    .banking-panel {
+        padding: 1.25rem;
+        width: 94vw;
+    }
+
+    .banking-header {
+        min-height: 0;
+    }
+
+    .boomer-wojak-icon {
+        display: none;
+    }
+
+    .banking-stats {
+        grid-template-columns: 1fr;
+    }
+
+    #multiplayerModal.mp-state-idle .multiplayer-layout,
+    #multiplayerModal.mp-state-join .multiplayer-layout {
+        grid-template-columns: 1fr;
+        row-gap: 14px;
+    }
+
+    #multiplayerModal.mp-state-idle .multiplayer-name-inline,
+    #multiplayerModal.mp-state-join .multiplayer-name-inline,
+    #multiplayerModal.mp-state-idle #mpPartyStatusControl,
+    #multiplayerModal.mp-state-join #mpPartyStatusControl,
+    #multiplayerModal.mp-state-idle #createPartyBtn,
+    #multiplayerModal.mp-state-join #createPartyBtn,
+    #multiplayerModal.mp-state-idle #joinPartyBtn,
+    #multiplayerModal.mp-state-join #joinPartyBtn,
+    #multiplayerModal.mp-state-idle #multiplayerIdleState,
+    #multiplayerModal.mp-state-join #multiplayerJoinState {
+        grid-column: 1;
+    }
+}
+
+@media (max-width: 320px) {
+    .wojak-image {
+        width: 5.5rem;
+        height: 5.5rem;
+    }
+
+    .net-worth {
+        font-size: 2rem;
+    }
+}
