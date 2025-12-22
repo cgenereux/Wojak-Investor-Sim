@@ -2716,7 +2716,17 @@ function updateBankingDisplay() {
     }
 }
 
-function showBankingModal() { updateBankingDisplay(); bankingModal.classList.add('active'); }
+function showBankingModal() {
+    updateBankingDisplay();
+    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
+        try {
+            window.scrollTo({ left: 0, top: window.scrollY });
+        } catch (err) {
+            window.scrollTo(0, window.scrollY);
+        }
+    }
+    bankingModal.classList.add('active');
+}
 function hideBankingModal() { bankingModal.classList.remove('active'); bankingAmountInput.value = ''; }
 
 function liquidatePlayerAssets() {

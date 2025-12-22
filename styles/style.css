@@ -25,6 +25,7 @@
 html {
     /* Never scale above desktop; gently shrink for small screens */
     font-size: clamp(12px, 2.222vw, 16px);
+    overflow-x: hidden;
 }
 
 body {
@@ -3339,6 +3340,27 @@ button.speed-active:hover {
         padding: 0.625rem;
     }
 
+    .banking-modal.active {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 12px;
+        padding-top: max(12px, env(safe-area-inset-top));
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
+        box-sizing: border-box;
+    }
+
+    #bankingModal {
+        inset: 0;
+        width: auto;
+        height: auto;
+    }
+
+    #bankingModal.active {
+        display: grid;
+        place-items: center;
+    }
+
     .detail-header {
         flex-direction: column;
         gap: 0.75rem;
@@ -3577,11 +3599,16 @@ button.speed-active:hover {
 
     .banking-panel {
         padding: 1.25rem;
-        width: 94vw;
+        width: min(420px, 92vw);
+        max-height: 92vh;
+        overflow-y: auto;
+        margin: 0 auto;
     }
 
     .banking-header {
         min-height: 0;
+        margin-bottom: 16px;
+        padding-bottom: 10px;
     }
 
     .boomer-wojak-icon {
@@ -3590,25 +3617,187 @@ button.speed-active:hover {
 
     .banking-stats {
         grid-template-columns: 1fr;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .banking-title {
+        font-size: 20px;
+    }
+
+    .banking-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .banking-button-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .banking-controls input {
+        height: 44px;
+        padding: 10px;
+        font-size: 15px;
+    }
+
+    .banking-button-grid button {
+        padding: 9px 10px;
+        font-size: 13px;
+        white-space: normal;
+        line-height: 1.15;
+    }
+
+    .banking-info {
+        padding: 12px;
+        font-size: 13px;
+    }
+
+    #multiplayerModal .banking-header {
+        min-height: 112px;
+        margin-bottom: 10px;
+        padding-bottom: 6px;
+    }
+
+    #multiplayerModal .banking-title {
+        font-size: 17px;
+        margin-left: 0;
+    }
+
+    #multiplayerModal.active {
+        align-items: flex-start;
+    }
+
+    #multiplayerModal .banking-panel {
+        padding: 1rem;
+    }
+
+    #multiplayerModal .multiplayer-wojaks {
+        left: auto;
+        right: 28px;
+        top: 50%;
+        transform: translateY(-50%);
+        gap: 8px;
+        flex-wrap: nowrap;
+        justify-content: flex-end;
+        max-width: none;
+    }
+
+    #multiplayerModal .multiplayer-wojak-icon {
+        height: 68px;
+    }
+
+    #multiplayerModal .multiplayer-name-inline {
+        position: static;
+        padding-bottom: 0;
+    }
+
+    #multiplayerModal .multiplayer-name-inline .mp-name-error {
+        position: static;
+        display: none;
+        height: auto;
+        line-height: 1.2;
+        white-space: normal;
+        visibility: visible;
+        margin-top: 6px;
+    }
+
+    #multiplayerModal .multiplayer-name-inline .mp-name-error.visible {
+        display: block;
+    }
+
+    #vc-view .detail-title-row img {
+        height: 92px !important;
+        margin-right: 12px !important;
+    }
+
+    #vc-view .detail-title-row {
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    #vc-view .detail-title {
+        font-size: 20px !important;
+        line-height: 1.15;
+    }
+
+    #vc-view .detail-title-row p {
+        font-size: 14px !important;
+    }
+
+    #vc-view .venture-market-section {
+        margin-top: 12px;
+    }
+
+    #vc-view .venture-market-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+        margin-bottom: 10px;
+        padding-bottom: 8px;
+    }
+
+    #vc-view .section-title {
+        font-size: 18px;
+    }
+
+    #ventureCompaniesGrid {
+        gap: 0.625rem;
+    }
+
+    #ventureCompaniesGrid .company-box {
+        padding: 0.625rem;
+    }
+
+    #ventureCompaniesGrid .company-name {
+        font-size: 14px;
+        margin-bottom: 4px;
+    }
+
+    #ventureCompaniesGrid .company-info {
+        font-size: 13px;
+        line-height: 1.25;
+    }
+
+    #ventureCompaniesGrid .company-stage,
+    #ventureCompaniesGrid .company-note {
+        margin-top: 2px;
+    }
+
+    #ventureCompaniesGrid .company-ipo-badge {
+        font-size: 10px;
+    }
+
+    #ventureCompaniesGrid .vc-empty-state {
+        font-size: 15px;
+        white-space: normal;
     }
 
     #multiplayerModal.mp-state-idle .multiplayer-layout,
     #multiplayerModal.mp-state-join .multiplayer-layout {
-        grid-template-columns: 1fr;
-        row-gap: 14px;
+        grid-template-columns: 1fr 1fr;
+        column-gap: 10px;
+        row-gap: 18px;
+        align-items: start;
     }
 
     #multiplayerModal.mp-state-idle .multiplayer-name-inline,
     #multiplayerModal.mp-state-join .multiplayer-name-inline,
     #multiplayerModal.mp-state-idle #mpPartyStatusControl,
     #multiplayerModal.mp-state-join #mpPartyStatusControl,
-    #multiplayerModal.mp-state-idle #createPartyBtn,
-    #multiplayerModal.mp-state-join #createPartyBtn,
-    #multiplayerModal.mp-state-idle #joinPartyBtn,
-    #multiplayerModal.mp-state-join #joinPartyBtn,
     #multiplayerModal.mp-state-idle #multiplayerIdleState,
     #multiplayerModal.mp-state-join #multiplayerJoinState {
+        grid-column: 1 / -1;
+    }
+
+    #multiplayerModal.mp-state-idle #createPartyBtn,
+    #multiplayerModal.mp-state-join #createPartyBtn {
         grid-column: 1;
+    }
+
+    #multiplayerModal.mp-state-idle #joinPartyBtn,
+    #multiplayerModal.mp-state-join #joinPartyBtn {
+        grid-column: 2;
     }
 }
 
@@ -3620,5 +3809,24 @@ button.speed-active:hover {
 
     .net-worth {
         font-size: 2rem;
+    }
+
+    .banking-button-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .financial-table table {
+        font-size: 11px;
+        min-width: 480px;
+    }
+
+    #multiplayerModal .multiplayer-wojaks {
+        right: 24px;
+        gap: 6px;
+        max-width: none;
+    }
+
+    #multiplayerModal .multiplayer-wojak-icon {
+        height: 56px;
     }
 }
