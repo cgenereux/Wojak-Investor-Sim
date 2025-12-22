@@ -326,8 +326,15 @@
           "founders": [ { "name": "Maya Singh" }, { "name": "Colin Avery" } ],
           "founding_location": "Denver, CO",
           "ipo_window": { "from": 2006, "to": 2015 },
-          "sector": "Energy",
-          "subsector": "Grid Tech"
+          "sector": "Energy"
+        },
+        {
+          "name": "Atlas Compute Systems",
+          "mission": "Building general-purpose GPU and CPU platforms that power gaming, cloud, and enterprise computing.",
+          "founders": [ { "name": "Marcus Liang" }, { "name": "Elena Ford" } ],
+          "founding_location": "Santa Clara, CA",
+          "sector": "Technology",
+          "subsector": "Hardware Technology"
         }
       ]
     },
@@ -342,7 +349,23 @@
           "mission": "Unifying enterprise data silos into a single, intelligent cloud infrastructure.",
           "founders": [ { "name": "Jessica Wu" }, { "name": "David Chen" } ],
           "founding_location": "San Francisco, CA",
-          "sector": "Tech"
+          "sector": "Technology"
+        },
+        {
+          "name": "VectorForge Microsystems",
+          "mission": "Building high-performance GPU platforms for gaming and cloud computing.",
+          "founders": [ { "name": "Lena Kovacs" }, { "name": "Eric Tan" } ],
+          "founding_location": "San Jose, CA",
+          "sector": "Technology",
+          "subsector": "Hardware Technology"
+        },
+        {
+        "name": "Skyline Cloud Services",
+        "mission": "Operating a global cloud platform for compute, storage, and databases used by enterprises everywhere.",
+        "founders": [ { "name": "Daniel Ruiz" }, { "name": "Hiroko Sato" } ],
+        "founding_location": "Seattle, WA",
+        "sector": "Technology",
+        "subsector": "Hardware Technology"
         }
       ]
     },
@@ -358,8 +381,15 @@
           "founders": [ { "name": "Lars Jensen" }, { "name": "Priya Patel" } ],
           "founding_location": "Austin, TX",
           "sector": "Energy"
+        },
+        {
+        "name": "CoreLayer Software",
+        "mission": "Providing the operating systems, databases, and middleware that run mission-critical data center workloads.",
+        "founders": [ { "name": "Rita Novak" }, { "name": "James Holloway" } ],
+        "founding_location": "Redmond, WA",
+        "sector": "Technology",
+        "subsector": "Enterprise Software"
         }
-        
       ]
     },
     {
@@ -382,6 +412,21 @@
           "founding_location": "Mojave, CA",
           "sector": "Technology",
           "subsector": "Space Technology"
+        },
+        {
+          "name": "Lattice BioFab",
+          "mission": "Biofabricating organs and tissues for transplant and research at scale.",
+          "founders": [ { "name": "Dr. Ayesha Karim" }, { "name": "Thomas Greene" } ],
+          "founding_location": "London, UK",
+          "sector": "Biotechnology"
+        },
+        {
+        "name": "Verdant Loop Materials",
+        "mission": "Engineering endlessly recyclable polymers for consumer and industrial use.",
+        "founders": [ { "name": "Dr. Naomi Ishikawa" }, { "name": "Felix Romero" } ],
+        "founding_location": "Barcelona, Spain",
+        "sector": "Technology",
+        "subsector": "Technology"
         }
       ]
     },
@@ -404,6 +449,22 @@
           "mission": "Designing self-sustaining biospheres for hostile interplanetary environments.",
           "founders": [ { "name": "Dr. Aris Thorne" }, { "name": "Maya Okafor" } ],
           "founding_location": "Cape Canaveral, FL",
+          "sector": "Technology",
+          "subsector": "Space Technology"
+        },
+        {
+          "name": "Autonomy Forge Robotics",
+          "mission": "Building modular humanoid workforces for extreme industrial and off-world environments.",
+          "founders": [ { "name": "Jordan Mireles" }, { "name": "Sofia Tan" } ],
+          "founding_location": "Lisbon, Portugal",
+          "sector": "Technology",
+          "subsector": "Robotics Technology"
+         },
+         {
+          "name": "Orbital Foundry Works",
+          "mission": "Manufacturing ultra-pure alloys and chips in permanent microgravity factories.",
+          "founders": [ { "name": "Sergei Kuznetsov" }, { "name": "Amira Haddad" } ],
+          "founding_location": "Low Earth Orbit",
           "sector": "Technology",
           "subsector": "Space Technology"
         }

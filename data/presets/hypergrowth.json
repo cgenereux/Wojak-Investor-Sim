@@ -199,6 +199,22 @@
       "private_listing_window": { "from": 2023, "to": 2029 }
     },
     {
+      "name": "Rapid",
+      "sector": "Technology",
+      "subsector": "Technology",
+      "funding_round": "Seed",
+      "ipo_stage": "series_f",
+      "gate_stage": "series_c",
+      "risk_to_reward": "high",
+      "founders": [
+        { "name": "Christina Cheng", "degree": "Dropout", "school": "Stanford" },
+        { "name": "Rob Ager", "degree": "MS Computer Science", "school": "MIT" }
+      ],
+      "mission": "Creating an AI coding IDE.",
+      "founding_location": "San Francisco, CA",
+      "private_listing_window": { "from": 2023, "to": 2029 }
+    },
+    {
       "name": "Aegis Systems",
       "sector": "Technology",
       "funding_round": "Seed",

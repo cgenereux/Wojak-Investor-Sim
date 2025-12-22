@@ -425,7 +425,7 @@ function renderInvestmentOptions(detail, companyId = null) {
     }).join('');
 
     if (vcRoundDilutionEl) {
-        vcRoundDilutionEl.textContent = `Dilution: ${dilutionPct.toFixed(2)}%`;
+        vcRoundDilutionEl.textContent = `(Dilution: ${dilutionPct.toFixed(2)}%)`;
     }
     const titleEl = vcInvestmentOptionsEl?.closest('.investment-panel')?.querySelector('.investment-title');
     if (titleEl) {

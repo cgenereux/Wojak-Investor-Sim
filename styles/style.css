@@ -2011,23 +2011,44 @@ button.speed-active:hover {
 }
 
 .investment-title-row {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    display: flex;
     align-items: baseline;
+    justify-content: space-between;
     gap: 16px;
     width: 100%;
 }
 
-.investment-title-row> :first-child {
+.vc-round-title-row {
+    display: grid;
+    grid-template-columns: 1fr max-content 1fr;
+    align-items: baseline;
+}
+
+.vc-round-title-row .vc-round-title-group {
+    display: contents;
+}
+
+.vc-round-title-row .investment-title {
+    grid-column: 1;
     justify-self: start;
 }
 
-.investment-title-row> :nth-child(2) {
+.vc-round-title-row .vc-round-dilution {
+    grid-column: 2;
     justify-self: center;
+    white-space: nowrap;
 }
 
-.investment-title-row> :last-child {
+.vc-round-title-row #vcDetailTimer {
+    grid-column: 3;
     justify-self: end;
+}
+
+.vc-round-title-group {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    min-width: 0;
 }
 
 .vc-detail-timer-inline {
