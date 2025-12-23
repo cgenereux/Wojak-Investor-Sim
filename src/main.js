@@ -109,7 +109,7 @@ let selectedCharacter = null;
 // Quick heads-up for small screens; the experience isn't optimized for mobile yet.
 if (typeof window !== 'undefined' && window.innerWidth <= 768) {
     setTimeout(() => {
-        alert("Sorry, Wojak Sim is not optimized for mobile yet :(");
+        // alert("Sorry, Wojak Sim is not optimized for mobile yet :(");
     }, 1000);
 }
 
@@ -591,7 +591,7 @@ window.triggerMacroEvent = function (eventId) {
     const event = sim.triggerMacroEvent(id);
     if (event) {
         if (typeof window !== 'undefined' && window.__WOJAK_DEBUG_MODE__) {
-            console.log(`Macro event triggered: ${event.label}`);
+            // console.log(`Macro event triggered: ${event.label}`);
         }
         updateMacroEventsDisplay();
     } else {
@@ -1280,11 +1280,11 @@ function applyTick(tick) {
             const meState = tick.players.find(p => p && (p.id === myId || p.name === myId));
             if (meState && meState.bankrupt) {
                 if (typeof window !== 'undefined' && window.__WOJAK_DEBUG_MODE__) {
-                    console.debug('[MP Bankruptcy DEBUG] tick state', {
-                        id: myId,
-                        bankrupt: meState.bankrupt,
-                        netWorth: meState.netWorth
-                    });
+                    // console.debug('[MP Bankruptcy DEBUG] tick state', {
+                    //     id: myId,
+                    //     bankrupt: meState.bankrupt,
+                    //     netWorth: meState.netWorth
+                    // });
                 }
                 endGame("bankrupt");
                 return;
@@ -1459,27 +1459,27 @@ function updatePlayerFromServer(playerSummary) {
         const c = serverPlayer.netWorthComponents;
         if (typeof window !== 'undefined' && window.__WOJAK_DEBUG_MODE__) {
             try {
-                console.debug('[MP NetWorth DEBUG]', {
-                    id: serverPlayer.id,
-                    cash: c.cash,
-                    debt: c.debt,
-                    equity: c.equity,
-                    ventureEquity: c.ventureEquity,
-                    commitments: c.commitments,
-                    netWorth: c.netWorth,
-                    bankrupt: !!serverPlayer.bankrupt
-                });
+                // console.debug('[MP NetWorth DEBUG]', {
+                //     id: serverPlayer.id,
+                //     cash: c.cash,
+                //     debt: c.debt,
+                //     equity: c.equity,
+                //     ventureEquity: c.ventureEquity,
+                //     commitments: c.commitments,
+                //     netWorth: c.netWorth,
+                //     bankrupt: !!serverPlayer.bankrupt
+                // });
             } catch (err) {
                 // ignore logging failures
             }
         }
         if (serverPlayer.bankrupt) {
             if (typeof window !== 'undefined' && window.__WOJAK_DEBUG_MODE__) {
-                console.debug('[MP Bankruptcy DEBUG] from updatePlayerFromServer', {
-                    id: serverPlayer.id,
-                    netWorth: c.netWorth,
-                    debt: c.debt
-                });
+                // console.debug('[MP Bankruptcy DEBUG] from updatePlayerFromServer', {
+                //     id: serverPlayer.id,
+                //     netWorth: c.netWorth,
+                //     debt: c.debt
+                // });
             }
             endGame("bankrupt");
             return;
@@ -1514,7 +1514,7 @@ function sendCommand(cmd) {
         if (wsCommandQueue.length < WS_COMMAND_QUEUE_MAX) {
             wsCommandQueue.push(cmd);
             if (typeof window !== 'undefined' && window.__WOJAK_DEBUG_MODE__) {
-                console.log('WS not ready; command queued', cmd.type || cmd);
+                // console.log('WS not ready; command queued', cmd.type || cmd);
             }
         } else {
             console.warn('WS command queue full; command dropped', cmd.type || cmd);
@@ -1531,7 +1531,7 @@ function flushCommandQueue() {
         try {
             ws.send(JSON.stringify(cmd));
             if (typeof window !== 'undefined' && window.__WOJAK_DEBUG_MODE__) {
-                console.log('Flushed queued command:', cmd.type || cmd);
+                // console.log('Flushed queued command:', cmd.type || cmd);
             }
         } catch (err) {
             console.warn('Failed to flush command:', err);
@@ -2376,18 +2376,18 @@ function updateNetWorth() {
 
 function maybeHandleServerBankruptcy() {
     if (!isServerAuthoritative || !serverPlayer) return;
-    if (serverPlayer.bankrupt) {
+        if (serverPlayer.bankrupt) {
             if (typeof window !== 'undefined' && window.__WOJAK_DEBUG_MODE__) {
-                console.debug('[MP Bankruptcy DEBUG] maybeHandleServerBankruptcy', {
-                    id: serverPlayer.id,
-                    netWorth: serverPlayer.netWorth,
-                    debt: serverPlayer.debt,
-                    handlingBankruptcy,
-                    hasHandledServerBankruptcy
-                });
+                // console.debug('[MP Bankruptcy DEBUG] maybeHandleServerBankruptcy', {
+                //     id: serverPlayer.id,
+                //     netWorth: serverPlayer.netWorth,
+                //     debt: serverPlayer.debt,
+                //     handlingBankruptcy,
+                //     hasHandledServerBankruptcy
+                // });
             }
-        endGame("bankrupt");
-    }
+            endGame("bankrupt");
+        }
 }
 
 function calculateInterest() {
@@ -2731,14 +2731,14 @@ function hideBankingModal() { bankingModal.classList.remove('active'); bankingAm
 
 function liquidatePlayerAssets() {
     if (typeof window !== 'undefined' && window.__WOJAK_DEBUG_MODE__) {
-        console.debug('[MP Bankruptcy DEBUG] liquidatePlayerAssets called', {
-            isServerAuthoritative,
-            serverPlayerId: serverPlayer && serverPlayer.id,
-            serverCash: serverPlayer && serverPlayer.cash,
-            serverDebt: serverPlayer && serverPlayer.debt,
-            localCash: cash,
-            localDebt: totalBorrowed
-        });
+        // console.debug('[MP Bankruptcy DEBUG] liquidatePlayerAssets called', {
+        //     isServerAuthoritative,
+        //     serverPlayerId: serverPlayer && serverPlayer.id,
+        //     serverCash: serverPlayer && serverPlayer.cash,
+        //     serverDebt: serverPlayer && serverPlayer.debt,
+        //     localCash: cash,
+        //     localDebt: totalBorrowed
+        // });
     }
     if (isServerAuthoritative) {
         sendCommand({ type: 'liquidate_assets' });
@@ -2777,24 +2777,24 @@ function endGame(reason) {
     const isMpBankrupt = (reason === "bankrupt" && isServerAuthoritative);
 
     if (typeof window !== 'undefined' && window.__WOJAK_DEBUG_MODE__) {
-        console.debug('[MP Bankruptcy DEBUG] endGame called', {
-            reason,
-            isServerAuthoritative,
-            handlingBankruptcy,
-            hasHandledServerBankruptcy,
-            gameEnded,
-            localNetWorth: netWorth,
-            serverNetWorth: serverPlayer && serverPlayer.netWorth,
-            cash,
-            totalBorrowed
-        });
+        // console.debug('[MP Bankruptcy DEBUG] endGame called', {
+        //     reason,
+        //     isServerAuthoritative,
+        //     handlingBankruptcy,
+        //     hasHandledServerBankruptcy,
+        //     gameEnded,
+        //     localNetWorth: netWorth,
+        //     serverNetWorth: serverPlayer && serverPlayer.netWorth,
+        //     cash,
+        //     totalBorrowed
+        // });
     }
 
     // For multiplayer bankruptcies, ensure we only handle this once per match
     // even if multiple ticks/updates report bankrupt: true.
     if (isMpBankrupt && hasHandledServerBankruptcy) {
         if (typeof window !== 'undefined' && window.__WOJAK_DEBUG_MODE__) {
-            console.debug('[MP Bankruptcy DEBUG] endGame already handled MP bankruptcy; skipping duplicate.');
+            // console.debug('[MP Bankruptcy DEBUG] endGame already handled MP bankruptcy; skipping duplicate.');
         }
         return;
     }

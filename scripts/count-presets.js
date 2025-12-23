@@ -53,7 +53,7 @@ function main() {
   PUBLIC_PRESETS.forEach(file => mergeCounts(publicCounts, tallyPublic(file)));
   PRIVATE_PRESETS.forEach(file => mergeCounts(privateCounts, tallyPrivate(file)));
 
-  console.log(JSON.stringify({ public: publicCounts, private: privateCounts }, null, 2));
+  // console.log(JSON.stringify({ public: publicCounts, private: privateCounts }, null, 2));
 }
 
 main();

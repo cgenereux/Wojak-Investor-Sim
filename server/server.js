@@ -1749,7 +1749,7 @@ wss.on('connection', async (ws, req, url) => {
 });
 
 app.listen({ port: PORT, host: '0.0.0.0' })
-  .then(() => console.log(`Server running on ${PORT}`))
+  .then(() => {})
   .catch(err => {
     console.error('Failed to start server', err);
     process.exit(1);

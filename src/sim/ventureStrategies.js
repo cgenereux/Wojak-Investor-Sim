@@ -109,12 +109,12 @@
 
         // Debug PMF loss triggers (disabled unless debug mode is enabled).
         if (typeof globalThis !== 'undefined' && globalThis.__WOJAK_DEBUG_MODE__ && typeof console !== 'undefined' && console && typeof console.log === 'function') {
-          console.log('[PMF LOSS TRIGGERED]', {
-            id: company.id,
-            name: company.name,
-            stage: stageId || 'unknown',
-            kind: state.kind
-          });
+          // console.log('[PMF LOSS TRIGGERED]', {
+          //   id: company.id,
+          //   name: company.name,
+          //   stage: stageId || 'unknown',
+          //   kind: state.kind
+          // });
         }
 
         // Enter PMF phase: end hypergrowth so post-hypergrowth drift can take over later.

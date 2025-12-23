@@ -3,7 +3,8 @@
         if (global.showToast) {
             global.showToast(msg, { tone, duration: tone === 'error' ? 6000 : 4000 });
         } else {
-            alert(msg);
+            // alert(msg);
+            console.warn(msg);
         }
     };
 
@@ -531,7 +532,7 @@
 
     function setConnectionStatus(text, tone = 'info') {
         if (global && global.__WOJAK_DEBUG_MODE__) {
-            console.log(`[Multiplayer Status] ${text} (${tone})`);
+            // console.log(`[Multiplayer Status] ${text} (${tone})`);
         }
     }
 
@@ -653,7 +654,7 @@
         ws.onopen = () => {
             if (currentGen !== wsGeneration) return;
             if (global && global.__WOJAK_DEBUG_MODE__) {
-                console.log('WS connected');
+                // console.log('WS connected');
             }
             setConnectionStatus('Connected', 'ok');
             // Flush any commands that were queued while disconnected
@@ -1236,7 +1237,7 @@
         const prefix = reason === 'manual_kill'
             ? 'The host closed the session.'
             : `No player actions for ${secs} seconds. Server shutting down.`;
-        window.alert(`${prefix} Switching to single player.`);
+        // window.alert(`${prefix} Switching to single player.`);
         if (typeof pauseGame === 'function') {
             pauseGame();
         } else {
