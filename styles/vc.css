@@ -124,7 +124,7 @@ body.vc-active.vc-detail-active #vc-view {
     opacity: 1;
 }
 
-@media (max-width: 420px) {
+@media (max-width: 440px) {
     #vc-view {
         padding: 12px;
         padding-top: max(12px, env(safe-area-inset-top));

@@ -1575,7 +1575,7 @@
         } catch (err) { /* ignore */ }
         characterOverlay.classList.add('active');
         try {
-            if (modalEl && window.matchMedia && window.matchMedia('(max-width: 420px)').matches) {
+            if (modalEl && window.matchMedia && window.matchMedia('(max-width: 440px)').matches) {
                 const panelEl = modalEl.querySelector('.banking-panel');
                 if (panelEl) {
                     requestAnimationFrame(() => {

@@ -5,6 +5,7 @@ const vcDetailFundingEl = document.getElementById('vcDetailFundingRound');
 const vcDetailMissionEl = document.getElementById('vcDetailMission');
 const vcDetailFoundersEl = document.getElementById('vcDetailFounders');
 const vcDetailLocationEl = document.getElementById('vcDetailLocation');
+const vcDetailLocationRightEl = document.getElementById('vcDetailLocationRight');
 const vcDetailRoundInfoEl = document.getElementById('vcDetailRoundInfo');
 const vcDetailTimerEl = document.getElementById('vcDetailTimer');
 const vcInvestmentOptionsEl = document.getElementById('vcInvestmentOptions');
@@ -590,6 +591,7 @@ function updateVentureDetail(companyId) {
     const founders = Array.isArray(detail.founders) ? detail.founders : [];
     const founderNames = founders.map(f => f && f.name).filter(Boolean);
     const foundingLocation = (detail.founding_location || detail.foundingLocation || '').trim();
+    const isMobile = window.matchMedia && window.matchMedia('(max-width: 440px)').matches;
     if (vcDetailMissionEl) {
         vcDetailMissionEl.textContent = mission;
         vcDetailMissionEl.style.display = mission ? 'block' : 'none';
@@ -616,7 +618,12 @@ function updateVentureDetail(companyId) {
     }
     if (vcDetailLocationEl) {
         vcDetailLocationEl.textContent = foundingLocation || '';
-        vcDetailLocationEl.style.display = foundingLocation ? 'inline-flex' : 'none';
+        vcDetailLocationEl.style.display = !isMobile && foundingLocation ? 'inline-flex' : 'none';
+    }
+
+    if (vcDetailLocationRightEl) {
+        vcDetailLocationRightEl.textContent = foundingLocation || '';
+        vcDetailLocationRightEl.style.display = isMobile && foundingLocation ? 'inline-flex' : 'none';
     }
 
     const roundInfo = buildRoundInfo(detail);
@@ -874,10 +881,12 @@ function getFinancialTableHTML(history) {
     return `
         <div class="financial-table">
             <h3>Financial History</h3>
-            <table>
-                <thead><tr><th>Year</th><th>Revenue</th><th>Profit</th><th>Cash</th><th>Debt</th><th>Dividend</th><th>P/S</th><th>P/E</th></tr></thead>
-                <tbody>${rows}</tbody>
-            </table>
+            <div class="financial-table-wrapper">
+                <table>
+                    <thead><tr><th>Year</th><th>Revenue</th><th>Profit</th><th>Cash</th><th>Debt</th><th>Dividend</th><th>P/S</th><th>P/E</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>
         </div>
     `;
 }
