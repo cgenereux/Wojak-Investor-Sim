@@ -449,6 +449,7 @@ function getVCTooltipHandler(context) {
         tooltipEl = document.createElement('div');
         tooltipEl.id = 'chartjs-tooltip-vc';
         tooltipEl.style.opacity = 1;
+        tooltipEl.style.display = 'none';
         tooltipEl.style.pointerEvents = 'none';
         tooltipEl.style.position = 'absolute';
         tooltipEl.style.transform = 'translate(-50%, 0)';
@@ -485,8 +486,10 @@ function getVCTooltipHandler(context) {
     const tooltipModel = context.tooltip;
     if (tooltipModel.opacity === 0) {
         tooltipEl.style.opacity = 0;
+        tooltipEl.style.display = 'none';
         return;
     }
+    tooltipEl.style.display = 'block';
 
     // Set Text
     if (tooltipModel.body) {
@@ -531,7 +534,10 @@ function getVCTooltipHandler(context) {
 
 function hideVCTooltip() {
     const tooltipEl = document.getElementById('chartjs-tooltip-vc');
-    if (tooltipEl) tooltipEl.style.opacity = 0;
+    if (tooltipEl) {
+        tooltipEl.style.opacity = 0;
+        tooltipEl.style.display = 'none';
+    }
     [ventureCompanyDetailChart, ventureFinancialBarChart].forEach(chart => {
         if (chart && chart.tooltip) {
             chart.tooltip.setActiveElements([], { x: 0, y: 0 });

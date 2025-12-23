@@ -1561,7 +1561,39 @@
         setCharacterBackLocked(lockBack);
         const modalEl = document.getElementById('multiplayerModal');
         if (modalEl) modalEl.classList.add('character-overlay-open');
+        try {
+            if (modalEl) {
+                const panelEl = modalEl.querySelector('.banking-panel');
+                if (panelEl) {
+                    panelEl.scrollTop = 0;
+                    panelEl.style.height = '';
+                    panelEl.style.maxHeight = '';
+                    panelEl.style.overflowY = '';
+                }
+            }
+            characterOverlay.scrollTop = 0;
+        } catch (err) { /* ignore */ }
         characterOverlay.classList.add('active');
+        try {
+            if (modalEl && window.matchMedia && window.matchMedia('(max-width: 420px)').matches) {
+                const panelEl = modalEl.querySelector('.banking-panel');
+                if (panelEl) {
+                    requestAnimationFrame(() => {
+                        try {
+                            if (!characterOverlay.classList.contains('active')) return;
+                            const maxHeightPx = Math.floor(window.innerHeight * 0.92);
+                            const desiredPx = Math.ceil(characterOverlay.scrollHeight + 2);
+                            const heightPx = Math.min(desiredPx, maxHeightPx);
+                            panelEl.style.height = `${heightPx}px`;
+                            panelEl.style.maxHeight = `${maxHeightPx}px`;
+                            panelEl.style.overflowY = desiredPx > maxHeightPx ? 'auto' : 'hidden';
+                            panelEl.scrollTop = 0;
+                            characterOverlay.scrollTop = 0;
+                        } catch (err) { /* ignore */ }
+                    });
+                }
+            }
+        } catch (err) { /* ignore */ }
     }
 
     function hideCharacterOverlay() {
@@ -1571,6 +1603,16 @@
         characterOverlay.classList.remove('active');
         characterOptionButtons.forEach(btn => btn.classList.remove('selected'));
         setCharacterBackLocked(false);
+        try {
+            if (modalEl) {
+                const panelEl = modalEl.querySelector('.banking-panel');
+                if (panelEl) {
+                    panelEl.style.height = '';
+                    panelEl.style.maxHeight = '';
+                    panelEl.style.overflowY = '';
+                }
+            }
+        } catch (err) { /* ignore */ }
     }
 
     function sendStartGameIfReady() {

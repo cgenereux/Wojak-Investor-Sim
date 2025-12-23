@@ -3140,6 +3140,7 @@ function getCompanyTooltipHandler(context) {
         tooltipEl = document.createElement('div');
         tooltipEl.id = 'chartjs-tooltip-company';
         tooltipEl.style.opacity = 1;
+        tooltipEl.style.display = 'none';
         tooltipEl.style.pointerEvents = 'none';
         tooltipEl.style.position = 'absolute';
         tooltipEl.style.transform = 'translate(-50%, 0)';
@@ -3176,8 +3177,10 @@ function getCompanyTooltipHandler(context) {
     const tooltipModel = context.tooltip;
     if (tooltipModel.opacity === 0) {
         tooltipEl.style.opacity = 0;
+        tooltipEl.style.display = 'none';
         return;
     }
+    tooltipEl.style.display = 'block';
 
     // Set Text
     if (tooltipModel.body) {
@@ -3213,6 +3216,16 @@ function getCompanyTooltipHandler(context) {
     tooltipEl.style.font = bodyFont.string;
     tooltipEl.style.padding = tooltipModel.padding + 'px ' + tooltipModel.padding + 'px';
     tooltipEl.style.pointerEvents = 'none';
+}
+
+function hideChartTooltips() {
+    const ids = ['chartjs-tooltip', 'chartjs-tooltip-company', 'chartjs-tooltip-vc'];
+    ids.forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.style.opacity = 0;
+        el.style.display = 'none';
+    });
 }
 
 function destroyFinancialYoyChart() {
@@ -3624,6 +3637,7 @@ function renderCompanyMeta(company) {
 function showCompanyDetail(company, options = {}) {
     const { skipHistory = false } = options;
     activeCompanyDetail = company;
+    hideChartTooltips();
     bodyEl.classList.remove('vc-active');
     bodyEl.classList.remove('vc-detail-active');
     bodyEl.classList.add('detail-active');
@@ -3694,6 +3708,7 @@ function showCompanyDetail(company, options = {}) {
 
 function hideCompanyDetail(skipHistory = false) {
     activeCompanyDetail = null;
+    hideChartTooltips();
     bodyEl.classList.remove('detail-active');
     if (companyDetailChart) { companyDetailChart.destroy(); companyDetailChart = null; }
     destroyFinancialYoyChart();
@@ -3779,6 +3794,7 @@ function setGameSpeed(speed) {
 
 function openVentureTab(options = {}) {
     const { skipHistory = false } = options;
+    hideChartTooltips();
     bodyEl.classList.add('vc-active');
     bodyEl.classList.remove('detail-active');
     hideCompanyDetail(true);
@@ -3798,6 +3814,7 @@ function openVentureTab(options = {}) {
 
 function closeVentureTab(options = {}) {
     const { skipHistory = false } = options;
+    hideChartTooltips();
     if (typeof hideVentureCompanyDetail === 'function') {
         hideVentureCompanyDetail({ skipHistory: true });
     }
@@ -4692,19 +4709,20 @@ async function init() {
         maybeScheduleBankruptcyTest();
     }
 
-    const getNetWorthTooltipHandler = (context) => {
-        // Tooltip Element
-        let tooltipEl = document.getElementById('chartjs-tooltip');
+	    const getNetWorthTooltipHandler = (context) => {
+	        // Tooltip Element
+	        let tooltipEl = document.getElementById('chartjs-tooltip');
 
         // Create element on first render
-        if (!tooltipEl) {
-            tooltipEl = document.createElement('div');
-            tooltipEl.id = 'chartjs-tooltip';
-            tooltipEl.style.opacity = 1;
-            tooltipEl.style.pointerEvents = 'none';
-            tooltipEl.style.position = 'absolute';
-            tooltipEl.style.transform = 'translate(-50%, 0)';
-            tooltipEl.style.transition = 'all .1s ease';
+	        if (!tooltipEl) {
+	            tooltipEl = document.createElement('div');
+	            tooltipEl.id = 'chartjs-tooltip';
+	            tooltipEl.style.opacity = 1;
+	            tooltipEl.style.display = 'none';
+	            tooltipEl.style.pointerEvents = 'none';
+	            tooltipEl.style.position = 'absolute';
+	            tooltipEl.style.transform = 'translate(-50%, 0)';
+	            tooltipEl.style.transition = 'all .1s ease';
             tooltipEl.style.backgroundColor = '#ffffff';
             tooltipEl.style.borderRadius = '6px';
             tooltipEl.style.color = '#1e293b';
@@ -4733,12 +4751,14 @@ async function init() {
             document.body.appendChild(tooltipEl);
         }
 
-        // Hide if no tooltip
-        const tooltipModel = context.tooltip;
-        if (tooltipModel.opacity === 0) {
-            tooltipEl.style.opacity = 0;
-            return;
-        }
+	        // Hide if no tooltip
+	        const tooltipModel = context.tooltip;
+	        if (tooltipModel.opacity === 0) {
+	            tooltipEl.style.opacity = 0;
+	            tooltipEl.style.display = 'none';
+	            return;
+	        }
+	        tooltipEl.style.display = 'block';
 
         // Set Text (show all players at the hover index)
         if (tooltipModel.body && tooltipModel.dataPoints && tooltipModel.dataPoints.length > 0) {
@@ -4746,10 +4766,11 @@ async function init() {
             const firstPoint = dataPoints[0];
             const ds = context.chart.data.datasets?.[firstPoint.datasetIndex];
             const point = ds && Array.isArray(ds.data) ? ds.data[firstPoint.dataIndex] : null;
-            if (!point || typeof point.x === 'undefined') {
-                tooltipEl.style.opacity = 0;
-                return;
-            }
+	            if (!point || typeof point.x === 'undefined') {
+	                tooltipEl.style.opacity = 0;
+	                tooltipEl.style.display = 'none';
+	                return;
+	            }
             const date = new Date(point.x);
             const dateStr = date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 

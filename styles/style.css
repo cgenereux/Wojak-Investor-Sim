@@ -3799,6 +3799,57 @@ button.speed-active:hover {
     #multiplayerModal.mp-state-join #joinPartyBtn {
         grid-column: 2;
     }
+
+    #multiplayerModal .character-overlay {
+        padding: 12px;
+        gap: 10px;
+        justify-content: flex-start;
+        overflow: hidden;
+    }
+
+    #multiplayerModal .character-overlay-header h3 {
+        font-size: 16px;
+        margin-bottom: 4px;
+    }
+
+    #multiplayerModal .character-overlay-header p {
+        font-size: 13px;
+    }
+
+    #multiplayerModal .character-option-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    #multiplayerModal .character-option {
+        padding: 10px 10px 8px;
+        gap: 6px;
+        min-width: 0;
+    }
+
+    #multiplayerModal .character-art {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1 / 1;
+        max-width: 96px;
+        border-radius: 10px;
+    }
+
+    #multiplayerModal .character-overlay-actions button {
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+
+    #multiplayerModal .character-overlay-actions {
+        margin-top: auto;
+        padding-top: 10px;
+    }
+
+    #multiplayerModal.character-overlay-open .banking-panel {
+        height: auto;
+        max-height: 92vh;
+        overflow-y: auto;
+    }
 }
 
 @media (max-width: 320px) {
