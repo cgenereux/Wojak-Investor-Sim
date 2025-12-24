@@ -1359,6 +1359,42 @@ function applyTick(tick) {
 
     // Handle Venture Updates
     if (tick.venture && tick.venture.companies) {
+        const ensureVentureInstanceForUpdate = (vUpdate) => {
+            if (!vUpdate || !vUpdate.id) return null;
+            if (!ventureSim || typeof ventureSim.getCompanyById !== 'function') return null;
+            const existing = ventureSim.getCompanyById(vUpdate.id);
+            if (existing) return existing;
+
+            const vcModule = window.VentureEngineModule || {};
+            const VCompanyCtor = vcModule.VentureCompany;
+            if (typeof VCompanyCtor !== 'function') return null;
+
+            const startDate = tick.lastTick ? new Date(tick.lastTick) : (currentDate instanceof Date ? currentDate : new Date());
+            const cfg = {
+                id: vUpdate.id,
+                name: vUpdate.name,
+                sector: vUpdate.sector,
+                subsector: vUpdate.subsector || null,
+                founders: Array.isArray(vUpdate.founders) ? vUpdate.founders : [],
+                mission: vUpdate.mission || '',
+                founding_location: vUpdate.founding_location || vUpdate.foundingLocation || '',
+                valuation_usd: typeof vUpdate.valuation === 'number' ? vUpdate.valuation : undefined,
+                funding_round: vUpdate.funding_round || vUpdate.stageLabel || 'seed'
+            };
+            const vc = new VCompanyCtor(cfg, startDate, matchRngFn || Math.random);
+            if (typeof vc.syncFromSnapshot === 'function') {
+                vc.syncFromSnapshot(vUpdate);
+            } else {
+                Object.assign(vc, vUpdate);
+                if (typeof vUpdate.valuation === 'number') {
+                    vc.currentValuation = vUpdate.valuation;
+                }
+            }
+            if (!Array.isArray(ventureSim.companies)) ventureSim.companies = [];
+            ventureSim.companies.push(vc);
+            return vc;
+        };
+
         // Merge venture updates
         tick.venture.companies.forEach(vUpdate => {
             // Update the config array (for re-init if needed)
@@ -1370,8 +1406,8 @@ function applyTick(tick) {
             }
 
             // Update the live simulation instance if it exists
-            if (ventureSim) {
-                const instance = ventureSim.getCompanyById(vUpdate.id);
+            if (ventureSim && typeof ventureSim.getCompanyById === 'function') {
+                const instance = ensureVentureInstanceForUpdate(vUpdate);
                 if (instance) {
                     if (typeof instance.syncFromSnapshot === 'function') {
                         instance.syncFromSnapshot(vUpdate);
