@@ -52,6 +52,17 @@ app.register(require('@fastify/cors'), {
   allowedHeaders: ['Content-Type']
 });
 
+// Local-only helper routes for text-mode benchmarking/log export.
+// Enable explicitly to avoid shipping any benchmark helpers in production:
+// `WOJAK_TEXTMODE=1 npm start`
+if (process.env.WOJAK_TEXTMODE === '1') {
+  try {
+    app.register(require('./textmodeRoutes'));
+  } catch (err) {
+    // Best-effort only; the main game server should still run.
+  }
+}
+
 function getClientIp(req) {
   const xfwd = req && req.headers && (req.headers['x-forwarded-for'] || req.headers['X-Forwarded-For']);
   if (typeof xfwd === 'string' && xfwd.trim()) {
