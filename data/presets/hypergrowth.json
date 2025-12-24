@@ -257,7 +257,7 @@
     "hypergrowth_initial_margin": [-1, -0.15],
     "hypergrowth_terminal_margin": [0.15, 0.22],
     "post_gate_multiple_decay_years": [5, 9],
-    "pmf_loss_prob_per_year": 0.5,
+    "pmf_loss_prob_per_year": 0.05,
     "pmf_decline_rate_range": [-0.4, -0.25],
     "pmf_decline_duration_years": [2, 3],
     "pmf_terminal_margin_range": [-0.45, -0.15],
