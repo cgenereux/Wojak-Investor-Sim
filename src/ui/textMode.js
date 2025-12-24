@@ -1,6 +1,6 @@
 (function () {
     // Local-only text benchmark mode. Toggle locally by setting this to true.
-    const ENABLE_TEXT_MODE = true;
+    const ENABLE_TEXT_MODE = false;
     // When a new yearly snapshot is produced, replace the output box instead of appending forever.
     const CLEAR_OUTPUT_ON_SNAPSHOT = true;
     // Optional: when available, POST the run log to a local server to be written into `runs/`.
