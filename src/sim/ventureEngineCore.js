@@ -1896,18 +1896,22 @@
       const denom = Math.max(1e-3, macroFactor * Math.max(this.micro || 1, 0.05) * Math.max(this.revMult || 1, 0.05));
       const pipelineSignal = (unlockedPV + optionPV) / Math.max(ps, 1);
       const normalizedBase = (revenueSnapshot + pipelineSignal + (this.flatRev || 0)) / denom;
+      const normalizedSnapshotBase = (revenueSnapshot + (this.flatRev || 0)) / denom;
 
       // For early PMF decline companies, don't pump revenue - keep it at current declining level
       if (this.pmfPublicDecline) {
-        this.pmfIpoRevenue = this.revenue || 1; // Save for decline reference
-        this.baseRevenue = this.revenue || 1;
-        // Don't do the Math.max pump
+        // Save effective annual revenue for decline reference, but keep baseRevenue
+        // in pre-macro units so we don't multiply it by the sector index.
+        this.pmfIpoRevenue = Math.max(1, this.revenue || revenueSnapshot || 1);
+        this.baseRevenue = Math.max(1, normalizedSnapshotBase);
+        this.revenue = Math.max(1, revenueSnapshot);
       } else if (hadEarlyPmf) {
         // If the company was hit by early-stage PMF loss at any point, clamp
         // the IPO-era baseRevenue to the current run-rate instead of a
         // back-solved higher level from valuation / pipeline.
-        this.baseRevenue = Math.max(1, this.revenue || revenueSnapshot);
-        // Do not raise revenue above the current PMF-damaged path.
+        // baseRevenue is *pre-macro*; normalize so post-IPO revenue stays continuous.
+        this.baseRevenue = Math.max(1, normalizedSnapshotBase);
+        this.revenue = Math.max(1, revenueSnapshot);
       } else {
         this.baseRevenue = Math.max(1, normalizedBase);
         // Preserve the stronger of existing revenue or the snapshot so we don't zero out growth on IPO.
