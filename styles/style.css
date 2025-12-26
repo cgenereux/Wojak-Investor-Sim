@@ -68,12 +68,19 @@ body.vc-active #main-view {
 }
 
 body.detail-active #main-view {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
     transform: translateX(-100%);
     opacity: 0;
     visibility: hidden;
 }
 
 body.detail-active #detail-view {
+    position: relative;
+    top: auto;
+    left: auto;
     transform: translateX(0);
     opacity: 1;
     visibility: visible;
@@ -91,12 +98,19 @@ body.detail-active #detail-view {
 }
 
 body.vc-active.vc-detail-active #vc-detail-view {
+    position: relative;
+    top: auto;
+    left: auto;
     transform: translateX(0);
     opacity: 1;
     visibility: visible;
 }
 
 body.vc-active.vc-detail-active #main-view {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
     transform: translateX(-100%);
     opacity: 0;
     visibility: hidden;
