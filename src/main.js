@@ -116,7 +116,7 @@ if (typeof window !== 'undefined' && window.innerWidth <= 768) {
 const DEFAULT_WOJAK_SRC = 'wojaks/wojak.png';
 const MALDING_WOJAK_SRC = 'wojaks/malding-wojak.png';
 const HAPPY_WOJAK_SRC = 'wojaks/happywojak.png';
-const WOJAK_SIM_VERSION_SHORT = '0.2.0';
+const WOJAK_SIM_VERSION_SHORT = '0.2.1';
 const WOJAK_SIM_VERSION = `wojaksim-v${WOJAK_SIM_VERSION_SHORT}`;
 const COMMUNITY_MESSAGE =
     "Hello my Wojaks! Thank you for playing. I hope you like version 0.2. Please write me with the feedback button if you have any comments, questions, or thoughts.";
@@ -2262,7 +2262,7 @@ function updateMacroEventsDisplay(serverEvents = null) {
                 return (Math.round(pct * 10) / 10).toString().replace(/\\.0$/, '');
             };
             if (isBackToDefault) {
-                showToast(`Interest rates have been reverted to the default rate (${fmtPct(ANNUAL_INTEREST_RATE)}%).`, { tone: 'macro-neutral', duration: 8000 });
+                showToast(`Interest rates have been reverted to ${fmtPct(ANNUAL_INTEREST_RATE)}%.`, { tone: 'macro-neutral', duration: 8000 });
             } else {
                 const pct = annualRate * 100;
                 const pctLabel = (Math.round(pct * 10) / 10).toString().replace(/\\.0$/, '');
