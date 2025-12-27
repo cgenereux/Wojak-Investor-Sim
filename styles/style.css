@@ -25,7 +25,6 @@
 html {
     /* Never scale above desktop; gently shrink for small screens */
     font-size: clamp(12px, 2.222vw, 16px);
-    overflow-x: hidden;
 }
 
 body {
