@@ -51,8 +51,64 @@
     ]
   },
   {
+    "id": "ai_takeover",
+    "label": "Warning: AI Takeover",
+    "chance": 0.0,
+    "start_year_range": [2025, 2046],
+    "impact_days_range": [1400, 1700],
+    "recovery_days_range": [500, 800],
+    "global_multiplier_range": [0.72, 0.86],
+    "valuation_compression_range": [0.5, 0.75],
+    "sector_impacts": [
+      { "sector": "Technology", "min_multiplier": [0.85, 0.98] },
+      { "sector": "Finance", "min_multiplier": [0.55, 0.75] },
+      { "sector": "Retail", "min_multiplier": [0.55, 0.7] },
+      { "sector": "Industrial", "min_multiplier": [0.6, 0.8] },
+      { "sector": "Healthcare", "min_multiplier": [0.8, 0.95] },
+      { "sector": "Energy", "min_multiplier": [0.75, 0.9] }
+    ],
+    "effects": [
+      { "type": "macro_mu_delta", "value": -0.04 },
+      { "type": "volatility_multiplier", "multiplier": 1.7 },
+      { "type": "interest_rate_shift", "delta_range": [0.005, 0.015] }
+    ],
+    "polarity": "negative",
+    "descriptions": [
+      "Superintelligent AI has lost c.",
+      "AI systems rapidly replace large parts of the white-collar economy; markets reprice risk overnight."
+    ]
+  },
+  {
+    "id": "great_depression",
+    "label": "Warning: Great Depression",
+    "chance": 0.0,
+    "start_year_range": [1990, 2043],
+    "impact_days_range": [1500, 1900],
+    "recovery_days_range": [450, 750],
+    "global_multiplier_range": [0.45, 0.65],
+    "valuation_compression_range": [0.25, 0.45],
+    "sector_impacts": [
+      { "sector": "Finance", "min_multiplier": [0.25, 0.45] },
+      { "sector": "Retail", "min_multiplier": [0.35, 0.55] },
+      { "sector": "Technology", "min_multiplier": [0.5, 0.7] },
+      { "sector": "Industrial", "min_multiplier": [0.4, 0.6] },
+      { "sector": "Energy", "min_multiplier": [0.55, 0.75] },
+      { "sector": "Healthcare", "min_multiplier": [0.7, 0.85] }
+    ],
+    "effects": [
+      { "type": "macro_mu_delta", "value": -0.08 },
+      { "type": "volatility_multiplier", "multiplier": 2.4 },
+      { "type": "interest_rate_annual", "values": [0.12, 0.14] }
+    ],
+    "polarity": "negative",
+    "descriptions": [
+      "Credit markets freeze as bank failures ripple through the economy; valuations and revenues collapse.",
+      "A deep, multi-year depression sets in: unemployment spikes, defaults surge, and markets unwind brutally."
+    ]
+  },
+  {
     "id": "rate_shock_hike",
-    "label": "Warning: Rate Shock (Hiking Cycle)",
+    "label": "Warning: Rate Hike",
     "chance": 0.6,
     "start_year_range": [1990, 2048],
     "impact_days_range": [1000, 1200],
@@ -66,13 +122,13 @@
     ],
     "polarity": "negative",
     "descriptions": [
-      "Central banks hike aggressively to {rate} to fight inflation; borrowing costs surge.",
-      "Rates spike into double digits ({rate}), squeezing valuations and demand."
+      "Central banks hike interest rates to {rate} to fight inflation; borrowing costs rise.",
+      "Rates spike to ({rate}), squeezing valuations and demand."
     ]
   },
   {
     "id": "rate_shock_cut",
-    "label": "Boost: Rate Shock (Cutting Cycle)",
+    "label": "Boost: Rate Cut",
     "chance": 0.55,
     "start_year_range": [1990, 2048],
     "impact_days": 900,
@@ -87,8 +143,8 @@
     ],
     "polarity": "positive",
     "descriptions": [
-      "Rates are slashed to {rate} in a growth push; credit gets cheap and risk appetite returns.",
-      "A dovish pivot cuts rates to {rate}, driving a multi-year expansion and higher multiples."
+      "Rates are cut to {rate} in a growth push.",
+      "A dovish pivot cuts rates to {rate}."
     ]
   }
 ]

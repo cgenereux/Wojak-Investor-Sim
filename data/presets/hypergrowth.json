@@ -14,7 +14,8 @@
       ],
       "mission": "Empowering anyone to buy and sell online through the power of auctions.",
       "founding_location": "San Francisco, CA",
-      "private_listing_window": { "from": 2000, "to": 2009 }
+      "private_listing_window": { "from": 2000, "to": 2009 },
+      "initial_revenue_usd": [10000000, 40000000]
     },
     {
       "name": "CyberWorks",
@@ -30,7 +31,8 @@
       ],
       "mission": "Securing electronic commerce in the Internet age.",
       "founding_location": "Palo Alto, CA",
-      "private_listing_window": { "from": 2005, "to": 2017 }
+      "private_listing_window": { "from": 2005, "to": 2017 },
+      "initial_revenue_usd": [10000000, 100000000]
     },
     {
       "name": "StreamCast",
@@ -46,7 +48,8 @@
       ],
       "mission": "Live broadcasting for the Internet age.",
       "founding_location": "San Francisco, CA",
-      "private_listing_window": { "from": 1996, "to": 2013 }
+      "private_listing_window": { "from": 1996, "to": 2013 },
+      "initial_revenue_usd": [10000000, 100000000]
     },
 
 
@@ -64,7 +67,8 @@
       ],
       "mission": "Delivering anything in your city in under an hour through a flexible courier network.",
       "founding_location": "San Francisco, CA",
-      "private_listing_window": { "from": 2011, "to": 2019 }
+      "private_listing_window": { "from": 2011, "to": 2019 },
+      "initial_revenue_usd": [30000000, 200000000]
     },
 
     {
@@ -81,7 +85,8 @@
       ],
       "mission": "Making city transportation instant and affordable through a flexible driver network.",
       "founding_location": "San Francisco, CA",
-      "private_listing_window": { "from": 2011, "to": 2019 }
+      "private_listing_window": { "from": 2011, "to": 2019 },
+      "initial_revenue_usd": [30000000, 200000000]
     },
 
     {
@@ -98,24 +103,8 @@
       ],
       "mission": "Connecting local restaurants to hungry customers with ultra fast delivery and smart batching.",
       "founding_location": "San Jose, CA",
-      "private_listing_window": { "from": 2008, "to": 2017 }
-    },
-
-    {
-      "name": "Circle",
-      "sector": "Technology",
-      "subsector": "Web Technology",
-      "funding_round": "Seed",
-      "risk_to_reward": "high",
-      "ipo_stage": "series_f",
-      "gate_stage": "series_c",
-      "founders": [
-        { "name": "Joseph Smith", "degree": "BSc Computer Science", "school": "Harvard" },
-        { "name": "Ryan Johnson", "degree": "BSc Economics", "school": "Harvard" }
-      ],
-      "mission": "Connecting people with their real world social networks online.",
-      "founding_location": "Boston, MA",
-      "private_listing_window": { "from": 2000, "to": 2012 }
+      "private_listing_window": { "from": 2008, "to": 2017 },
+      "initial_revenue_usd": [30000000, 200000000]
     },
     {
       "name": "PayBud",
@@ -131,7 +120,25 @@
       "mission": "Making sending money as easy as sending an email.",
       "founding_location": "Palo Alto, CA",
       "risk_to_reward": "medium",
-      "private_listing_window": { "from": 1993, "to": 2007 }
+      "private_listing_window": { "from": 1993, "to": 2007 },
+      "initial_revenue_usd": [3000000, 20000000]
+    },
+    {
+      "name": "Circle",
+      "sector": "Technology",
+      "subsector": "Web Technology",
+      "funding_round": "Seed",
+      "risk_to_reward": "high",
+      "ipo_stage": "series_f",
+      "gate_stage": "series_c",
+      "founders": [
+        { "name": "Joseph Smith", "degree": "BSc Computer Science", "school": "Harvard" },
+        { "name": "Ryan Johnson", "degree": "BSc Economics", "school": "Harvard" }
+      ],
+      "mission": "Connecting people with their real world social networks online.",
+      "founding_location": "Boston, MA",
+      "private_listing_window": { "from": 2000, "to": 2012 },
+      "initial_revenue_usd": [10000000, 100000000]
     },
     {
       "name": "Greenery",
@@ -147,7 +154,8 @@
       "mission": "Democratizing finance with commission free stock trading for everyone.",
       "founding_location": "Palo Alto, CA",
       "risk_to_reward": "high",
-      "private_listing_window": { "from": 2008, "to": 2015 }
+      "private_listing_window": { "from": 2008, "to": 2015 },
+      "initial_revenue_usd": [10000000, 100000000]
     },
     {
       "name": "LockedIn",
@@ -163,7 +171,8 @@
       ],
       "mission": "A social network for your next job.",
       "founding_location": "Mountain View, CA",
-      "private_listing_window": { "from": 2004, "to": 2017 }
+      "private_listing_window": { "from": 2004, "to": 2017 },
+      "initial_revenue_usd": [10000000, 100000000]
     },
 
     {
@@ -180,7 +189,8 @@
       ],
       "mission": "A decentralized world computer that anyone can program.",
       "founding_location": "Toronto, Canada",
-      "private_listing_window": { "from": 2016, "to": 2024 }
+      "private_listing_window": { "from": 2016, "to": 2024 },
+      "initial_revenue_usd": [10000000, 100000000]
     },
     {
       "name": "Omen Ontologies",
@@ -191,12 +201,13 @@
       "gate_stage": "series_c",
       "risk_to_reward": "high",
       "founders": [
-        { "name": "Christina Cheng", "degree": "Dropout", "school": "Stanford" },
+        { "name": "Christina Cheng", "degree": "Dropout", "school": "MIT" },
         { "name": "Rob Ager", "degree": "MS Computer Science", "school": "MIT" }
       ],
       "mission": "Applying AI for enterprise data analytics and services.",
       "founding_location": "San Francisco, CA",
-      "private_listing_window": { "from": 2023, "to": 2029 }
+      "private_listing_window": { "from": 2023, "to": 2029 },
+      "initial_revenue_usd": [100000000, 1000000000]
     },
     {
       "name": "Rapid",
@@ -210,9 +221,10 @@
         { "name": "Christina Cheng", "degree": "Dropout", "school": "Stanford" },
         { "name": "Rob Ager", "degree": "MS Computer Science", "school": "MIT" }
       ],
-      "mission": "Creating an AI coding IDE.",
+      "mission": "An AI-native coding IDE that helps you ship faster.",
       "founding_location": "San Francisco, CA",
-      "private_listing_window": { "from": 2023, "to": 2029 }
+      "private_listing_window": { "from": 2023, "to": 2029 },
+      "initial_revenue_usd": [5000000, 20000000]
     },
     {
       "name": "Aegis Systems",
@@ -227,7 +239,8 @@
       ],
       "mission": "Rebuilding the arsenal of democracy with software-defined autonomous systems.",
       "founding_location": "Costa Mesa, CA",
-      "private_listing_window": { "from": 2026, "to": 2032 }
+      "private_listing_window": { "from": 2026, "to": 2032 },
+      "initial_revenue_usd": [100000000, 1000000000]
     },
     {
       "name": "TerraForm",
@@ -243,7 +256,8 @@
       ],
       "mission": "Reversing climate change by turning atmospheric CO2 into useful fuel.",
       "founding_location": "Squamish, BC",
-      "private_listing_window": { "from": 2029, "to": 2036 }
+      "private_listing_window": { "from": 2029, "to": 2036 },
+      "initial_revenue_usd": [100000000, 1000000000]
     }
 
   ],

@@ -287,6 +287,7 @@ function createPlayer(id) {
     character: 'wojak',
     dripEnabled: false,
     holdings: {}, // companyId -> units
+    publicCashInvested: {}, // companyId -> cost basis
     ventureHoldings: {}, // ventureId -> equity percent
     ventureCommitments: {}, // ventureId -> committed cash
     ventureCashInvested: {}, // ventureId -> total invested cash
@@ -342,7 +343,7 @@ async function buildMatch(seed = Date.now()) {
     ...await Presets.generatePrivateHardTechCompanies(null, presetOpts)
   ];
   const sim = new Simulation(pubs, { seed, rng: rngFn, macroEvents: macroEvents || [], startYear: GAME_START_YEAR });
-  const ventureSim = new VentureSimulation(ventures, sim.lastTick, { seed, rng: rngFn });
+  const ventureSim = new VentureSimulation(ventures, sim.lastTick, { seed, rng: rngFn, macroEventManager: sim.macroEventManager });
   sim._ventureSim = ventureSim;
   return {
     seed,
@@ -697,6 +698,7 @@ function serializePlayer(player, sim) {
     ventureCommitmentsValue: commitments,
     netWorth,
     holdings,
+    publicCashInvested: player.publicCashInvested || {},
     dripEnabled: !!player.dripEnabled,
     bankrupt,
     ventureHoldings: player.ventureHoldings || {},
@@ -929,6 +931,12 @@ function handleVentureEventsSession(session, events) {
           const pct = Math.max(directPct, mapPct);
           if (pct > 0) {
             p.holdings[ventureCompany.id] = (p.holdings[ventureCompany.id] || 0) + pct;
+            const invested = p.ventureCashInvested ? (Number(p.ventureCashInvested[evt.companyId]) || 0) : 0;
+            if (invested > 0) {
+              p.publicCashInvested = p.publicCashInvested || {};
+              p.publicCashInvested[ventureCompany.id] = (p.publicCashInvested[ventureCompany.id] || 0) + invested;
+              delete p.ventureCashInvested[evt.companyId];
+            }
             delete p.ventureHoldings[evt.companyId];
             delete p.ventureCommitments[evt.companyId];
           }
@@ -1165,13 +1173,27 @@ function handleCommand(session, player, msg) {
     if (!company || company.marketCap <= 0) {
       return { ok: false, error: 'unknown_company' };
     }
-    if (player.cash < amount) {
+    const ownedUnits = player.holdings[companyId] || 0;
+    const remainingUnits = 1 - ownedUnits;
+    if (remainingUnits <= 1e-12) {
+      return { ok: false, error: 'max_ownership' };
+    }
+    const maxSpend = remainingUnits * company.marketCap;
+    const desiredSpend = Math.min(amount, maxSpend);
+    if (desiredSpend <= 0) {
+      return { ok: false, error: 'max_ownership' };
+    }
+    if (player.cash < desiredSpend) {
       return { ok: false, error: 'insufficient_cash' };
     }
-    const units = amount / company.marketCap;
-    player.cash -= amount;
-    player.holdings[companyId] = (player.holdings[companyId] || 0) + units;
-    return { ok: true, type: 'buy', companyId, amount, units };
+    const nextUnits = Math.min(1, ownedUnits + (desiredSpend / company.marketCap));
+    const units = Math.max(0, nextUnits - ownedUnits);
+    const spend = units * company.marketCap;
+    player.cash -= spend;
+    player.holdings[companyId] = nextUnits;
+    player.publicCashInvested[companyId] = (player.publicCashInvested[companyId] || 0) + spend;
+    const capped = spend + 1e-6 < amount;
+    return { ok: true, type: 'buy', companyId, amount: spend, units, capped };
   }
   if (type === 'sell') {
     const { companyId, amount } = msg;
@@ -1191,8 +1213,18 @@ function handleCommand(session, player, msg) {
       return { ok: false, error: 'amount_exceeds_position' };
     }
     const unitsToSell = amount / company.marketCap;
+    const costBasis = Number(player.publicCashInvested ? player.publicCashInvested[companyId] : 0) || 0;
+    let nextCostBasis = costBasis;
+    if (costBasis > 0 && unitsOwned > 0) {
+      nextCostBasis = Math.max(0, costBasis - (unitsToSell / unitsOwned) * costBasis);
+    }
     player.holdings[companyId] = Math.max(0, unitsOwned - unitsToSell);
-    if (player.holdings[companyId] <= 1e-15) delete player.holdings[companyId];
+    if (player.holdings[companyId] <= 1e-15) {
+      delete player.holdings[companyId];
+      if (player.publicCashInvested) delete player.publicCashInvested[companyId];
+    } else if (player.publicCashInvested) {
+      player.publicCashInvested[companyId] = nextCostBasis;
+    }
     player.cash += amount;
     return { ok: true, type: 'sell', companyId, amount, units: unitsToSell };
   }
@@ -1226,6 +1258,7 @@ function handleCommand(session, player, msg) {
     player.cash = 0;
     player.debt = 0;
     player.holdings = {};
+    player.publicCashInvested = {};
     player.ventureHoldings = {};
     player.ventureCommitments = {};
     player.ventureCashInvested = {};

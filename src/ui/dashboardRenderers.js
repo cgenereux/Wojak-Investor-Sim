@@ -328,66 +328,92 @@
       emptyPortfolioMsg.style.display = 'block';
       return;
     }
-    emptyPortfolioMsg.style.display = 'none';
+	    emptyPortfolioMsg.style.display = 'none';
 
-    const rows = [];
+	    const rows = [];
+	    const formatReturnPct = (pct) => {
+	      if (!Number.isFinite(pct)) return '';
+	      const sign = pct >= 0 ? '+' : '-';
+	      const abs = Math.abs(pct);
+	      const formatted = abs.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+	      return `(${sign}${formatted}%)`;
+	    };
 
-    portfolio.forEach(holding => {
-      const company = companies.find(c => c.name === holding.companyName);
-      if (!company) return;
-      const isBankrupt = !!company.bankrupt;
+	    portfolio.forEach(holding => {
+	      const company = companies.find(c => c.name === holding.companyName);
+	      if (!company) return;
+	      const isBankrupt = !!company.bankrupt;
       const sectorClass = getSectorClass(company.sector);
       const subsectorClass = getSubsectorClass(company.subsector);
-      const units = Number(holding.unitsOwned) || 0;
-      const cap = Number(company.marketCap) || 0;
-      const currentValue = isBankrupt ? 0 : cap * units;
-      const formattedValue = currencyFormatter.format(currentValue);
-      const key = `public:${holding.companyName}`;
-      const bankruptClass = isBankrupt ? ' bankrupt' : '';
-      const companyNameDisplay = isBankrupt ? `${holding.companyName} (Failed)` : holding.companyName;
+	      const units = Number(holding.unitsOwned) || 0;
+	      const cap = Number(company.marketCap) || 0;
+	      const currentValue = isBankrupt ? 0 : cap * units;
+	      const costBasis = Number(holding.costBasis) || 0;
+	      const returnPct = (costBasis > 0) ? ((currentValue - costBasis) / costBasis) * 100 : null;
+	      const returnLabel = returnPct == null ? '' : formatReturnPct(returnPct);
+	      const returnClass = returnPct != null && returnPct >= 0 ? 'positive' : 'negative';
+	      const formattedValue = currencyFormatter.format(currentValue);
+	      const key = `public:${holding.companyName}`;
+	      const bankruptClass = isBankrupt ? ' bankrupt' : '';
+	      const companyNameDisplay = isBankrupt ? `${holding.companyName} (Failed)` : holding.companyName;
       const statusLabel = isBankrupt ? 'Status: Bankrupt' : '';
       const sectorDisplay = isBankrupt ? '' : (company.subsector || company.sector || '');
       const ipoYear = (!isBankrupt && company.ipoDate) ? new Date(company.ipoDate).getFullYear() : null;
 
-      rows.push({
-        sortValue: currentValue,
-        html: `
-          <div class="portfolio-item${sectorClass ? ` ${sectorClass}` : ''}${subsectorClass ? ` ${subsectorClass}` : ''}${bankruptClass}" data-portfolio-type="public" data-portfolio-key="${key}" data-company-name="${holding.companyName}">
-              ${ipoYear ? `<div class="portfolio-ipo-badge">${ipoYear}</div>` : ''}
-              <div class="company-name">${companyNameDisplay}</div>
-              <div class="portfolio-info">
-                  <span class="portfolio-status" style="display:${isBankrupt ? 'block' : 'none'}">${statusLabel}</span>
-                  Value: <span class="portfolio-value">${formattedValue}</span>
-                  <div class="portfolio-sector" style="display:${isBankrupt ? 'none' : 'block'}">${sectorDisplay}</div>
-              </div>
-          </div>
-        `
-      });
-    });
+	      rows.push({
+	        sortValue: currentValue,
+	        html: `
+	          <div class="portfolio-item${sectorClass ? ` ${sectorClass}` : ''}${subsectorClass ? ` ${subsectorClass}` : ''}${bankruptClass}" data-portfolio-type="public" data-portfolio-key="${key}" data-company-name="${holding.companyName}">
+	              ${ipoYear ? `<div class="portfolio-ipo-badge">${ipoYear}</div>` : ''}
+	              <div class="company-name">${companyNameDisplay}</div>
+	              <div class="portfolio-info">
+	                  <span class="portfolio-status" style="display:${isBankrupt ? 'block' : 'none'}">${statusLabel}</span>
+	                  Value: <span class="portfolio-value">${formattedValue}</span>
+	                  <div class="portfolio-meta-row" style="display:${isBankrupt ? 'none' : 'flex'}">
+	                      <span class="portfolio-sector">${sectorDisplay}</span>
+	                      ${returnLabel ? `<span class="portfolio-return ${returnClass}">${returnLabel}</span>` : ''}
+	                  </div>
+	              </div>
+	          </div>
+	        `
+	      });
+	    });
 
-    ventureSummaries.forEach(summary => {
-      if (!summary || !ventureSim) return;
-      const detail = ventureSim.getCompanyDetail(summary.id);
-      if (!detail) return;
+	    ventureSummaries.forEach(summary => {
+	      if (!summary || !ventureSim) return;
+	      const detail = ventureSim.getCompanyDetail(summary.id);
+	      if (!detail) return;
       const valuation = Number.isFinite(detail?.valuation)
         ? detail.valuation
         : (Number.isFinite(summary?.valuation) ? summary.valuation : 0);
-      const equityFraction = pickPlayerEquityFraction(detail, summary.id);
-      const pendingCommitment = pickPlayerPendingCommitment(detail, summary.id);
-      const hasEquity = equityFraction > 0;
-      const hasPending = pendingCommitment > 0;
-      const isFailed = (detail.status || '').toLowerCase() === 'failed'
-        || (summary.status || '').toLowerCase() === 'failed';
-      const wasBankruptcyVictim = isFailed
-        && detail.bankruptcyAffectedPlayers
+	      const equityFraction = pickPlayerEquityFraction(detail, summary.id);
+	      const pendingCommitment = pickPlayerPendingCommitment(detail, summary.id);
+	      const hasEquity = equityFraction > 0;
+	      const hasPending = pendingCommitment > 0;
+	      const investedBasis = (() => {
+	        if (isMpAuthoritative && serverPlayer && serverPlayer.ventureCashInvested && Number.isFinite(serverPlayer.ventureCashInvested[summary.id])) {
+	          return Number(serverPlayer.ventureCashInvested[summary.id]) || 0;
+	        }
+	        if (!isMpAuthoritative && Number.isFinite(detail.playerInvested)) {
+	          return Number(detail.playerInvested) || 0;
+	        }
+	        return 0;
+	      })();
+	      const isFailed = (detail.status || '').toLowerCase() === 'failed'
+	        || (summary.status || '').toLowerCase() === 'failed';
+	      const wasBankruptcyVictim = isFailed
+	        && detail.bankruptcyAffectedPlayers
         && activePlayerId
         && detail.bankruptcyAffectedPlayers[activePlayerId];
       if (!hasEquity && !hasPending && !wasBankruptcyVictim) return;
 
-      const equityValue = hasEquity ? equityFraction * valuation : 0;
-      const pendingValue = hasPending ? pendingCommitment : 0;
-      const stageLabel = detail.stageLabel || summary.stageLabel || 'Private';
-      const sectorClass = getSectorClass(detail.sector || summary.sector);
+	      const equityValue = hasEquity ? equityFraction * valuation : 0;
+	      const returnPct = (investedBasis > 0 && (hasEquity || isFailed)) ? ((equityValue - investedBasis) / investedBasis) * 100 : null;
+	      const returnLabel = returnPct == null ? '' : formatReturnPct(returnPct);
+	      const returnClass = returnPct != null && returnPct >= 0 ? 'positive' : 'negative';
+	      const pendingValue = hasPending ? pendingCommitment : 0;
+	      const stageLabel = detail.stageLabel || summary.stageLabel || 'Private';
+	      const sectorClass = getSectorClass(detail.sector || summary.sector);
       const subsectorClass = getSubsectorClass(detail.subsector || summary.subsector);
       const bankruptClass = isFailed ? ' bankrupt' : '';
       const statusLabel = isFailed ? 'Status: Bankrupt' : '';
@@ -398,32 +424,35 @@
         const equityFormatted = isFailed
           ? currencyFormatter.format(0)
           : (hasEquity ? currencyFormatter.format(equityValue) : '');
-        const stakeLabel = isFailed
-          ? ''
-          : (hasEquity
-            ? `${playerEquityPct.toFixed(2)}% stake`
-            : (wasBankruptcyVictim ? 'Investment failed' : 'Stake pending'));
-        const valueRowDisplay = (hasEquity || wasBankruptcyVictim || isFailed) ? 'block' : 'none';
-        const stakeDisplay = isFailed ? 'none' : 'block';
-        const nameLabel = isFailed ? `${summary.name} (Failed)` : `${summary.name} (${stageLabel})`;
+	        const stakeLabel = isFailed
+	          ? ''
+	          : (hasEquity
+	            ? `${playerEquityPct.toFixed(2)}% stake`
+	            : (wasBankruptcyVictim ? 'Investment failed' : 'Stake pending'));
+	        const valueRowDisplay = (hasEquity || wasBankruptcyVictim || isFailed) ? 'block' : 'none';
+	        const stakeDisplay = isFailed ? 'none' : 'block';
+	        const nameLabel = isFailed ? `${summary.name} (Failed)` : `${summary.name} (${stageLabel})`;
 
-        rows.push({
-          sortValue: isFailed ? 0 : equityValue,
-          html: `
-            <div class="portfolio-item${sectorClass ? ` ${sectorClass}` : ''}${subsectorClass ? ` ${subsectorClass}` : ''}${bankruptClass}" data-portfolio-type="private" data-venture-id="${summary.id}" data-portfolio-key="${mainKey}">
-                <div class="company-name">${nameLabel}</div>
-                <div class="portfolio-info">
-                    <span class="portfolio-status" style="display:${isFailed ? 'block' : 'none'}">${statusLabel}</span>
-                    <div class="portfolio-value-row" style="display:${valueRowDisplay}">
-                        Value: <span class="portfolio-value">${equityFormatted}</span>
-                    </div>
-                    <span class="portfolio-stake" style="display:${stakeDisplay}">${stakeLabel}</span>
-                    <span class="portfolio-pending" style="display:none"></span>
-                </div>
-            </div>
-          `
-        });
-      }
+	        rows.push({
+	          sortValue: isFailed ? 0 : equityValue,
+	          html: `
+	            <div class="portfolio-item${sectorClass ? ` ${sectorClass}` : ''}${subsectorClass ? ` ${subsectorClass}` : ''}${bankruptClass}" data-portfolio-type="private" data-venture-id="${summary.id}" data-portfolio-key="${mainKey}">
+	                <div class="company-name">${nameLabel}</div>
+	                <div class="portfolio-info">
+	                    <span class="portfolio-status" style="display:${isFailed ? 'block' : 'none'}">${statusLabel}</span>
+	                    <div class="portfolio-value-row" style="display:${valueRowDisplay}">
+	                        Value: <span class="portfolio-value">${equityFormatted}</span>
+	                    </div>
+	                    <div class="portfolio-stake-row" style="display:${stakeDisplay}">
+	                        <span class="portfolio-stake">${stakeLabel}</span>
+	                        ${returnLabel ? `<span class="portfolio-return ${returnClass}">${returnLabel}</span>` : ''}
+	                    </div>
+	                    <span class="portfolio-pending" style="display:none"></span>
+	                </div>
+	            </div>
+	          `
+	        });
+	      }
 
       if (hasPending) {
         const inflightKey = `private:${summary.id}:inflight`;

@@ -656,6 +656,22 @@ body:not(.multiplayer-active) .drip-toggle {
     justify-content: center;
 }
 
+.net-worth-help-popover .github-btn {
+    margin-top: 10px;
+    width: auto;
+    min-width: 180px;
+    align-self: center;
+    background: #2f80ed !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
+.net-worth-help-popover .github-btn:hover {
+    background: #2563eb !important;
+}
+
 .date {
     font-size: 1.125rem;
     color: #555;
@@ -1105,6 +1121,32 @@ button.speed-active:hover {
     margin-top: 4px;
 }
 
+.portfolio-meta-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.portfolio-meta-row .portfolio-sector {
+    margin-top: 0;
+}
+
+.portfolio-return {
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.portfolio-return.positive {
+    color: #16a34a;
+}
+
+.portfolio-return.negative {
+    color: #dc2626;
+}
+
 .portfolio-ipo-badge {
     position: absolute;
     top: 8px;
@@ -1169,6 +1211,18 @@ button.speed-active:hover {
     margin-top: 4px;
     font-size: 13px;
     color: #555;
+}
+
+.portfolio-stake-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.portfolio-stake-row .portfolio-stake {
+    margin-top: 0;
 }
 
 .vc-quick-lead-btn {

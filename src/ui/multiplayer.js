@@ -500,6 +500,7 @@
     const COMMAND_ERROR_TOASTS = {
         above_limit: { msg: 'Borrowing limit reached.', tone: 'warn' },
         insufficient_cash: { msg: 'Insufficient cash for that action.', tone: 'warn' },
+        max_ownership: { msg: "You already own all shares in this company. You can't buy more.", tone: 'warn' },
         no_position: { msg: 'You do not hold that position.', tone: 'warn' },
         amount_exceeds_position: { msg: "You don't have that many shares.", tone: 'warn' },
         bad_amount: { msg: 'Enter a valid amount.', tone: 'warn' },
@@ -1034,6 +1035,9 @@
                 const speedLabel = Number.isFinite(s) ? `${s}x` : 'unknown';
                 const intervalLabel = Number.isFinite(interval) ? `${interval.toFixed(0)}ms` : 'unknown';
                 notify(`Debug speed set to ${speedLabel} (${intervalLabel} per tick)`, 'info');
+            }
+            if (msg.ok && msg.data && msg.data.type === 'buy' && msg.data.capped) {
+                notify("Purchase capped — you already own 100% of this company's shares.", 'warn');
             }
             if (msg.ok && msg.data && msg.data.type === 'debug_trigger_macro_event') {
                 const allowDebugToast = (typeof debugMode !== 'undefined' && debugMode)

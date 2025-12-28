@@ -63,7 +63,7 @@
             { "name": "Dr. Kai Nakamura", "degree": "PhD", "school": "Tokyo University" }
           ],
           "mission": "Developing modular gene therapies that scale to hundreds of millions of patients.",
-          "initial_valuation_realization": 0.06,
+          "initial_valuation_realization": 0.05,
           "value_realization_ps": 4,
           "founding_location": "Cambridge, MA",
           "ipo_window": { "from": 1990, "to": 2010 },
@@ -73,10 +73,10 @@
               "label": "Sickle Cell Gene Therapy",
               "full_revenue_usd": 18000000000,
               "stages": [
-                { "id": "phase_1", "name": "Phase 1 Trials", "duration_days": 730, "success_prob": 0.48, "value_realization": 0.14, "cost_usd": 130000000, "max_retries": 2 },
-                { "id": "phase_2", "name": "Phase 2 Trials", "duration_days": 1095, "depends_on": "phase_1", "success_prob": 0.53, "value_realization": 0.28, "cost_usd": 240000000, "max_retries": 0 },
-                { "id": "phase_3", "name": "Phase 3 Trials", "duration_days": 1460, "depends_on": "phase_2", "success_prob": 0.58, "value_realization": 0.6, "cost_usd": 350000000, "max_retries": 0 },
-                { "id": "fda_review", "name": "FDA Review", "duration_days": 365, "depends_on": "phase_3", "success_prob": 0.78, "value_realization": 0.88, "cost_usd": 90000000, "max_retries": 0, "commercialises_revenue": true }
+                { "id": "phase_1", "name": "Phase 1 Trials", "duration_days": 730, "success_prob": 0.59, "value_realization": 0.13, "cost_usd": 130000000, "max_retries": 2 },
+                { "id": "phase_2", "name": "Phase 2 Trials", "duration_days": 1095, "depends_on": "phase_1", "success_prob": 0.65, "value_realization": 0.28, "cost_usd": 240000000, "max_retries": 0 },
+                { "id": "phase_3", "name": "Phase 3 Trials", "duration_days": 1460, "depends_on": "phase_2", "success_prob": 0.71, "value_realization": 0.6, "cost_usd": 350000000, "max_retries": 0 },
+                { "id": "fda_review", "name": "FDA Review", "duration_days": 365, "depends_on": "phase_3", "success_prob": 0.77, "value_realization": 0.88, "cost_usd": 90000000, "max_retries": 0, "commercialises_revenue": true }
               ]
             }
           ]
@@ -91,7 +91,7 @@
           ],
           "mission": "Reprogramming the immune system to stop neurodegenerative disease.",
           "founding_location": "Baltimore, MD",
-          "initial_valuation_realization": 0.06,
+          "initial_valuation_realization": 0.05,
           "value_realization_ps": 4,
           "ipo_window": { "from": 1990, "to": 2011 },
           "pipeline": [
@@ -100,10 +100,10 @@
               "label": "Alzheimer's Neuroimmune Therapy",
               "full_revenue_usd": 14000000000,
               "stages": [
-                { "id": "phase_1", "name": "Phase 1 Trials", "duration_days": 730, "success_prob": 0.53, "value_realization": 0.15, "cost_usd": 95000000, "max_retries": 0 },
-                { "id": "phase_2", "name": "Phase 2 Trials", "duration_days": 1095, "depends_on": "phase_1", "success_prob": 0.56, "value_realization": 0.3, "cost_usd": 180000000, "max_retries": 0 },
-                { "id": "phase_3", "name": "Phase 3 Trials", "duration_days": 1460, "depends_on": "phase_2", "success_prob": 0.68, "value_realization": 0.46, "cost_usd": 320000000, "max_retries": 0 },
-                { "id": "fda_review", "name": "FDA Review", "duration_days": 365, "depends_on": "phase_3", "success_prob": 0.86, "value_realization": 0.78, "cost_usd": 85000000, "max_retries": 0, "commercialises_revenue": true }
+                { "id": "phase_1", "name": "Phase 1 Trials", "duration_days": 730, "success_prob": 0.59, "value_realization": 0.13, "cost_usd": 95000000, "max_retries": 0 },
+                { "id": "phase_2", "name": "Phase 2 Trials", "duration_days": 1095, "depends_on": "phase_1", "success_prob": 0.64, "value_realization": 0.3, "cost_usd": 180000000, "max_retries": 0 },
+                { "id": "phase_3", "name": "Phase 3 Trials", "duration_days": 1460, "depends_on": "phase_2", "success_prob": 0.69, "value_realization": 0.46, "cost_usd": 320000000, "max_retries": 0 },
+                { "id": "fda_review", "name": "FDA Review", "duration_days": 365, "depends_on": "phase_3", "success_prob": 0.78, "value_realization": 0.78, "cost_usd": 85000000, "max_retries": 0, "commercialises_revenue": true }
               ]
             }
           ]
@@ -112,7 +112,7 @@
           "phase": "public",
           "post_success_mode": "instant",
           "name": "OncoGen",
-          "initial_valuation_realization": 0.06,
+          "initial_valuation_realization": 0.05,
           "value_realization_ps": 4,
           "founders": [
             { "name": "Dr. Lucia Romero", "degree": "PhD", "school": "Stanford" },
@@ -127,10 +127,10 @@
               "label": "Precision Oncology Platform",
               "full_revenue_usd": 16000000000,
               "stages": [
-                { "id": "liquid_biopsy_panel", "name": "Liquid Biopsy Panel Trials", "duration_days": 730, "success_prob": 0.51, "value_realization": 0.16, "cost_usd": 140000000, "max_retries": 0 },
-                { "id": "adaptive_combo_trials", "name": "Adaptive Combo Therapy Trials", "duration_days": 1095, "depends_on": "liquid_biopsy_panel", "success_prob": 0.58, "value_realization": 0.36, "cost_usd": 260000000, "max_retries": 0 },
-                { "id": "registrational_studies", "name": "Registrational Studies", "duration_days": 1275, "depends_on": "adaptive_combo_trials", "success_prob": 0.64, "value_realization": 0.62, "cost_usd": 340000000, "max_retries": 0 },
-                { "id": "global_guidelines", "name": "Global Guidelines & Label Expansion", "duration_days": 730, "depends_on": "registrational_studies", "success_prob": 0.82, "value_realization": 0.9, "cost_usd": 120000000, "max_retries": 0, "commercialises_revenue": true }
+                { "id": "liquid_biopsy_panel", "name": "Liquid Biopsy Panel Trials", "duration_days": 730, "success_prob": 0.6, "value_realization": 0.13, "cost_usd": 140000000, "max_retries": 0 },
+                { "id": "adaptive_combo_trials", "name": "Adaptive Combo Therapy Trials", "duration_days": 1095, "depends_on": "liquid_biopsy_panel", "success_prob": 0.66, "value_realization": 0.27, "cost_usd": 260000000, "max_retries": 0 },
+                { "id": "registrational_studies", "name": "Registrational Studies", "duration_days": 1275, "depends_on": "adaptive_combo_trials", "success_prob": 0.74, "value_realization": 0.62, "cost_usd": 340000000, "max_retries": 0 },
+                { "id": "global_guidelines", "name": "Global Guidelines & Label Expansion", "duration_days": 730, "depends_on": "registrational_studies", "success_prob": 0.80, "value_realization": 0.9, "cost_usd": 120000000, "max_retries": 0, "commercialises_revenue": true }
               ]
             }
           ]
@@ -216,6 +216,46 @@
                 { "id": "household_tasks", "name": "Household Task Autonomy", "duration_days": 670, "depends_on": "manipulation", "success_prob": 0.78, "value_realization": 0.35, "cost_usd": 2500500200, "max_retries": 0 },
                 { "id": "mass_production", "name": "Mass Production", "duration_days": 650, "depends_on": "household_tasks", "success_prob": 0.88, "value_realization": 0.76, "cost_usd": 3500500200, "max_retries": 0 },
                 { "id": "global_launch", "name": "Global Launch", "duration_days": 480, "depends_on": "mass_production", "success_prob": 0.99, "value_realization": 1, "cost_usd": 85000000, "max_retries": 0, "commercialises_revenue": true }
+              ]
+            }
+          ]
+        },
+        {
+          "phase": "private",
+          "post_success_mode": "ramp",
+          "name": "OrbitVault Data Centers",
+          "sector": "Technology",
+          "subsector": "Space Technology",
+          "funding_round": "seed",
+          "gate_stage": "series_c",
+          "ipo_stage": "series_d",
+          "rounds_override": ["seed", "series_a", "series_b", "series_c", "series_d"],
+          "value_realization_ps": 7,
+          "founders": [
+            { "name": "Mina Park", "degree": "MS Aerospace Engineering", "school": "Georgia Tech" },
+            { "name": "Julian Ortiz", "degree": "PhD Electrical Engineering", "school": "Caltech" }
+          ],
+          "mission": "Building solar-powered orbital data centers for clean, always-on compute.",
+          "founding_location": "Los Angeles, CA",
+          "initial_valuation_realization": 0.015,
+          "hypergrowth_window_years": 2.5,
+          "hypergrowth_initial_growth_rate": 0.85,
+          "hypergrowth_terminal_growth_rate": 0.18,
+          "hypergrowth_initial_margin": -0.35,
+          "hypergrowth_terminal_margin": 0.25,
+          "years_to_converge": 5,
+          "private_listing_window": { "from": 2023, "to": 2032 },
+          "pipelineTemplate": [
+            {
+              "id": "orbitvault_cluster",
+              "label": "Orbital Data Center Constellation",
+              "full_revenue_usd": [6000000000, 18000000000],
+              "stages": [
+                { "id": "launch_demo", "name": "Launch Demonstrator", "duration_days": 720, "success_prob": 0.55, "value_realization": 0.06, "cost_usd": 500000000, "max_retries": 1 },
+                { "id": "power_thermal", "name": "Power & Thermal Stack", "duration_days": 900, "depends_on": "launch_demo", "success_prob": 0.6, "value_realization": 0.15, "cost_usd": 1200000000, "max_retries": 1 },
+                { "id": "orbital_ops", "name": "Autonomous Orbital Operations", "duration_days": 720, "depends_on": "power_thermal", "success_prob": 0.65, "value_realization": 0.28, "cost_usd": 1800000000, "max_retries": 0 },
+                { "id": "first_customers", "name": "First Customer Workloads", "duration_days": 600, "depends_on": "orbital_ops", "success_prob": 0.75, "value_realization": 0.55, "cost_usd": 900000000, "max_retries": 0 },
+                { "id": "constellation_scale", "name": "Constellation Scale-Up", "duration_days": 540, "depends_on": "first_customers", "success_prob": 0.88, "value_realization": 1, "cost_usd": 2500000000, "max_retries": 0, "commercialises_revenue": true }
               ]
             }
           ]
@@ -554,8 +594,8 @@
           "phase": "private",
           "post_success_mode": "ramp",
           "name": "AstraBelt Resources",
-          "sector": "Industrial",
-          "subsector": "Space Resources",
+          "sector": "Technology",
+          "subsector": "Space Technology",
           "gate_stage": "series_c",
           "ipo_stage": "series_d",
           "rounds_override": ["seed", "series_a", "series_b", "series_c", "series_d"],
@@ -594,7 +634,7 @@
                   "name": "Autonomous Rendezvous & Anchoring",
                   "duration_days": 780,
                   "depends_on": "target_characterization",
-                  "success_prob": 0.55,
+                  "success_prob": 0.7,
                   "value_realization": 0.2,
                   "cost_usd": 900000000,
                   "max_retries": 0
@@ -604,7 +644,7 @@
                   "name": "Microgravity Excavation & Material Handling",
                   "duration_days": 900,
                   "depends_on": "rendezvous_anchoring",
-                  "success_prob": 0.5,
+                  "success_prob": 0.75,
                   "value_realization": 0.4,
                   "cost_usd": 1600000000,
                   "max_retries": 0
@@ -614,7 +654,7 @@
                   "name": "In-Situ Processing & Refining",
                   "duration_days": 900,
                   "depends_on": "microgravity_excavation",
-                  "success_prob": 0.58,
+                  "success_prob": 0.78,
                   "value_realization": 0.7,
                   "cost_usd": 2300000000,
                   "max_retries": 0
@@ -624,7 +664,7 @@
                   "name": "Bulk Return & Orbital Logistics",
                   "duration_days": 780,
                   "depends_on": "in_situ_processing",
-                  "success_prob": 0.68,
+                  "success_prob": 0.86,
                   "value_realization": 1.0,
                   "cost_usd": 2600000000,
                   "max_retries": 0,

@@ -116,7 +116,7 @@ if (typeof window !== 'undefined' && window.innerWidth <= 768) {
 const DEFAULT_WOJAK_SRC = 'wojaks/wojak.png';
 const MALDING_WOJAK_SRC = 'wojaks/malding-wojak.png';
 const HAPPY_WOJAK_SRC = 'wojaks/happywojak.png';
-const WOJAK_SIM_VERSION_SHORT = '0.2.1';
+const WOJAK_SIM_VERSION_SHORT = '0.2.5';
 const WOJAK_SIM_VERSION = `wojaksim-v${WOJAK_SIM_VERSION_SHORT}`;
 const COMMUNITY_MESSAGE =
     "Hello my Wojaks! Thank you for playing. I hope you like version 0.2. Please write me with the feedback button if you have any comments, questions, or thoughts.";
@@ -1535,7 +1535,8 @@ function syncPortfolioFromServer() {
         if (!units || units <= 0) return;
         const company = companies.find(c => c.id === companyId);
         if (!company) return;
-        nextPortfolio.push({ companyName: company.name, unitsOwned: units });
+        const invested = serverPlayer.publicCashInvested ? Number(serverPlayer.publicCashInvested[companyId]) : NaN;
+        nextPortfolio.push({ companyName: company.name, unitsOwned: units, costBasis: Number.isFinite(invested) ? invested : 0 });
     });
     portfolio = nextPortfolio;
     if (stateStore && stateStore.reducers) {
@@ -1649,6 +1650,9 @@ function maybeScheduleBankruptcyTest() {
 function ensureVentureSimulation(force = false) {
     if ((force || !ventureSim) && typeof VentureSimulation !== 'undefined' && ventureCompanies.length > 0) {
         const ventureOpts = matchRngFn ? { rng: matchRngFn, seed: matchSeed } : {};
+        if (sim && sim.macroEventManager) {
+            ventureOpts.macroEventManager = sim.macroEventManager;
+        }
         ventureSim = new VentureSimulation(ventureCompanies, currentDate, ventureOpts);
         window.ventureSim = ventureSim;
     }
@@ -2543,11 +2547,13 @@ function convertVentureCompanyToPublic(event) {
     const unitsOwned = event.playerEquity || 0;
     if (unitsOwned > 0) {
         const targetName = ventureCompany.name;
+        const investedBasis = Number(ventureCompany.playerInvested) || 0;
         const existing = portfolio.find(h => h.companyName === targetName);
         if (existing) {
             existing.unitsOwned += unitsOwned;
+            existing.costBasis = (Number(existing.costBasis) || 0) + investedBasis;
         } else {
-            portfolio.push({ companyName: targetName, unitsOwned: unitsOwned });
+            portfolio.push({ companyName: targetName, unitsOwned: unitsOwned, costBasis: investedBasis });
         }
         renderPortfolio();
     }
@@ -2784,6 +2790,7 @@ function liquidatePlayerAssets() {
             serverPlayer.cash = 0;
             serverPlayer.debt = 0;
             serverPlayer.holdings = {};
+            serverPlayer.publicCashInvested = {};
             serverPlayer.ventureHoldings = {};
             serverPlayer.ventureCommitments = {};
             serverPlayer.ventureCashInvested = {};
@@ -3063,19 +3070,42 @@ function buy(companyName, amount, opts = {}) {
         sendCommand({ type: 'buy', companyId: company.id, amount });
         return;
     }
-    if (amount > cash) { return; }
     if (company.marketCap < 0.0001) { return; }
+    const currentUnits = portfolio
+        .filter(h => h && h.companyName === companyName)
+        .reduce((sum, h) => sum + (Number(h.unitsOwned) || 0), 0);
+    const remainingUnits = 1 - currentUnits;
+    if (remainingUnits <= 1e-12) {
+        showToast("You already own all shares in this company. You can't buy more.", { tone: 'warn' });
+        return;
+    }
+    const maxInvestable = remainingUnits * company.marketCap;
+    const capped = amount > maxInvestable;
+    if (capped) {
+        amount = maxInvestable;
+    }
+    if (amount > cash) { return; }
     const unitsToBuy = amount / company.marketCap;
     if (stateStore && stateStore.reducers) {
         syncStoreFromLegacy();
         cash = stateStore.reducers.applyCashDelta(-amount);
-        stateStore.reducers.upsertPublicHolding(companyName, unitsToBuy);
+        const holding = stateStore.reducers.upsertPublicHolding(companyName, unitsToBuy);
+        if (holding) {
+            holding.costBasis = (Number(holding.costBasis) || 0) + amount;
+        }
         portfolio = stateStore.player.portfolio;
     } else {
         cash -= amount;
         let holding = portfolio.find(h => h.companyName === companyName);
-        if (holding) { holding.unitsOwned += unitsToBuy; }
-        else { portfolio.push({ companyName: companyName, unitsOwned: unitsToBuy }); }
+        if (holding) {
+            holding.unitsOwned += unitsToBuy;
+            holding.costBasis = (Number(holding.costBasis) || 0) + amount;
+        } else {
+            portfolio.push({ companyName: companyName, unitsOwned: unitsToBuy, costBasis: amount });
+        }
+    }
+    if (capped) {
+        showToast("Purchase capped — you now own 100% of this company.", { tone: 'warn' });
     }
     updateNetWorth(); updateDisplay(); renderPortfolio(); updateInvestmentPanel(company);
 }
@@ -3099,14 +3129,25 @@ function sell(companyName, amount, opts = {}) {
     const currentValue = company.marketCap * holding.unitsOwned;
     if (amount > currentValue) { return; }
     const unitsToSell = (amount / currentValue) * holding.unitsOwned;
+    const costBasisBefore = Number(holding.costBasis) || 0;
+    const unitsBefore = Number(holding.unitsOwned) || 0;
+    let nextCostBasis = costBasisBefore;
+    if (costBasisBefore > 0 && unitsBefore > 0) {
+        const basisPerUnit = costBasisBefore / unitsBefore;
+        nextCostBasis = Math.max(0, costBasisBefore - basisPerUnit * unitsToSell);
+    }
     if (stateStore && stateStore.reducers) {
         syncStoreFromLegacy();
         cash = stateStore.reducers.applyCashDelta(amount);
-        stateStore.reducers.upsertPublicHolding(companyName, -unitsToSell);
+        const nextHolding = stateStore.reducers.upsertPublicHolding(companyName, -unitsToSell);
+        if (nextHolding) {
+            nextHolding.costBasis = nextCostBasis;
+        }
         portfolio = stateStore.player.portfolio;
     } else {
         cash += amount;
         holding.unitsOwned -= unitsToSell;
+        holding.costBasis = nextCostBasis;
         if (holding.unitsOwned <= 1e-15) {
             portfolio = portfolio.filter(h => h.companyName !== companyName);
         }
@@ -4377,9 +4418,8 @@ window.setServerDebugSpeed = function setServerDebugSpeed(speed) {
 
 
 
-portfolioList.addEventListener('click', (event) => {
-    const portfolioItem = event.target.closest('.portfolio-item');
-    if (!portfolioItem) return;
+function openPortfolioItemFromBox(portfolioItem) {
+    if (!portfolioItem) return false;
     const type = portfolioItem.dataset.portfolioType || 'public';
     if (type === 'public') {
         const rawName = (portfolioItem.dataset.companyName || '').trim();
@@ -4387,13 +4427,49 @@ portfolioList.addEventListener('click', (event) => {
         const fallbackName = label.endsWith(' (Failed)') ? label.slice(0, -9) : label;
         const companyName = rawName || fallbackName;
         const company = companies.find(c => c && typeof c.name === 'string' && c.name === companyName);
-        if (company) showCompanyDetail(company);
+        if (company) {
+            showCompanyDetail(company);
+            return true;
+        }
     } else if (type === 'private') {
         const ventureId = portfolioItem.dataset.ventureId;
         if (ventureId && typeof showVentureCompanyDetail === 'function') {
             showVentureCompanyDetail(ventureId);
+            return true;
         }
     }
+    return false;
+}
+
+let suppressNextPortfolioClick = false;
+let suppressPortfolioClickUntil = 0;
+
+// Handle portfolio selection on pointerdown so tick-driven rerenders don't drop the click.
+portfolioList.addEventListener('pointerdown', (event) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    const portfolioItem = event.target.closest('.portfolio-item');
+    if (!portfolioItem) return;
+    if (openPortfolioItemFromBox(portfolioItem)) {
+        suppressNextPortfolioClick = true;
+        const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        suppressPortfolioClickUntil = now + 750;
+    }
+});
+
+portfolioList.addEventListener('click', (event) => {
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    if (suppressNextPortfolioClick && now > suppressPortfolioClickUntil) {
+        suppressNextPortfolioClick = false;
+        suppressPortfolioClickUntil = 0;
+    }
+    if (suppressNextPortfolioClick && now <= suppressPortfolioClickUntil) {
+        suppressNextPortfolioClick = false;
+        suppressPortfolioClickUntil = 0;
+        return;
+    }
+    const portfolioItem = event.target.closest('.portfolio-item');
+    if (!portfolioItem) return;
+    openPortfolioItemFromBox(portfolioItem);
 });
 
 const maxBorrowBtn = document.getElementById('maxBorrowBtn');

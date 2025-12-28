@@ -202,8 +202,8 @@
     };
   };
 
-  class VentureCompany extends Company {
-    constructor(config, startDate, rngFn = random) {
+	  class VentureCompany extends Company {
+	    constructor(config, startDate, rngFn = random) {
       const start = startDate ? new Date(startDate) : new Date('1990-01-01T00:00:00Z');
       const publicCfg = buildPublicConfigFromVenture(config, start.getUTCFullYear());
       super(publicCfg, DummyMacroEnv, start.getUTCFullYear(), start);
@@ -212,13 +212,14 @@
       this.showDividendColumn = false;
       this.fromVenture = true;
 
-      this.founders = Array.isArray(config.founders) ? config.founders.map(f => ({ ...f })) : [];
-      this.mission = config.mission || '';
-      this.foundingLocation = config.founding_location || config.foundingLocation || '';
-      this.archetype = config.archetype || 'hypergrowth';
-      this.roundDefinitions = resolveRoundDefinitions(config.rounds || config.rounds_override || []);
-      const startingStageId = normalizeStageId(config.funding_round || 'seed');
-      let startingIndex = this.roundDefinitions.findIndex(stage => stage.id === startingStageId);
+	      this.founders = Array.isArray(config.founders) ? config.founders.map(f => ({ ...f })) : [];
+	      this.mission = config.mission || '';
+	      this.foundingLocation = config.founding_location || config.foundingLocation || '';
+	      this.archetype = config.archetype || 'hypergrowth';
+	      this.macroEventManager = config.macroEventManager || config.macro_event_manager || null;
+	      this.roundDefinitions = resolveRoundDefinitions(config.rounds || config.rounds_override || []);
+	      const startingStageId = normalizeStageId(config.funding_round || 'seed');
+	      let startingIndex = this.roundDefinitions.findIndex(stage => stage.id === startingStageId);
       if (startingIndex < 0) startingIndex = 0;
       this.stageIndex = startingIndex;
 
@@ -974,20 +975,31 @@
       this.lastFairValue = Math.max(1, this.revenue * this.currentMultiple);
     }
 
-    generateRound(currentDate) {
-      const stage = this.currentStage;
-      if (!stage || stage.id === 'ipo') {
-        this.currentRound = null;
-        return;
-      }
-      const raiseRange = Array.isArray(stage.raiseFraction) && stage.raiseFraction.length >= 2
-        ? stage.raiseFraction
-        : [0.15, 0.3];
-      const raiseFraction = between(raiseRange[0], raiseRange[1]);
-      const prevValuation = Math.max(1, this.currentValuation || this.lastFairValue || 1);
-      const multiplierRange = Array.isArray(stage.preMoneyMultiplier) && stage.preMoneyMultiplier.length >= 2
-        ? stage.preMoneyMultiplier
-        : [1.05, 1.25];
+	    generateRound(currentDate) {
+	      const stage = this.currentStage;
+	      if (!stage || stage.id === 'ipo') {
+	        this.currentRound = null;
+	        return;
+	      }
+	      let raiseRange = Array.isArray(stage.raiseFraction) && stage.raiseFraction.length >= 2
+	        ? stage.raiseFraction
+	        : [0.15, 0.3];
+	      if (this.archetype === 'hypergrowth') {
+	        const stageId = String(stage.id || '').toLowerCase();
+	        if (stageId === 'seed' || stageId === 'series_a') {
+	          raiseRange = [0.03, 0.07];
+	        } else {
+	          const scale = 0.25;
+	          const min = Math.max(0.01, raiseRange[0] * scale);
+	          const max = Math.min(0.05, raiseRange[1] * scale);
+	          raiseRange = max > min ? [min, max] : [min, Math.max(min + 0.005, max)];
+	        }
+	      }
+	      const raiseFraction = between(raiseRange[0], raiseRange[1]);
+	      const prevValuation = Math.max(1, this.currentValuation || this.lastFairValue || 1);
+	      const multiplierRange = Array.isArray(stage.preMoneyMultiplier) && stage.preMoneyMultiplier.length >= 2
+	        ? stage.preMoneyMultiplier
+	        : [1.05, 1.25];
 
       let fairValue;
       if (this.archetype === 'hardtech') {
@@ -2052,16 +2064,17 @@
     }
   }
 
-  class VentureSimulation {
-    constructor(configs, startDate, options = {}) {
-      const seed = options.seed ?? Date.now();
-      this.rng = options.rng || new SeededRandom(seed);
-      this.rngFn = typeof options.rng === 'function' ? options.rng : () => this.rng.random();
-      this.seed = seed;
-      this.companies = [];
-      withRandomSource(this.rngFn, () => {
-        this.companies = (configs || []).map(cfg => new VentureCompany({
-          id: cfg.id,
+	  class VentureSimulation {
+	    constructor(configs, startDate, options = {}) {
+	      const seed = options.seed ?? Date.now();
+	      this.rng = options.rng || new SeededRandom(seed);
+	      this.rngFn = typeof options.rng === 'function' ? options.rng : () => this.rng.random();
+	      this.seed = seed;
+	      this.macroEventManager = options.macroEventManager || null;
+	      this.companies = [];
+	      withRandomSource(this.rngFn, () => {
+	        this.companies = (configs || []).map(cfg => new VentureCompany({
+	          id: cfg.id,
           name: cfg.name,
           sector: cfg.sector,
           subsector: cfg.subsector,
@@ -2092,12 +2105,13 @@
           rounds: Array.isArray(cfg.rounds_override) ? cfg.rounds_override : Array.isArray(cfg.rounds) ? cfg.rounds : [],
           base_business: cfg.base_business,
           finance: cfg.finance,
-          costs: cfg.costs,
-          archetype: cfg.archetype,
-          initial_valuation_realization: cfg.initial_valuation_realization,
-          private_listing_window: cfg.private_listing_window || cfg.listing_window || cfg.listingWindow || cfg.listing_window,
-          pendingCommitments: cfg.pendingCommitments || {},
-          pipeline: Array.isArray(cfg.pipeline) ? cfg.pipeline : [],
+	          costs: cfg.costs,
+	          archetype: cfg.archetype,
+	          macroEventManager: this.macroEventManager,
+	          initial_valuation_realization: cfg.initial_valuation_realization,
+	          private_listing_window: cfg.private_listing_window || cfg.listing_window || cfg.listingWindow || cfg.listing_window,
+	          pendingCommitments: cfg.pendingCommitments || {},
+	          pipeline: Array.isArray(cfg.pipeline) ? cfg.pipeline : [],
           events: Array.isArray(cfg.events) ? cfg.events : []
         }, startDate, this.rngFn));
       });

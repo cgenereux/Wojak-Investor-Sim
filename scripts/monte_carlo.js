@@ -2,6 +2,11 @@ const fs = require('fs'); // Monte Carlo runner
 const path = require('path');
 const vm = require('vm');
 
+// Avoid noisy crashes when piping output (e.g. `node scripts/monte_carlo.js | head`).
+process.stdout.on('error', (err) => {
+    if (err && err.code === 'EPIPE') process.exit(0);
+});
+
 // --- 1. Mock Browser/Global Environment ---
 
 // Custom console to filter noise
@@ -126,6 +131,7 @@ async function runAll() {
     const generators = [
         { name: 'Hypergrowth', fn: 'generateHypergrowthPresetCompanies', dataPath: 'data/presets/hypergrowth.json', requiresCountArg: false },
         { name: 'HardTech (Binary)', fn: 'generateBinaryHardTechCompanies', dataPath: 'data/presets/hard_tech.json', requiresCountArg: true },
+        { name: 'HardTech (Public Biotech)', fn: 'generatePublicHardTechPresetCompanies', dataPath: 'data/presets/hard_tech.json', requiresCountArg: true },
     ];
 
     const results = {};
@@ -214,105 +220,166 @@ function makeSeed(config, iterationIndex = 0) {
     return h >>> 0;
 }
 
+function isPublicCompanyConfig(config) {
+    return !!(config && config.static && typeof config.static === 'object' && config.base_business);
+}
+
 function runSingleSimulation(config, investmentAmount, iterationIndex = 0) {
     const seed = makeSeed(config, iterationIndex);
     const prng = new SeededRandom(seed);
     const rngFn = () => prng.random();
 
     return withRandomSource(rngFn, () => {
-        const startYear = 2024;
-        const cfgCopy = JSON.parse(JSON.stringify(config));
-
-        // Public-market simulation (used once a venture IPOs)
-        const simOptions = {
-            startYear,
-            dt: 14,
-            macroEvents: [],
-            seed,
-            rng: rngFn
-        };
-        const sim = new Simulation([], simOptions);
-
-        const co = new VentureCompany(cfgCopy, new Date(`${startYear}-01-01`), rngFn);
-
-        // Invest at seed (always-seed behavior preserved)
-        if (!co.currentRound) {
-            return { 5: 0, 10: 0, 15: 0, 20: 0 };
+        if (isPublicCompanyConfig(config)) {
+            return runSinglePublicCompanySimulation(config, investmentAmount, seed, rngFn);
         }
-
-        const round = co.currentRound;
-        const preMoney = round.preMoney || 1_000_000;
-        const raiseAmount = round.raiseAmount || 500_000;
-        const postMoney = preMoney + raiseAmount;
-        const targetEquity = investmentAmount / postMoney;
-
-        // commitInvestment expects equity fraction
-        const commitres = co.commitInvestment(targetEquity, 'p1');
-        if (!commitres || !commitres.success) {
-            return { 5: 0, 10: 0, 15: 0, 20: 0 };
-        }
-
-        const actualInvested = commitres.amount;
-
-        // Loop
-        const maxYears = 20;
-        const tickDays = 14;
-        let currentDays = 0;
-        let adoptedToPublic = false;
-
-        const results = {};
-
-        for (let year = 1; year <= maxYears; year++) {
-            const isDead = co.status === 'failed' || co.bankrupt;
-            if (isDead) {
-                if (YEARS.includes(year)) results[year] = 0;
-                continue; // still need to fill other years
-            }
-
-            const daysInYear = 365;
-            let daysSimulated = 0;
-
-            while (daysSimulated < daysInYear) {
-                const dt = Math.min(tickDays, daysInYear - daysSimulated);
-                const currentDate = new Date(startYear, 0, 1);
-                currentDate.setDate(currentDate.getDate() + currentDays);
-
-                if (co.status === 'failed' || co.bankrupt) break;
-
-                if (!adoptedToPublic) {
-                    const events = co.advance(dt, currentDate) || [];
-                    const ipoEvent = events.find(e => e && e.type === 'venture_ipo');
-                    if (ipoEvent && !adoptedToPublic && typeof sim.adoptVentureCompany === 'function') {
-                        sim.adoptVentureCompany(co, currentDate);
-                        adoptedToPublic = true;
-                    }
-                } else {
-                    sim.tick(currentDate);
-                }
-
-                currentDays += dt;
-                daysSimulated += dt;
-            }
-
-            if (YEARS.includes(year)) {
-                let val = 0;
-                const stillAlive = !(co.status === 'failed' || co.bankrupt);
-                if (stillAlive) {
-                    if (typeof co.getPlayerValuation === 'function') {
-                        val = co.getPlayerValuation('p1') || 0;
-                    } else {
-                        const equity = (co.playerEquityMap && co.playerEquityMap['p1']) || 0;
-                        const baseVal = co.marketCap || co.currentValuation || 0;
-                        val = equity * baseVal;
-                    }
-                }
-                const multiple = actualInvested > 0 ? (val / actualInvested) : 0;
-                results[year] = multiple * investmentAmount;
-            }
-        }
-
-        return results;
+        return runSingleVentureSimulation(config, investmentAmount, seed, rngFn);
     });
+}
+
+function runSinglePublicCompanySimulation(config, investmentAmount, seed, rngFn) {
+    const startYear = 2024;
+    const cfgCopy = JSON.parse(JSON.stringify(config));
+
+    const simOptions = {
+        startYear,
+        dt: 14,
+        macroEvents: [],
+        seed,
+        rng: rngFn
+    };
+    // Force IPO at startYear so the investment horizon is consistent.
+    cfgCopy.static = cfgCopy.static || {};
+    cfgCopy.static.ipo_instantly = true;
+    cfgCopy.static.ipo_window = { from: startYear, to: startYear };
+
+    const sim = new Simulation([cfgCopy], simOptions);
+    const company = sim.companies && sim.companies[0];
+    if (!company || !(company.marketCap > 0)) {
+        return { 5: 0, 10: 0, 15: 0, 20: 0 };
+    }
+
+    const investedUnits = investmentAmount / company.marketCap;
+    const maxYears = 20;
+    const tickDays = 14;
+    let currentDays = 0;
+    const results = {};
+
+    for (let year = 1; year <= maxYears; year++) {
+        const daysInYear = 365;
+        let daysSimulated = 0;
+        while (daysSimulated < daysInYear) {
+            const dt = Math.min(tickDays, daysInYear - daysSimulated);
+            const currentDate = new Date(startYear, 0, 1);
+            currentDate.setDate(currentDate.getDate() + currentDays);
+            sim.tick(currentDate);
+            currentDays += dt;
+            daysSimulated += dt;
+        }
+
+        if (YEARS.includes(year)) {
+            const cap = Number(company.marketCap) || 0;
+            const val = cap * investedUnits;
+            results[year] = val;
+        }
+    }
+
+    return results;
+}
+
+function runSingleVentureSimulation(config, investmentAmount, seed, rngFn) {
+    const startYear = 2024;
+    const cfgCopy = JSON.parse(JSON.stringify(config));
+
+    // Public-market simulation (used once a venture IPOs)
+    const simOptions = {
+        startYear,
+        dt: 14,
+        macroEvents: [],
+        seed,
+        rng: rngFn
+    };
+    const sim = new Simulation([], simOptions);
+
+    const co = new VentureCompany(cfgCopy, new Date(`${startYear}-01-01`), rngFn);
+
+    // Invest at seed (always-seed behavior preserved)
+    if (!co.currentRound) {
+        return { 5: 0, 10: 0, 15: 0, 20: 0 };
+    }
+
+    const round = co.currentRound;
+    const preMoney = round.preMoney || 1_000_000;
+    const raiseAmount = round.raiseAmount || 500_000;
+    const postMoney = preMoney + raiseAmount;
+    const targetEquity = investmentAmount / postMoney;
+
+    // commitInvestment expects equity fraction
+    const commitres = co.commitInvestment(targetEquity, 'p1');
+    if (!commitres || !commitres.success) {
+        return { 5: 0, 10: 0, 15: 0, 20: 0 };
+    }
+
+    const actualInvested = commitres.amount;
+
+    // Loop
+    const maxYears = 20;
+    const tickDays = 14;
+    let currentDays = 0;
+    let adoptedToPublic = false;
+
+    const results = {};
+
+    for (let year = 1; year <= maxYears; year++) {
+        const isDead = co.status === 'failed' || co.bankrupt;
+        if (isDead) {
+            if (YEARS.includes(year)) results[year] = 0;
+            continue; // still need to fill other years
+        }
+
+        const daysInYear = 365;
+        let daysSimulated = 0;
+
+        while (daysSimulated < daysInYear) {
+            const dt = Math.min(tickDays, daysInYear - daysSimulated);
+            const currentDate = new Date(startYear, 0, 1);
+            currentDate.setDate(currentDate.getDate() + currentDays);
+
+            if (co.status === 'failed' || co.bankrupt) break;
+
+            if (!adoptedToPublic) {
+                const events = co.advance(dt, currentDate) || [];
+                const ipoEvent = events.find(e => e && e.type === 'venture_ipo');
+                if (ipoEvent && !adoptedToPublic && typeof sim.adoptVentureCompany === 'function') {
+                    sim.adoptVentureCompany(co, currentDate);
+                    adoptedToPublic = true;
+                }
+            } else {
+                sim.tick(currentDate);
+            }
+
+            currentDays += dt;
+            daysSimulated += dt;
+        }
+
+        if (YEARS.includes(year)) {
+            let val = 0;
+            const stillAlive = !(co.status === 'failed' || co.bankrupt);
+            if (stillAlive) {
+                if (typeof co.getPlayerValuation === 'function') {
+                    val = co.getPlayerValuation('p1') || 0;
+                } else {
+                    const equity = (co.playerEquityMap && co.playerEquityMap['p1']) || 0;
+                    const baseVal = co.marketCap || co.currentValuation || 0;
+                    val = equity * baseVal;
+                }
+            }
+            const multiple = actualInvested > 0 ? (val / actualInvested) : 0;
+            results[year] = multiple * investmentAmount;
+        }
+    }
+
+    return results;
 }
 
 function printResults(results) {

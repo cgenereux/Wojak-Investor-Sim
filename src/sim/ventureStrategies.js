@@ -50,13 +50,24 @@
     return base;
   }
 
-  function applyPmfLoss(company, dtYears) {
-    if (!company || company.archetype !== 'hypergrowth' || !Number.isFinite(dtYears) || dtYears <= 0) return false;
-    const prob = company.pmfLossProbPerYear || 0;
-    if (!prob || prob <= 0) return false;
+	  function applyPmfLoss(company, dtYears) {
+	    if (!company || company.archetype !== 'hypergrowth' || !Number.isFinite(dtYears) || dtYears <= 0) return false;
+	    const baseProb = company.pmfLossProbPerYear || 0;
+	    if (!baseProb || baseProb <= 0) return false;
+	    let prob = baseProb;
+	    const eventManager = company.macroEventManager;
+	    if (eventManager && typeof eventManager.getActiveEvents === 'function') {
+	      const active = eventManager.getActiveEvents(company.currentDate);
+	      const isRecession = Array.isArray(active) && active.some(evt => (
+	        evt && (evt.id === 'global_recession' || evt.id === 'great_depression')
+	      ));
+	      if (isRecession) {
+	        prob *= 1.3;
+	      }
+	    }
 
-    if (!company.hyperPmfState) {
-      company.hyperPmfState = {
+	    if (!company.hyperPmfState) {
+	      company.hyperPmfState = {
         active: false,
         elapsedYears: 0,
         durationYears: 0,
